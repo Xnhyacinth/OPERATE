@@ -1,0 +1,347 @@
+seed_id: microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_v58
+family: microgrid_economic_dispatch_24h
+domain: microgrid
+backend_kind: pymgrid_economic_dispatch
+backend_config:
+  site: minneapolis_mn
+  profiles:
+    load_mw:
+    - 123.36934
+    - 124.87449
+    - 125.9208
+    - 127.53616
+    - 131.02741
+    - 140.79738
+    - 151.76335
+    - 162.45188
+    - 168.52261
+    - 173.19916
+    - 180.84573
+    - 181.66945
+    - 177.71568
+    - 172.98346
+    - 165.02464
+    - 153.69677
+    - 145.51411
+    - 144.8119
+    - 140.74493
+    - 136.56588
+    - 131.44285
+    - 127.44107
+    - 126.32886
+    - 126.88342
+    pv_mw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 13.41446
+    - 40.89204
+    - 126.28174
+    - 139.99994
+    - 139.99994
+    - 135.83926
+    - 106.83238
+    - 63.52634
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    wind_mw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    price:
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+    - 148.49
+  battery:
+    capacity_mwh: 112.0
+    init_soc: 0.5
+    max_charge_mw: 70.0
+    max_discharge_mw: 70.0
+    efficiency: 0.95
+  genset:
+    min_mw: 14.0
+    max_mw: 140.0
+    fuel_cost_per_mwh: 120.0
+    startup_cost: 560.0
+    available: true
+  grid:
+    max_import_mw: 336.0
+    max_export_mw: 168.0
+  ders:
+  - der_id: der0
+    kind: pv
+  - der_id: der1
+    kind: pv
+  - der_id: der2
+    kind: pv
+  - der_id: der3
+    kind: pv
+  - der_id: der4
+    kind: pv
+  - der_id: der5
+    kind: pv
+  controllable_der_count: 6
+  genset_available: true
+  forecast_regime_idx: 1
+  forecast_error_sigma: 0.12
+  forecast_bias: 0.1
+  islanding_trigger_tick: 3
+  hidden_parity: 1
+  cascade_permissive: false
+  honest_zero_keys:
+  - rho_max
+  - n_overloads
+  - n_voltage_violations
+  - n_disconnected_lines
+  derivation_recipe:
+    pipeline_version: nrel-ems-window-v1
+    profile_start_index: 0
+    source_window_sha256: e1225147b4a5115819a7b1738f546791b25c409fe2e3581a96ae4a19b938c577
+  release_ready: false
+  release_reentry_ready: false
+  source_integration_rung: staging_native_state_loss_ems_v1
+  source_denominator_key: '{"backend":"pymgrid_economic_dispatch","profile_start_index":0,"site":"minneapolis_mn","source_commit":"nsrdb-physical-solar-model-v3.2.2
+    + nrel-end-use-load-profiles-2021.1","source_files":["works/nrel-microgrid/minneapolis_mn.npz","works/nrel-microgrid/minneapolis_mn.provenance.json"],"source_window_sha256":"e1225147b4a5115819a7b1738f546791b25c409fe2e3581a96ae4a19b938c577"}'
+  procedural_stress:
+    origin: deterministic_overlay
+    source_observed: false
+    source_anchor: nrel_oedi_profile_window
+    event_kind: grid_outage
+    event_tick: 3
+    duration_ticks: 6
+    native_loss_required: true
+  response_window_recipe:
+    version: pymgrid_native_state_loss_response_v1
+    event_trigger_tick: 3
+    preposition_opportunity_tick: 2
+    recovery_opportunity_tick: 4
+    response_window_end_tick: 8
+    restoration_opportunity_tick: 8
+    simulator_advances_time: true
+    state_changing_tools:
+    - dispatch_genset
+    - set_battery_dispatch
+    - connect_pcc
+  native_state_loss_task:
+    contract: microgrid.native_state_loss.v1
+    required_task_loss_keys:
+    - balance_error_mw
+    - shed_penalty
+    task_loss_formula: sum(abs(balance_error_mw) * 200 + shed_penalty)
+    production_cost_only_rejected: true
+    minimum_baseline_task_loss: 1000.0
+    minimum_task_loss_reduction: 100.0
+    response_window_required: true
+    source_vs_procedural_separation: true
+  task_requirements:
+    min_distinct_control_ticks: 3
+    min_distinct_physical_tools: 3
+    ordered_tool_milestones:
+    - tool: dispatch_genset
+      not_before_tick: 2
+      not_after_tick: 3
+    - tool: set_battery_dispatch
+      not_before_tick: 4
+      not_after_tick: 6
+    - tool: connect_pcc
+      not_before_tick: 9
+      not_after_tick: 9
+  source_lock:
+    files:
+    - works/nrel-microgrid/minneapolis_mn.npz
+    - works/nrel-microgrid/minneapolis_mn.provenance.json
+    commit: nsrdb-physical-solar-model-v3.2.2 + nrel-end-use-load-profiles-2021.1
+    url: https://nsrdb.nrel.gov + https://data.openei.org/submissions/4520
+    window_sha256: e1225147b4a5115819a7b1738f546791b25c409fe2e3581a96ae4a19b938c577
+  microgrid_expansion_v58:
+    pipeline: microgrid_source_identity_native_refine_v58
+    source_node_id: nrel_oedi:minneapolis_mn:0:24:pymgrid_economic_dispatch
+    candidate_only: true
+    safety_threshold_unchanged: true
+    event_schedule_unchanged: true
+    source_profile_unchanged: true
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: unserved_energy_and_reserve_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: ems_dispatch_cost_and_wait_counterfactual_available
+      measurement_warning: oracle_cost_can_exceed_wait_without_unserved_energy_voll_penalty
+    safety_violation:
+      applicable: true
+      reason: energy_balance_and_reserve_keys; power_flow_keys_honest_zero
+    weighted_equity_score:
+      applicable: false
+      reason: pymgrid_ems_has_no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: pymgrid_ems_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: pymgrid_ems_has_no_trust_manager_delta
+    adaptive_replanning:
+      applicable: true
+      reason: storage_genset_and_grid_import_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_microgrid_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: true
+      reason: cached_microgrid_economic_dispatch_reference
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_nrel_window
+    stakeholder_equity:
+      applicable: false
+      reason: pymgrid_ems_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 24
+tick_minutes: 60
+seed: 8317
+load_assignments:
+- load_id: load_hospital
+  stakeholder_class: hospital
+  criticality: 0.97
+  demand_fraction: 0.21
+  bus_id: null
+- load_id: load_water
+  stakeholder_class: water
+  criticality: 0.85
+  demand_fraction: 0.14
+  bus_id: null
+- load_id: load_data_center
+  stakeholder_class: data_center
+  criticality: 0.55
+  demand_fraction: 0.13
+  bus_id: null
+- load_id: load_commercial
+  stakeholder_class: commercial
+  criticality: 0.4
+  demand_fraction: 0.195
+  bus_id: null
+- load_id: load_residential
+  stakeholder_class: residential
+  criticality: 0.2
+  demand_fraction: 0.325
+  bus_id: null
+perturbations:
+- kind: grid_outage
+  trigger_tick: 3
+  duration_ticks: 6
+  hidden: true
+  target: {}
+  intensity: 1.0
+  notes: Deterministic PCC outage over a locked NREL/OEDI EMS window; procedural stress
+    overlay, not a source-observed outage.
+- kind: load_spike
+  trigger_tick: 5
+  duration_ticks: 2
+  hidden: false
+  target: {}
+  intensity: 0.55
+  notes: Deterministic demand excursion on the native EMS profile; the source profile
+    remains the runtime state driver.
+- kind: der_failure
+  trigger_tick: 7
+  duration_ticks: 4
+  hidden: true
+  target:
+    der_index: 2
+  intensity: 1.0
+  notes: Deterministic DER failure during the outage; hidden state loss requiring
+    a later native recovery decision.
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: extreme
+provenance:
+  data_source: nsrdb+oedi
+  files:
+  - works/nrel-microgrid/minneapolis_mn.npz
+  - works/nrel-microgrid/minneapolis_mn.provenance.json
+  commit: nsrdb-physical-solar-model-v3.2.2 + nrel-end-use-load-profiles-2021.1
+  url: https://nsrdb.nrel.gov + https://data.openei.org/submissions/4520
+  lock_strategy: nsrdb=2020 oedi=2021.1 pymgrid=1.2.2
+  time_window:
+    horizon_ticks: 24
+    tick_minutes: 60
+  license: NREL public (attribution required); parse-only, baked, never runtime +
+    NREL/OEDI data license (attribution-style; NOT plain CC-BY-4.0 — verify redistribution
+    terms); parse-only, baked
+  notes: Baked NSRDB solar + OEDI load overlay for site 'minneapolis_mn' (anchored);
+    released pymgrid-family provenance is the baked NSRDB/OEDI series, NOT pymgrid's
+    bundled/synthetic series (spec §3). pymgrid is used only on the optional dynamic-link
+    cross-check path.
+scenario_id: microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_v58
+source_contract:
+  runtime_input: []
+  derivation_input:
+  - works/nrel-microgrid/minneapolis_mn.npz
+  implementation_asset: []
+  metadata:
+  - works/nrel-microgrid/minneapolis_mn.provenance.json
+  license: []
+  derived_window:
+    sha256: e1225147b4a5115819a7b1738f546791b25c409fe2e3581a96ae4a19b938c577
+    recipe_version: nrel-ems-window-v1
+scenario_signature: d4bbc3090f8fa2f6

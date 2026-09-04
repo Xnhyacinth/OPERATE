@@ -1,0 +1,192 @@
+seed_id: candidate_delta/logistics/dynasched/dynasched_DynaSched-Sweep_exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase
+family: job_shop_dispatch
+domain: logistics
+backend_kind: dynasched_flexible_job_shop
+backend_config:
+  bundle_id: DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01
+  source_integration_rung: native_runtime_direct_candidate
+  release_ready: false
+  release_reentry_ready: false
+  runtime_package: dsbx
+  runtime_version: 0.3.0
+  runtime_code_tree_sha256: 35f60f494e386f864d5be905d09dd87ccbad2a25878d35f6dee5458f79e8cff2
+  runtime_source_lock:
+    repository: https://github.com/dsbx7/DynaSchedBench
+    commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+    python_package_tree_sha256: 35f60f494e386f864d5be905d09dd87ccbad2a25878d35f6dee5458f79e8cff2
+  direct_data_use: true
+  upstream_bundle_path: data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01
+  machine_alternatives_preserved: true
+  source_assets:
+    input_model_json:
+      path: works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/input_model.json
+      sha256: 94d0399ac51f431f8be1cf3ccd9d61925f5785a00313b7fedd9885b930bea070
+      role: runtime_input
+    events_jsonl:
+      path: works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/events.jsonl
+      sha256: 1120060224956b24af482dbdfe2d543b13d7bc40f7e0cce6597bd1177875fe81
+      role: runtime_input
+    static_jobs_json:
+      path: works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/static_jobs.json
+      sha256: 1313dbe1d28b96ec8a15f102b9b8d833ba682c5a946e91fec2ea9f1d6dff07a1
+      role: bundle_crosscheck_metadata
+    static_machines_json:
+      path: works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/static_machines.json
+      sha256: f53c074032a49366bbe7d0189b584640dc7564a1dd9278d4298109c611b5fe21
+      role: bundle_crosscheck_metadata
+    final_metrics_json:
+      path: works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/final_metrics.json
+      sha256: 090a9990cfd396d03fa75d27e6fa7d9dc9633b345b4c6b670d0bd2cb6083a542
+      role: bundle_crosscheck_metadata
+    meta_json:
+      path: works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/meta.json
+      sha256: 6ec65272aa32462a88f2aba9818d0ca15d6699faf321df5352d65032fc2a844f
+      role: bundle_crosscheck_metadata
+    license:
+      path: works/DynaSchedBench/LICENSE
+      sha256: 33973f276af491c9cf2fd99506a617b643d3e68b5fef31a02c6b6ee3d6bbb36c
+      role: license
+  source_event_counts:
+    ARRIVAL: 45
+    DUE_DATE_SET: 45
+    PRIORITY_CHANGE: 5
+  source_event_registry:
+    ARRIVAL:
+      type: job_arrival
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    DUE_DATE_SET:
+      type: due_date_set
+      event_class: lifecycle
+      origin: source_schedule
+      actionable: false
+      unknown_events_actionable: false
+    PRIORITY_CHANGE:
+      type: priority_change
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+  hidden_source_event_types: []
+  source_denominator_key: dynasched:08975bf4a0473c5dff9177393bc6743db9ddc946:data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: dispatch_flexible_operations
+      not_after_tick: 141
+    - tool: dispatch_flexible_operations
+      not_after_tick: 141
+  source_event_contract:
+  - source_event_index: 0
+    source_time: 1.6442
+    source_event_type: ARRIVAL
+  - source_event_index: 48
+    source_time: 127.3028
+    source_event_type: PRIORITY_CHANGE
+  reference:
+    type: native_oracle_policy
+    policy: native_oracle_earliest_completion_v1
+    runtime_authority: dsbx.Sim.Simulator.DynaSchedSim
+    formal_optimality_applicable: false
+  dimension_applicability:
+    optimality_gap:
+      applicable: false
+      reason: bundle_has_no_certified_dynamic_fjsp_optimum
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_source_event_stream
+    system_survival:
+      applicable: true
+      reason: unfinished_operation_and_machine_downtime_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: native_makespan_cost_and_wait_counterfactual_available
+    safety_violation:
+      applicable: true
+      reason: precedence_machine_eligibility_and_downtime_constraints_available
+    weighted_equity_score:
+      applicable: false
+      reason: dynasched_bundle_has_no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: dynasched_bundle_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: dynasched_bundle_has_no_stakeholder_trust_model
+    adaptive_replanning:
+      applicable: true
+      reason: source_driven_shop_events_require_dynamic_rescheduling
+    information_efficiency:
+      applicable: true
+      reason: partial_shop_state_is_exposed_by_native_investigation_tool
+    foresight_score:
+      applicable: false
+      reason: reference_agents_do_not_emit_commit_to_plan_predictions
+    stakeholder_equity:
+      applicable: false
+      reason: dynasched_bundle_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  candidate_materialization:
+    candidate_id: dynasched/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase
+    source_family: dynasched
+    active_core: false
+horizon_ticks: 142
+tick_minutes: 1
+seed: 3053994016
+load_assignments: []
+perturbations: []
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: DynaSchedBench
+  files:
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/input_model.json
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/events.jsonl
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/static_jobs.json
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/static_machines.json
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/final_metrics.json
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/meta.json
+  - works/DynaSchedBench/LICENSE
+  commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+  url: https://github.com/dsbx7/DynaSchedBench
+  lock_strategy: git_commit_plus_per_file_sha256
+  time_window:
+    source_event_count: 95
+    source_event_types:
+    - ARRIVAL
+    - DUE_DATE_SET
+    - PRIORITY_CHANGE
+  license: Apache-2.0
+  notes: Official DynaSchedSim consumes the locked model and event stream.
+source_contract:
+  runtime_input:
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/input_model.json
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/events.jsonl
+  derivation_input: []
+  implementation_asset: []
+  metadata:
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/static_jobs.json
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/static_machines.json
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/final_metrics.json
+  - works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/meta.json
+  license:
+  - works/DynaSchedBench/LICENSE
+  file_sha256s:
+    ? works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/input_model.json
+    : 94d0399ac51f431f8be1cf3ccd9d61925f5785a00313b7fedd9885b930bea070
+    ? works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase/rep01/events.jsonl
+    : 1120060224956b24af482dbdfe2d543b13d7bc40f7e0cce6597bd1177875fe81
+procedural_stress:
+  label: source_native
+  source_native: true
+scenario_id: candidate_delta/logistics/dynasched/dynasched_DynaSched-Sweep_exp14_v2_queue_static_small__hybrid__rho0p60__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase
+policy_contract:
+  strict_prompt: true
+  benchmark_side_hints: false
+scenario_signature: 6f82edd972beaad7

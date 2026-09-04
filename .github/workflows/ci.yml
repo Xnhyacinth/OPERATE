@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python-compatibility:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Sync locked environment
+        run: |
+          python -m pip install uv==0.12.5
+          uv sync --frozen --python ${{ matrix.python-version }} --extra dev
+      - name: Python and import compatibility
+        run: |
+          uv run --no-sync python -m pytest -q \
+            tests/test_python_version_contract.py \
+            tests/test_microgrid_adapter_import.py
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Sync locked environment
+        run: |
+          python -m pip install uv==0.12.5
+          uv sync --frozen --python 3.14 --extra dev
+      - name: Runtime and persistent-agent contracts
+        run: |
+          uv run --no-sync python -m pytest -q \
+            -k "not protocol21_binding_reverifies_all_upstream_bytes and not protocol21_binding_rejects_frozen_binding_map_drift" \
+            tests/test_dataset_builder.py \
+            tests/test_trajectory_logger.py \
+            tests/test_batch_eval_executor.py \
+            tests/test_realtime_actor.py \
+            tests/test_batch_llm_eval.py \
+            tests/test_batch_realtime_llm_eval.py \
+            tests/test_agentic_formal.py
+      - name: Current release contracts
+        run: |
+          uv run --no-sync python -m pytest -q \
+            -k "not ieee13_visible_load_surge_has_typed_immediate_wakeup and not ieee13_hidden_load_surge_is_typed_without_wakeup and not ieee13_terminal_load_surge_has_no_response_window" \
+            tests/test_build_operate_bundle.py \
+            tests/test_current_cli_entrypoints.py \
+            tests/test_lite_suite.py \
+            tests/test_opendss_formal_evidence_paths.py \
+            tests/test_operate_distribution_docs.py \
+            tests/test_promote_operate_release.py \
+            tests/test_protocol21_evidence.py \
+            tests/test_verify_release_integrity.py
+          uv run --no-sync python scripts/verify_release_integrity.py \
+            release/operate_v0_61_0 --portable
+      - name: Static checks
+        run: |
+          uv run --no-sync python -m ruff check .
+          git diff --check

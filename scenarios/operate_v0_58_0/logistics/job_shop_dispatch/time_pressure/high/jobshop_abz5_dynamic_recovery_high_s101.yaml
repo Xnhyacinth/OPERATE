@@ -1,0 +1,411 @@
+seed_id: logistics/job_shop_dispatch/time_pressure/high/jobshop_abz5_dynamic_recovery_high_s101
+family: job_shop_dispatch
+domain: logistics
+backend_kind: jsplib_job_shop
+backend_config:
+  instance_name: abz5
+  source_integration_rung: staging_dynamic_procedural_overlay
+  release_ready: false
+  release_reentry_ready: false
+  source_denominator_key: jsplib_job_shop:abz5
+  job_shop:
+    instance_name: abz5
+    jobs: 10
+    machines: 10
+    operations: 100
+    machine_ids:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    total_processing_time: 7773
+    min_processing_time: 50
+    max_processing_time: 99
+    jobs_detail:
+    - - machine: 4
+        duration: 88
+      - machine: 8
+        duration: 68
+      - machine: 6
+        duration: 94
+      - machine: 5
+        duration: 99
+      - machine: 1
+        duration: 67
+      - machine: 2
+        duration: 89
+      - machine: 9
+        duration: 77
+      - machine: 7
+        duration: 99
+      - machine: 0
+        duration: 86
+      - machine: 3
+        duration: 92
+    - - machine: 5
+        duration: 72
+      - machine: 3
+        duration: 50
+      - machine: 6
+        duration: 69
+      - machine: 4
+        duration: 75
+      - machine: 2
+        duration: 94
+      - machine: 8
+        duration: 66
+      - machine: 0
+        duration: 92
+      - machine: 1
+        duration: 82
+      - machine: 7
+        duration: 94
+      - machine: 9
+        duration: 63
+    - - machine: 9
+        duration: 83
+      - machine: 8
+        duration: 61
+      - machine: 0
+        duration: 83
+      - machine: 1
+        duration: 65
+      - machine: 6
+        duration: 64
+      - machine: 5
+        duration: 85
+      - machine: 7
+        duration: 78
+      - machine: 4
+        duration: 85
+      - machine: 2
+        duration: 55
+      - machine: 3
+        duration: 77
+    - - machine: 7
+        duration: 94
+      - machine: 2
+        duration: 68
+      - machine: 1
+        duration: 61
+      - machine: 4
+        duration: 99
+      - machine: 3
+        duration: 54
+      - machine: 6
+        duration: 75
+      - machine: 5
+        duration: 66
+      - machine: 0
+        duration: 76
+      - machine: 9
+        duration: 63
+      - machine: 8
+        duration: 67
+    - - machine: 3
+        duration: 69
+      - machine: 4
+        duration: 88
+      - machine: 9
+        duration: 82
+      - machine: 8
+        duration: 95
+      - machine: 0
+        duration: 99
+      - machine: 2
+        duration: 67
+      - machine: 6
+        duration: 95
+      - machine: 5
+        duration: 68
+      - machine: 7
+        duration: 67
+      - machine: 1
+        duration: 86
+    - - machine: 1
+        duration: 99
+      - machine: 4
+        duration: 81
+      - machine: 5
+        duration: 64
+      - machine: 6
+        duration: 66
+      - machine: 8
+        duration: 80
+      - machine: 2
+        duration: 80
+      - machine: 7
+        duration: 69
+      - machine: 9
+        duration: 62
+      - machine: 3
+        duration: 79
+      - machine: 0
+        duration: 88
+    - - machine: 7
+        duration: 50
+      - machine: 1
+        duration: 86
+      - machine: 4
+        duration: 97
+      - machine: 3
+        duration: 96
+      - machine: 0
+        duration: 95
+      - machine: 8
+        duration: 97
+      - machine: 2
+        duration: 66
+      - machine: 5
+        duration: 99
+      - machine: 6
+        duration: 52
+      - machine: 9
+        duration: 71
+    - - machine: 4
+        duration: 98
+      - machine: 6
+        duration: 73
+      - machine: 3
+        duration: 82
+      - machine: 2
+        duration: 51
+      - machine: 1
+        duration: 71
+      - machine: 5
+        duration: 94
+      - machine: 7
+        duration: 85
+      - machine: 0
+        duration: 62
+      - machine: 8
+        duration: 95
+      - machine: 9
+        duration: 79
+    - - machine: 0
+        duration: 94
+      - machine: 6
+        duration: 71
+      - machine: 3
+        duration: 81
+      - machine: 7
+        duration: 85
+      - machine: 1
+        duration: 66
+      - machine: 2
+        duration: 90
+      - machine: 4
+        duration: 76
+      - machine: 5
+        duration: 58
+      - machine: 8
+        duration: 93
+      - machine: 9
+        duration: 97
+    - - machine: 3
+        duration: 50
+      - machine: 0
+        duration: 59
+      - machine: 1
+        duration: 82
+      - machine: 8
+        duration: 67
+      - machine: 7
+        duration: 56
+      - machine: 9
+        duration: 96
+      - machine: 6
+        duration: 58
+      - machine: 4
+        duration: 81
+      - machine: 5
+        duration: 59
+      - machine: 2
+        duration: 96
+  reference:
+    type: known_optimum
+    makespan: 1234
+  expected_sha256: bd8afe85d188fc3ae5c2be6a328d175a5eb4f020deab786931f18460a10849f4
+  actual_sha256: bd8afe85d188fc3ae5c2be6a328d175a5eb4f020deab786931f18460a10849f4
+  checksum_manifest: works/JSPLIB-Instances/CHECKSUMS.txt
+  source_axes:
+    instance_name: abz5
+    jobs: 10
+    machines: 10
+    operations: 100
+    reference_type: known_optimum
+  logistics_key_aliases:
+    aggregate_demand_mw: operations_total
+    aggregate_generation_mw: operations_scheduled
+    balance_error_mw: operations_unscheduled
+    production_cost: makespan
+    startup_cost: idle_time_proxy
+    shed_penalty: unscheduled_operation_penalty
+    rho_max: machine_queue_pressure
+    n_overloads: machine_conflict_count
+  honest_zero_keys:
+  - reserves_required_mw
+  - reserves_procured_mw
+  - n_voltage_violations
+  - n_disconnected_lines
+  dimension_applicability:
+    optimality_gap:
+      applicable: true
+      reason: known_optimum_or_bound_makespan_reference
+    safety_violation:
+      applicable: true
+      reason: precedence_machine_capacity_and_unscheduled_operation_keys
+    weighted_equity_score:
+      applicable: false
+      reason: classic_jsplib_has_no_stakeholder_priority_classes
+    ethical_quality:
+      applicable: false
+      reason: classic_jsplib_has_no_ethical_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: classic_jsplib_has_no_stakeholder_trust_model
+    counterfactual_prevention:
+      applicable: false
+      reason: static_job_shop_has_no_exogenous_loss_prevention_event
+    system_survival:
+      applicable: true
+      reason: unscheduled_operation_and_makespan_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: makespan_cost_and_wait_counterfactual_available
+    adaptive_replanning:
+      applicable: false
+      reason: static_job_shop_has_no_exogenous_disruption_window
+    information_efficiency:
+      applicable: true
+      reason: partial_shop_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    stakeholder_equity:
+      applicable: false
+      reason: classic_jsplib_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  interaction_budget_basis:
+    operations: 100
+    tool_fail_rate: 0.05
+    tool_delay_ticks: 1
+    retry_allowance_ticks: 12
+    cooldown_after_failure_ticks: 1
+  dynamic_job_shop:
+    enabled: true
+    event_source: jsplib_machine_set_procedural_overlay_v1
+    max_dispatch_batch_size: 2
+    recovery_clearance_ticks: 1
+    source_observed_events: false
+  task_contract:
+    contract: logistics.job_shop.dynamic_recovery.v1
+    event_response_window:
+      first_tick: 26
+      last_tick: 114
+    native_controls:
+    - dispatch_ready_operations
+    - dispatch_job_operation
+    - repair_machine
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 2
+    ordered_tool_milestones:
+    - tool: dispatch_ready_operations
+      not_after_tick: 25
+    - tool: repair_machine
+      not_before_tick: 26
+      not_after_tick: 114
+  source_event_contract:
+    procedural_overlay: true
+    source_identity_fields:
+    - machine_id
+    - job_id
+    source_observed: false
+    runtime_effect_required: true
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 115
+tick_minutes: 1
+seed: 101
+load_assignments: []
+perturbations:
+- kind: machine_breakdown
+  trigger_tick: 25
+  duration_ticks: 4
+  hidden: false
+  target:
+    machine_id: 0
+    source: locked_jsplib_machine_set
+  intensity: 1.0
+  notes: Procedural deterministic maintenance outage over a machine identity consumed
+    from the locked JSPLIB instance.
+- kind: demand_surge
+  trigger_tick: 27
+  duration_ticks: 4
+  hidden: true
+  target:
+    job_id: j9
+    source: locked_jsplib_job_set
+  intensity: 1.5
+  notes: Procedural urgent-job priority overlay over a locked JSPLIB job identity;
+    not a source-observed arrival.
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: high
+provenance:
+  data_source: jsplib
+  files:
+  - works/JSPLIB-Instances/instances/abz5
+  - works/JSPLIB-Instances/CHECKSUMS.txt
+  - works/JSPLIB-Instances/instances.json
+  commit: eea2b60dd7e2f5c907ff7302662c61812eb7efdf
+  url: https://github.com/tamy0612/JSPLIB
+  lock_strategy: git_commit+file_sha256
+  time_window:
+    objective: minimize_makespan
+    operations: 100
+  license: public academic OR benchmark mirror; see works/JSPLIB-Instances/LICENSE
+  notes: Parsed JSPLIB job-shop instance 'abz5'; non-release seed/scoring skeleton
+    only. Dynamic recovery staging uses only deterministic procedural overlays whose
+    target IDs are validated against the consumed JSPLIB instance; the overlays are
+    not provenance evidence.
+scenario_id: logistics/job_shop_dispatch/time_pressure/high/jobshop_abz5_dynamic_recovery_high_s101
+complexity_metrics:
+  horizon_minutes: 115
+  n_perturbations: 2
+  suddenness_ticks: 25
+  observability_burden: 1
+  decision_depth: 100
+  cascade_permissiveness: 0
+  persistence_ratio: 0.0348
+  ambient_fraction: 0.0
+  n_stressors: 2
+  first_disruption_tick: 25
+  n_priority_customers: 0
+  demand_to_capacity_ratio: 0.0
+  n_jobs: 10
+  n_machines: 10
+  n_operations: 100
+  machine_conflict_density: 10.0
+  processing_time_density: 77.73
+  reference_type: known_optimum
+  dynamic_event_contract: machine_recovery_with_priority_overlay_v1
+source_contract:
+  runtime_input:
+  - works/JSPLIB-Instances/instances/abz5
+  derivation_input: []
+  implementation_asset: []
+  metadata:
+  - works/JSPLIB-Instances/CHECKSUMS.txt
+  - works/JSPLIB-Instances/instances.json
+  license: []
+scenario_signature: 007bb924bf03a59c

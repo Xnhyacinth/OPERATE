@@ -1,0 +1,368 @@
+seed_id: candidate_delta/logistics/routing/routing_vrptw_C1_10_5
+family: vrptw_dispatch
+domain: logistics
+backend_kind: pyvrp_vrptw
+backend_config:
+  network:
+    depot:
+      x: 250.0
+      y: 250.0
+    customers:
+    - id: c0
+      x: 387.0
+      y: 297.0
+      demand: 10.0
+      tw_early: 187.0
+      tw_late: 283.0
+    - id: c1
+      x: 5.0
+      y: 297.0
+      demand: 10.0
+      tw_early: 931.0
+      tw_late: 1041.0
+    - id: c2
+      x: 355.0
+      y: 177.0
+      demand: 20.0
+      tw_early: 136.0
+      tw_late: 303.0
+    - id: c3
+      x: 78.0
+      y: 346.0
+      demand: 30.0
+      tw_early: 307.0
+      tw_late: 451.0
+    - id: c4
+      x: 286.0
+      y: 159.0
+      demand: 20.0
+      tw_early: 502.0
+      tw_late: 624.0
+    - id: c5
+      x: 322.0
+      y: 465.0
+      demand: 10.0
+      tw_early: 226.0
+      tw_late: 335.0
+    - id: c6
+      x: 393.0
+      y: 408.0
+      demand: 30.0
+      tw_early: 625.0
+      tw_late: 713.0
+    - id: c7
+      x: 89.0
+      y: 216.0
+      demand: 10.0
+      tw_early: 473.0
+      tw_late: 584.0
+    - id: c8
+      x: 76.0
+      y: 345.0
+      demand: 30.0
+      tw_early: 503.0
+      tw_late: 623.0
+    - id: c9
+      x: 410.0
+      y: 285.0
+      demand: 20.0
+      tw_early: 457.0
+      tw_late: 599.0
+    - id: c10
+      x: 472.0
+      y: 189.0
+      demand: 30.0
+      tw_early: 356.0
+      tw_late: 468.0
+    - id: c11
+      x: 270.0
+      y: 49.0
+      demand: 30.0
+      tw_early: 889.0
+      tw_late: 1006.0
+    - id: c12
+      x: 219.0
+      y: 325.0
+      demand: 10.0
+      tw_early: 486.0
+      tw_late: 597.0
+    - id: c13
+      x: 437.0
+      y: 12.0
+      demand: 20.0
+      tw_early: 526.0
+      tw_late: 643.0
+    - id: c14
+      x: 418.0
+      y: 218.0
+      demand: 20.0
+      tw_early: 948.0
+      tw_late: 1056.0
+    - id: c15
+      x: 20.0
+      y: 488.0
+      demand: 10.0
+      tw_early: 726.0
+      tw_late: 849.0
+    - id: c16
+      x: 77.0
+      y: 347.0
+      demand: 20.0
+      tw_early: 397.0
+      tw_late: 545.0
+    - id: c17
+      x: 73.0
+      y: 346.0
+      demand: 10.0
+      tw_early: 701.0
+      tw_late: 798.0
+    - id: c18
+      x: 480.0
+      y: 455.0
+      demand: 10.0
+      tw_early: 1098.0
+      tw_late: 1203.0
+    - id: c19
+      x: 129.0
+      y: 292.0
+      demand: 10.0
+      tw_early: 526.0
+      tw_late: 636.0
+    capacity: 200
+    n_vehicles: 3
+    service_time: 90.0
+    total_demand: 360.0
+    total_capacity: 600.0
+  instance_name: C1_10_5
+  source_dataset_id: vrplib
+  has_time_windows: true
+  is_lastmile: false
+  models_standby: true
+  demand_multiplier: 1.3
+  breakdown_vehicle_index: 0
+  blocked_arc_index: 7
+  urgent_order_index: 7
+  hidden_parity: 1
+  cascade_permissive: false
+  logistics_key_aliases:
+    aggregate_demand_mw: total_order_demand_units
+    aggregate_generation_mw: served_demand_units
+    balance_error_mw: unmet_demand_units
+    reserves_required_mw: required_standby_capacity
+    reserves_procured_mw: procured_standby_capacity
+    production_cost: routing_operating_cost
+    startup_cost: vehicle_dispatch_fixed_cost
+    shed_penalty: drop_order_penalty
+    rho_max: max_capacity_utilization
+    n_overloads: n_capacity_violations
+    n_voltage_violations: n_time_window_violations
+    n_disconnected_lines: n_failed_routes
+  honest_zero_keys: []
+  candidate_materialization:
+    candidate_id: routing/vrptw/C1_10_5
+    source_family: routing
+    active_core: false
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: failed_route_and_unserved_customer_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: route_distance_duration_and_wait_counterfactual_available
+    safety_violation:
+      applicable: true
+      reason: capacity_time_window_and_failed_route_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: vrplib_candidate_has_no_source_grounded_priority_classes
+    ethical_quality:
+      applicable: false
+      reason: vrplib_candidate_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: vrplib_candidate_has_no_trust_manager_delta
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_route_dispatch_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_route_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: reference_agents_do_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: true
+      reason: deterministic_offline_routing_reference_available
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_vrplib_seed
+    stakeholder_equity:
+      applicable: false
+      reason: vrplib_candidate_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+horizon_ticks: 12
+tick_minutes: 30
+seed: 1983377667
+load_assignments:
+- load_id: c0
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c1
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c2
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c3
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 30.0
+  bus_id: null
+- load_id: c4
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c5
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c6
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 30.0
+  bus_id: null
+- load_id: c7
+  stakeholder_class: perishable
+  criticality: 0.75
+  demand: 10.0
+  bus_id: null
+- load_id: c8
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 30.0
+  bus_id: null
+- load_id: c9
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 20.0
+  bus_id: null
+- load_id: c10
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 30.0
+  bus_id: null
+- load_id: c11
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 30.0
+  bus_id: null
+- load_id: c12
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c13
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c14
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c15
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c16
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c17
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c18
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c19
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+perturbations:
+- kind: vehicle_breakdown
+  trigger_tick: 5
+  duration_ticks: 12
+  hidden: true
+  target:
+    vehicle_index: 0
+  intensity: 1.0
+  notes: Vehicle breakdown — discovered on arrival
+- kind: demand_surge
+  trigger_tick: 6
+  duration_ticks: 2
+  hidden: false
+  target:
+    region: all
+  intensity: 1.3
+  notes: Outstanding order demand spikes (capacity pressure).
+- kind: blocked_arc
+  trigger_tick: 6
+  duration_ticks: 6
+  hidden: false
+  target:
+    customer_index: 7
+  intensity: 1.0
+  notes: An arc to a customer becomes untraversable (reroute pressure).
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: vrplib
+  files:
+  - works/PyVRP-Instances/VRPTW/C1_10_5.vrp
+  commit: 1cf23a5969fabf23c80f8002e42ed501a47aca61
+  url: https://github.com/PyVRP/Instances
+  lock_strategy: git_commit
+  time_window:
+    horizon_ticks: 12
+    tick_minutes: 30
+  license: mirror=MIT (PyVRP/Instances); instances=research-use-only (CVRPLIB/Solomon/Augerat/Uchoa
+    — released as parsed seeds, not redistributed raw)
+  notes: Parsed vrptw_dispatch slice of VRPLIB instance 'C1_10_5' (anchored); 20 customers,
+    3 vehicles, capacity 200. Classic CVRP/Solomon instances are research-use-only
+    — released as parsed structural seeds, not redistributed raw.
+source_contract:
+  runtime_input:
+  - works/PyVRP-Instances/VRPTW/C1_10_5.vrp
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+  file_sha256s:
+    works/PyVRP-Instances/VRPTW/C1_10_5.vrp: 63789a3880930d0c231546c15795b55231c79f0eba9464268e7f9b5fcfd73dc1
+procedural_stress:
+  label: procedural
+  source_native: false
+scenario_id: candidate_delta/logistics/routing/routing_vrptw_C1_10_5
+policy_contract:
+  strict_prompt: true
+  benchmark_side_hints: false
+scenario_signature: c45b06c35cff0bf6

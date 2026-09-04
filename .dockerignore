@@ -1,0 +1,17 @@
+.git
+.venv
+.venv-*
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.hl/artifacts
+works
+reports
+.audit-cache
+hf_trajectories
+batch_results
+data/backends
+operate_data
+*.egg-info

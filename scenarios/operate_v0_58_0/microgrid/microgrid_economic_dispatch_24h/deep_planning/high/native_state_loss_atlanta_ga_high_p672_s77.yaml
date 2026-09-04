@@ -1,0 +1,333 @@
+seed_id: microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_atlanta_ga_high_p672_s77
+family: microgrid_economic_dispatch_24h
+domain: microgrid
+backend_kind: pymgrid_economic_dispatch
+backend_config:
+  site: atlanta_ga
+  profiles:
+    load_mw:
+    - 97.4024
+    - 96.99105
+    - 98.26996
+    - 104.5265
+    - 111.85265
+    - 126.61547
+    - 154.12167
+    - 169.50895
+    - 176.28645
+    - 185.55195
+    - 190.45742
+    - 186.94278
+    - 181.82163
+    - 171.98015
+    - 154.58223
+    - 145.51253
+    - 140.57391
+    - 131.71585
+    - 119.81742
+    - 110.5701
+    - 106.64449
+    - 102.6732
+    - 103.25621
+    - 98.86233
+    pv_mw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 7.42249
+    - 72.49049
+    - 73.26827
+    - 135.69286
+    - 120.95575
+    - 104.5211
+    - 71.06195
+    - 52.04375
+    - 40.36295
+    - 2.52091
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    wind_mw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    price:
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+    - 57.1
+  battery:
+    capacity_mwh: 116.0
+    init_soc: 0.5
+    max_charge_mw: 72.5
+    max_discharge_mw: 72.5
+    efficiency: 0.95
+  genset:
+    min_mw: 14.5
+    max_mw: 145.0
+    fuel_cost_per_mwh: 120.0
+    startup_cost: 580.0
+    available: true
+  grid:
+    max_import_mw: 348.0
+    max_export_mw: 174.0
+  ders:
+  - der_id: der0
+    kind: pv
+  - der_id: der1
+    kind: pv
+  - der_id: der2
+    kind: pv
+  - der_id: der3
+    kind: pv
+  - der_id: der4
+    kind: pv
+  - der_id: der5
+    kind: pv
+  controllable_der_count: 6
+  genset_available: true
+  forecast_regime_idx: 1
+  forecast_error_sigma: 0.12
+  forecast_bias: 0.1
+  islanding_trigger_tick: 3
+  hidden_parity: 1
+  cascade_permissive: false
+  honest_zero_keys:
+  - rho_max
+  - n_overloads
+  - n_voltage_violations
+  - n_disconnected_lines
+  derivation_recipe:
+    pipeline_version: nrel-ems-window-v1
+    profile_start_index: 672
+    source_window_sha256: 2b3b78464af4b6cfb5003befa33eba9942311316c515ac2137ffaf5986e7ae72
+  release_ready: false
+  release_reentry_ready: false
+  source_integration_rung: staging_native_state_loss_ems_v1
+  source_denominator_key: '{"backend":"pymgrid_economic_dispatch","profile_start_index":672,"site":"atlanta_ga","source_commit":"nsrdb-physical-solar-model-v3.2.2
+    + nrel-end-use-load-profiles-2021.1","source_files":["works/nrel-microgrid/atlanta_ga.npz","works/nrel-microgrid/atlanta_ga.provenance.json"],"source_window_sha256":"2b3b78464af4b6cfb5003befa33eba9942311316c515ac2137ffaf5986e7ae72"}'
+  procedural_stress:
+    origin: deterministic_overlay
+    source_observed: false
+    source_anchor: nrel_oedi_profile_window
+    event_kind: grid_outage
+    event_tick: 4
+    duration_ticks: 4
+    native_loss_required: true
+  response_window_recipe:
+    version: pymgrid_native_state_loss_response_v1
+    event_trigger_tick: 4
+    preposition_opportunity_tick: 3
+    recovery_opportunity_tick: 5
+    response_window_end_tick: 7
+    restoration_opportunity_tick: 7
+    simulator_advances_time: true
+    state_changing_tools:
+    - dispatch_genset
+    - set_battery_dispatch
+    - connect_pcc
+  native_state_loss_task:
+    contract: microgrid.native_state_loss.v1
+    required_task_loss_keys:
+    - balance_error_mw
+    - shed_penalty
+    task_loss_formula: sum(abs(balance_error_mw) * 200 + shed_penalty)
+    production_cost_only_rejected: true
+    minimum_baseline_task_loss: 1000.0
+    minimum_task_loss_reduction: 100.0
+    response_window_required: true
+    source_vs_procedural_separation: true
+  task_requirements:
+    min_distinct_control_ticks: 3
+    min_distinct_physical_tools: 3
+    ordered_tool_milestones:
+    - tool: dispatch_genset
+      not_before_tick: 3
+      not_after_tick: 4
+    - tool: set_battery_dispatch
+      not_before_tick: 5
+      not_after_tick: 7
+    - tool: connect_pcc
+      not_before_tick: 8
+      not_after_tick: 8
+  source_lock:
+    files:
+    - works/nrel-microgrid/atlanta_ga.npz
+    - works/nrel-microgrid/atlanta_ga.provenance.json
+    commit: nsrdb-physical-solar-model-v3.2.2 + nrel-end-use-load-profiles-2021.1
+    url: https://nsrdb.nrel.gov + https://data.openei.org/submissions/4520
+    window_sha256: 2b3b78464af4b6cfb5003befa33eba9942311316c515ac2137ffaf5986e7ae72
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: unserved_energy_and_reserve_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: ems_dispatch_cost_and_wait_counterfactual_available
+      measurement_warning: oracle_cost_can_exceed_wait_without_unserved_energy_voll_penalty
+    safety_violation:
+      applicable: true
+      reason: energy_balance_and_reserve_keys; power_flow_keys_honest_zero
+    weighted_equity_score:
+      applicable: false
+      reason: pymgrid_ems_has_no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: pymgrid_ems_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: pymgrid_ems_has_no_trust_manager_delta
+    adaptive_replanning:
+      applicable: true
+      reason: storage_genset_and_grid_import_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_microgrid_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: true
+      reason: cached_microgrid_economic_dispatch_reference
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_nrel_window
+    stakeholder_equity:
+      applicable: false
+      reason: pymgrid_ems_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 24
+tick_minutes: 60
+seed: 77
+load_assignments:
+- load_id: load_hospital
+  stakeholder_class: hospital
+  criticality: 0.97
+  demand_fraction: 0.3
+  bus_id: null
+- load_id: load_water
+  stakeholder_class: water
+  criticality: 0.85
+  demand_fraction: 0.2
+  bus_id: null
+- load_id: load_data_center
+  stakeholder_class: data_center
+  criticality: 0.55
+  demand_fraction: 0.1
+  bus_id: null
+- load_id: load_commercial
+  stakeholder_class: commercial
+  criticality: 0.4
+  demand_fraction: 0.15
+  bus_id: null
+- load_id: load_residential
+  stakeholder_class: residential
+  criticality: 0.2
+  demand_fraction: 0.25
+  bus_id: null
+perturbations:
+- kind: grid_outage
+  trigger_tick: 4
+  duration_ticks: 4
+  hidden: true
+  target: {}
+  intensity: 1.0
+  notes: Deterministic PCC outage over a locked NREL/OEDI EMS window; procedural stress
+    overlay, not a source-observed outage.
+- kind: load_spike
+  trigger_tick: 6
+  duration_ticks: 2
+  hidden: false
+  target: {}
+  intensity: 0.3
+  notes: Deterministic demand excursion on the native EMS profile; the source profile
+    remains the runtime state driver.
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: nsrdb+oedi
+  files:
+  - works/nrel-microgrid/atlanta_ga.npz
+  - works/nrel-microgrid/atlanta_ga.provenance.json
+  commit: nsrdb-physical-solar-model-v3.2.2 + nrel-end-use-load-profiles-2021.1
+  url: https://nsrdb.nrel.gov + https://data.openei.org/submissions/4520
+  lock_strategy: nsrdb=2020 oedi=2021.1 pymgrid=1.2.2
+  time_window:
+    horizon_ticks: 24
+    tick_minutes: 60
+  license: NREL public (attribution required); parse-only, baked, never runtime +
+    NREL/OEDI data license (attribution-style; NOT plain CC-BY-4.0 — verify redistribution
+    terms); parse-only, baked
+  notes: Baked NSRDB solar + OEDI load overlay for site 'atlanta_ga' (anchored); released
+    pymgrid-family provenance is the baked NSRDB/OEDI series, NOT pymgrid's bundled/synthetic
+    series (spec §3). pymgrid is used only on the optional dynamic-link cross-check
+    path.
+scenario_id: microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_atlanta_ga_high_p672_s77
+source_contract:
+  runtime_input: []
+  derivation_input:
+  - works/nrel-microgrid/atlanta_ga.npz
+  implementation_asset: []
+  metadata:
+  - works/nrel-microgrid/atlanta_ga.provenance.json
+  license: []
+  derived_window:
+    sha256: 2b3b78464af4b6cfb5003befa33eba9942311316c515ac2137ffaf5986e7ae72
+    recipe_version: nrel-ems-window-v1
+  file_sha256s:
+    works/nrel-microgrid/atlanta_ga.npz: 12f0fbf5423c4b9e79e8ae8f0b36aaf6f055819c1151fc7d74c73ce91a9ea709
+scenario_signature: d51bd96e66fb95fa

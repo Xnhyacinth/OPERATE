@@ -1,0 +1,256 @@
+seed_id: traffic/signal_coordination/source_locked_native_window/high/infrastructure_resco_arterial4x4
+family: signal_coordination
+domain: traffic
+backend_kind: sumo
+backend_config:
+  sumo_net_path: sources/resco/arterial4x4/arterial4x4.net.xml
+  sumo_route_path: sources/resco/arterial4x4/arterial4x4_1.rou.xml
+  sumo_config_path: sources/resco/arterial4x4/arterial4x4.sumocfg
+  corridor_tls_map:
+    nt1: nt1
+    nt10: nt10
+    nt11: nt11
+    nt12: nt12
+    nt13: nt13
+    nt14: nt14
+    nt15: nt15
+    nt16: nt16
+    nt2: nt2
+    nt3: nt3
+    nt4: nt4
+    nt5: nt5
+    nt6: nt6
+    nt7: nt7
+    nt8: nt8
+    nt9: nt9
+  live_phase_control: true
+  source_denominator_key: resco:arterial4x4:900:native_phase_duration
+  service_date: arterial4x4
+  sumo_substeps_per_tick: 60
+  max_agent_vehicle_records: 24
+  reference_phase_duration_seconds: 20.0
+  sumo_tls_binding_net_sha256: 7a21cf856f61696717dd12a71a39a64c2e5bd08a83dcb42086cc8edeed03a336
+  sumo_extra_args:
+  - --begin
+  - '600'
+  - --end
+  - '1500'
+  physics_step_seconds: 1
+  decision_interval_seconds: 60
+  task_contract:
+    contract: traffic.travel_delay_mitigation.v1
+    objective_component: travel_time_cost
+    reference_policy: deterministic_wait_only
+    source_response_windows:
+    - event_type: traffic_demand_change
+      event_tick: 5
+      first_tick: 5
+      last_tick: 9
+  task_requirements:
+    min_distinct_control_ticks: 1
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: set_signal_phase_duration
+      any_state_changing: true
+      not_before_tick: 5
+      not_after_tick: 9
+  derivation_recipe:
+    pipeline_version: resco_route_departure_phase_control_v1
+    source_denominator_key: resco:arterial4x4:900:native_phase_duration
+    service_date: arterial4x4
+    window_begin_seconds: 600
+    window_end_seconds: 1500
+    reference_controller:
+      method: bounded_phase_duration_grid_search
+      candidate_seconds:
+      - 8.0
+      - 10.0
+      - 12.0
+      - 15.0
+      - 20.0
+      - 25.0
+      selected_seconds: 20.0
+      selection_objective: minimum_native_travel_time_cost
+      decision_cadence_ticks: 2
+      runtime_note: The controller applies bounded remaining-duration requests to
+        runtime-enumerated Arterial4x4 TLS programs after the source demand change.
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: network_saturation_and_gridlock_collapse_signal
+    economic_cost:
+      applicable: true
+      reason: aggregate_travel_time_delay_production_cost
+    safety_violation:
+      applicable: true
+      reason: congestion_overload_and_priority_corridor_blocking_proxies
+    weighted_equity_score:
+      applicable: false
+      reason: placeholder_corridor_criticality_not_source_grounded
+    ethical_quality:
+      applicable: false
+      reason: no_pre_armed_ethical_dilemma_payload_in_family
+    stakeholder_management:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    adaptive_replanning:
+      applicable: true
+      reason: bounded_phase_duration_control_can_be_revised_after_live_demand_observations
+    information_efficiency:
+      applicable: true
+      reason: fogged_queue_delay_revealed_via_detector_and_inspection_queries
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_wardrop_system_optimal_reference_on_this_core_row
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_no_action_replay_quantifies_avoidable_native_travel_time_loss
+    stakeholder_equity:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.61.0-settings
+  reference_policy_contract: sumo.native_phase_duration_window.v1
+  source_event_registry:
+    traffic_demand_change:
+      event_class: task
+      actionable_ticks:
+      - 5
+      materiality_metric: interval_vehicle_flow
+      materiality_threshold: 1
+      response_window_ticks: 4
+horizon_ticks: 15
+tick_minutes: 1
+seed: 9616
+net_ref: sources/resco/arterial4x4/arterial4x4.net.xml
+route_ref: sources/resco/arterial4x4/arterial4x4_1.rou.xml
+sumo_mode: micro
+corridors: []
+perturbations: []
+dilemmas: []
+incident_edge: null
+incident_edge_betweenness: 0.0
+hidden_attr_parity: 0
+demand_window_offset_min: 0
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: resco:arterial4x4
+  files:
+  - sources/resco/arterial4x4/arterial4x4.sumocfg
+  - sources/resco/arterial4x4/arterial4x4.net.xml
+  - sources/resco/arterial4x4/arterial4x4_1.rou.xml
+  - sources/resco/arterial4x4/LICENSE
+  commit: f1ed9a174f8de41fc9d8689373b836bc882570dc
+  url: https://github.com/Pi-Star-Lab/RESCO
+  lock_strategy: git_commit+per_file_sha256+environment_license_sha256+derived_window
+  time_window:
+    service_date: arterial4x4
+    window_begin_seconds: 600
+    event_time_seconds: 900
+    window_end_seconds: 1500
+  license: CC-BY-NC-SA-4.0 (RESCO arterial4x4 environment assets); GPL-3.0-only
+    (RESCO repository software)
+  source_locked: true
+  notes: The event is a material change in locked route departures; no synthetic traffic
+    perturbation is added. The environment-specific license governs the Arterial4x4
+    network and route assets; the RESCO repository software is GPL-3.0-only.
+capture_contract_version: '1.0'
+task_contract:
+  schema_version: '1.0'
+  scenario_id: traffic/signal_coordination/source_locked_native_window/high/infrastructure_resco_arterial4x4
+  objective: Minimize native SUMO travel_time_cost relative to the deterministic wait_only
+    replay while preserving signal phase safety.
+  decision_space:
+    entities: runtime_enumerated_tls
+    tools:
+    - query_signal_control
+    - set_signal_phase_duration
+    - commit_to_plan
+    supervisory_interval_ticks: 2
+  metrics:
+    primary:
+      name: travel_time_cost
+      unit: vehicle_delay_cost_units
+    secondary:
+    - controlled_lane_queue
+    - controlled_lane_waiting_time_seconds
+    - native_throughput
+  success_condition:
+    minimum_absolute_task_loss_reduction: 1.0
+    baseline: deterministic_wait_only
+    native_control_requirements:
+      min_distinct_control_ticks: 1
+      min_distinct_physical_tools: 1
+      ordered_tool_milestones:
+      - any_state_changing: true
+        not_before_tick: 5
+        not_after_tick: 9
+  failure_condition:
+    conditions:
+    - no_material_improvement_vs_no_action
+    - unsafe_signal_request
+    - task_control_requirements_not_met
+  evaluation_horizon:
+    ticks: 15
+    tick_minutes: 1
+    physics_step_seconds: 1
+  action_constraints:
+    runtime_ids_only: true
+    phase_duration_within_native_bounds: true
+    arbitrary_signal_state_forbidden: true
+    yellow_all_red_clearance_preserved: true
+  capture_contract_version: '1.0'
+world_evolution_contract:
+  source_channel: sumocfg_route_departures
+  runtime_event_type: traffic_demand_change
+  origin: source_schedule
+  source_event_window:
+    status: passed
+    recipe_version: route-departure-change-v1
+    selection: max_increase
+    bin_seconds: 300
+    begin: 600
+    event_time: 900
+    end: 1500
+    prior_arrival_count: 266
+    changed_arrival_count: 370
+    absolute_change: 104
+    materiality_threshold: 26
+  source_route_sha256: 6463778ca58feb7dce6073591c380ff4cd5f8a0a09e05049aa08d53fc6f96839
+  proof_required: Runtime departures must change live vehicle state before native
+    signal control.
+source_contract:
+  runtime_input:
+  - sources/resco/arterial4x4/arterial4x4.sumocfg
+  - sources/resco/arterial4x4/arterial4x4.net.xml
+  - sources/resco/arterial4x4/arterial4x4_1.rou.xml
+  derivation_input: []
+  license:
+  - sources/resco/arterial4x4/LICENSE
+  file_sha256s:
+    sources/resco/arterial4x4/arterial4x4.sumocfg: 340832ffc6e6bc7351a391f5f1ef5174eb1f8ada9ea201d5cc4c17c2bbff7e58
+    sources/resco/arterial4x4/arterial4x4.net.xml: 7a21cf856f61696717dd12a71a39a64c2e5bd08a83dcb42086cc8edeed03a336
+    sources/resco/arterial4x4/arterial4x4_1.rou.xml: 6463778ca58feb7dce6073591c380ff4cd5f8a0a09e05049aa08d53fc6f96839
+  derived_window:
+    sha256: bba5851b8b783f163ea84742c936a73dbea89b59d4c174876254b01c066db133
+    recipe_version: route-departure-change-v1
+scenario_id: traffic/signal_coordination/source_locked_native_window/high/infrastructure_resco_arterial4x4
+candidate_only: true
+complexity_metrics:
+  horizon_minutes: 15
+  n_stressors: 1
+  first_shock_tick: 5
+  observability_burden: 0
+  decision_depth: 1
+  incident_edge_betweenness: 0.0
+  n_shock_modes: 0
+  persistence_ratio: 0.0
+scenario_signature: 414da9580c47cf74
+release_admission: false

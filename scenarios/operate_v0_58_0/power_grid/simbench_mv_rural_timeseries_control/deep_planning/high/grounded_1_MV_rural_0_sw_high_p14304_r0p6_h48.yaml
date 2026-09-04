@@ -1,0 +1,552 @@
+seed_id: grounded_1_MV_rural_0_sw_high_p14304_r0p6
+family: simbench_mv_rural_timeseries_control
+domain: power_grid
+backend_kind: cigre_distribution
+backend_config:
+  network: simbench:1-MV-rural--0-sw
+  tick_minutes: 60
+  profile_start_index: 14304
+  profile_step: 4
+  profile_resolution_minutes: 15
+  profile_source: simbench_bundled_full_year
+  source_integration_rung: executed_with_live_backend
+  volt_var_controls: true
+  stress_profile: source_conditioned_forecast_residual
+  task_contract:
+    contract: power_grid.reliability_loss_mitigation.v2
+  derivation_recipe:
+    pipeline_version: source_grounded_derivation_v3_source_consumption_gate
+    source_window_sha256: 36fc08a6200d4ae1cf70b4fd2deff785cdee75179b7aacca8fd4665cbc26a1c5
+    profile_start_index: 14304
+    window_metrics:
+      peak_renewable_ratio: 2.005041715948023
+      peak_net_export_mw: 3.2894088312500003
+      max_generation_ramp_mw: 2.533761691219999
+    event_ticks:
+    - 12
+    - 20
+    intensity: 0.6
+    renewable_error_bound:
+      source: https://www.osti.gov/servlets/purl/1110685
+      metric: fraction_of_installed_capacity
+      max_fraction_installed: 0.3333333333333333
+      realized_fraction_installed: 0.3066503080023366
+      installed_sgen_capacity_mw: 12.839999999999993
+      source_generation_at_event_ticks_mw:
+      - 6.56231659125
+      - 0.0
+      max_source_generation_at_event_ticks_mw: 6.56231659125
+    selection_rule: rank_peak_renewable_ratio_then_generation_ramp
+  long_horizon_candidate:
+    pipeline_version: simbench_protocol21_long_horizon_prefilter_v1
+    prefilter_artifact_sha256: 4cd8fcf560a77b4c835244c6e009e30890563626f8262bceb82ec965437fe5bb
+    implementation_tree_sha256: 2411aba7c95454a476e438d347a7ce0dfdea1f6c13061480a0166733a2903305
+    profile_window_is_effective_source: true
+    declared_perturbation_is_source_independence: false
+    difficulty_target: high
+    horizon_ticks: 48
+    window_rank: 10
+    solves_ac_opf_claimed: false
+    second_control_axis_invented: false
+  source_denominator_key: simbench_official:16c45d7af14d93b0eb45a5e922bb046a11e3388bef2cee0dbdd8e544e6b5253e
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: distribution_voltage_feasibility_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: distribution_reliability_cost_components_available
+    safety_violation:
+      applicable: true
+      reason: distribution_voltage_power_flow_keys
+    weighted_equity_score:
+      applicable: false
+      reason: simbench_mv_has_no_source_grounded_customer_class_ledger
+    ethical_quality:
+      applicable: false
+      reason: cigre_simbench_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: cigre_simbench_has_no_trust_manager_delta
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_volt_var_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_feeder_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_reference_optimum_for_volt_var_power_flow
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_feeder_window
+    stakeholder_equity:
+      applicable: false
+      reason: simbench_mv_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 48
+tick_minutes: 60
+seed: 42
+load_assignments:
+- load_id: sbmvr_load_0
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_2
+- load_id: sbmvr_load_1
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_4
+- load_id: sbmvr_load_2
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_5
+- load_id: sbmvr_load_3
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_6
+- load_id: sbmvr_load_4
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_7
+- load_id: sbmvr_load_5
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_8
+- load_id: sbmvr_load_6
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_9
+- load_id: sbmvr_load_7
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_10
+- load_id: sbmvr_load_8
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_11
+- load_id: sbmvr_load_9
+  stakeholder_class: industrial
+  criticality: 0.5
+  bus_id: sbmvr_bus_12
+- load_id: sbmvr_load_10
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_13
+- load_id: sbmvr_load_11
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_16
+- load_id: sbmvr_load_12
+  stakeholder_class: transit
+  criticality: 0.8
+  bus_id: sbmvr_bus_17
+- load_id: sbmvr_load_13
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_18
+- load_id: sbmvr_load_14
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_19
+- load_id: sbmvr_load_15
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_20
+- load_id: sbmvr_load_16
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_21
+- load_id: sbmvr_load_17
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_22
+- load_id: sbmvr_load_18
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_23
+- load_id: sbmvr_load_19
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_24
+- load_id: sbmvr_load_20
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_25
+- load_id: sbmvr_load_21
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_26
+- load_id: sbmvr_load_22
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_27
+- load_id: sbmvr_load_23
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_28
+- load_id: sbmvr_load_24
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_29
+- load_id: sbmvr_load_25
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_30
+- load_id: sbmvr_load_26
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_31
+- load_id: sbmvr_load_27
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_32
+- load_id: sbmvr_load_28
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_33
+- load_id: sbmvr_load_29
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_34
+- load_id: sbmvr_load_30
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_35
+- load_id: sbmvr_load_31
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_36
+- load_id: sbmvr_load_32
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_37
+- load_id: sbmvr_load_33
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_38
+- load_id: sbmvr_load_34
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_39
+- load_id: sbmvr_load_35
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_40
+- load_id: sbmvr_load_36
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_41
+- load_id: sbmvr_load_37
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_42
+- load_id: sbmvr_load_38
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_43
+- load_id: sbmvr_load_39
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_44
+- load_id: sbmvr_load_40
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_45
+- load_id: sbmvr_load_41
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_46
+- load_id: sbmvr_load_42
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_47
+- load_id: sbmvr_load_43
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_48
+- load_id: sbmvr_load_44
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_49
+- load_id: sbmvr_load_45
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_50
+- load_id: sbmvr_load_46
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_51
+- load_id: sbmvr_load_47
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_52
+- load_id: sbmvr_load_48
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_53
+- load_id: sbmvr_load_49
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_54
+- load_id: sbmvr_load_50
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_55
+- load_id: sbmvr_load_51
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_56
+- load_id: sbmvr_load_52
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_57
+- load_id: sbmvr_load_53
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_58
+- load_id: sbmvr_load_54
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_59
+- load_id: sbmvr_load_55
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_60
+- load_id: sbmvr_load_56
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_61
+- load_id: sbmvr_load_57
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_62
+- load_id: sbmvr_load_58
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_63
+- load_id: sbmvr_load_59
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_64
+- load_id: sbmvr_load_60
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_65
+- load_id: sbmvr_load_61
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_66
+- load_id: sbmvr_load_62
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_67
+- load_id: sbmvr_load_63
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_68
+- load_id: sbmvr_load_64
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_70
+- load_id: sbmvr_load_65
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_71
+- load_id: sbmvr_load_66
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_72
+- load_id: sbmvr_load_67
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_73
+- load_id: sbmvr_load_68
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_74
+- load_id: sbmvr_load_69
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_75
+- load_id: sbmvr_load_70
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_76
+- load_id: sbmvr_load_71
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_77
+- load_id: sbmvr_load_72
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_78
+- load_id: sbmvr_load_73
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_79
+- load_id: sbmvr_load_74
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_80
+- load_id: sbmvr_load_75
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_81
+- load_id: sbmvr_load_76
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_82
+- load_id: sbmvr_load_77
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_83
+- load_id: sbmvr_load_78
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_84
+- load_id: sbmvr_load_79
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_85
+- load_id: sbmvr_load_80
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_86
+- load_id: sbmvr_load_81
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_87
+- load_id: sbmvr_load_82
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_88
+- load_id: sbmvr_load_83
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_89
+- load_id: sbmvr_load_84
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_90
+- load_id: sbmvr_load_85
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_91
+- load_id: sbmvr_load_86
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_92
+- load_id: sbmvr_load_87
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: sbmvr_bus_93
+- load_id: sbmvr_load_88
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_94
+- load_id: sbmvr_load_89
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_95
+- load_id: sbmvr_load_90
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_96
+- load_id: sbmvr_load_91
+  stakeholder_class: data_center
+  criticality: 0.7
+  bus_id: sbmvr_bus_15
+- load_id: sbmvr_load_92
+  stakeholder_class: hospital
+  criticality: 0.95
+  bus_id: sbmvr_bus_54
+- load_id: sbmvr_load_93
+  stakeholder_class: water
+  criticality: 0.85
+  bus_id: sbmvr_bus_64
+- load_id: sbmvr_load_94
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_27
+- load_id: sbmvr_load_95
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: sbmvr_bus_94
+perturbations:
+- kind: renewable_output_error
+  trigger_tick: 12
+  duration_ticks: 3
+  hidden: false
+  target:
+    source: simbench_profile_forecast_residual
+    window_sha256: 36fc08a6200d4ae1cf70b4fd2deff785cdee75179b7aacca8fd4665cbc26a1c5
+    engineering_bound_source: https://www.osti.gov/servlets/purl/1110685
+  intensity: 0.6
+  notes: Deterministic renewable forecast residual over a locked SimBench profile
+    window; realized by the native AC feeder.
+- kind: renewable_output_error
+  trigger_tick: 20
+  duration_ticks: 3
+  hidden: true
+  target:
+    source: simbench_profile_forecast_residual
+    window_sha256: 36fc08a6200d4ae1cf70b4fd2deff785cdee75179b7aacca8fd4665cbc26a1c5
+    engineering_bound_source: https://www.osti.gov/servlets/purl/1110685
+  intensity: 0.6
+  notes: Deterministic renewable forecast residual over a locked SimBench profile
+    window; realized by the native AC feeder.
+- kind: forecast_bias
+  trigger_tick: 0
+  duration_ticks: 24
+  hidden: true
+  target:
+    bias_direction: under-forecast
+  intensity: 0.25
+  notes: Noised forecast is biased below the realized DER output.
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: simbench_official
+  files:
+  - pandapower-simbench://1-MV-rural--0-sw@1.6.2
+  - simbench://1-MV-rural--0-sw@1.6.2#profile_start=14304
+  commit: 615135cbc04f4576bba6edad8528c1aa7e0a0b10
+  url: https://github.com/e2nIEE/simbench
+  lock_strategy: git_tag+commit+pypi_version+simbench_code+profile_window
+  time_window:
+    profile_start_index: 14304
+    profile_step: 4
+    horizon_ticks: 48
+    tick_minutes: 60
+    source_window_sha256: 36fc08a6200d4ae1cf70b4fd2deff785cdee75179b7aacca8fd4665cbc26a1c5
+  license: BSD-3-Clause code; SimBench data ODbL/DbCL terms.
+  notes: SimBench rural MV network with source-bundled annual profiles. Network code
+    1-MV-rural--0-sw; simbench==1.6.2. The backend consumes the bundled 15-minute
+    load/generation profiles at a locked hourly stride and solves pandapower AC power
+    flow at each decision tick. Candidate derived by source_grounded_derivation_v3_source_consumption_gate;
+    raw window checksum 36fc08a6200d4ae1cf70b4fd2deff785cdee75179b7aacca8fd4665cbc26a1c5;
+    deterministic forecast residual parameters are recorded in backend_config.derivation_recipe.
+source_contract:
+  runtime_input: []
+  derivation_input:
+  - pandapower-simbench://1-MV-rural--0-sw@1.6.2
+  implementation_asset:
+  - domains/power_grid/backends/cigre_distribution.py
+  metadata:
+  - domains/power_grid/seeds/from_cigre.py
+  license: []
+  file_sha256s:
+    pandapower-simbench://1-MV-rural--0-sw@1.6.2: 216d41e1388865bd3d3b156435a0b8f4fc941d0bb95a61405b94305455e230a2
+  derived_window:
+    sha256: 36fc08a6200d4ae1cf70b4fd2deff785cdee75179b7aacca8fd4665cbc26a1c5
+    recipe_version: simbench_protocol21_long_horizon_prefilter_v1
+scenario_id: power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p14304_r0p6_h48
+scenario_signature: 1528383ce44e142f

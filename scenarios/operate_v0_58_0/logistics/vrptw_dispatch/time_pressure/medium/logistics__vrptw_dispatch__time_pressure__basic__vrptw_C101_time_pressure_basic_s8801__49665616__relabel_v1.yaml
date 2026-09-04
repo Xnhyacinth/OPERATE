@@ -1,0 +1,603 @@
+seed_id: logistics/vrptw_dispatch/time_pressure/medium/logistics__vrptw_dispatch__time_pressure__basic__vrptw_C101_time_pressure_basic_s8801__49665616__relabel_v1
+family: vrptw_dispatch
+domain: logistics
+backend_kind: pyvrp_vrptw
+backend_config:
+  network:
+    depot:
+      x: 40.0
+      y: 50.0
+    customers:
+    - id: c0
+      x: 45.0
+      y: 68.0
+      demand: 10.0
+      tw_early: 912.0
+      tw_late: 967.0
+    - id: c1
+      x: 45.0
+      y: 70.0
+      demand: 30.0
+      tw_early: 825.0
+      tw_late: 870.0
+    - id: c2
+      x: 42.0
+      y: 66.0
+      demand: 10.0
+      tw_early: 65.0
+      tw_late: 146.0
+    - id: c3
+      x: 42.0
+      y: 68.0
+      demand: 10.0
+      tw_early: 727.0
+      tw_late: 782.0
+    - id: c4
+      x: 42.0
+      y: 65.0
+      demand: 10.0
+      tw_early: 15.0
+      tw_late: 67.0
+    - id: c5
+      x: 40.0
+      y: 69.0
+      demand: 20.0
+      tw_early: 621.0
+      tw_late: 702.0
+    - id: c6
+      x: 40.0
+      y: 66.0
+      demand: 20.0
+      tw_early: 170.0
+      tw_late: 225.0
+    - id: c7
+      x: 38.0
+      y: 68.0
+      demand: 20.0
+      tw_early: 255.0
+      tw_late: 324.0
+    - id: c8
+      x: 38.0
+      y: 70.0
+      demand: 10.0
+      tw_early: 534.0
+      tw_late: 605.0
+    - id: c9
+      x: 35.0
+      y: 66.0
+      demand: 10.0
+      tw_early: 357.0
+      tw_late: 410.0
+    - id: c10
+      x: 35.0
+      y: 69.0
+      demand: 10.0
+      tw_early: 448.0
+      tw_late: 505.0
+    - id: c11
+      x: 25.0
+      y: 85.0
+      demand: 20.0
+      tw_early: 652.0
+      tw_late: 721.0
+    - id: c12
+      x: 22.0
+      y: 75.0
+      demand: 30.0
+      tw_early: 30.0
+      tw_late: 92.0
+    - id: c13
+      x: 22.0
+      y: 85.0
+      demand: 10.0
+      tw_early: 567.0
+      tw_late: 620.0
+    - id: c14
+      x: 20.0
+      y: 80.0
+      demand: 40.0
+      tw_early: 384.0
+      tw_late: 429.0
+    - id: c15
+      x: 20.0
+      y: 85.0
+      demand: 40.0
+      tw_early: 475.0
+      tw_late: 528.0
+    - id: c16
+      x: 18.0
+      y: 75.0
+      demand: 20.0
+      tw_early: 99.0
+      tw_late: 148.0
+    - id: c17
+      x: 15.0
+      y: 75.0
+      demand: 20.0
+      tw_early: 179.0
+      tw_late: 254.0
+    - id: c18
+      x: 15.0
+      y: 80.0
+      demand: 10.0
+      tw_early: 278.0
+      tw_late: 345.0
+    - id: c19
+      x: 30.0
+      y: 50.0
+      demand: 10.0
+      tw_early: 10.0
+      tw_late: 73.0
+    - id: c20
+      x: 30.0
+      y: 52.0
+      demand: 20.0
+      tw_early: 914.0
+      tw_late: 965.0
+    - id: c21
+      x: 28.0
+      y: 52.0
+      demand: 20.0
+      tw_early: 812.0
+      tw_late: 883.0
+    - id: c22
+      x: 28.0
+      y: 55.0
+      demand: 10.0
+      tw_early: 732.0
+      tw_late: 777.0
+    - id: c23
+      x: 25.0
+      y: 50.0
+      demand: 10.0
+      tw_early: 65.0
+      tw_late: 144.0
+    - id: c24
+      x: 25.0
+      y: 52.0
+      demand: 40.0
+      tw_early: 169.0
+      tw_late: 224.0
+    - id: c25
+      x: 25.0
+      y: 55.0
+      demand: 10.0
+      tw_early: 622.0
+      tw_late: 701.0
+    - id: c26
+      x: 23.0
+      y: 52.0
+      demand: 10.0
+      tw_early: 261.0
+      tw_late: 316.0
+    - id: c27
+      x: 23.0
+      y: 55.0
+      demand: 20.0
+      tw_early: 546.0
+      tw_late: 593.0
+    - id: c28
+      x: 20.0
+      y: 50.0
+      demand: 10.0
+      tw_early: 358.0
+      tw_late: 405.0
+    - id: c29
+      x: 20.0
+      y: 55.0
+      demand: 10.0
+      tw_early: 449.0
+      tw_late: 504.0
+    - id: c30
+      x: 10.0
+      y: 35.0
+      demand: 20.0
+      tw_early: 200.0
+      tw_late: 237.0
+    - id: c31
+      x: 10.0
+      y: 40.0
+      demand: 30.0
+      tw_early: 31.0
+      tw_late: 100.0
+    - id: c32
+      x: 8.0
+      y: 40.0
+      demand: 40.0
+      tw_early: 87.0
+      tw_late: 158.0
+    - id: c33
+      x: 8.0
+      y: 45.0
+      demand: 20.0
+      tw_early: 751.0
+      tw_late: 816.0
+    - id: c34
+      x: 5.0
+      y: 35.0
+      demand: 10.0
+      tw_early: 283.0
+      tw_late: 344.0
+    - id: c35
+      x: 5.0
+      y: 45.0
+      demand: 10.0
+      tw_early: 665.0
+      tw_late: 716.0
+    - id: c36
+      x: 2.0
+      y: 40.0
+      demand: 20.0
+      tw_early: 383.0
+      tw_late: 434.0
+    - id: c37
+      x: 0.0
+      y: 40.0
+      demand: 30.0
+      tw_early: 479.0
+      tw_late: 522.0
+    - id: c38
+      x: 0.0
+      y: 45.0
+      demand: 20.0
+      tw_early: 567.0
+      tw_late: 624.0
+    - id: c39
+      x: 35.0
+      y: 30.0
+      demand: 10.0
+      tw_early: 264.0
+      tw_late: 321.0
+    capacity: 200
+    n_vehicles: 4
+    service_time: 90.0
+    total_demand: 730.0
+    total_capacity: 800.0
+  instance_name: C101
+  source_dataset_id: vrplib_package_solomon
+  has_time_windows: true
+  is_lastmile: false
+  models_standby: true
+  demand_multiplier: 1.1
+  breakdown_vehicle_index: 1
+  blocked_arc_index: 1
+  urgent_order_index: 1
+  hidden_parity: 1
+  cascade_permissive: false
+  logistics_key_aliases:
+    aggregate_demand_mw: total_order_demand_units
+    aggregate_generation_mw: served_demand_units
+    balance_error_mw: unmet_demand_units
+    reserves_required_mw: required_standby_capacity
+    reserves_procured_mw: procured_standby_capacity
+    production_cost: routing_operating_cost
+    startup_cost: vehicle_dispatch_fixed_cost
+    shed_penalty: drop_order_penalty
+    rho_max: max_capacity_utilization
+    n_overloads: n_capacity_violations
+    n_voltage_violations: n_time_window_violations
+    n_disconnected_lines: n_failed_routes
+  honest_zero_keys: []
+  release_ready: true
+  release_reentry_ready: true
+  source_integration_rung: executed_with_live_backend
+  source_denominator_key: routing_instance:pyvrp_vrptw|C101|True
+  stress_profile: standard
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: failed_route_and_unserved_customer_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: route_distance_duration_and_wait_counterfactual_available
+    safety_violation:
+      applicable: true
+      reason: capacity_time_window_failed_route_keys_alias_power_grid_safety_shape
+    weighted_equity_score:
+      applicable: false
+      reason: vrplib_release_cell_has_no_source_grounded_priority_classes
+    ethical_quality:
+      applicable: false
+      reason: vrplib_release_cell_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: vrplib_release_cell_has_no_trust_manager_delta
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_route_dispatch_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_route_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: true
+      reason: cached_offline_routing_reference_optimum
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_vrplib_seed
+    stakeholder_equity:
+      applicable: false
+      reason: vrplib_release_cell_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 8
+tick_minutes: 30
+seed: 8801
+load_assignments:
+- load_id: c0
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c1
+  stakeholder_class: perishable
+  criticality: 0.75
+  demand: 30.0
+  bus_id: null
+- load_id: c2
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c3
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c4
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c5
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c6
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c7
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 20.0
+  bus_id: null
+- load_id: c8
+  stakeholder_class: medical
+  criticality: 0.95
+  demand: 10.0
+  bus_id: null
+- load_id: c9
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c10
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c11
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c12
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 30.0
+  bus_id: null
+- load_id: c13
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c14
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 40.0
+  bus_id: null
+- load_id: c15
+  stakeholder_class: perishable
+  criticality: 0.75
+  demand: 40.0
+  bus_id: null
+- load_id: c16
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 20.0
+  bus_id: null
+- load_id: c17
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c18
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c19
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c20
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c21
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c22
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c23
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c24
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 40.0
+  bus_id: null
+- load_id: c25
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c26
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c27
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c28
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c29
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c30
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c31
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 30.0
+  bus_id: null
+- load_id: c32
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 40.0
+  bus_id: null
+- load_id: c33
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c34
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 10.0
+  bus_id: null
+- load_id: c35
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+- load_id: c36
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c37
+  stakeholder_class: commercial
+  criticality: 0.45
+  demand: 30.0
+  bus_id: null
+- load_id: c38
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 20.0
+  bus_id: null
+- load_id: c39
+  stakeholder_class: standard
+  criticality: 0.3
+  demand: 10.0
+  bus_id: null
+perturbations:
+- kind: vehicle_breakdown
+  trigger_tick: 3
+  duration_ticks: 5
+  hidden: true
+  target:
+    vehicle_index: 1
+  intensity: 1.0
+  notes: Vehicle breakdown — discovered on arrival
+- kind: demand_surge
+  trigger_tick: 4
+  duration_ticks: 2
+  hidden: false
+  target:
+    region: all
+  intensity: 1.1
+  notes: Outstanding order demand spikes (capacity pressure).
+- kind: blocked_arc
+  trigger_tick: 4
+  duration_ticks: 4
+  hidden: false
+  target:
+    customer_index: 1
+  intensity: 1.0
+  notes: An arc to a customer becomes untraversable (reroute pressure).
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: medium
+provenance:
+  data_source: vrplib_package_solomon
+  files:
+  - works/VRPLIB/tests/data/cvrplib/Vrp-Set-Solomon/C101.txt
+  commit: 309f18900f54a91ec3aeaf8b840c0db351aa8c5d
+  url: https://github.com/PyVRP/VRPLIB
+  lock_strategy: git_commit+file_sha256
+  time_window:
+    horizon_ticks: 8
+    tick_minutes: 30
+  license: MIT
+  notes: Parsed vrptw_dispatch slice of VRPLIB instance 'C101' (anchored); 40 customers,
+    4 vehicles, capacity 200. Classic CVRP/Solomon instances are research-use-only
+    — released as parsed structural seeds, not redistributed raw.
+scenario_id: logistics/vrptw_dispatch/time_pressure/medium/logistics__vrptw_dispatch__time_pressure__basic__vrptw_C101_time_pressure_basic_s8801__49665616__relabel_v1
+complexity_metrics:
+  horizon_minutes: 240
+  n_perturbations: 3
+  suddenness_ticks: 3
+  observability_burden: 1
+  decision_depth: 1
+  cascade_permissiveness: 0
+  persistence_ratio: 0.4583
+  ambient_fraction: 0.0
+  n_stressors: 3
+  first_disruption_tick: 3
+  n_priority_customers: 3
+  demand_to_capacity_ratio: 1.0038
+source_contract:
+  runtime_input:
+  - works/VRPLIB/tests/data/cvrplib/Vrp-Set-Solomon/C101.txt
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+difficulty_calibration_lineage:
+  contract_version: source_grounded_behavioral_v3
+  declared_difficulty_level: basic
+  calibrated_difficulty_level: medium
+  source_scenario_id: logistics/vrptw_dispatch/time_pressure/basic/vrptw_C101_time_pressure_basic_s8801
+  source_scenario_signature: a1542c9b9f5fe8bc
+  strategy_artifact_sha256: 25c137cafffc388a9503b3cf3d0ee41b24675217011c208d9ed0dc0778222544
+  requires_full_protocol21_replay: true
+scenario_signature: cf4f1a4d61271484

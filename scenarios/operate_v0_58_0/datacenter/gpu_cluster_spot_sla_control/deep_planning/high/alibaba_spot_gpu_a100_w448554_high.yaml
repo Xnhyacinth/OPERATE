@@ -1,0 +1,173 @@
+seed_id: alibaba_spot_gpu_a100_w448554_high
+family: gpu_cluster_spot_sla_control
+domain: datacenter
+backend_kind: alibaba_trace_sim
+backend_config:
+  gpu_capacity_units: 8.0
+  cpu_capacity_units: 128.0
+  initial_queue_policy: fifo
+  source_time_scale:
+    mode: source_seconds
+    seconds_per_tick: 1800
+  task_requirements:
+    min_queue_policy_changes: 1
+    min_reservation_arrivals: 2
+    min_distinct_control_ticks: 3
+    min_native_physical_tools: 2
+    min_strategy_reversals: 1
+    min_effective_control_ticks: 3
+    response_windows_required: 2
+    ordered_tool_milestones:
+    - tool: set_queue_policy
+      not_after_tick: 1
+    - tool: reserve_gpu_capacity
+      not_before_tick: 9
+  source_transform:
+    source_schema: alibaba-spot-gpu-v2026-v1
+    source_file_roles:
+      job_trace: works/clusterdata/cluster-trace-v2026-spot-gpu/job_info_df.csv
+      node_inventory: works/clusterdata/cluster-trace-v2026-spot-gpu/node_info_df.csv
+    job_trace_sha256: 113ccee4c28f5c3bbaaca974cd164b9280b7d4c39e53b745443b28eea05e03dd
+    node_trace_sha256: 1aba161961a5a4a1a61aa581383c5e5abe3400b59f8597ba8c4eef7597bc9d18
+    upstream_commit: 0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71
+    license_status: research_use_terms_no_explicit_redistribution_license
+    public_packaging: fetch_build_only
+    source_window_start: 448554
+    window_size: 20
+    source_window_sha256: b2431cbd0a8ebb7c93e26123b829f7a3582e042a005e612589fa92d1cf3511f2
+    selected_gpu_model: A100-SXM4-80GB
+    node_selection_recipe:
+      kind: gpu_model_ordinal
+      gpu_model: A100-SXM4-80GB
+      ordinal: 0
+      ordering: source_row_order_after_gpu_model_filter
+    selected_node_inventory_sha256: 961f1330a21034b16676b3df7325c3ca1b5032896ddcccb292a3207692fa880a
+    capacity_rule: sum_exact_selected_source_nodes
+    arrival_rule: floor_source_seconds_by_tick_duration
+    priority_rule: HP=0.9;Spot=0.25_from_runtime_source
+    stress_rule: capacity_queue_capacity_event_ladder_v1
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: gpu_queue_preemption_and_reservation_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: trace_wait_sla_and_wait_counterfactual_costs_available
+    safety_violation:
+      applicable: true
+      reason: sla_deadline_and_capacity_shortfall_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: alibaba_trace_sim_has_no_source_grounded_load_class_criticality_ledger
+    ethical_quality:
+      applicable: false
+      reason: alibaba_trace_sim_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: true
+      reason: datacenter_native_job_class_trust_manager_available
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_queue_preempt_and_reserve_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_cluster_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_lp_or_milp_reference_optimum_for_alibaba_trace_sim
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_trace_window
+    stakeholder_equity:
+      applicable: true
+      reason: cross_job_class_outcome_balance_recorded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 12
+tick_minutes: 30
+seed: 52
+load_assignments: []
+perturbations:
+- kind: capacity_reduction
+  trigger_tick: 0
+  duration_ticks: 3
+  hidden: false
+  target:
+    resource: a100_spot_capacity_pool
+  intensity: 0.75
+  notes: Visible loss of three quarters of the source-selected A100 node capacity,
+    with a genuine delayed-control response window.
+- kind: queue_burst
+  trigger_tick: 4
+  duration_ticks: 3
+  hidden: true
+  target:
+    scope: hp_and_spot_queue
+  intensity: 1.0
+  notes: Hidden queue-pressure change inferred from native queue metrics.
+- kind: sla_deadline_pressure
+  trigger_tick: 6
+  duration_ticks: 2
+  hidden: true
+  target:
+    scope: hp_and_spot_queue
+  intensity: 2.0
+  notes: Hidden two-tick SLA deadline compression inferred from native deadline-risk
+    and queue-state changes.
+- kind: capacity_reduction
+  trigger_tick: 8
+  duration_ticks: 4
+  hidden: true
+  target:
+    resource: a100_spot_capacity_pool
+  intensity: 0.5
+  notes: Hidden recurrent capacity loss with a complete delayed-control materialization
+    and native scheduling step before recovery.
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: alibaba_cluster_trace_v2026_spot_gpu
+  files:
+  - works/clusterdata/cluster-trace-v2026-spot-gpu/job_info_df.csv
+  - works/clusterdata/cluster-trace-v2026-spot-gpu/node_info_df.csv
+  commit: 0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71
+  url: https://github.com/alibaba/clusterdata/tree/0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71/cluster-trace-v2026-spot-gpu
+  lock_strategy: upstream_git_commit_and_raw_sha256_plus_runtime_window_recipe
+  time_window:
+    source_start: 448554
+    source_end_exclusive: 448574
+    source_window_sha256: b2431cbd0a8ebb7c93e26123b829f7a3582e042a005e612589fa92d1cf3511f2
+  license: research_use_terms_no_explicit_redistribution_license
+  notes: Runtime opens the pinned official raw job and node files, then reconstructs
+    the locked source-order window without redistributing trace rows. The upstream
+    research-use terms are locked at https://github.com/alibaba/clusterdata/blob/0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71/README.md#our-motivation;
+    no explicit redistribution license was found. Procedural events do not alter source
+    jobs or nodes.
+scenario_id: datacenter/gpu_cluster_spot_sla_control/deep_planning/high/alibaba_spot_gpu_a100_w448554_high
+source_contract:
+  runtime_input:
+  - works/clusterdata/cluster-trace-v2026-spot-gpu/job_info_df.csv
+  - works/clusterdata/cluster-trace-v2026-spot-gpu/node_info_df.csv
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+  derived_window:
+    sha256: b2431cbd0a8ebb7c93e26123b829f7a3582e042a005e612589fa92d1cf3511f2
+    recipe_version: alibaba-spot-gpu-window-v1
+complexity_metrics:
+  horizon_minutes: 360
+  n_perturbations: 4
+  observability_burden: 3
+  decision_depth: 5
+  n_jobs: 20
+  duration_ratio: 844.8125
+  gpu_demand_to_capacity_ratio: 5.75
+  n_distinct_users: 4
+scenario_signature: c775ae4af022b671

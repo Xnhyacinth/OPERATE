@@ -1,0 +1,190 @@
+seed_id: candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_queue_static_small_rho50_varm__mode_sequential
+family: job_shop_dispatch
+domain: logistics
+backend_kind: dynasched_flexible_job_shop
+backend_config:
+  bundle_id: DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01
+  source_integration_rung: native_runtime_direct_candidate
+  release_ready: false
+  release_reentry_ready: false
+  runtime_package: dsbx
+  runtime_version: 0.3.0
+  runtime_code_tree_sha256: 35f60f494e386f864d5be905d09dd87ccbad2a25878d35f6dee5458f79e8cff2
+  runtime_source_lock:
+    repository: https://github.com/dsbx7/DynaSchedBench
+    commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+    python_package_tree_sha256: 35f60f494e386f864d5be905d09dd87ccbad2a25878d35f6dee5458f79e8cff2
+  direct_data_use: true
+  upstream_bundle_path: data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01
+  machine_alternatives_preserved: true
+  source_assets:
+    input_model_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/input_model.json
+      sha256: 74ac75129d8e49df2ca280d7a1fbf8999ae198507fc19714911e5adf737bf21c
+      role: runtime_input
+    events_jsonl:
+      path: works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/events.jsonl
+      sha256: db4979e9f55c6d1e032d2d40b9c0131e2aa4c041a170c26ca44f8b75a0ab4fb5
+      role: runtime_input
+    static_jobs_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/static_jobs.json
+      sha256: 27441ce3ae971472601e7f662ef32d69a082a277a99c54f0621d2d5fd5b8aada
+      role: bundle_crosscheck_metadata
+    static_machines_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/static_machines.json
+      sha256: f53c074032a49366bbe7d0189b584640dc7564a1dd9278d4298109c611b5fe21
+      role: bundle_crosscheck_metadata
+    final_metrics_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/final_metrics.json
+      sha256: 4b1828c5bbdbe7fe8efff6f4be77e4aeb69c7d1bbb125a6b136a16186b4e7f04
+      role: bundle_crosscheck_metadata
+    meta_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/meta.json
+      sha256: 47ca616109d9d2199744902f71367d462707ea794fb72173ebe7db1ea91caf8a
+      role: bundle_crosscheck_metadata
+    license:
+      path: works/DynaSchedBench/LICENSE
+      sha256: 33973f276af491c9cf2fd99506a617b643d3e68b5fef31a02c6b6ee3d6bbb36c
+      role: license
+  source_event_counts:
+    ARRIVAL: 33
+    DUE_DATE_SET: 33
+    PRIORITY_CHANGE: 3
+  source_event_registry:
+    ARRIVAL:
+      type: job_arrival
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    DUE_DATE_SET:
+      type: due_date_set
+      event_class: lifecycle
+      origin: source_schedule
+      actionable: false
+      unknown_events_actionable: false
+    PRIORITY_CHANGE:
+      type: priority_change
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+  hidden_source_event_types: []
+  source_denominator_key: dynasched:08975bf4a0473c5dff9177393bc6743db9ddc946:data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: dispatch_flexible_operations
+      not_after_tick: 103
+    - tool: dispatch_flexible_operations
+      not_after_tick: 103
+  source_event_contract:
+  - source_event_index: 0
+    source_time: 16.7423
+    source_event_type: ARRIVAL
+  - source_event_index: 28
+    source_time: 138.6236
+    source_event_type: PRIORITY_CHANGE
+  reference:
+    type: native_oracle_policy
+    policy: native_oracle_earliest_completion_v1
+    runtime_authority: dsbx.Sim.Simulator.DynaSchedSim
+    formal_optimality_applicable: false
+  dimension_applicability:
+    optimality_gap:
+      applicable: false
+      reason: bundle_has_no_certified_dynamic_fjsp_optimum
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_source_event_stream
+    system_survival:
+      applicable: true
+      reason: unfinished_operation_and_machine_downtime_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: native_makespan_cost_and_wait_counterfactual_available
+    safety_violation:
+      applicable: true
+      reason: precedence_machine_eligibility_and_downtime_constraints_available
+    weighted_equity_score:
+      applicable: false
+      reason: dynasched_bundle_has_no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: dynasched_bundle_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: dynasched_bundle_has_no_stakeholder_trust_model
+    adaptive_replanning:
+      applicable: true
+      reason: source_driven_shop_events_require_dynamic_rescheduling
+    information_efficiency:
+      applicable: true
+      reason: partial_shop_state_is_exposed_by_native_investigation_tool
+    foresight_score:
+      applicable: false
+      reason: reference_agents_do_not_emit_commit_to_plan_predictions
+    stakeholder_equity:
+      applicable: false
+      reason: dynasched_bundle_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  candidate_materialization:
+    candidate_id: dynasched/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential
+    source_family: dynasched
+    active_core: false
+horizon_ticks: 104
+tick_minutes: 1
+seed: 3786731009
+load_assignments: []
+perturbations: []
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: DynaSchedBench
+  files:
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/input_model.json
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/events.jsonl
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/static_jobs.json
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/static_machines.json
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/final_metrics.json
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/meta.json
+  - works/DynaSchedBench/LICENSE
+  commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+  url: https://github.com/dsbx7/DynaSchedBench
+  lock_strategy: git_commit_plus_per_file_sha256
+  time_window:
+    source_event_count: 69
+    source_event_types:
+    - ARRIVAL
+    - DUE_DATE_SET
+    - PRIORITY_CHANGE
+  license: Apache-2.0
+  notes: Official DynaSchedSim consumes the locked model and event stream.
+source_contract:
+  runtime_input:
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/input_model.json
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/events.jsonl
+  derivation_input: []
+  implementation_asset: []
+  metadata:
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/static_jobs.json
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/static_machines.json
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/final_metrics.json
+  - works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/meta.json
+  license:
+  - works/DynaSchedBench/LICENSE
+  file_sha256s:
+    works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/input_model.json: 74ac75129d8e49df2ca280d7a1fbf8999ae198507fc19714911e5adf737bf21c
+    works/DynaSchedBench/data/DynaSched-Grid/queue_static_small_rho50_varm__mode_sequential/rep01/events.jsonl: db4979e9f55c6d1e032d2d40b9c0131e2aa4c041a170c26ca44f8b75a0ab4fb5
+procedural_stress:
+  label: source_native
+  source_native: true
+scenario_id: candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_queue_static_small_rho50_varm__mode_sequential
+policy_contract:
+  strict_prompt: true
+  benchmark_side_hints: false
+scenario_signature: a78de67241862951

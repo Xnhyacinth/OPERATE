@@ -1,0 +1,365 @@
+seed_id: traffic/signal_coordination/source_locked_native_window/high/infrastructure_sumo365_ingolstadt_2023_06_26
+family: signal_coordination
+domain: traffic
+backend_kind: sumo
+backend_config:
+  sumo_net_path: works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/ingolstadt_net.net.xml
+  sumo_route_path: works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/Routes/routes_2023-06-26_24h_det_calib.rou.xml.gz
+  sumo_config_path: works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/2023-06-26.sumocfg
+  corridor_tls_map:
+    '0002': '0002'
+    '1581783926': '1581783926'
+    '17199686': '17199686'
+    '1840155828': '1840155828'
+    '2108719976': '2108719976'
+    '214620430': '214620430'
+    '243351999': '243351999'
+    '25579778': '25579778'
+    '267380207': '267380207'
+    '267517510': '267517510'
+    '271405446': '271405446'
+    '272514267': '272514267'
+    '279014956': '279014956'
+    '279299817': '279299817'
+    '30503255': '30503255'
+    '306484190': '306484190'
+    '308900438': '308900438'
+    '31065768': '31065768'
+    '321324256': '321324256'
+    '321325405': '321325405'
+    '335525545': '335525545'
+    '39732721': '39732721'
+    '432411761': '432411761'
+    '4330799728': '4330799728'
+    '476075018': '476075018'
+    '498468294': '498468294'
+    '5572889449': '5572889449'
+    '7009179660': '7009179660'
+    '7616444534': '7616444534'
+    '7623669975': '7623669975'
+    '7627056291': '7627056291'
+    '7628244053': '7628244053'
+    '89129103': '89129103'
+    cluster_1031988642_2230685474_267289885_3051759901_305519243_7617786208_7622194984_937878779: cluster_1031988642_2230685474_267289885_3051759901_305519243_7617786208_7622194984_937878779
+    ? cluster_1041665625_1195228772_1387938772_1387938773_1387938778_1387938791_1387938793_1387938796_1757124361_1757124367_1757124394_32564126
+    : cluster_1041665625_1195228772_1387938772_1387938773_1387938778_1387938791_1387938793_1387938796_1757124361_1757124367_1757124394_32564126
+    cluster_1193967973_2117568679_271666695_319229058: cluster_1193967973_2117568679_271666695_319229058
+    cluster_1200363833_1200363844_1200364014_1200364088_274083968_305559042_305559046_7593410996: cluster_1200363833_1200363844_1200364014_1200364088_274083968_305559042_305559046_7593410996
+    cluster_1242175752_1840503577_1840503583: cluster_1242175752_1840503577_1840503583
+    ? cluster_1242949438_2230504053_2230685419_2230685443_271787024_321573214_321573215_359022505_4622372941_7622194980_7622194981_7622194982_7622194983_89129156
+    : cluster_1242949438_2230504053_2230685419_2230685443_271787024_321573214_321573215_359022505_4622372941_7622194980_7622194981_7622194982_7622194983_89129156
+    cluster_1270380467_1270380469_1270380471: cluster_1270380467_1270380469_1270380471
+    cluster_1379976907_1418778465_1434862832_1434862833_1497476927_1501766404_1993601939_2167318871_5458679537_5458679538: cluster_1379976907_1418778465_1434862832_1434862833_1497476927_1501766404_1993601939_2167318871_5458679537_5458679538
+    cluster_13876315_20921026_2363220623_476074973_476074977_476074983: cluster_13876315_20921026_2363220623_476074973_476074977_476074983
+    cluster_13876325_281116670: cluster_13876325_281116670
+    cluster_1387938663_1387938676_1387938692_1387938693_1757124350_1757124352_255881112_7593411008: cluster_1387938663_1387938676_1387938692_1387938693_1757124350_1757124352_255881112_7593411008
+    cluster_1389744657_1791639531_243780145: cluster_1389744657_1791639531_243780145
+    cluster_1416087225_1416087251_1416087290_1416087318_266812023_479277646: cluster_1416087225_1416087251_1416087290_1416087318_266812023_479277646
+    cluster_1418777922_1418777925_243630666: cluster_1418777922_1418777925_243630666
+    cluster_1423242652_1815670962_1815670964_89173763: cluster_1423242652_1815670962_1815670964_89173763
+    cluster_1427080610_1427080612_1427080621_1427080654_1840464676_2291353499_2291353500_2525814176_6681347680_89130928: cluster_1427080610_1427080612_1427080621_1427080654_1840464676_2291353499_2291353500_2525814176_6681347680_89130928
+    cluster_1434862767_1434862773_320621276: cluster_1434862767_1434862773_320621276
+    cluster_1438846501_1438846509_1834036292_26288878: cluster_1438846501_1438846509_1834036292_26288878
+    cluster_1442150396_1834171725_290100048_7616444540: cluster_1442150396_1834171725_290100048_7616444540
+    cluster_1442150432_1442208008_266359531_7625163215: cluster_1442150432_1442208008_266359531_7625163215
+    cluster_1443568616_310280199_365519573: cluster_1443568616_310280199_365519573
+    cluster_148517293_2108758054: cluster_148517293_2108758054
+    cluster_1500083093_1500083101_1507566574_267783912: cluster_1500083093_1500083101_1507566574_267783912
+    cluster_1509951406_1757370784_1757370785_1840464471_2046459353_2046459354_2338014823_243749571_6660364372: cluster_1509951406_1757370784_1757370785_1840464471_2046459353_2046459354_2338014823_243749571_6660364372
+    cluster_1517542714_2046445409_2046445411_2125534786_497590081_6681347642_7590327512_7590327526_7590327546_89127267: cluster_1517542714_2046445409_2046445411_2125534786_497590081_6681347642_7590327512_7590327526_7590327546_89127267
+    cluster_1540767879_1540767896_1540767903_2118007010_271666614_335551641_3836171504_3836171505_98101360: cluster_1540767879_1540767896_1540767903_2118007010_271666614_335551641_3836171504_3836171505_98101360
+    cluster_1542094095_1993435751_25633338_3048861139_3048861140_312005795: cluster_1542094095_1993435751_25633338_3048861139_3048861140_312005795
+    cluster_1757124433_1839790474_1839790475_1840155803_255883212: cluster_1757124433_1839790474_1839790475_1840155803_255883212
+    cluster_1795399122_1852723938_1852723941_1852723942_21532605_2337351260_975729494: cluster_1795399122_1852723938_1852723941_1852723942_21532605_2337351260_975729494
+    cluster_1833941945_1833941950_1833941953_32564122: cluster_1833941945_1833941950_1833941953_32564122
+    cluster_1833965782_1833965795_1833965806_1833965819_1833965827_1833965832_32564118_371775504_371781950: cluster_1833965782_1833965795_1833965806_1833965819_1833965827_1833965832_32564118_371775504_371781950
+    cluster_1834036285_26288876: cluster_1834036285_26288876
+    cluster_1840038403_1840038404_1840038405_1840038406_255881238_89173808: cluster_1840038403_1840038404_1840038405_1840038406_255881238_89173808
+    cluster_1840209242_243641585_7615917758_7615917760: cluster_1840209242_243641585_7615917758_7615917760
+    cluster_1840464316_30503246_311487342_7610014924: cluster_1840464316_30503246_311487342_7610014924
+    cluster_1840464375_32564065_7380517175: cluster_1840464375_32564065_7380517175
+    cluster_1840464645_321328875: cluster_1840464645_321328875
+    cluster_1840464736_1840464743_382978821_60044051: cluster_1840464736_1840464743_382978821_60044051
+    cluster_1851982706_2119320674_2119320675_251004775_3405515861_3994069657_89180081: cluster_1851982706_2119320674_2119320675_251004775_3405515861_3994069657_89180081
+    cluster_1852696865_1852696866_249179882: cluster_1852696865_1852696866_249179882
+    cluster_1863241610_1863241614_1863241632_1863241633_1863241635_1863241638_1863241639_1863241641_1870520994_7705782706: cluster_1863241610_1863241614_1863241632_1863241633_1863241635_1863241638_1863241639_1863241641_1870520994_7705782706
+    cluster_1875873944_1875873956_273472399: cluster_1875873944_1875873956_273472399
+    cluster_195635333_271482952_271662929_89129116: cluster_195635333_271482952_271662929_89129116
+    cluster_2046445399_674241651: cluster_2046445399_674241651
+    cluster_2108719632_2108719645_2337351143_249398320_308906206_7707481398: cluster_2108719632_2108719645_2337351143_249398320_308906206_7707481398
+    cluster_21532591_2337351188: cluster_21532591_2337351188
+    cluster_21532622_3371704901_3379435671_538429308: cluster_21532622_3371704901_3379435671_538429308
+    cluster_2277358882_2330725114_2330725115_6660392178_6660392214_911171252: cluster_2277358882_2330725114_2330725115_6660392178_6660392214_911171252
+    cluster_2358496785_2358496786_2362441539_2362441541_2362441548_335551657_89129168: cluster_2358496785_2358496786_2362441539_2362441541_2362441548_335551657_89129168
+    cluster_241292475_4542971985: cluster_241292475_4542971985
+    cluster_243628647_243628765_273472941_277740154_305559052_307620080_308656395_315993626_517248644: cluster_243628647_243628765_273472941_277740154_305559052_307620080_308656395_315993626_517248644
+    cluster_25579770_2633530003_2633530004_2633530005: cluster_25579770_2633530003_2633530004_2633530005
+    cluster_260470961_427693937: cluster_260470961_427693937
+    cluster_26288887_365515590: cluster_26288887_365515590
+    cluster_26423900_7409073862: cluster_26423900_7409073862
+    cluster_26423915_418085798: cluster_26423915_418085798
+    cluster_271273941_59743835: cluster_271273941_59743835
+    cluster_271273943_339223426: cluster_271273943_339223426
+    cluster_276507127_30503253_335525532_335525534: cluster_276507127_30503253_335525532_335525534
+    cluster_281967823_305519232_7009179649_7626856596_7626856598_7626856599: cluster_281967823_305519232_7009179649_7626856596_7626856598_7626856599
+    cluster_285141680_335575054_792810637_792810658: cluster_285141680_335575054_792810637_792810658
+    cluster_289710194_3371623541: cluster_289710194_3371623541
+    cluster_307632375_3300416891_3300416896_335543933: cluster_307632375_3300416891_3300416896_335543933
+    cluster_30965691_4542971977_4542971978_4542972047: cluster_30965691_4542971977_4542971978_4542972047
+    cluster_30965800_30965801_310452687: cluster_30965800_30965801_310452687
+    cluster_30965809_938227820: cluster_30965809_938227820
+    cluster_30965815_7402339364: cluster_30965815_7402339364
+    cluster_331034607_414259171_432918171: cluster_331034607_414259171_432918171
+    cluster_3359328497_3450556278_3450556285_3450556995_3466088116_768188545: cluster_3359328497_3450556278_3450556285_3450556995_3466088116_768188545
+    cluster_3466088112_811928045: cluster_3466088112_811928045
+    cluster_442648110_454387261: cluster_442648110_454387261
+    cluster_4446632352_4446632354_690288770_7652124537: cluster_4446632352_4446632354_690288770_7652124537
+    cluster_475311928_475944687_475944688_480162640: cluster_475311928_475944687_475944688_480162640
+    cluster_581455_7437612: cluster_581455_7437612
+    cluster_7707167828_89170505: cluster_7707167828_89170505
+    gneJ194: gneJ194
+    gneJ21: gneJ21
+    gneJ223: gneJ223
+    gneJ229: gneJ229
+    gneJ233: gneJ233
+    gneJ371: gneJ371
+    gneJ375: gneJ375
+    gneJ380: gneJ380
+    gneJ381: gneJ381
+    gneJ394: gneJ394
+    gneJ400: gneJ400
+    gneJ5: gneJ5
+    gneJ500: gneJ500
+    gneJ67: gneJ67
+    gneJ8: gneJ8
+  live_phase_control: true
+  source_denominator_key: sumo365:2023-06-26:25200:native_phase_duration
+  service_date: '2023-06-26'
+  sumo_substeps_per_tick: 60
+  max_agent_vehicle_records: 24
+  reference_phase_duration_seconds: 20.0
+  sumo_tls_binding_net_sha256: ab043e0974eb3ccd8f76799c8687960f3ac42c155f6efe7b01405ebba34549f8
+  sumo_extra_args:
+  - --begin
+  - '24900'
+  - --end
+  - '25800'
+  physics_step_seconds: 1
+  decision_interval_seconds: 60
+  task_contract:
+    contract: traffic.travel_delay_mitigation.v1
+    objective_component: travel_time_cost
+    reference_policy: deterministic_wait_only
+    source_response_windows:
+    - event_type: traffic_demand_change
+      event_tick: 5
+      first_tick: 5
+      last_tick: 9
+  task_requirements:
+    min_distinct_control_ticks: 1
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: set_signal_phase_duration
+      any_state_changing: true
+      not_before_tick: 5
+      not_after_tick: 9
+  derivation_recipe:
+    pipeline_version: sumo_ingolstadt_24h_sim_phase_control_v1
+    source_denominator_key: sumo_ingolstadt:2020-09-16:24h_sim:evening17:cluster_241292475_4542971985
+    service_date: '2020-09-16'
+    window_begin_seconds: 61200
+    window_end_seconds: 61980
+    reference_controller:
+      method: bounded_phase_duration_grid_search
+      candidate_seconds:
+      - 8.0
+      - 10.0
+      - 12.0
+      - 15.0
+      - 20.0
+      - 25.0
+      selected_seconds: 20.0
+      selection_objective: minimum_native_travel_time_cost
+      decision_cadence_ticks: 2
+      runtime_note: source TLS programs are static minDur=maxDur; oracle clamps the
+        requested remaining duration to the live phase length
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: network_saturation_and_gridlock_collapse_signal
+    economic_cost:
+      applicable: true
+      reason: aggregate_travel_time_delay_production_cost
+    safety_violation:
+      applicable: true
+      reason: congestion_overload_and_priority_corridor_blocking_proxies
+    weighted_equity_score:
+      applicable: false
+      reason: placeholder_corridor_criticality_not_source_grounded
+    ethical_quality:
+      applicable: false
+      reason: no_pre_armed_ethical_dilemma_payload_in_family
+    stakeholder_management:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    adaptive_replanning:
+      applicable: true
+      reason: signal_reroute_meter_tools_gated_on_realized_disruptions
+    information_efficiency:
+      applicable: true
+      reason: fogged_queue_delay_revealed_via_detector_and_inspection_queries
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_wardrop_system_optimal_reference_on_this_core_row
+    counterfactual_prevention:
+      applicable: false
+      reason: no_preventable_exogenous_loss_event_in_family
+    stakeholder_equity:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+  reference_policy_contract: sumo.native_phase_duration_window.v1
+  source_event_registry:
+    traffic_demand_change:
+      event_class: task
+      actionable_ticks:
+      - 5
+      materiality_metric: interval_vehicle_flow
+      materiality_threshold: 1
+      response_window_ticks: 4
+horizon_ticks: 15
+tick_minutes: 1
+seed: 9616
+net_ref: works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/ingolstadt_net.net.xml
+route_ref: works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/Routes/routes_2023-06-26_24h_det_calib.rou.xml.gz
+sumo_mode: micro
+corridors: []
+perturbations: []
+dilemmas: []
+incident_edge: null
+incident_edge_betweenness: 0.0
+hidden_attr_parity: 0
+demand_window_offset_min: 0
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: sumo365_ingolstadt:2023-06-26
+  files: &id001
+  - works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/2023-06-26.sumocfg
+  - works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/ingolstadt_net.net.xml
+  - works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/Routes/routes_2023-06-26_24h_det_calib.rou.xml.gz
+  - works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/TL/2023-06-26_tlLogics_24h.tll.xml
+  - works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/TL/2023-06-26_WAUT.xml
+  - works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/PT/pt_stops.add.xml
+  - works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/PT/2023-06-26_gtfs_trips.rou.xml
+  commit: e0a95deebe200ff81b6705044d66310d6266d42b
+  url: https://github.com/TUM-VT/sumo_ingolstadt
+  lock_strategy: git_commit+per_file_sha256+derived_window
+  time_window:
+    service_date: '2023-06-26'
+    window_begin_seconds: 24900
+    event_time_seconds: 25200
+    window_end_seconds: 25800
+  license: Apache-2.0
+  source_locked: true
+  notes: The event is a material change in locked route departures; no synthetic traffic
+    perturbation is added.
+capture_contract_version: '1.0'
+task_contract:
+  schema_version: '1.0'
+  scenario_id: traffic/signal_coordination/deep_planning/basic/ingolstadt_24h_evening17_phase_s9616
+  objective: Minimize native SUMO travel_time_cost relative to the deterministic wait_only
+    replay while preserving signal phase safety.
+  decision_space:
+    entities: runtime_enumerated_tls
+    tools:
+    - query_signal_control
+    - set_signal_phase_duration
+    - commit_to_plan
+    supervisory_interval_ticks: 2
+  metrics:
+    primary:
+      name: travel_time_cost
+      unit: vehicle_delay_cost_units
+    secondary:
+    - controlled_lane_queue
+    - controlled_lane_waiting_time_seconds
+    - native_throughput
+  success_condition:
+    minimum_absolute_task_loss_reduction: 1.0
+    baseline: deterministic_wait_only
+    native_control_requirements:
+      min_distinct_control_ticks: 1
+      min_distinct_physical_tools: 1
+      ordered_tool_milestones:
+      - any_state_changing: true
+        not_before_tick: 0
+        not_after_tick: 10
+  failure_condition:
+    conditions:
+    - no_material_improvement_vs_no_action
+    - unsafe_signal_request
+    - task_control_requirements_not_met
+  evaluation_horizon:
+    ticks: 12
+    tick_minutes: 1
+    physics_step_seconds: 1
+  action_constraints:
+    runtime_ids_only: true
+    phase_duration_within_native_bounds: true
+    arbitrary_signal_state_forbidden: true
+    yellow_all_red_clearance_preserved: true
+  capture_contract_version: '1.0'
+world_evolution_contract:
+  source_channel: sumocfg_route_departures
+  runtime_event_type: traffic_demand_change
+  origin: source_schedule
+  source_event_window:
+    status: passed
+    recipe_version: route-departure-change-v1
+    selection: max_increase
+    bin_seconds: 300
+    begin: 24900
+    event_time: 25200
+    end: 25800
+    prior_arrival_count: 938
+    changed_arrival_count: 1521
+    absolute_change: 583
+    materiality_threshold: 93
+  source_route_sha256: 95cacf99a1d95e93443d99f9fe719b7508c1bc865d3ae19b486d4ad8490cc668
+  proof_required: Runtime departures must change live vehicle state before native
+    signal control.
+source_contract:
+  runtime_input: *id001
+  derivation_input: []
+  file_sha256s:
+    works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/2023-06-26.sumocfg: ace83ca4e6b98590f34e82c1238f54a30e659900712963a236586e9fe211711c
+    works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/ingolstadt_net.net.xml: ab043e0974eb3ccd8f76799c8687960f3ac42c155f6efe7b01405ebba34549f8
+    works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/Routes/routes_2023-06-26_24h_det_calib.rou.xml.gz: 95cacf99a1d95e93443d99f9fe719b7508c1bc865d3ae19b486d4ad8490cc668
+    works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/TL/2023-06-26_tlLogics_24h.tll.xml: 6eed28be792995ad8cedd97761428f95e8d574229ed7fc1d2ff48f658424d4c9
+    works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/TL/2023-06-26_WAUT.xml: 4b9b669434646b96b55a712a856a98519d60b203d3264178fd614b9aa727e8f7
+    works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/PT/pt_stops.add.xml: 6eaa43bf0b8cd80f53146b02fa26e6282cc9c184b2c16190f2d51974936ef03f
+    works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/PT/2023-06-26_gtfs_trips.rou.xml: c4e7c3d61b7c8cf9e25c84a66c9d6db851a4072e377c0e53f73f342d4e367615
+  derived_window:
+    sha256: e21af7df98809ffc52ff3d8f81cc071f3e204d806a8a180af2eac193d9720654
+    recipe_version: sumo365_route_departure_change_v1
+scenario_id: traffic/signal_coordination/source_locked_native_window/high/infrastructure_sumo365_ingolstadt_2023_06_26
+candidate_only: true
+complexity_metrics:
+  horizon_minutes: 12
+  n_stressors: 0
+  first_shock_tick: 12
+  observability_burden: 0
+  decision_depth: 0
+  incident_edge_betweenness: 0.0
+  n_shock_modes: 0
+  persistence_ratio: 0.0
+release_admission: false
+scenario_signature: 8c313079272d4417

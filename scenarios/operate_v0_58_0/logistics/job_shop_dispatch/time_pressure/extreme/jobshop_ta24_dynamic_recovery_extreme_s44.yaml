@@ -1,0 +1,1045 @@
+seed_id: logistics/job_shop_dispatch/time_pressure/extreme/jobshop_ta24_dynamic_recovery_extreme_s44
+family: job_shop_dispatch
+domain: logistics
+backend_kind: jsplib_job_shop
+backend_config:
+  instance_name: ta24
+  source_integration_rung: staging_dynamic_procedural_overlay
+  release_ready: false
+  release_reentry_ready: false
+  source_denominator_key: jsplib_job_shop:ta24
+  job_shop:
+    instance_name: ta24
+    jobs: 20
+    machines: 20
+    operations: 400
+    machine_ids:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    total_processing_time: 20400
+    min_processing_time: 1
+    max_processing_time: 99
+    jobs_detail:
+    - - machine: 1
+        duration: 30
+      - machine: 18
+        duration: 80
+      - machine: 4
+        duration: 34
+      - machine: 15
+        duration: 92
+      - machine: 16
+        duration: 29
+      - machine: 19
+        duration: 96
+      - machine: 0
+        duration: 25
+      - machine: 10
+        duration: 49
+      - machine: 5
+        duration: 67
+      - machine: 14
+        duration: 53
+      - machine: 13
+        duration: 20
+      - machine: 7
+        duration: 52
+      - machine: 8
+        duration: 29
+      - machine: 6
+        duration: 51
+      - machine: 2
+        duration: 35
+      - machine: 11
+        duration: 38
+      - machine: 3
+        duration: 18
+      - machine: 9
+        duration: 43
+      - machine: 12
+        duration: 46
+      - machine: 17
+        duration: 98
+    - - machine: 4
+        duration: 73
+      - machine: 2
+        duration: 68
+      - machine: 3
+        duration: 3
+      - machine: 14
+        duration: 98
+      - machine: 1
+        duration: 68
+      - machine: 0
+        duration: 8
+      - machine: 13
+        duration: 15
+      - machine: 17
+        duration: 88
+      - machine: 18
+        duration: 72
+      - machine: 16
+        duration: 20
+      - machine: 5
+        duration: 89
+      - machine: 10
+        duration: 59
+      - machine: 9
+        duration: 68
+      - machine: 15
+        duration: 63
+      - machine: 19
+        duration: 41
+      - machine: 11
+        duration: 30
+      - machine: 8
+        duration: 43
+      - machine: 6
+        duration: 80
+      - machine: 7
+        duration: 64
+      - machine: 12
+        duration: 14
+    - - machine: 1
+        duration: 6
+      - machine: 16
+        duration: 36
+      - machine: 8
+        duration: 88
+      - machine: 18
+        duration: 71
+      - machine: 13
+        duration: 51
+      - machine: 14
+        duration: 63
+      - machine: 6
+        duration: 32
+      - machine: 0
+        duration: 16
+      - machine: 9
+        duration: 63
+      - machine: 15
+        duration: 7
+      - machine: 19
+        duration: 18
+      - machine: 3
+        duration: 90
+      - machine: 12
+        duration: 55
+      - machine: 5
+        duration: 25
+      - machine: 4
+        duration: 72
+      - machine: 11
+        duration: 92
+      - machine: 10
+        duration: 88
+      - machine: 7
+        duration: 69
+      - machine: 2
+        duration: 89
+      - machine: 17
+        duration: 83
+    - - machine: 19
+        duration: 58
+      - machine: 3
+        duration: 35
+      - machine: 4
+        duration: 79
+      - machine: 9
+        duration: 43
+      - machine: 1
+        duration: 86
+      - machine: 2
+        duration: 50
+      - machine: 18
+        duration: 64
+      - machine: 8
+        duration: 88
+      - machine: 6
+        duration: 57
+      - machine: 16
+        duration: 25
+      - machine: 13
+        duration: 73
+      - machine: 14
+        duration: 18
+      - machine: 12
+        duration: 4
+      - machine: 5
+        duration: 69
+      - machine: 7
+        duration: 40
+      - machine: 11
+        duration: 28
+      - machine: 15
+        duration: 37
+      - machine: 10
+        duration: 42
+      - machine: 17
+        duration: 82
+      - machine: 0
+        duration: 83
+    - - machine: 15
+        duration: 2
+      - machine: 12
+        duration: 41
+      - machine: 1
+        duration: 13
+      - machine: 10
+        duration: 75
+      - machine: 0
+        duration: 31
+      - machine: 19
+        duration: 66
+      - machine: 11
+        duration: 72
+      - machine: 13
+        duration: 66
+      - machine: 2
+        duration: 96
+      - machine: 14
+        duration: 45
+      - machine: 17
+        duration: 29
+      - machine: 6
+        duration: 49
+      - machine: 16
+        duration: 96
+      - machine: 3
+        duration: 50
+      - machine: 7
+        duration: 38
+      - machine: 4
+        duration: 80
+      - machine: 8
+        duration: 90
+      - machine: 9
+        duration: 36
+      - machine: 18
+        duration: 50
+      - machine: 5
+        duration: 76
+    - - machine: 3
+        duration: 15
+      - machine: 7
+        duration: 31
+      - machine: 9
+        duration: 89
+      - machine: 0
+        duration: 87
+      - machine: 5
+        duration: 55
+      - machine: 6
+        duration: 49
+      - machine: 14
+        duration: 23
+      - machine: 16
+        duration: 19
+      - machine: 4
+        duration: 38
+      - machine: 2
+        duration: 93
+      - machine: 19
+        duration: 75
+      - machine: 12
+        duration: 45
+      - machine: 13
+        duration: 75
+      - machine: 18
+        duration: 72
+      - machine: 1
+        duration: 65
+      - machine: 11
+        duration: 6
+      - machine: 17
+        duration: 16
+      - machine: 10
+        duration: 24
+      - machine: 8
+        duration: 24
+      - machine: 15
+        duration: 44
+    - - machine: 17
+        duration: 4
+      - machine: 3
+        duration: 22
+      - machine: 11
+        duration: 99
+      - machine: 9
+        duration: 10
+      - machine: 4
+        duration: 85
+      - machine: 13
+        duration: 79
+      - machine: 16
+        duration: 2
+      - machine: 8
+        duration: 54
+      - machine: 0
+        duration: 80
+      - machine: 18
+        duration: 2
+      - machine: 1
+        duration: 58
+      - machine: 19
+        duration: 33
+      - machine: 10
+        duration: 92
+      - machine: 5
+        duration: 93
+      - machine: 6
+        duration: 94
+      - machine: 15
+        duration: 34
+      - machine: 14
+        duration: 36
+      - machine: 12
+        duration: 48
+      - machine: 7
+        duration: 54
+      - machine: 2
+        duration: 12
+    - - machine: 17
+        duration: 19
+      - machine: 13
+        duration: 2
+      - machine: 16
+        duration: 7
+      - machine: 4
+        duration: 60
+      - machine: 11
+        duration: 36
+      - machine: 7
+        duration: 11
+      - machine: 12
+        duration: 97
+      - machine: 6
+        duration: 57
+      - machine: 8
+        duration: 71
+      - machine: 10
+        duration: 60
+      - machine: 2
+        duration: 20
+      - machine: 18
+        duration: 68
+      - machine: 0
+        duration: 53
+      - machine: 9
+        duration: 54
+      - machine: 15
+        duration: 59
+      - machine: 1
+        duration: 16
+      - machine: 3
+        duration: 60
+      - machine: 5
+        duration: 68
+      - machine: 14
+        duration: 65
+      - machine: 19
+        duration: 42
+    - - machine: 0
+        duration: 57
+      - machine: 11
+        duration: 16
+      - machine: 1
+        duration: 92
+      - machine: 18
+        duration: 99
+      - machine: 2
+        duration: 82
+      - machine: 13
+        duration: 91
+      - machine: 9
+        duration: 12
+      - machine: 7
+        duration: 19
+      - machine: 8
+        duration: 59
+      - machine: 15
+        duration: 43
+      - machine: 16
+        duration: 20
+      - machine: 12
+        duration: 84
+      - machine: 14
+        duration: 24
+      - machine: 10
+        duration: 80
+      - machine: 6
+        duration: 60
+      - machine: 17
+        duration: 82
+      - machine: 3
+        duration: 62
+      - machine: 5
+        duration: 32
+      - machine: 4
+        duration: 29
+      - machine: 19
+        duration: 20
+    - - machine: 9
+        duration: 76
+      - machine: 3
+        duration: 78
+      - machine: 6
+        duration: 78
+      - machine: 12
+        duration: 42
+      - machine: 0
+        duration: 3
+      - machine: 13
+        duration: 30
+      - machine: 2
+        duration: 7
+      - machine: 1
+        duration: 82
+      - machine: 17
+        duration: 62
+      - machine: 16
+        duration: 13
+      - machine: 18
+        duration: 84
+      - machine: 19
+        duration: 22
+      - machine: 4
+        duration: 78
+      - machine: 11
+        duration: 80
+      - machine: 14
+        duration: 58
+      - machine: 7
+        duration: 53
+      - machine: 15
+        duration: 6
+      - machine: 5
+        duration: 85
+      - machine: 8
+        duration: 23
+      - machine: 10
+        duration: 99
+    - - machine: 12
+        duration: 83
+      - machine: 10
+        duration: 9
+      - machine: 16
+        duration: 72
+      - machine: 9
+        duration: 88
+      - machine: 18
+        duration: 84
+      - machine: 7
+        duration: 87
+      - machine: 8
+        duration: 78
+      - machine: 0
+        duration: 65
+      - machine: 6
+        duration: 23
+      - machine: 3
+        duration: 7
+      - machine: 15
+        duration: 35
+      - machine: 1
+        duration: 94
+      - machine: 5
+        duration: 33
+      - machine: 4
+        duration: 10
+      - machine: 17
+        duration: 6
+      - machine: 14
+        duration: 85
+      - machine: 13
+        duration: 88
+      - machine: 19
+        duration: 18
+      - machine: 11
+        duration: 94
+      - machine: 2
+        duration: 92
+    - - machine: 6
+        duration: 28
+      - machine: 18
+        duration: 33
+      - machine: 8
+        duration: 93
+      - machine: 4
+        duration: 11
+      - machine: 7
+        duration: 25
+      - machine: 17
+        duration: 67
+      - machine: 0
+        duration: 44
+      - machine: 14
+        duration: 28
+      - machine: 11
+        duration: 69
+      - machine: 19
+        duration: 67
+      - machine: 3
+        duration: 9
+      - machine: 10
+        duration: 82
+      - machine: 9
+        duration: 43
+      - machine: 16
+        duration: 53
+      - machine: 12
+        duration: 48
+      - machine: 5
+        duration: 39
+      - machine: 1
+        duration: 52
+      - machine: 13
+        duration: 75
+      - machine: 2
+        duration: 81
+      - machine: 15
+        duration: 44
+    - - machine: 17
+        duration: 24
+      - machine: 4
+        duration: 44
+      - machine: 16
+        duration: 58
+      - machine: 12
+        duration: 73
+      - machine: 19
+        duration: 30
+      - machine: 1
+        duration: 25
+      - machine: 2
+        duration: 21
+      - machine: 18
+        duration: 14
+      - machine: 11
+        duration: 6
+      - machine: 3
+        duration: 41
+      - machine: 10
+        duration: 19
+      - machine: 6
+        duration: 21
+      - machine: 5
+        duration: 36
+      - machine: 7
+        duration: 72
+      - machine: 9
+        duration: 96
+      - machine: 0
+        duration: 32
+      - machine: 8
+        duration: 5
+      - machine: 13
+        duration: 46
+      - machine: 15
+        duration: 61
+      - machine: 14
+        duration: 82
+    - - machine: 14
+        duration: 91
+      - machine: 11
+        duration: 42
+      - machine: 1
+        duration: 97
+      - machine: 9
+        duration: 65
+      - machine: 12
+        duration: 78
+      - machine: 7
+        duration: 40
+      - machine: 10
+        duration: 93
+      - machine: 19
+        duration: 64
+      - machine: 2
+        duration: 8
+      - machine: 17
+        duration: 56
+      - machine: 13
+        duration: 10
+      - machine: 16
+        duration: 93
+      - machine: 8
+        duration: 28
+      - machine: 15
+        duration: 77
+      - machine: 5
+        duration: 87
+      - machine: 3
+        duration: 26
+      - machine: 18
+        duration: 33
+      - machine: 0
+        duration: 17
+      - machine: 6
+        duration: 2
+      - machine: 4
+        duration: 35
+    - - machine: 4
+        duration: 15
+      - machine: 10
+        duration: 45
+      - machine: 19
+        duration: 96
+      - machine: 18
+        duration: 11
+      - machine: 16
+        duration: 95
+      - machine: 11
+        duration: 39
+      - machine: 5
+        duration: 22
+      - machine: 15
+        duration: 73
+      - machine: 1
+        duration: 79
+      - machine: 7
+        duration: 64
+      - machine: 2
+        duration: 79
+      - machine: 14
+        duration: 88
+      - machine: 13
+        duration: 65
+      - machine: 3
+        duration: 24
+      - machine: 17
+        duration: 38
+      - machine: 0
+        duration: 17
+      - machine: 12
+        duration: 3
+      - machine: 6
+        duration: 73
+      - machine: 9
+        duration: 59
+      - machine: 8
+        duration: 92
+    - - machine: 2
+        duration: 3
+      - machine: 3
+        duration: 28
+      - machine: 7
+        duration: 17
+      - machine: 18
+        duration: 71
+      - machine: 14
+        duration: 91
+      - machine: 6
+        duration: 17
+      - machine: 12
+        duration: 69
+      - machine: 0
+        duration: 69
+      - machine: 9
+        duration: 51
+      - machine: 13
+        duration: 40
+      - machine: 4
+        duration: 93
+      - machine: 16
+        duration: 82
+      - machine: 10
+        duration: 47
+      - machine: 5
+        duration: 42
+      - machine: 19
+        duration: 59
+      - machine: 11
+        duration: 7
+      - machine: 17
+        duration: 43
+      - machine: 15
+        duration: 83
+      - machine: 8
+        duration: 45
+      - machine: 1
+        duration: 83
+    - - machine: 3
+        duration: 67
+      - machine: 2
+        duration: 9
+      - machine: 15
+        duration: 37
+      - machine: 9
+        duration: 62
+      - machine: 18
+        duration: 82
+      - machine: 11
+        duration: 69
+      - machine: 7
+        duration: 34
+      - machine: 17
+        duration: 39
+      - machine: 16
+        duration: 15
+      - machine: 8
+        duration: 84
+      - machine: 19
+        duration: 32
+      - machine: 13
+        duration: 72
+      - machine: 0
+        duration: 68
+      - machine: 6
+        duration: 95
+      - machine: 4
+        duration: 70
+      - machine: 10
+        duration: 80
+      - machine: 14
+        duration: 78
+      - machine: 1
+        duration: 80
+      - machine: 5
+        duration: 30
+      - machine: 12
+        duration: 44
+    - - machine: 4
+        duration: 13
+      - machine: 10
+        duration: 96
+      - machine: 8
+        duration: 26
+      - machine: 1
+        duration: 4
+      - machine: 12
+        duration: 89
+      - machine: 18
+        duration: 98
+      - machine: 17
+        duration: 83
+      - machine: 15
+        duration: 8
+      - machine: 11
+        duration: 70
+      - machine: 19
+        duration: 68
+      - machine: 3
+        duration: 37
+      - machine: 14
+        duration: 20
+      - machine: 13
+        duration: 35
+      - machine: 7
+        duration: 99
+      - machine: 2
+        duration: 27
+      - machine: 9
+        duration: 12
+      - machine: 5
+        duration: 73
+      - machine: 6
+        duration: 92
+      - machine: 0
+        duration: 98
+      - machine: 16
+        duration: 75
+    - - machine: 13
+        duration: 75
+      - machine: 15
+        duration: 1
+      - machine: 5
+        duration: 35
+      - machine: 14
+        duration: 73
+      - machine: 3
+        duration: 35
+      - machine: 18
+        duration: 6
+      - machine: 17
+        duration: 38
+      - machine: 10
+        duration: 34
+      - machine: 2
+        duration: 70
+      - machine: 19
+        duration: 51
+      - machine: 6
+        duration: 16
+      - machine: 12
+        duration: 78
+      - machine: 11
+        duration: 58
+      - machine: 16
+        duration: 9
+      - machine: 7
+        duration: 97
+      - machine: 0
+        duration: 55
+      - machine: 4
+        duration: 38
+      - machine: 1
+        duration: 65
+      - machine: 9
+        duration: 1
+      - machine: 8
+        duration: 8
+    - - machine: 3
+        duration: 27
+      - machine: 13
+        duration: 36
+      - machine: 18
+        duration: 50
+      - machine: 8
+        duration: 21
+      - machine: 11
+        duration: 32
+      - machine: 9
+        duration: 6
+      - machine: 17
+        duration: 34
+      - machine: 12
+        duration: 84
+      - machine: 16
+        duration: 50
+      - machine: 0
+        duration: 39
+      - machine: 2
+        duration: 4
+      - machine: 14
+        duration: 94
+      - machine: 19
+        duration: 49
+      - machine: 7
+        duration: 20
+      - machine: 10
+        duration: 98
+      - machine: 1
+        duration: 64
+      - machine: 15
+        duration: 41
+      - machine: 4
+        duration: 29
+      - machine: 6
+        duration: 4
+      - machine: 5
+        duration: 90
+  reference:
+    type: best_known_bounds
+    lower_bound: 1602
+    upper_bound: 1647
+  expected_sha256: 8836e4edf0fe0cbb357b2de318af3a02eb75c5a5d9a14bd62938689935b7b3c2
+  actual_sha256: 8836e4edf0fe0cbb357b2de318af3a02eb75c5a5d9a14bd62938689935b7b3c2
+  checksum_manifest: works/JSPLIB-Instances/CHECKSUMS.txt
+  source_axes:
+    instance_name: ta24
+    jobs: 20
+    machines: 20
+    operations: 400
+    reference_type: best_known_bounds
+  logistics_key_aliases:
+    aggregate_demand_mw: operations_total
+    aggregate_generation_mw: operations_scheduled
+    balance_error_mw: operations_unscheduled
+    production_cost: makespan
+    startup_cost: idle_time_proxy
+    shed_penalty: unscheduled_operation_penalty
+    rho_max: machine_queue_pressure
+    n_overloads: machine_conflict_count
+  honest_zero_keys:
+  - reserves_required_mw
+  - reserves_procured_mw
+  - n_voltage_violations
+  - n_disconnected_lines
+  dimension_applicability:
+    optimality_gap:
+      applicable: true
+      reason: known_optimum_or_bound_makespan_reference
+    safety_violation:
+      applicable: true
+      reason: precedence_machine_capacity_and_unscheduled_operation_keys
+    weighted_equity_score:
+      applicable: false
+      reason: classic_jsplib_has_no_stakeholder_priority_classes
+    ethical_quality:
+      applicable: false
+      reason: classic_jsplib_has_no_ethical_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: classic_jsplib_has_no_stakeholder_trust_model
+    counterfactual_prevention:
+      applicable: false
+      reason: static_job_shop_has_no_exogenous_loss_prevention_event
+    system_survival:
+      applicable: true
+      reason: unscheduled_operation_and_makespan_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: makespan_cost_and_wait_counterfactual_available
+    adaptive_replanning:
+      applicable: false
+      reason: static_job_shop_has_no_exogenous_disruption_window
+    information_efficiency:
+      applicable: true
+      reason: partial_shop_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    stakeholder_equity:
+      applicable: false
+      reason: classic_jsplib_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  interaction_budget_basis:
+    operations: 400
+    tool_fail_rate: 0.08
+    tool_delay_ticks: 2
+    retry_allowance_ticks: 70
+    cooldown_after_failure_ticks: 1
+  dynamic_job_shop:
+    enabled: true
+    event_source: jsplib_machine_set_procedural_overlay_v1
+    max_dispatch_batch_size: 4
+    recovery_clearance_ticks: 1
+    source_observed_events: false
+  task_contract:
+    contract: logistics.job_shop.dynamic_recovery.v1
+    event_response_window:
+      first_tick: 101
+      last_tick: 473
+    native_controls:
+    - dispatch_ready_operations
+    - dispatch_job_operation
+    - repair_machine
+  task_requirements:
+    min_distinct_control_ticks: 3
+    min_distinct_physical_tools: 2
+    ordered_tool_milestones:
+    - tool: dispatch_ready_operations
+      not_after_tick: 100
+    - tool: repair_machine
+      not_before_tick: 101
+      not_after_tick: 473
+    - tool: repair_machine
+      not_before_tick: 106
+      not_after_tick: 473
+  source_event_contract:
+    procedural_overlay: true
+    source_identity_fields:
+    - machine_id
+    - job_id
+    source_observed: false
+    runtime_effect_required: true
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 474
+tick_minutes: 1
+seed: 44
+load_assignments: []
+perturbations:
+- kind: machine_breakdown
+  trigger_tick: 100
+  duration_ticks: 10
+  hidden: false
+  target:
+    machine_id: 0
+    source: locked_jsplib_machine_set
+  intensity: 1.0
+  notes: Procedural deterministic maintenance outage over a machine identity consumed
+    from the locked JSPLIB instance.
+- kind: demand_surge
+  trigger_tick: 102
+  duration_ticks: 4
+  hidden: true
+  target:
+    job_id: j19
+    source: locked_jsplib_job_set
+  intensity: 2.0
+  notes: Procedural urgent-job priority overlay over a locked JSPLIB job identity;
+    not a source-observed arrival.
+- kind: machine_breakdown
+  trigger_tick: 105
+  duration_ticks: 20
+  hidden: true
+  target:
+    machine_id: 19
+    source: locked_jsplib_machine_set
+  intensity: 1.0
+  notes: Second deterministic machine outage for extreme recovery staging; target
+    remains source-locked.
+- kind: urgent_order
+  trigger_tick: 103
+  duration_ticks: 4
+  hidden: true
+  target:
+    job_id: j19
+    source: locked_jsplib_job_set
+  intensity: 3.0
+  notes: Deterministic urgent-order priority overlay over a locked JSPLIB job identity
+    for extreme recovery staging.
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: extreme
+provenance:
+  data_source: jsplib
+  files:
+  - works/JSPLIB-Instances/instances/ta24
+  - works/JSPLIB-Instances/CHECKSUMS.txt
+  - works/JSPLIB-Instances/instances.json
+  commit: eea2b60dd7e2f5c907ff7302662c61812eb7efdf
+  url: https://github.com/tamy0612/JSPLIB
+  lock_strategy: git_commit+file_sha256
+  time_window:
+    objective: minimize_makespan
+    operations: 400
+  license: public academic OR benchmark mirror; see works/JSPLIB-Instances/LICENSE
+  notes: Parsed JSPLIB job-shop instance 'ta24'; non-release seed/scoring skeleton
+    only. Dynamic recovery staging uses only deterministic procedural overlays whose
+    target IDs are validated against the consumed JSPLIB instance; the overlays are
+    not provenance evidence.
+scenario_id: logistics/job_shop_dispatch/time_pressure/extreme/jobshop_ta24_dynamic_recovery_extreme_s44
+complexity_metrics:
+  horizon_minutes: 474
+  n_perturbations: 4
+  suddenness_ticks: 100
+  observability_burden: 3
+  decision_depth: 400
+  cascade_permissiveness: 0
+  persistence_ratio: 0.02
+  ambient_fraction: 0.0
+  n_stressors: 4
+  first_disruption_tick: 100
+  n_priority_customers: 0
+  demand_to_capacity_ratio: 0.0
+  n_jobs: 20
+  n_machines: 20
+  n_operations: 400
+  machine_conflict_density: 20.0
+  processing_time_density: 51.0
+  reference_type: best_known_bounds
+  dynamic_event_contract: machine_recovery_with_priority_overlay_v1
+source_contract:
+  runtime_input:
+  - works/JSPLIB-Instances/instances/ta24
+  derivation_input: []
+  implementation_asset: []
+  metadata:
+  - works/JSPLIB-Instances/CHECKSUMS.txt
+  - works/JSPLIB-Instances/instances.json
+  license: []
+scenario_signature: 40c499be1718f219

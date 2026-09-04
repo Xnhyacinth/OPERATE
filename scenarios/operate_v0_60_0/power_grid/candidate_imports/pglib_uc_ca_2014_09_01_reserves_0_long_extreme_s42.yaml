@@ -1,0 +1,146 @@
+seed_id: pglib_uc_ca_2014_09_01_reserves_0_long_extreme_s42
+family: reserve_stress_24h
+domain: power_grid
+backend_kind: pglib_uc_synthetic
+backend_config:
+  case_file: works/pglib-uc/ca/2014-09-01_reserves_0.json
+  first_period: 1
+  last_period: 44
+  peak_demand_mw: 36856.37
+  peak_reserves_mw: 0.0
+  reserves_variant: 2014-09-01_reserves_0
+  source_denominator_key: pglib_uc:ca:2014-09-01_reserves_0.json
+  task_requirements:
+    min_distinct_control_ticks: 3
+    min_distinct_physical_tools: 1
+    source_conditioned_actuators:
+    - dispatch_generation_portfolio
+    reserve_actuator_required: false
+    ordered_tool_milestones:
+    - tool: dispatch_generation_portfolio
+      not_before_tick: 1
+      not_after_tick: 12
+    - tool: dispatch_generation_portfolio
+      not_before_tick: 13
+      not_after_tick: 30
+    - tool: dispatch_generation_portfolio
+      not_before_tick: 31
+      not_after_tick: 43
+  candidate_refine_contract:
+    schema_version: pglib_uc_long_horizon_v2
+    candidate_only: true
+    source_native_operations_only: true
+    source_series_drives_backend:
+    - demand
+    - reserves
+    - renewable_generators
+    declared_perturbations_do_not_create_source_independence: true
+    required_replay_gates:
+    - deterministic_replay
+    - native_action_effect
+    - no_action_counterfactual
+    - positive_headroom
+    - reference_task_completion
+    - observed_dependency_depth
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: aggregate_balance_and_reserve_survival_records_available
+    economic_cost:
+      applicable: true
+      reason: production_startup_shed_and_reserve_cost_components_available
+    safety_violation:
+      applicable: true
+      reason: balance_excursion_and_reserve_shortfall_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: pglib_uc_has_no_source_grounded_customer_criticality_ledger
+    ethical_quality:
+      applicable: false
+      reason: source_native_uc_schedule_has_no_ethical_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: source_native_uc_schedule_has_no_stakeholder_trust_event
+    adaptive_replanning:
+      applicable: false
+      reason: source_native_schedule_has_no_exogenous_disruption_or_recovery_window
+    information_efficiency:
+      applicable: true
+      reason: partial_grid_observation_and_source_forecast_tools_available
+    foresight_score:
+      applicable: false
+      reason: source_interval_telemetry_is_not_a_registered_forecastable_hazard
+    optimality_gap:
+      applicable: true
+      reason: locked_case_lp_dispatch_reference_available
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_no_action_replay_over_same_uc_schedule
+    stakeholder_equity:
+      applicable: false
+      reason: pglib_uc_has_no_source_grounded_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+horizon_ticks: 44
+tick_minutes: 60
+seed: 42
+load_assignments:
+- load_id: L_hospital_0
+  stakeholder_class: hospital
+  criticality: 0.95
+  bus_id: BUS_HOSPITAL_0
+- load_id: L_water_1
+  stakeholder_class: water
+  criticality: 0.85
+  bus_id: BUS_WATER_1
+- load_id: L_transit_2
+  stakeholder_class: transit
+  criticality: 0.8
+  bus_id: BUS_TRANSIT_2
+- load_id: L_industrial_3
+  stakeholder_class: industrial
+  criticality: 0.5
+  bus_id: BUS_INDUSTRIAL_3
+- load_id: L_commercial_4
+  stakeholder_class: commercial
+  criticality: 0.3
+  bus_id: BUS_COMMERCIAL_4
+- load_id: L_residential_5
+  stakeholder_class: residential
+  criticality: 0.25
+  bus_id: BUS_RESIDENTIAL_5
+- load_id: L_data_center_6
+  stakeholder_class: data_center
+  criticality: 0.7
+  bus_id: BUS_DATA_CENTER_6
+perturbations: []
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: extreme
+provenance:
+  data_source: pglib_uc
+  files:
+  - works/pglib-uc/ca/2014-09-01_reserves_0.json
+  commit: 39a7f38cf4703de92f0291f0c873c2e98c789301
+  url: https://github.com/power-grid-lib/pglib-uc
+  lock_strategy: git_commit
+  time_window:
+    hours: 44
+    tick_minutes: 60
+  license: CC-BY-4.0 (pglib-uc)
+  notes: California (CAISO-derived) UC case with explicit reserves variant suffix
+    (reserves_0/1/3/5). Stakeholder split is deterministic and the dilemma uses the
+    reserve_starvation trigger documented in docs/REVIEW_v0.1.2_changes.md.
+scenario_id: power_grid/reserve_stress_24h/deep_planning/extreme/pglib_uc_ca_2014_09_01_reserves_0_long_extreme_s42
+source_contract:
+  runtime_input:
+  - works/pglib-uc/ca/2014-09-01_reserves_0.json
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license:
+  - works/pglib-uc/LICENSE
+  file_sha256s:
+    works/pglib-uc/ca/2014-09-01_reserves_0.json: ec49d9a81f9f39ffd36f3065ab4a3942d28c6bce5356de9b24fbd75e83cd0cde
+scenario_signature: 20ed7b5ffe88892e

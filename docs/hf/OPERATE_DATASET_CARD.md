@@ -1,0 +1,157 @@
+---
+license: other
+license_name: operate-mixed-upstream-licenses
+license_link: https://github.com/Xnhyacinth/OPERATE/blob/main/THIRD_PARTY_LICENSES.md
+pretty_name: OPERATE
+tags:
+  - benchmark
+  - llm-agents
+  - agentic-evaluation
+  - scheduling
+  - simulation
+  - long-horizon
+  - timeseries
+task_categories:
+  - other
+configs:
+  - config_name: full
+    default: true
+    data_files:
+      - split: test
+        path: full/test-00000-of-00001.parquet
+  - config_name: lite
+    data_files:
+      - split: test
+        path: lite/test-00000-of-00001.parquet
+---
+
+# OPERATE
+
+**Benchmarking Persistent Operational Agency in Source-Grounded Executable
+Systems**
+
+OPERATE evaluates LLM agents as long-running operational decision centers in
+seeded executable systems. The environment, not the model, produces state
+transitions. Observations are partial, events and actions are typed, and scores
+are linked to recorded evidence.
+
+This public dataset is the runtime companion to the single current state of the
+[OPERATE code repository](https://github.com/Xnhyacinth/OPERATE). It is public,
+ungated, and intentionally has no selectable public version series. For a
+formal run, record the exact 40-character HF commit SHA shown by the Hub.
+
+## Benchmark scope
+
+The Core contains 769 scenarios over 502 physical sources and seven domains.
+The 159-row OPERATE-Lite subset is selected without per-domain manual quotas.
+It retains every row unless a domain has more than twice the median domain row
+count, then keeps up to three diverse rows per non-empty backend × family ×
+difficulty × horizon stratum. It preserves all 17 backends, 22 task families,
+four difficulty levels, six horizon buckets, and 88 physical sources. Lite is
+for development and ablations; it is not the Full/Core leaderboard denominator.
+
+Primary results use `logical_persistent`. `realtime_persistent` is a separate
+supervision treatment for proactive monitoring, correct silence, latency,
+cancellation, supersession, action lifecycle, and safety takeover.
+`logical_stateless` is a compatibility ablation.
+
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `MANIFEST.json` | Exact file hashes, release identity, and runtime bindings |
+| `release_manifest.json` | Promoted Core and scientific readiness contract |
+| `backend_runtime_closure.json` | Runtime packages, archives, links, and external sources |
+| `candidate_closure.json` | Terminal disposition of the candidate inventory |
+| `full/test-00000-of-00001.parquet` | Self-contained Full scenario contracts and suite metadata |
+| `lite/test-00000-of-00001.parquet` | Self-contained Lite scenario contracts and suite metadata |
+| `parquet_manifest.json` | Full/Lite Parquet hashes, row counts, and source-suite bindings |
+| `backends.tar.zst` | Redistributable native runtime assets |
+| `formal_evidence.tar.zst` | Hash-bound replay evidence |
+
+Scenario contracts, Full/Lite definitions, source locks, evaluation code, and
+install tooling live in GitHub. This companion restores the large redistributed
+assets omitted from Git. Assets distributed through their upstream repositories
+remain URL- and checksum-bound in the manifests.
+
+The Parquet configurations are independently browsable and reversible. Each
+row contains the exact scenario YAML plus its ordered suite metadata; see the
+[Parquet schema](https://github.com/Xnhyacinth/OPERATE/blob/main/docs/hf/PARQUET_SCHEMA.md).
+
+```python
+from datasets import load_dataset
+
+full = load_dataset("Xnhyacinth/OPERATE", "full", split="test")
+lite = load_dataset("Xnhyacinth/OPERATE", "lite", split="test")
+```
+
+## Download and verify
+
+Download the current public snapshot:
+
+```bash
+git clone https://github.com/Xnhyacinth/OPERATE.git
+cd OPERATE
+python -m pip install uv==0.12.5
+uv sync --frozen --python 3.13 --extra dev --extra llm --extra hf \
+  --extra released-backends --extra simulators
+
+uv run python scripts/download_from_hf.py --download-only
+```
+
+Anonymous download is supported; no `HF_TOKEN` is required. The local
+`operate_data/` directory is not a selectable benchmark version;
+`MANIFEST.json` binds the installed bytes to the current Core, and the local
+owner receipt records the resolved immutable HF commit. Pass
+`--revision <HF-COMMIT-SHA>` for a pinned reproduction.
+
+The runtime bundle includes only the three byte-exact M5 tables referenced by
+Core. Their hashes and 81 scenario bindings are recorded in `MANIFEST.json`.
+On 2026-09-04, the dataset publisher confirmed that it holds permission to
+redistribute these files. The M5 Competition Rules remain applicable; OR-Gym
+code remains MIT-licensed. No `M5_ZIP` or `KAGGLE_TOKEN` is required for the
+bundled snapshot.
+
+The immutable release closure retains its admission-time external-acquisition
+record. The top-level `source_assets.m5` entry in `MANIFEST.json` is the
+authoritative distribution-time overlay for the now-bundled files.
+
+For a complete native installation, run `bash scripts/setup_eval_env.sh`.
+The setup script acquires the remaining declared sources and fails closed when
+a required upstream asset is unavailable.
+
+See the GitHub [README](https://github.com/Xnhyacinth/OPERATE#readme) for a
+baseline episode and Lite command, and the
+[formal evaluation runbook](https://github.com/Xnhyacinth/OPERATE/blob/main/docs/FORMAL_EVALUATION.md)
+for treatment-bound runs.
+
+## Intended use and limitations
+
+OPERATE is intended for evaluating persistent operational agency, tool use,
+monitoring, and intervention under partial observability. It is not a training
+corpus, a safety certification, or evidence that a model is suitable for live
+infrastructure control.
+
+- Domain row counts are uneven. Official aggregation is stratified; raw row
+  counts do not measure physical-source diversity.
+- Lite substantially undersamples Logistics sources and must be reported under
+  its own track name.
+- Procedural stressors are seeded and labelled; they do not become real source
+  events merely because the base state is source-grounded.
+- Public reproducibility and leaderboard eligibility are separate. Formal
+  provider evaluations and result distribution are still pending, so official
+  leaderboard submissions are not open.
+
+## Provenance, licenses, and citation
+
+OPERATE-authored code and metadata are MIT-licensed. This companion is a
+mixed-license collection: every redistributed upstream asset retains its own
+terms, notices, and per-root manifest binding. The `other` metadata value does
+not relicense those assets under MIT. See the
+[third-party license inventory](https://github.com/Xnhyacinth/OPERATE/blob/main/THIRD_PARTY_LICENSES.md)
+and [data provenance](https://github.com/Xnhyacinth/OPERATE/blob/main/docs/DATA_PROVENANCE.md).
+
+When reporting results, cite the repository plus the exact Git commit, HF
+revision, release manifest, treatment hash, and model/provider binding. Citation
+metadata is provided in
+[`CITATION.cff`](https://github.com/Xnhyacinth/OPERATE/blob/main/CITATION.cff).

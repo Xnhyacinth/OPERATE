@@ -1,0 +1,5 @@
+# Autonomous-driving overlay for the full-repository regression environment.
+# The project and released backends come from the frozen uv.lock via
+# provision_autonomous_driving_env.py; keep only dependencies absent from the
+# project lock here so this overlay cannot drift from the release environment.
+commonroad-io==2026.1

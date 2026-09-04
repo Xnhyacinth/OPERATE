@@ -1,0 +1,412 @@
+seed_id: traffic/signal_coordination/deep_planning/basic/resco_ingolstadt21_phase_control_medium_s9413__b8ff6c2c__relabel_v1
+family: signal_coordination
+domain: traffic
+backend_kind: sumo
+backend_config:
+  sumo_net_path: works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.net.xml
+  sumo_route_path: works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.rou.xml
+  sumo_config_path: works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.sumocfg
+  corridor_tls_map:
+    '1863241632': '1863241632'
+    '2330725114': '2330725114'
+    '243351999': '243351999'
+    '243641585': '243641585'
+    '243749571': '243749571'
+    '30503246': '30503246'
+    '30624898': '30624898'
+    '32564122': '32564122'
+    '89127267': '89127267'
+    '89173763': '89173763'
+    '89173808': '89173808'
+    cluster_1041665625_cluster_1387938793_1387938796_cluster_1757124361_1757124367_32564126: cluster_1041665625_cluster_1387938793_1387938796_cluster_1757124361_1757124367_32564126
+    cluster_1427494838_273472399: cluster_1427494838_273472399
+    cluster_1757124350_1757124352: cluster_1757124350_1757124352
+    cluster_1833965782_1833965806_371781950_cluster_32564118_371775504: cluster_1833965782_1833965806_371781950_cluster_32564118_371775504
+    cluster_1840209209_268417350: cluster_1840209209_268417350
+    cluster_1863241547_1863241548_1976170214: cluster_1863241547_1863241548_1976170214
+    cluster_2302665030_2337351369: cluster_2302665030_2337351369
+    cluster_274083968_cluster_1200364014_1200364088: cluster_274083968_cluster_1200364014_1200364088
+    ? cluster_306484187_cluster_1200363791_1200363826_1200363834_1200363898_1200363927_1200363938_1200363947_1200364074_1200364103_1507566554_1507566556_255882157_306484190
+    : cluster_306484187_cluster_1200363791_1200363826_1200363834_1200363898_1200363927_1200363938_1200363947_1200364074_1200364103_1507566554_1507566556_255882157_306484190
+    cluster_371462086_469470779_98101387_cluster_371462067_371775459_371775468: cluster_371462086_469470779_98101387_cluster_371462067_371775459_371775468
+  live_phase_control: true
+  source_denominator_key: resco:ingolstadt21:phase_control
+  service_date: resco-static-demand:ingolstadt21
+  sumo_substeps_per_tick: 60
+  max_agent_vehicle_records: 24
+  reference_phase_duration_seconds: 20.0
+  task_contract:
+    contract: traffic.travel_delay_mitigation.v1
+    objective_component: travel_time_cost
+    reference_policy: deterministic_wait_only
+    minimum_absolute_improvement: 1.0
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - any_state_changing: true
+      not_before_tick: 0
+      not_after_tick: 7
+    - any_state_changing: true
+      not_before_tick: 8
+      not_after_tick: 19
+  derivation_recipe:
+    pipeline_version: resco_native_phase_control_v2
+    source_denominator_key: resco:ingolstadt21:phase_control
+    reference_controller:
+      method: bounded_phase_duration_grid_search
+      candidate_seconds:
+      - 8.0
+      - 10.0
+      - 12.0
+      - 15.0
+      - 20.0
+      - 25.0
+      selected_seconds: 20.0
+      selection_objective: minimum_native_travel_time_cost
+      decision_cadence_ticks: 2
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: network_saturation_and_gridlock_collapse_signal
+    economic_cost:
+      applicable: true
+      reason: aggregate_travel_time_delay_production_cost
+    safety_violation:
+      applicable: true
+      reason: congestion_overload_and_priority_corridor_blocking_proxies
+    weighted_equity_score:
+      applicable: false
+      reason: placeholder_corridor_criticality_not_source_grounded
+    ethical_quality:
+      applicable: false
+      reason: no_pre_armed_ethical_dilemma_payload_in_family
+    stakeholder_management:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    adaptive_replanning:
+      applicable: true
+      reason: signal_reroute_meter_tools_gated_on_realized_disruptions
+    information_efficiency:
+      applicable: true
+      reason: fogged_queue_delay_revealed_via_detector_and_inspection_queries
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_wardrop_system_optimal_reference_on_this_core_row
+    counterfactual_prevention:
+      applicable: false
+      reason: no_preventable_exogenous_loss_event_in_family
+    stakeholder_equity:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 20
+tick_minutes: 1
+seed: 9413
+net_ref: works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.net.xml
+route_ref: works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.rou.xml
+sumo_mode: micro
+corridors:
+- corridor_id: '1863241632'
+  district: network_zone_1
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.5
+- corridor_id: '2330725114'
+  district: network_zone_2
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.6
+- corridor_id: '243351999'
+  district: network_zone_3
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.7
+- corridor_id: '243641585'
+  district: network_zone_4
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.8
+- corridor_id: '243749571'
+  district: network_zone_5
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.9
+- corridor_id: '30503246'
+  district: network_zone_6
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.0
+- corridor_id: '30624898'
+  district: network_zone_7
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.1
+- corridor_id: '32564122'
+  district: network_zone_8
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.2
+- corridor_id: '89127267'
+  district: network_zone_9
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.3
+- corridor_id: '89173763'
+  district: network_zone_10
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.4
+- corridor_id: '89173808'
+  district: network_zone_11
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.5
+- corridor_id: cluster_1041665625_cluster_1387938793_1387938796_cluster_1757124361_1757124367_32564126
+  district: network_zone_12
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.6
+- corridor_id: cluster_1427494838_273472399
+  district: network_zone_13
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.7
+- corridor_id: cluster_1757124350_1757124352
+  district: network_zone_14
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.8
+- corridor_id: cluster_1833965782_1833965806_371781950_cluster_32564118_371775504
+  district: network_zone_15
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.9
+- corridor_id: cluster_1840209209_268417350
+  district: network_zone_16
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 2.0
+- corridor_id: cluster_1863241547_1863241548_1976170214
+  district: network_zone_17
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 2.1
+- corridor_id: cluster_2302665030_2337351369
+  district: network_zone_18
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 2.2
+- corridor_id: cluster_274083968_cluster_1200364014_1200364088
+  district: network_zone_19
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 2.3
+- corridor_id: cluster_306484187_cluster_1200363791_1200363826_1200363834_1200363898_1200363927_1200363938_1200363947_1200364074_1200364103_1507566554_1507566556_255882157_306484190
+  district: network_zone_20
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 2.4
+- corridor_id: cluster_371462086_469470779_98101387_cluster_371462067_371775459_371775468
+  district: network_zone_21
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 2.5
+perturbations: []
+dilemmas: []
+incident_edge: null
+incident_edge_betweenness: 0.0
+hidden_attr_parity: 0
+demand_window_offset_min: 0
+difficulty_mode: deep_planning
+difficulty_level: basic
+provenance:
+  data_source: resco:ingolstadt21
+  files:
+  - works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.sumocfg
+  - works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.net.xml
+  - works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.rou.xml
+  - works/RESCO/resco_benchmark/environments/ingolstadt21/LICENSE
+  commit: f1ed9a174f8de41fc9d8689373b836bc882570dc
+  url: https://github.com/Pi-Star-Lab/RESCO.git
+  lock_strategy: git_commit+per_file_sha256+environment_license
+  time_window:
+    horizon_ticks: 20
+    tick_minutes: 1
+  license: 'environment-specific license: works/RESCO/resco_benchmark/environments/ingolstadt21/LICENSE'
+  source_locked: true
+  notes: TLS corridors and demand scale are parsed from the locked SUMO assets.
+capture_contract_version: '1.0'
+task_contract:
+  schema_version: '1.0'
+  scenario_id: traffic/signal_coordination/deep_planning/medium/resco_ingolstadt21_phase_control_medium_s9413
+  objective: Minimize native SUMO travel_time_cost relative to the deterministic wait_only
+    replay while preserving signal phase safety.
+  decision_space:
+    entities: runtime_enumerated_tls
+    tools:
+    - query_signal_control
+    - set_signal_phase_duration
+    - commit_to_plan
+    supervisory_interval_ticks: 2
+  metrics:
+    primary:
+      name: travel_time_cost
+      unit: vehicle_delay_cost_units
+    secondary:
+    - controlled_lane_queue
+    - controlled_lane_waiting_time_seconds
+    - native_throughput
+  success_condition:
+    minimum_absolute_task_loss_reduction: 1.0
+    baseline: deterministic_wait_only
+    native_control_requirements:
+      min_distinct_control_ticks: 2
+      min_distinct_physical_tools: 1
+      ordered_tool_milestones:
+      - any_state_changing: true
+        not_before_tick: 0
+        not_after_tick: 7
+      - any_state_changing: true
+        not_before_tick: 8
+        not_after_tick: 19
+  failure_condition:
+    conditions:
+    - no_material_improvement_vs_no_action
+    - unsafe_signal_request
+    - task_control_requirements_not_met
+  evaluation_horizon:
+    ticks: 20
+    tick_minutes: 1
+    physics_step_seconds: 1
+  action_constraints:
+    runtime_ids_only: true
+    phase_duration_within_native_bounds: true
+    arbitrary_signal_state_forbidden: true
+    yellow_all_red_clearance_preserved: true
+  capture_contract_version: '1.0'
+world_evolution_contract:
+  source_channel: sumocfg_route_departures
+  runtime_event_type: traffic_demand_change
+  origin: source_schedule
+  proof_required: runtime interval departures and arrivals change native vehicle and
+    controlled-lane state
+source_contract:
+  runtime_input:
+  - works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.sumocfg
+  - works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.net.xml
+  - works/RESCO/resco_benchmark/environments/ingolstadt21/ingolstadt21.rou.xml
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+scenario_id: traffic/signal_coordination/deep_planning/basic/resco_ingolstadt21_phase_control_medium_s9413__b8ff6c2c__relabel_v1
+complexity_metrics:
+  horizon_minutes: 20
+  n_stressors: 0
+  first_shock_tick: 20
+  observability_burden: 0
+  decision_depth: 0
+  incident_edge_betweenness: 0.0
+  n_shock_modes: 0
+  persistence_ratio: 0.0
+difficulty_calibration_lineage:
+  contract_version: source_grounded_behavioral_v3
+  declared_difficulty_level: medium
+  calibrated_difficulty_level: basic
+  source_scenario_id: traffic/signal_coordination/deep_planning/medium/resco_ingolstadt21_phase_control_medium_s9413
+  source_scenario_signature: 0bca7bd535aefa44
+  strategy_artifact_sha256: 25c137cafffc388a9503b3cf3d0ee41b24675217011c208d9ed0dc0778222544
+  requires_full_protocol21_replay: true
+scenario_signature: ba12d63fe5a08db8

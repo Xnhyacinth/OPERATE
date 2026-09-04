@@ -1,0 +1,262 @@
+seed_id: candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid
+family: job_shop_dispatch
+domain: logistics
+backend_kind: dynasched_flexible_job_shop
+backend_config:
+  bundle_id: DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03
+  source_integration_rung: native_runtime_direct_candidate
+  release_ready: false
+  release_reentry_ready: false
+  runtime_package: dsbx
+  runtime_version: 0.3.0
+  runtime_code_tree_sha256: 35f60f494e386f864d5be905d09dd87ccbad2a25878d35f6dee5458f79e8cff2
+  runtime_source_lock:
+    repository: https://github.com/dsbx7/DynaSchedBench
+    commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+    python_package_tree_sha256: 35f60f494e386f864d5be905d09dd87ccbad2a25878d35f6dee5458f79e8cff2
+  direct_data_use: true
+  upstream_bundle_path: data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03
+  machine_alternatives_preserved: true
+  source_assets:
+    input_model_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/input_model.json
+      sha256: a3876f864cc1b3a3dd2d3991610c3480037292aa557256b23e0a5ca48627921a
+      role: runtime_input
+    events_jsonl:
+      path: works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/events.jsonl
+      sha256: 8453642531e068647c3a9a8ff485c56c14d2d6e4420ee5004c0118d2c67520de
+      role: runtime_input
+    static_jobs_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/static_jobs.json
+      sha256: 5dff75b9c6862cd357b668734b3db0cf918f91f140093154b8fd1c198d857c02
+      role: bundle_crosscheck_metadata
+    static_machines_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/static_machines.json
+      sha256: 861821e88b3585990de0e293ab3ab49449d70147dfd92be3bd0489213dd69ad5
+      role: bundle_crosscheck_metadata
+    final_metrics_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/final_metrics.json
+      sha256: 0d4bb763074f32c970568550ab6e600aac7e896a3990d4204231b2f65586061f
+      role: bundle_crosscheck_metadata
+    meta_json:
+      path: works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/meta.json
+      sha256: 2109985a719f10d46c5ea67b479ef6a0b10c7f044cefbc142e008124d2a022d0
+      role: bundle_crosscheck_metadata
+    license:
+      path: works/DynaSchedBench/LICENSE
+      sha256: 33973f276af491c9cf2fd99506a617b643d3e68b5fef31a02c6b6ee3d6bbb36c
+      role: license
+  source_event_counts:
+    ARRIVAL: 219
+    BREAKDOWN: 43
+    DUE_DATE_CHANGE: 2
+    DUE_DATE_SET: 219
+    ORDER_CANCELLATION: 4
+    PREVENTIVE_MAINTENANCE: 24
+    PRIORITY_CHANGE: 45
+    PTIME_CHANGE: 8
+    ROUTE_CHANGE: 2
+  source_event_registry:
+    ARRIVAL:
+      type: job_arrival
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    BREAKDOWN:
+      type: machine_breakdown
+      event_class: safety
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    DUE_DATE_CHANGE:
+      type: due_date_change
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    DUE_DATE_SET:
+      type: due_date_set
+      event_class: lifecycle
+      origin: source_schedule
+      actionable: false
+      unknown_events_actionable: false
+    ORDER_CANCELLATION:
+      type: order_cancellation
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    PREVENTIVE_MAINTENANCE:
+      type: preventive_maintenance
+      event_class: safety
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    PRIORITY_CHANGE:
+      type: priority_change
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    PTIME_CHANGE:
+      type: process_time_change
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+    ROUTE_CHANGE:
+      type: route_change
+      event_class: task
+      origin: source_schedule
+      actionable: true
+      unknown_events_actionable: false
+  event_driven_replay_contract:
+    contract: dynasched_native_boundary_work_ticks_v1
+    estimated_work_ticks: 1023
+    max_work_ticks: 32768
+    advance_semantics: next_native_boundary_or_source_event
+  hidden_source_event_types: []
+  source_denominator_key: dynasched:08975bf4a0473c5dff9177393bc6743db9ddc946:data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: dispatch_flexible_operations
+      not_after_tick: 1022
+    - tool: dispatch_flexible_operations
+      not_after_tick: 1022
+  source_event_contract:
+  - source_event_index: 0
+    source_time: 0.2038
+    source_event_type: BREAKDOWN
+  - source_event_index: 2
+    source_time: 9.9656
+    source_event_type: ARRIVAL
+  - source_event_index: 18
+    source_time: 28.7565
+    source_event_type: PTIME_CHANGE
+  - source_event_index: 21
+    source_time: 38.707800000000006
+    source_event_type: PRIORITY_CHANGE
+  - source_event_index: 33
+    source_time: 50.782300000000006
+    source_event_type: ORDER_CANCELLATION
+  - source_event_index: 86
+    source_time: 99.5023
+    source_event_type: ROUTE_CHANGE
+  - source_event_index: 93
+    source_time: 104.2457
+    source_event_type: DUE_DATE_CHANGE
+  - source_event_index: 110
+    source_time: 138.4335
+    source_event_type: PREVENTIVE_MAINTENANCE
+  reference:
+    type: native_oracle_policy
+    policy: native_oracle_earliest_completion_v1
+    runtime_authority: dsbx.Sim.Simulator.DynaSchedSim
+    formal_optimality_applicable: false
+  dimension_applicability:
+    optimality_gap:
+      applicable: false
+      reason: bundle_has_no_certified_dynamic_fjsp_optimum
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_source_event_stream
+    system_survival:
+      applicable: true
+      reason: unfinished_operation_and_machine_downtime_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: native_makespan_cost_and_wait_counterfactual_available
+    safety_violation:
+      applicable: true
+      reason: precedence_machine_eligibility_and_downtime_constraints_available
+    weighted_equity_score:
+      applicable: false
+      reason: dynasched_bundle_has_no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: dynasched_bundle_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: dynasched_bundle_has_no_stakeholder_trust_model
+    adaptive_replanning:
+      applicable: true
+      reason: source_driven_shop_events_require_dynamic_rescheduling
+    information_efficiency:
+      applicable: true
+      reason: partial_shop_state_is_exposed_by_native_investigation_tool
+    foresight_score:
+      applicable: false
+      reason: reference_agents_do_not_emit_commit_to_plan_predictions
+    stakeholder_equity:
+      applicable: false
+      reason: dynasched_bundle_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  candidate_materialization:
+    candidate_id: dynasched/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid
+    source_family: dynasched
+    active_core: false
+horizon_ticks: 1023
+tick_minutes: 1
+seed: 794377427
+load_assignments: []
+perturbations: []
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: DynaSchedBench
+  files:
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/input_model.json
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/events.jsonl
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/static_jobs.json
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/static_machines.json
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/final_metrics.json
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/meta.json
+  - works/DynaSchedBench/LICENSE
+  commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+  url: https://github.com/dsbx7/DynaSchedBench
+  lock_strategy: git_commit_plus_per_file_sha256
+  time_window:
+    source_event_count: 566
+    source_event_types:
+    - ARRIVAL
+    - BREAKDOWN
+    - DUE_DATE_CHANGE
+    - DUE_DATE_SET
+    - ORDER_CANCELLATION
+    - PREVENTIVE_MAINTENANCE
+    - PRIORITY_CHANGE
+    - PTIME_CHANGE
+    - ROUTE_CHANGE
+  license: Apache-2.0
+  notes: Official DynaSchedSim consumes the locked model and event stream.
+source_contract:
+  runtime_input:
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/input_model.json
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/events.jsonl
+  derivation_input: []
+  implementation_asset: []
+  metadata:
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/static_jobs.json
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/static_machines.json
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/final_metrics.json
+  - works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/meta.json
+  license:
+  - works/DynaSchedBench/LICENSE
+  file_sha256s:
+    ? works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/input_model.json
+    : a3876f864cc1b3a3dd2d3991610c3480037292aa557256b23e0a5ca48627921a
+    works/DynaSchedBench/data/DynaSched-Grid/hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid/rep03/events.jsonl: 8453642531e068647c3a9a8ff485c56c14d2d6e4420ee5004c0118d2c67520de
+procedural_stress:
+  label: source_native
+  source_native: true
+scenario_id: candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid
+policy_contract:
+  strict_prompt: true
+  benchmark_side_hints: false
+scenario_signature: d481ccbfb45260ef

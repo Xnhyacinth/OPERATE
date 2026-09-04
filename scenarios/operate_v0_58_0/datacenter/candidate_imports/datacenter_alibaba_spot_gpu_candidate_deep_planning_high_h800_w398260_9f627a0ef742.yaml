@@ -1,0 +1,145 @@
+backend_config:
+  cpu_capacity_units: 192.0
+  gpu_capacity_units: 8.0
+  source_time_scale:
+    mode: source_seconds
+    seconds_per_tick: 600.0
+  source_transform:
+    arrival_horizon_ticks: 16
+    job_trace_sha256: 113ccee4c28f5c3bbaaca974cd164b9280b7d4c39e53b745443b28eea05e03dd
+    node_selection_recipe:
+      gpu_model: H800
+      kind: gpu_model_ordinal
+      ordering: source_row_order_after_gpu_model_filter
+      ordinal: 0
+    node_trace_sha256: 1aba161961a5a4a1a61aa581383c5e5abe3400b59f8597ba8c4eef7597bc9d18
+    recipe_version: alibaba-spot-gpu-row-indices-v2
+    selected_gpu_model: H800
+    selected_node_inventory_sha256: 815e0bb779edf5b4f6afd283e18454197dc5600a0bc9cbbe14ce352870a21fd8
+    selected_rows_sha256: 42bcb9c0c45f303a858baa13b1a5c9d07832235216984518f9acdb0dcaca0f25
+    source_file_roles:
+      job_trace: works/clusterdata/cluster-trace-v2026-spot-gpu/job_info_df.csv
+      node_inventory: works/clusterdata/cluster-trace-v2026-spot-gpu/node_info_df.csv
+    source_row_indices:
+    - 398260
+    - 398261
+    - 398271
+    - 398275
+    - 398280
+    - 398313
+    - 398332
+    - 398353
+    source_row_ordering: raw_csv_zero_based_strictly_increasing
+    source_schema: alibaba-spot-gpu-v2026-v1
+    source_window_sha256: 42bcb9c0c45f303a858baa13b1a5c9d07832235216984518f9acdb0dcaca0f25
+    source_window_start: 398260
+    window_size: 8
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: gpu_queue_preemption_and_reservation_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: trace_wait_sla_and_wait_counterfactual_costs_available
+    safety_violation:
+      applicable: true
+      reason: sla_deadline_and_capacity_shortfall_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: alibaba_trace_sim_has_no_source_grounded_load_class_criticality_ledger
+    ethical_quality:
+      applicable: false
+      reason: alibaba_trace_sim_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: true
+      reason: datacenter_native_job_class_trust_manager_available
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_queue_preempt_and_reserve_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_cluster_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_lp_or_milp_reference_optimum_for_alibaba_trace_sim
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_trace_window
+    stakeholder_equity:
+      applicable: true
+      reason: cross_job_class_outcome_balance_recorded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  candidate_materialization:
+    candidate_id: datacenter/alibaba_spot_gpu_candidate/deep_planning/high/h800_w398260_9f627a0ef742
+    active_core: false
+  source_event_contract:
+    schema_version: datacenter_source_event_contract_v1
+    registry:
+    - event_type: job_arrival
+      event_class: task
+      origin: source_schedule
+      actionability: runtime_materiality_and_remaining_horizon
+    unknown_events_actionable: false
+  task_requirements:
+    min_distinct_control_ticks: 1
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: set_queue_policy
+      not_after_tick: 3
+backend_kind: alibaba_trace_sim
+candidate_only: true
+difficulty_level: high
+difficulty_mode: deep_planning
+domain: datacenter
+family: gpu_cluster_spot_sla_control
+horizon_ticks: 16
+provenance:
+  commit: 0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71
+  data_source: Alibaba cluster-trace-v2026 Spot GPU
+  files:
+  - works/clusterdata/cluster-trace-v2026-spot-gpu/job_info_df.csv
+  - works/clusterdata/cluster-trace-v2026-spot-gpu/node_info_df.csv
+  lock_strategy: upstream_git_commit_and_raw_sha256
+  time_window:
+    selection_kind: explicit_raw_row_indices
+    source_row_indices:
+    - 398260
+    - 398261
+    - 398271
+    - 398275
+    - 398280
+    - 398313
+    - 398332
+    - 398353
+    source_window_sha256: 42bcb9c0c45f303a858baa13b1a5c9d07832235216984518f9acdb0dcaca0f25
+  url: https://github.com/alibaba/clusterdata/tree/0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71/cluster-trace-v2026-spot-gpu
+  license: Apache-2.0 upstream repository; trace terms apply
+release_admission: false
+scenario_id: datacenter/alibaba_spot_gpu_candidate/deep_planning/high/h800_w398260_9f627a0ef742
+seed: 1166216756
+seed_id: datacenter/alibaba_spot_gpu_candidate/deep_planning/high/h800_w398260_9f627a0ef742
+source_contract:
+  derivation_input: []
+  derived_window:
+    recipe_version: alibaba-spot-gpu-row-indices-v2
+    sha256: 42bcb9c0c45f303a858baa13b1a5c9d07832235216984518f9acdb0dcaca0f25
+  file_sha256s:
+    works/clusterdata/cluster-trace-v2026-spot-gpu/job_info_df.csv: 113ccee4c28f5c3bbaaca974cd164b9280b7d4c39e53b745443b28eea05e03dd
+    works/clusterdata/cluster-trace-v2026-spot-gpu/node_info_df.csv: 1aba161961a5a4a1a61aa581383c5e5abe3400b59f8597ba8c4eef7597bc9d18
+  implementation_asset: []
+  license: []
+  metadata: []
+  runtime_input:
+  - works/clusterdata/cluster-trace-v2026-spot-gpu/job_info_df.csv
+  - works/clusterdata/cluster-trace-v2026-spot-gpu/node_info_df.csv
+tick_minutes: 10
+policy_contract:
+  strict_prompt: true
+  benchmark_side_hints: false
+perturbations: []
+scenario_signature: f80ed90d74f7936c
