@@ -1,0 +1,712 @@
+seed_id: logistics/job_shop_dispatch/time_pressure/high/realm_ta01_ccby_dynamic_high_s73
+family: job_shop_dispatch
+domain: logistics
+backend_kind: jsplib_job_shop
+backend_config:
+  instance_name: TA01_disrupted
+  source_mode: realm_j2_json
+  source_integration_rung: executed_native_candidate
+  release_ready: false
+  release_reentry_ready: false
+  source_denominator_key: realm_j2_ccby:9c3aa2ae97d65198f6ee29fe942d99f9b3a9c6eb:TA01_disrupted:6202b6019857d7dc2939e34f8259b719ffa1bf48f0690a627c1a5a7446adef65
+  physical_source_key: realm_j2_ccby:TA01_disrupted:6202b6019857d7dc2939e34f8259b719ffa1bf48f0690a627c1a5a7446adef65
+  job_shop:
+    jobs: 15
+    machines: 15
+    operations: 225
+    machine_ids:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    total_processing_time: 11671
+    min_processing_time: 1
+    max_processing_time: 99
+    jobs_detail:
+    - - machine: 6
+        duration: 94
+      - machine: 12
+        duration: 66
+      - machine: 4
+        duration: 10
+      - machine: 7
+        duration: 53
+      - machine: 3
+        duration: 26
+      - machine: 2
+        duration: 15
+      - machine: 10
+        duration: 65
+      - machine: 11
+        duration: 82
+      - machine: 8
+        duration: 10
+      - machine: 14
+        duration: 27
+      - machine: 9
+        duration: 93
+      - machine: 13
+        duration: 92
+      - machine: 5
+        duration: 96
+      - machine: 0
+        duration: 70
+      - machine: 1
+        duration: 83
+    - - machine: 4
+        duration: 74
+      - machine: 5
+        duration: 31
+      - machine: 7
+        duration: 88
+      - machine: 14
+        duration: 51
+      - machine: 13
+        duration: 57
+      - machine: 8
+        duration: 78
+      - machine: 11
+        duration: 8
+      - machine: 9
+        duration: 7
+      - machine: 6
+        duration: 91
+      - machine: 10
+        duration: 79
+      - machine: 0
+        duration: 18
+      - machine: 3
+        duration: 51
+      - machine: 12
+        duration: 18
+      - machine: 1
+        duration: 99
+      - machine: 2
+        duration: 33
+    - - machine: 1
+        duration: 4
+      - machine: 8
+        duration: 82
+      - machine: 9
+        duration: 40
+      - machine: 12
+        duration: 86
+      - machine: 6
+        duration: 50
+      - machine: 11
+        duration: 54
+      - machine: 13
+        duration: 21
+      - machine: 5
+        duration: 6
+      - machine: 0
+        duration: 54
+      - machine: 2
+        duration: 68
+      - machine: 7
+        duration: 82
+      - machine: 10
+        duration: 20
+      - machine: 4
+        duration: 39
+      - machine: 3
+        duration: 35
+      - machine: 14
+        duration: 68
+    - - machine: 5
+        duration: 73
+      - machine: 2
+        duration: 23
+      - machine: 9
+        duration: 30
+      - machine: 6
+        duration: 30
+      - machine: 10
+        duration: 53
+      - machine: 0
+        duration: 94
+      - machine: 13
+        duration: 58
+      - machine: 4
+        duration: 93
+      - machine: 7
+        duration: 32
+      - machine: 14
+        duration: 91
+      - machine: 11
+        duration: 30
+      - machine: 8
+        duration: 56
+      - machine: 12
+        duration: 27
+      - machine: 1
+        duration: 92
+      - machine: 3
+        duration: 9
+    - - machine: 7
+        duration: 78
+      - machine: 8
+        duration: 23
+      - machine: 6
+        duration: 21
+      - machine: 10
+        duration: 60
+      - machine: 4
+        duration: 36
+      - machine: 9
+        duration: 29
+      - machine: 2
+        duration: 95
+      - machine: 14
+        duration: 99
+      - machine: 12
+        duration: 79
+      - machine: 5
+        duration: 76
+      - machine: 1
+        duration: 93
+      - machine: 13
+        duration: 42
+      - machine: 11
+        duration: 52
+      - machine: 0
+        duration: 42
+      - machine: 3
+        duration: 96
+    - - machine: 5
+        duration: 29
+      - machine: 3
+        duration: 61
+      - machine: 12
+        duration: 88
+      - machine: 13
+        duration: 70
+      - machine: 11
+        duration: 16
+      - machine: 4
+        duration: 31
+      - machine: 14
+        duration: 65
+      - machine: 7
+        duration: 83
+      - machine: 2
+        duration: 78
+      - machine: 1
+        duration: 26
+      - machine: 10
+        duration: 50
+      - machine: 0
+        duration: 87
+      - machine: 9
+        duration: 62
+      - machine: 6
+        duration: 14
+      - machine: 8
+        duration: 30
+    - - machine: 12
+        duration: 18
+      - machine: 3
+        duration: 75
+      - machine: 7
+        duration: 20
+      - machine: 8
+        duration: 4
+      - machine: 14
+        duration: 91
+      - machine: 6
+        duration: 68
+      - machine: 1
+        duration: 19
+      - machine: 11
+        duration: 54
+      - machine: 4
+        duration: 85
+      - machine: 5
+        duration: 73
+      - machine: 2
+        duration: 43
+      - machine: 10
+        duration: 24
+      - machine: 0
+        duration: 37
+      - machine: 13
+        duration: 87
+      - machine: 9
+        duration: 66
+    - - machine: 11
+        duration: 32
+      - machine: 5
+        duration: 52
+      - machine: 0
+        duration: 9
+      - machine: 7
+        duration: 49
+      - machine: 12
+        duration: 61
+      - machine: 13
+        duration: 35
+      - machine: 14
+        duration: 99
+      - machine: 1
+        duration: 62
+      - machine: 2
+        duration: 6
+      - machine: 8
+        duration: 62
+      - machine: 4
+        duration: 7
+      - machine: 3
+        duration: 80
+      - machine: 9
+        duration: 3
+      - machine: 6
+        duration: 57
+      - machine: 10
+        duration: 7
+    - - machine: 10
+        duration: 85
+      - machine: 11
+        duration: 30
+      - machine: 6
+        duration: 96
+      - machine: 14
+        duration: 91
+      - machine: 0
+        duration: 13
+      - machine: 1
+        duration: 87
+      - machine: 2
+        duration: 82
+      - machine: 5
+        duration: 83
+      - machine: 12
+        duration: 78
+      - machine: 4
+        duration: 56
+      - machine: 8
+        duration: 85
+      - machine: 7
+        duration: 8
+      - machine: 9
+        duration: 66
+      - machine: 13
+        duration: 88
+      - machine: 3
+        duration: 15
+    - - machine: 6
+        duration: 5
+      - machine: 11
+        duration: 59
+      - machine: 9
+        duration: 30
+      - machine: 2
+        duration: 60
+      - machine: 8
+        duration: 41
+      - machine: 0
+        duration: 17
+      - machine: 13
+        duration: 66
+      - machine: 3
+        duration: 89
+      - machine: 10
+        duration: 78
+      - machine: 7
+        duration: 88
+      - machine: 1
+        duration: 69
+      - machine: 12
+        duration: 45
+      - machine: 14
+        duration: 82
+      - machine: 4
+        duration: 6
+      - machine: 5
+        duration: 13
+    - - machine: 4
+        duration: 90
+      - machine: 7
+        duration: 27
+      - machine: 13
+        duration: 1
+      - machine: 0
+        duration: 8
+      - machine: 5
+        duration: 91
+      - machine: 12
+        duration: 80
+      - machine: 6
+        duration: 89
+      - machine: 8
+        duration: 49
+      - machine: 14
+        duration: 32
+      - machine: 10
+        duration: 28
+      - machine: 3
+        duration: 90
+      - machine: 1
+        duration: 93
+      - machine: 11
+        duration: 6
+      - machine: 9
+        duration: 35
+      - machine: 2
+        duration: 73
+    - - machine: 2
+        duration: 47
+      - machine: 14
+        duration: 43
+      - machine: 0
+        duration: 75
+      - machine: 12
+        duration: 8
+      - machine: 6
+        duration: 51
+      - machine: 10
+        duration: 3
+      - machine: 7
+        duration: 84
+      - machine: 5
+        duration: 34
+      - machine: 8
+        duration: 28
+      - machine: 9
+        duration: 60
+      - machine: 13
+        duration: 69
+      - machine: 1
+        duration: 45
+      - machine: 3
+        duration: 67
+      - machine: 11
+        duration: 58
+      - machine: 4
+        duration: 87
+    - - machine: 5
+        duration: 65
+      - machine: 8
+        duration: 62
+      - machine: 10
+        duration: 97
+      - machine: 2
+        duration: 20
+      - machine: 3
+        duration: 31
+      - machine: 6
+        duration: 33
+      - machine: 9
+        duration: 33
+      - machine: 0
+        duration: 77
+      - machine: 13
+        duration: 50
+      - machine: 4
+        duration: 80
+      - machine: 1
+        duration: 48
+      - machine: 11
+        duration: 90
+      - machine: 12
+        duration: 75
+      - machine: 7
+        duration: 96
+      - machine: 14
+        duration: 44
+    - - machine: 8
+        duration: 28
+      - machine: 14
+        duration: 21
+      - machine: 4
+        duration: 51
+      - machine: 13
+        duration: 75
+      - machine: 5
+        duration: 17
+      - machine: 6
+        duration: 89
+      - machine: 9
+        duration: 59
+      - machine: 1
+        duration: 56
+      - machine: 12
+        duration: 63
+      - machine: 7
+        duration: 18
+      - machine: 11
+        duration: 17
+      - machine: 10
+        duration: 30
+      - machine: 3
+        duration: 16
+      - machine: 2
+        duration: 7
+      - machine: 0
+        duration: 35
+    - - machine: 10
+        duration: 57
+      - machine: 8
+        duration: 16
+      - machine: 12
+        duration: 42
+      - machine: 6
+        duration: 34
+      - machine: 4
+        duration: 37
+      - machine: 1
+        duration: 26
+      - machine: 13
+        duration: 68
+      - machine: 14
+        duration: 73
+      - machine: 11
+        duration: 5
+      - machine: 0
+        duration: 8
+      - machine: 7
+        duration: 12
+      - machine: 3
+        duration: 87
+      - machine: 2
+        duration: 83
+      - machine: 9
+        duration: 20
+      - machine: 5
+        duration: 97
+  reference:
+    type: unlocked_reference
+  external_source_assets:
+    j2_event_sidecar:
+      path: works/REALM-Bench-direct-pilot/datasets/clean/JSSP/J2.json
+      sha256: 6202b6019857d7dc2939e34f8259b719ffa1bf48f0690a627c1a5a7446adef65
+      git_commit: 9c3aa2ae97d65198f6ee29fe942d99f9b3a9c6eb
+      selected_instance_id: TA01_disrupted
+      canonical_runtime_source: true
+      license: CC-BY-4.0
+      runtime_consumed: true
+      converter_consumed: true
+  source_axes:
+    benchmark_tier: J2
+    benchmark_instance_id: TA01_disrupted
+    source_file: J1/TA/TA01.txt
+    jobs: 15
+    machines: 15
+    operations: 225
+    operation_graph_sha256: 5439790fe338cd94be9908978a5fa06723a6749f4e7ba5a7ec4e38b37a1ee52c
+    source_event_type: machine_breakdown
+    canonical_runtime_source: works/REALM-Bench-direct-pilot/datasets/clean/JSSP/J2.json
+  logistics_key_aliases:
+    aggregate_demand_mw: operations_total
+    aggregate_generation_mw: operations_scheduled
+    balance_error_mw: operations_unscheduled
+    production_cost: makespan
+    shed_penalty: unscheduled_operation_penalty
+    rho_max: machine_queue_pressure
+    n_overloads: machine_conflict_count
+  honest_zero_keys:
+  - reserves_required_mw
+  - reserves_procured_mw
+  - n_voltage_violations
+  - n_disconnected_lines
+  dimension_applicability:
+    optimality_gap:
+      applicable: false
+      reason: no_commit_locked_makespan_optimum_for_selected_REALM_row
+    safety_violation:
+      applicable: true
+      reason: precedence_machine_capacity_and_outage_constraints
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_machine_breakdown_recovery_replay
+    weighted_equity_score:
+      applicable: false
+      reason: source_instance_has_no_stakeholder_priority_classes
+    ethical_quality:
+      applicable: false
+      reason: source_instance_has_no_ethical_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: source_instance_has_no_stakeholder_trust_model
+    system_survival:
+      applicable: true
+      reason: unscheduled_operation_and_makespan_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: makespan_cost_and_wait_counterfactual_available
+    adaptive_replanning:
+      applicable: false
+      reason: static_job_shop_has_no_exogenous_disruption_window
+    information_efficiency:
+      applicable: true
+      reason: partial_shop_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    stakeholder_equity:
+      applicable: false
+      reason: classic_jsplib_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  interaction_budget_basis:
+    operations: 225
+    tool_fail_rate: 0.05
+    tool_delay_ticks: 1
+    retry_allowance_ticks: 24
+    cooldown_after_failure_ticks: 1
+  dynamic_job_shop:
+    enabled: true
+    event_source: realm_j2_plus_explicit_procedural_overlay_v1
+    max_dispatch_batch_size: 4
+    recovery_clearance_ticks: 1
+    source_observed_events: true
+  task_contract:
+    contract: logistics.job_shop.dynamic_recovery.v1
+    event_response_window:
+      first_tick: 99
+      last_tick: 251
+    native_controls:
+    - dispatch_ready_operations
+    - dispatch_job_operation
+    - repair_machine
+  task_requirements:
+    min_distinct_control_ticks: 3
+    min_distinct_physical_tools: 2
+    min_plan_reversals: 1
+    ordered_tool_milestones:
+    - tool: dispatch_ready_operations
+      not_after_tick: 98
+    - tool: repair_machine
+      not_before_tick: 99
+      not_after_tick: 251
+    - tool: dispatch_ready_operations
+      not_before_tick: 101
+      not_after_tick: 251
+  source_event_contract:
+    source_observed: true
+    source_sidecar_runtime_consumed: true
+    source_sidecar_converter_consumed: true
+    sidecar_path: works/REALM-Bench-direct-pilot/datasets/clean/JSSP/J2.json
+    sidecar_sha256: 6202b6019857d7dc2939e34f8259b719ffa1bf48f0690a627c1a5a7446adef65
+    selected_instance_id: TA01_disrupted
+    canonical_runtime_source: true
+    runtime_effect_required: true
+    procedural_overlay: true
+    procedural_event_source_observed: false
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 252
+tick_minutes: 1
+seed: 73
+load_assignments: []
+perturbations:
+- kind: machine_breakdown
+  trigger_tick: 98
+  duration_ticks: 10
+  hidden: false
+  target:
+    machine_id: 3
+    source_observed: true
+    source_instance_id: TA01_disrupted
+    source_sidecar_sha256: 6202b6019857d7dc2939e34f8259b719ffa1bf48f0690a627c1a5a7446adef65
+  intensity: 1.0
+  notes: Source-observed REALM J2 machine breakdown; the locked JSON uses 1-based
+    machines and the native backend uses 0-based IDs.
+- kind: demand_surge
+  trigger_tick: 100
+  duration_ticks: 4
+  hidden: true
+  target:
+    job_id: j14
+    source_observed: false
+    source: locked_REALM_job_set
+  intensity: 1.5
+  notes: Deterministic procedural urgency overlay; explicitly not a REALM source-observed
+    event or provenance evidence.
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: high
+provenance:
+  data_source: realm_bench_j2_ccby
+  files:
+  - works/REALM-Bench-direct-pilot/datasets/clean/JSSP/J2.json
+  commit: 9c3aa2ae97d65198f6ee29fe942d99f9b3a9c6eb
+  url: https://github.com/genglongling/REALM-Bench/tree/9c3aa2ae97d65198f6ee29fe942d99f9b3a9c6eb
+  lock_strategy: git_commit+file_sha256+selected_row_id+cc-by-runtime-source
+  time_window:
+    objective: minimize_makespan_with_adaptation
+    source_event_tick: 98
+    source_event_duration: 10
+  license: CC-BY-4.0 (REALM-Bench README, selected J2 JSON instance)
+  notes: The selected J2 JSON operation graph and machine breakdown are the canonical
+    native runtime source. The hidden urgency event is an explicitly labeled deterministic
+    procedural stressor.
+scenario_id: logistics/job_shop_dispatch/time_pressure/high/realm_ta01_ccby_dynamic_high_s73
+complexity_metrics:
+  horizon_minutes: 252
+  n_perturbations: 2
+  suddenness_ticks: 98
+  observability_burden: 1
+  decision_depth: 225
+  cascade_permissiveness: 0
+  persistence_ratio: 0.0278
+  ambient_fraction: 0.0
+  n_stressors: 2
+  first_disruption_tick: 98
+  n_priority_customers: 0
+  demand_to_capacity_ratio: 0.0
+  n_jobs: 15
+  n_machines: 15
+  n_operations: 225
+  machine_conflict_density: 15.0
+  processing_time_density: 51.8711
+  reference_type: unlocked_reference
+  source_observed_event_types:
+  - machine_breakdown
+  procedural_event_types:
+  - demand_surge
+source_contract:
+  runtime_input:
+  - works/REALM-Bench-direct-pilot/datasets/clean/JSSP/J2.json
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+case_ledger:
+  schema_version: '0.1'
+  source_denominator_key: realm_j2_ccby:9c3aa2ae97d65198f6ee29fe942d99f9b3a9c6eb:TA01_disrupted:6202b6019857d7dc2939e34f8259b719ffa1bf48f0690a627c1a5a7446adef65
+  independence_axis: realm_j2_selected_instance
+  decision_variant_key: TA01_disrupted:machine_breakdown:3@98+10
+  decision_pressure_axis: source_observed_machine_breakdown_recovery_and_long_horizon_scheduling
+  additional_decision_axis: J2 selected_instance_id=TA01_disrupted; difficulty=time_pressure/high
+  complexity_tags:
+  - external_source_candidate
+  - source_observed_machine_breakdown
+  - n_jobs=15
+  - n_machines=15
+  - n_operations=225
+  - breakdown_tick=98
+  - breakdown_duration_ticks=10
+  physical_source_key: realm_j2_ccby:TA01_disrupted:6202b6019857d7dc2939e34f8259b719ffa1bf48f0690a627c1a5a7446adef65
+  physical_source_lock:
+    schema_version: source_asset_graph_v1
+    backend_kind: jsplib_job_shop
+    required_source_assets:
+    - declared_path: works/REALM-Bench-direct-pilot/datasets/clean/JSSP/J2.json
+      sha256: 6202b6019857d7dc2939e34f8259b719ffa1bf48f0690a627c1a5a7446adef65
+  keep_rationale: Independent REALM J2 selected instance whose CC-BY operation graph
+    and source-observed breakdown are consumed by the native runtime.
+  diagnostic_risk:
+  - protocol21_full_gates_not_run
+scenario_signature: f6dd9d430dc569c0

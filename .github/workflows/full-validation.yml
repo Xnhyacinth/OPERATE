@@ -1,0 +1,21 @@
+name: full validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  full-suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Sync locked core development environment
+        run: |
+          python -m pip install uv==0.12.5
+          uv sync --frozen --python 3.14 --extra dev
+      - name: Full repository suite
+        run: uv run --no-sync python -m pytest -q tests/
+      - name: Static checks
+        run: uv run --no-sync python -m ruff check .

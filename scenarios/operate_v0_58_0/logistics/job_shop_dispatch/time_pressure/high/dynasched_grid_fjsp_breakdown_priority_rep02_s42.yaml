@@ -1,0 +1,207 @@
+seed_id: logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42
+family: job_shop_dispatch
+domain: logistics
+backend_kind: dynasched_flexible_job_shop
+backend_config:
+  bundle_id: dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02
+  source_integration_rung: native_runtime_direct_pilot
+  release_ready: true
+  release_reentry_ready: true
+  admission_state: fresh_replay_candidate
+  runtime_package: dsbx
+  runtime_version: 0.3.0
+  runtime_code_tree_sha256: 35f60f494e386f864d5be905d09dd87ccbad2a25878d35f6dee5458f79e8cff2
+  runtime_source_lock:
+    repository: https://github.com/dsbx7/DynaSchedBench
+    commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+    python_package_tree_sha256: 35f60f494e386f864d5be905d09dd87ccbad2a25878d35f6dee5458f79e8cff2
+  runtime_install: python -m pip install git+https://github.com/dsbx7/DynaSchedBench@08975bf4a0473c5dff9177393bc6743db9ddc946
+  direct_data_use: true
+  method_inspiration_only: false
+  upstream_bundle_path: data/DynaSched-Grid/hetero_static_small_rho60_varh_bottleneck__mode_moo/rep02
+  upstream_difficulty_score: 8.701
+  upstream_difficulty_category: easy
+  difficulty_claim_note:
+    Upstream DynaSchedBench labels this bundle easy; OPERATE
+    High remains a target label pending fresh Protocol-2.1 replay.
+  machine_alternatives_preserved: true
+  source_assets:
+    input_model_json:
+      path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/input_model.json
+      sha256: e2c852933aca029b6ae09ddcfd35d1b0973a3fc41a08eecba9e5143a2692dfa6
+      role: runtime_input
+    events_jsonl:
+      path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/events.jsonl
+      sha256: a741a411731949e9dd1742f32a4fe0f04aef14fa08c691ed92651ca03344630b
+      role: runtime_input
+    static_jobs_json:
+      path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/static_jobs.json
+      sha256: d3fa9537710d53255e4095fd09271d712f638349774f34c21e200b5c87b974e7
+      role: bundle_crosscheck_metadata
+    static_machines_json:
+      path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/static_machines.json
+      sha256: 861821e88b3585990de0e293ab3ab49449d70147dfd92be3bd0489213dd69ad5
+      role: bundle_crosscheck_metadata
+    final_metrics_json:
+      path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/final_metrics.json
+      sha256: 114e6030a21ca3007391fd24f234f77e148446ff703874188bb4f6452b6d9fd3
+      role: bundle_crosscheck_metadata
+    meta_json:
+      path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/meta.json
+      sha256: ea82e02225d751f0f25024187013fb6f540abaaebbc8cc87eaaf62ab13149350
+      role: bundle_crosscheck_metadata
+    license:
+      path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/LICENSE
+      sha256: 33973f276af491c9cf2fd99506a617b643d3e68b5fef31a02c6b6ee3d6bbb36c
+      role: license
+  source_event_counts:
+    ARRIVAL: 60
+    BREAKDOWN: 30
+    DUE_DATE_SET: 60
+    PRIORITY_CHANGE: 6
+  source_event_registry:
+    ARRIVAL:
+      type: job_arrival
+      event_class: task
+      actionable: true
+    BREAKDOWN:
+      type: machine_breakdown
+      event_class: safety
+      actionable: true
+    DUE_DATE_SET:
+      type: due_date_set
+      event_class: task
+      actionable: true
+    PRIORITY_CHANGE:
+      type: priority_change
+      event_class: alarm
+      actionable: true
+  hidden_source_event_types:
+    - PRIORITY_CHANGE
+  source_denominator_key: dynasched:08975bf4a0473c5dff9177393bc6743db9ddc946:data/DynaSched-Grid/hetero_static_small_rho60_varh_bottleneck__mode_moo/rep02
+  physical_source_key: f8342f1d6b819a6cd20a92d6e5317f169e3c3578b042c864e0576d4592342ec6
+  task_requirements:
+    min_distinct_control_ticks: 3
+    min_distinct_physical_tools: 1
+  source_event_contract:
+    - source_event_index: 0
+      source_time: 24.5622
+      source_event_type: BREAKDOWN
+      hidden: false
+    - source_event_index: 38
+      source_time: 156.4007
+      source_event_type: PRIORITY_CHANGE
+      hidden: true
+  reference:
+    type: native_oracle_policy
+    policy: native_oracle_earliest_completion_v1
+    runtime_authority: dsbx.Sim.Simulator.DynaSchedSim
+    objective: earliest_native_completion_with_hidden_state_access
+    formal_optimality_applicable: false
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: unfinished_operations_and_machine_downtime_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: native_makespan_cost_and_wait_counterfactual_available
+    safety_violation:
+      applicable: true
+      reason: precedence_machine_eligibility_and_downtime_constraints_available
+    weighted_equity_score:
+      applicable: false
+      reason: dynasched_bundle_has_no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: dynasched_bundle_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: dynasched_bundle_has_no_stakeholder_trust_model
+    adaptive_replanning:
+      applicable: true
+      reason: source_driven_machine_breakdown_requires_dynamic_rescheduling
+    information_efficiency:
+      applicable: true
+      reason: partial_shop_state_is_exposed_by_native_investigation_tool
+    foresight_score:
+      applicable: false
+      reason: reference_agents_do_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: bundle_has_no_certified_dynamic_fjsp_optimum
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_breakdown_stream
+    stakeholder_equity:
+      applicable: false
+      reason: dynasched_bundle_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.55.0-settings
+horizon_ticks: 400
+tick_minutes: 1
+seed: 42
+load_assignments: []
+perturbations: []
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: high
+complexity_metrics:
+  horizon_minutes: 400
+  native_source_horizon: 510.01821493624783
+  n_jobs: 60
+  n_machines: 6
+  n_machine_groups: 3
+  n_operations: 117
+  n_perturbations: 0
+  n_source_event_classes: 4
+  n_stressors: 2
+  observability_burden: 1
+  decision_depth: 117
+  machine_conflict_density: 19.5
+  processing_time_density: 11.0248
+source_contract:
+  runtime_input:
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/input_model.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/events.jsonl
+  derivation_input: []
+  implementation_asset: []
+  metadata:
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/static_jobs.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/static_machines.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/final_metrics.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/meta.json
+  license:
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/LICENSE
+provenance:
+  data_source: DynaSchedBench
+  files:
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/input_model.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/events.jsonl
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/static_jobs.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/static_machines.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/final_metrics.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/meta.json
+    - sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/LICENSE
+  commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+  url: https://github.com/dsbx7/DynaSchedBench
+  lock_strategy: git_commit_plus_per_file_sha256
+  license: Apache-2.0
+  notes:
+    Direct public generated benchmark bundle; not claimed to be a real factory
+    trace. The official dsbx runtime consumes the model and event stream without JSPLIB
+    flattening.
+physical_source_lock:
+  schema_version: source_asset_graph_v1
+  backend_kind: dynasched_flexible_job_shop
+  upstream_commit: 08975bf4a0473c5dff9177393bc6743db9ddc946
+  bundle_path: data/DynaSched-Grid/hetero_static_small_rho60_varh_bottleneck__mode_moo/rep02
+  required_source_assets:
+    - declared_path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/input_model.json
+      sha256: e2c852933aca029b6ae09ddcfd35d1b0973a3fc41a08eecba9e5143a2692dfa6
+    - declared_path: sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/events.jsonl
+      sha256: a741a411731949e9dd1742f32a4fe0f04aef14fa08c691ed92651ca03344630b
+scenario_id: logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42
+scenario_signature: 1de0313b98650a4a

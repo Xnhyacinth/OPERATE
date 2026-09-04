@@ -1,0 +1,198 @@
+seed_id: power_grid/opendss_infrastructure_feeder_control/deep_planning/basic/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt5_master_ckt5_dss
+family: opendss_infrastructure_feeder_control
+domain: power_grid
+backend_kind: opendss_fresh_feeders
+backend_config:
+  feeder: infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt5_master_ckt5_dss
+  master_file: Version8/Distrib/EPRITestCircuits/ckt5/Master_ckt5.dss
+  topology: unbalanced_three_phase_distribution
+  decision_axis: fresh_feeder_volt_var_control
+  source_denominator_key: opendss:21b506bd6a9b4ad8655acdb940ee1672ae2d5c397c0243ee62ae1f243f8659ec:switch_capacitor
+  controllable_assets:
+  - switch_capacitor
+  control_action_probe:
+    tool: set_transformer_tap
+    args:
+      trafo_id: 0
+      tap_pos: 12
+  release_ready: true
+  release_reentry_ready: true
+  source_integration_rung: executed_with_live_backend
+  dimension_applicability:
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_volt_var_tools_available
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_passed
+    economic_cost:
+      applicable: true
+      reason: voltage_violation_cost_components_available
+    ethical_quality:
+      applicable: false
+      reason: no_dilemma_or_consequence_manager_for_release
+    foresight_score:
+      applicable: true
+      reason: multi_tick_horizon_and_counterfactual_replay_available
+    information_efficiency:
+      applicable: true
+      reason: partial_observation_and_tool_feedback_available
+    optimality_gap:
+      applicable: false
+      reason: missing_reference_optimum_for_opendss_fresh_feeders_release
+    safety_violation:
+      applicable: true
+      reason: voltage_violation_records_available
+    stakeholder_management:
+      applicable: false
+      reason: no_trust_manager_for_opendss_fresh_feeders_release
+    system_survival:
+      applicable: true
+      reason: voltage_feasibility_tick_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: no_customer_class_or_critical_load_ledger_for_release
+    stakeholder_equity:
+      applicable: false
+      reason: opendss_release_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  honest_zero_keys:
+  - weighted_equity_score
+  - ethical_quality
+  - stakeholder_management
+  - optimality_gap
+  backend_key_aliases:
+    n_voltage_violations: safety_violation
+    voltage_band_deviation_cost: economic_cost
+    opendss_tool_effect: adaptive_replanning
+  source_axes:
+    backend: opendss_fresh_feeders
+    preview_backend: opendss_fresh_feeder_probe
+    source: dss_extensions_electricdss_tst
+    feeder: infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt5_master_ckt5_dss
+    master_file: Version8/Distrib/EPRITestCircuits/ckt5/Master_ckt5.dss
+    topology: unbalanced_three_phase_distribution
+    decision_axis: fresh_feeder_volt_var_control
+    source_denominator_key: opendss:21b506bd6a9b4ad8655acdb940ee1672ae2d5c397c0243ee62ae1f243f8659ec:switch_capacitor
+    controllable_assets:
+    - capacitor_banks
+    source_root: works/OpenDSS-IEEE13
+    master_sha256: db5702950f036250cc00a9b6ad1ae7af3c05b6b1a2568747375af134be3f2bf5
+    runtime_include_graph: &id001
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Buscoords_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Capacitors_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Generators_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/LineCodes_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/LineGeometry_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Lines_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Loads_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Loadshapes_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Master_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Regulators_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Transformers_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/WireData_ckt5.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/XFR_Loads_ckt5.dss
+    n_buses: 2998
+    n_lines: 2429
+    n_loads: 1379
+    n_capacitors: 4
+    n_regcontrols: 0
+  stress_profile: standard
+  source_root: works/OpenDSS-IEEE13
+  task_contract_profile:
+    milestone_ticks:
+    - 1
+    - 3
+  initial_native_controls: []
+  control_action_follow_up:
+    tool: set_transformer_tap
+    args:
+      trafo_id: 3
+      tap_pos: 6
+  task_requirements:
+    min_distinct_control_ticks: 1
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: switch_capacitor
+      not_before_tick: 0
+      not_after_tick: 4
+  runtime_source_lock:
+    master_file: works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Master_ckt5.dss
+    master_sha256: db5702950f036250cc00a9b6ad1ae7af3c05b6b1a2568747375af134be3f2bf5
+    include_graph_paths: *id001
+    file_sha256s: &id002
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Buscoords_ckt5.dss: efb1330719f7048fdd5de53a4a4908f5869759a53e2eb9b05c115ececbbde89d
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Capacitors_ckt5.dss: bbc3ec04fa4c292f2198fa4e61a06625d04755307624925aab3011187aa80e55
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Generators_ckt5.dss: 9024f36ee01deadcde965038e4c275c0f61a8f9a9f4e2f5e20e0dc43ae0a94c6
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/LineCodes_ckt5.dss: 27e26f60a4b22f4557424f601b94a81a1971496622519d65c66611139af082e3
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/LineGeometry_ckt5.dss: e69e0db6af0acc2314a45b68c025e416c4db6c0f65debf0acc28d28593f11726
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Lines_ckt5.dss: c84a1af20854d1f2c7defd09baddb62fcde68a2a9476513654719f84dc7027d8
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Loads_ckt5.dss: 3bd21b205acf26213a97dc612c219024128e2f4c5b92f1940ba1f399d1839159
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Loadshapes_ckt5.dss: ae32c21dc5659b8336e0efb1805e07179bda66f185929e699f9701102f0be387
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Master_ckt5.dss: db5702950f036250cc00a9b6ad1ae7af3c05b6b1a2568747375af134be3f2bf5
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Regulators_ckt5.dss: cca5076e5b6a072b518f7af5e6f4b357a3e91a9daebcc0904e356427682b1423
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Transformers_ckt5.dss: f4a0d2c6c2630de37db767d4f0fe7bfd769e1253274b552466bdf53607fadc7d
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/WireData_ckt5.dss: 5a49e0e80cb1253cf47d6e01d6b328a93a3e3d593b0f8642b968d04070442142
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/XFR_Loads_ckt5.dss: f4de7a03ac21dc1d498aad3b828d59cbf940669ab0f3bd7e0675f275aa7e0df5
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+  preventive_stabilization_recipe:
+    version: opendss_preventive_stabilization_v1
+    source_identity: works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt5/Master_ckt5.dss
+    runtime_consumption_required: true
+    startup_controls_are_not_agent_actions: true
+  reference_policy_contract: opendss.live_voltage_feedback.v2
+  task_contract:
+    contract: power_grid.reliability_loss_mitigation.v2
+    control_window:
+      first_tick: 0
+      last_tick: 4
+  native_yearly_program:
+    start_hour: 0
+    step_hours: 1
+  manual_takeover_contract:
+    contract: opendss.supervisory_manual_takeover.v1
+    source_capcontrols_present: true
+    control_mode: off_for_agent_supervision
+    counterfactual_control_mode: same_as_treatment
+horizon_ticks: 12
+tick_minutes: 1
+seed: 42
+load_assignments: []
+perturbations: []
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: basic
+provenance:
+  data_source: dss_extensions_electricdss_tst
+  files: *id001
+  url: https://github.com/dss-extensions/electricdss-tst
+  commit: 3b208397160213cae4a9e2d0a7d1aa3528ce26e1
+  lock_strategy: git_commit+sha256_include_graph
+  license: BSD-3-Clause
+  time_window:
+    master_file: Version8/Distrib/EPRITestCircuits/ckt5/Master_ckt5.dss
+    decision_axis: switch_capacitor
+  notes: Locked native feeder graph and source-declared yearly load programs; the
+    agent replaces the source CapControl automation under an explicit manual supervisory
+    takeover treatment.
+scenario_id: power_grid/opendss_infrastructure_feeder_control/deep_planning/basic/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt5_master_ckt5_dss
+complexity_metrics:
+  horizon_minutes: 6
+  n_perturbations: 2
+  suddenness_ticks: 1
+  observability_burden: 0
+  decision_depth: 2
+  cascade_permissiveness: 0
+  persistence_ratio: 0.0
+  ambient_fraction: 0.0
+  n_effective_control_ticks: 2
+source_contract:
+  runtime_input: *id001
+  derivation_input: []
+  file_sha256s: *id002
+candidate_only: true
+release_admission: false
+scenario_signature: 47231b5a2f9374e6

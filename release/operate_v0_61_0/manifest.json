@@ -1,0 +1,696 @@
+{
+  "backend_descriptors": {
+    "alibaba_openb_gpu_placement": {
+      "category": "datacenter_multi_resource_gpu_placement",
+      "description": "Alibaba OpenB multi-resource GPU pod placement over source-locked node inventory and pod-arrival traces.",
+      "formal_core_allowed": true,
+      "released_scenarios": 1,
+      "solves_job_shop_scheduling": "no",
+      "solves_power_flow": "no"
+    },
+    "alibaba_trace_sim": {
+      "category": "trace_driven_gpu_cluster_simulator",
+      "description": "Deterministic Alibaba GPU-cluster queue simulator over source-locked trace windows. Models queue policy, preemption and capacity reservation. Does not solve power flow.",
+      "formal_core_allowed": true,
+      "released_scenarios": 141,
+      "solves_power_flow": "no"
+    },
+    "cigre_distribution": {
+      "category": "ac_power_flow_distribution",
+      "description": "pandapower CIGRE MV (and SimBench MV where declared) AC power-flow distribution backend. Not AC-OPF.",
+      "released_scenarios": 10,
+      "solves_power_flow": "yes"
+    },
+    "citylearn": {
+      "category": "building_energy_storage_control",
+      "description": "CityLearn native building-energy environment. Agent controls electrical storage; electricity cost and carbon remain separate units.",
+      "released_scenarios": 18,
+      "solves_power_flow": "no"
+    },
+    "dynasched_flexible_job_shop": {
+      "category": "dynamic_flexible_job_shop_scheduling",
+      "description": "DynaSchedBench flexible job-shop scheduling over source-locked DSBX instances, events, and input models.",
+      "formal_core_allowed": true,
+      "released_scenarios": 177,
+      "solves_job_shop_scheduling": "yes",
+      "solves_power_flow": "no"
+    },
+    "jsplib_job_shop": {
+      "category": "logistics_job_shop_scheduling",
+      "description": "Checksum-locked JSPLIB job-shop backend with operation precedence and makespan.",
+      "released_scenarios": 20,
+      "solves_job_shop_scheduling": "yes",
+      "solves_power_flow": "no"
+    },
+    "opendss_fresh_feeders": {
+      "category": "unbalanced_ac_power_flow_distribution",
+      "description": "OpenDSS IEEE34/IEEE123 feeders. Distribution power flow, not OPF or unit commitment.",
+      "released_scenarios": 5,
+      "solves_opf": "no",
+      "solves_power_flow": "yes (OpenDSS unbalanced distribution power flow)"
+    },
+    "opendss_ieee13": {
+      "category": "unbalanced_ac_power_flow_distribution",
+      "description": "OpenDSS IEEE13 unbalanced three-phase distribution with capacitor and regulator tap controls.",
+      "released_scenarios": 1,
+      "solves_opf": "no",
+      "solves_power_flow": "yes (OpenDSS unbalanced distribution power flow)"
+    },
+    "orgym_invmgmt": {
+      "category": "operations_research_inventory_management",
+      "description": "OR-Gym InvManagement-v1 lost-sales inventory, including M5 demand overlays where declared.",
+      "released_scenarios": 81,
+      "solves_power_flow": "no"
+    },
+    "pandapower_acopf": {
+      "category": "ac_opf_solver",
+      "description": "pandapower pp.runopp AC-OPF on PGLib-OPF cases. Supersedes egret_acopf.",
+      "released_scenarios": 1,
+      "solves_power_flow": "yes (full nonlinear AC-OPF)"
+    },
+    "pandapower_lv": {
+      "category": "microgrid_lv_ac_power_flow",
+      "description": "Microgrid LV voltage-control backend. Models bus voltage and DER curtailment, not transmission topology.",
+      "released_scenarios": 5,
+      "solves_opf": "no",
+      "solves_power_flow": "yes (pandapower AC power flow on synthetic voltage-control LV network)"
+    },
+    "pglib_uc_synthetic": {
+      "category": "deterministic_unit_commitment_dispatch_simulator",
+      "description": "Deterministic multi-period unit-commitment and dispatch simulator driven by source-locked PGLib-UC demand, reserve, renewable, and generator constraints. It does not solve OPF or power flow.",
+      "formal_core_allowed": true,
+      "released_scenarios": 2,
+      "simulates_unit_commitment": "yes",
+      "solves_opf": "no",
+      "solves_power_flow": "no"
+    },
+    "pymgrid_economic_dispatch": {
+      "category": "microgrid_energy_management",
+      "description": "Microgrid EMS over baked NREL/OEDI profiles. Storage, genset and grid-import decisions; not AC/DC power flow.",
+      "released_scenarios": 32,
+      "solves_power_flow": "no"
+    },
+    "pyvrp_cvrp": {
+      "category": "logistics_route_dispatch",
+      "description": "Capacitated vehicle routing over parsed VRPLIB/PyVRP instances.",
+      "released_scenarios": 46,
+      "solves_power_flow": "no"
+    },
+    "pyvrp_vrptw": {
+      "category": "logistics_route_dispatch",
+      "description": "Vehicle routing with time windows over parsed VRPLIB/PyVRP instances.",
+      "released_scenarios": 203,
+      "solves_power_flow": "no"
+    },
+    "sumo": {
+      "category": "live_sumo_native_traffic_simulator",
+      "description": "Live SUMO/libsumo traffic-signal control over source-locked networks. Not mock_sumo.",
+      "released_scenarios": 19,
+      "solves_power_flow": "no"
+    },
+    "sumo_ego": {
+      "category": "autonomous_driving_source_grounded_closed_loop",
+      "description": "Native live SUMO ego-control simulation over source-locked NGSIM US-101 trajectories, typed hazards, runtime assurance, and guarded recovery.",
+      "formal_core_allowed": true,
+      "released_scenarios": 7,
+      "runtime_fidelity": "native_live_sumo_reactive",
+      "simulates_autonomous_driving": "yes",
+      "solves_power_flow": "no"
+    }
+  },
+  "backend_runtime_closure": {
+    "identity_sha256": "79a1406a1dc0d7a88fdca46b5be48eee896ceb90fd6dd7f78deb82c123f528cc",
+    "n_archived_files": 330,
+    "n_backend_links": 7,
+    "n_external_sources": 8,
+    "n_runtime_packages": 9,
+    "path": "backend_runtime_closure.json",
+    "schema_version": "operate-backend-runtime-closure-v1",
+    "sha256": "a828ddab703026a524684ab50a424c910b141b4f27f26d530b260dc54fd28aa6"
+  },
+  "by_backend": {
+    "alibaba_openb_gpu_placement": 1,
+    "alibaba_trace_sim": 141,
+    "cigre_distribution": 10,
+    "citylearn": 18,
+    "dynasched_flexible_job_shop": 177,
+    "jsplib_job_shop": 20,
+    "opendss_fresh_feeders": 5,
+    "opendss_ieee13": 1,
+    "orgym_invmgmt": 81,
+    "pandapower_acopf": 1,
+    "pandapower_lv": 5,
+    "pglib_uc_synthetic": 2,
+    "pymgrid_economic_dispatch": 32,
+    "pyvrp_cvrp": 46,
+    "pyvrp_vrptw": 203,
+    "sumo": 19,
+    "sumo_ego": 7
+  },
+  "by_difficulty": {
+    "basic": 135,
+    "extreme": 53,
+    "high": 521,
+    "medium": 60
+  },
+  "by_domain": {
+    "autonomous_driving": 7,
+    "building_energy": 18,
+    "datacenter": 142,
+    "logistics": 527,
+    "microgrid": 37,
+    "power_grid": 19,
+    "traffic": 19
+  },
+  "candidate_closure": {
+    "identity_set_sha256": {
+      "abandoned_terminal": "0f2d63b17ec32d80e739c9dbfe7fcaa26da91910173c953de62d1651e63f37d7",
+      "all_candidates": "00d93cd6a70468cdb809107c2d067a5c80ee2f41362a40c555704c621d13e23b",
+      "rejected_terminal": "e9be24e5345d1de4d95c525d34268d1e1adea5d88a1df08ee787e7f2fa8fc1fb",
+      "selected_for_promotion": "acd89072b91336d0cd5e0f8c47178f31b4ef4f953a8d9c276c6fd8a0fef86c5d"
+    },
+    "n_independent_candidates": 2476,
+    "n_terminal_candidates": 2476,
+    "n_unresolved_candidates": 0,
+    "path": "candidate_closure.json",
+    "schema_version": "operate-candidate-closure-compact-v1",
+    "sha256": "e4b3440f44c0c5bba217a5ecace500c6337a4596b6f973dc5e6a7af590b3e42e",
+    "status": "candidate_pool_exhausted_non_admitting"
+  },
+  "cascade_bus_schema_version": "1.0",
+  "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+  "core_selection_policy": "quality_core_v2_v060",
+  "core_settings_stamp": "v0.61.0-settings",
+  "core_suite": {
+    "n_scenarios": 769,
+    "path": "core_suite.json",
+    "sha256": "f499e704a049f3db6cc36f317773e3e5240925b5e56868bb8b8ed532ac89b801"
+  },
+  "datasets": {
+    "alibaba_cluster_trace_gpu_v2020": {
+      "license": "Apache-2.0 upstream repository; trace terms apply",
+      "lock_strategy": "upstream_archives_sha256_plus_derived_csv_sha256",
+      "redistribution": "derived_windows_in_scenario_yaml; raw archives are fetch/build-only",
+      "url": "https://github.com/alibaba/clusterdata"
+    },
+    "alibaba_cluster_trace_gpu_v2020_simulator_100k": {
+      "license": "Apache-2.0 upstream repository; trace terms apply",
+      "lock_strategy": "upstream_git_commit_and_sha256_plus_derived_subset_sha256",
+      "url": "https://github.com/alibaba/clusterdata/blob/0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71/cluster-trace-gpu-v2020/simulator/traces/pai/pai_job_duration_estimate_100K.csv"
+    },
+    "alibaba_cluster_trace_gpu_v2023_openb": {
+      "commit": "0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71",
+      "delivery": "upstream_fetch",
+      "license": "research trace terms; upstream repository license applies",
+      "lock_strategy": "upstream_git_commit_raw_sha256_and_explicit_row_graph",
+      "redistribution": "not redistributed; fetched from the pinned upstream commit and verified by per-file SHA-256",
+      "required_file_sha256s": {
+        "works/clusterdata/cluster-trace-gpu-v2023/csv/openb_node_list_gpu_node.csv": "2beca64b4d3dfa342036a34b56a495c6cef9225db836c81f541282cb1df320b5",
+        "works/clusterdata/cluster-trace-gpu-v2023/csv/openb_pod_list_gpuspec33.csv": "eca4f746db1e5b25864ad021b55ece3943e101a3ebd4574d09dcb95c46117652"
+      },
+      "url": "https://github.com/alibaba/clusterdata/tree/0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71/cluster-trace-gpu-v2023"
+    },
+    "alibaba_cluster_trace_v2026_spot_gpu": {
+      "license": "research_use_terms_no_explicit_redistribution_license",
+      "lock_strategy": "upstream_git_commit_and_raw_sha256_plus_runtime_window_recipe",
+      "url": "https://github.com/alibaba/clusterdata/tree/0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71/cluster-trace-v2026-spot-gpu"
+    },
+    "citylearn_challenge_2022": {
+      "license": "see CityLearn dataset terms",
+      "lock_strategy": "schema_and_asset_sha256",
+      "url": "https://github.com/intelligent-environments-lab/CityLearn"
+    },
+    "citylearn_challenge_2022_phase_1": {
+      "license": "MIT",
+      "lock_strategy": "git_tag+commit+all_schema_referenced_file_sha256",
+      "url": "https://github.com/intelligent-environments-lab/CityLearn"
+    },
+    "citylearn_challenge_2022_phase_2": {
+      "license": "MIT",
+      "lock_strategy": "git_tag+commit+all_schema_referenced_file_sha256",
+      "url": "https://github.com/intelligent-environments-lab/CityLearn"
+    },
+    "citylearn_challenge_2022_phase_3": {
+      "license": "MIT",
+      "lock_strategy": "git_tag+commit+all_schema_referenced_file_sha256",
+      "url": "https://github.com/intelligent-environments-lab/CityLearn"
+    },
+    "dss_extensions_electricdss_tst": {
+      "license": "BSD-3-Clause",
+      "lock_strategy": "git_commit+sha256_manifest",
+      "url": "https://github.com/dss-extensions/electricdss-tst"
+    },
+    "dynaschedbench": {
+      "license": "Apache-2.0",
+      "lock_strategy": "git_commit_plus_per_file_sha256",
+      "redistribution": "source-locked DSBX benchmark assets",
+      "url": "https://github.com/dsbx7/DynaSchedBench"
+    },
+    "jsplib": {
+      "license": "benchmark-library terms",
+      "lock_strategy": "instance_file_sha256",
+      "url": "https://github.com/tamy0612/JSPLIB"
+    },
+    "m5_forecasting+orgym": {
+      "license": "Kaggle competition rules + OR-Gym MIT",
+      "lock_strategy": "kaggle_competition_terms+file_sha256+orgym_git_commit+env_config_hash",
+      "url": "https://www.kaggle.com/competitions/m5-forecasting-accuracy"
+    },
+    "ngsim_us101": {
+      "dataset_id": "8ect-6jqj",
+      "delivery": "bundle",
+      "license": "CC-BY-SA-3.0 dataset API metadata; CC-BY-SA-4.0 Common Core metadata (operator-reviewed)",
+      "lock_strategy": "doi+canonical_query_or_archive+raw_sha256+row_semantic_sha256",
+      "recording_id": "us-101",
+      "redistribution": "source-grounded US-101 runtime bundles with upstream attribution and operator-reviewed license evidence",
+      "source_release": "doi:10.21949/1504477",
+      "url": "https://data.transportation.gov/Automobiles/Next-Generation-Simulation-NGSIM-Vehicle-Trajector/8ect-6jqj"
+    },
+    "nrel_microgrid": {
+      "license": "NREL public (attribution required); parse-only, baked",
+      "lock_strategy": "location+year+nsrdb_release",
+      "url": "https://nsrdb.nrel.gov"
+    },
+    "nsrdb+oedi": {
+      "license": "NREL public (attribution required); parse-only, baked, never runtime + NREL/OEDI data license (attribution-style; NOT plain CC-BY-4.0 — verify redistribution terms); parse-only, baked",
+      "lock_strategy": "nsrdb=2020 oedi=2021.1 pymgrid=1.2.2",
+      "url": "https://nsrdb.nrel.gov + https://data.openei.org/submissions/4520"
+    },
+    "nsrdb_rooftop": {
+      "license": "NREL public (attribution required); parse-only, baked, never runtime",
+      "lock_strategy": "nsrdb=2020 oedi=2021.1 pymgrid=1.2.2",
+      "url": "https://nsrdb.nrel.gov"
+    },
+    "opendss_ieee123_solar_ramp": {
+      "license": "BSD-3-Clause",
+      "lock_strategy": "git_commit+sha256_manifest",
+      "url": "https://github.com/dss-extensions/electricdss-tst"
+    },
+    "opendss_ieee13": {
+      "license": "BSD-3-Clause",
+      "lock_strategy": "git_commit+sha256_manifest",
+      "url": "https://github.com/dss-extensions/electricdss-tst"
+    },
+    "or_gym": {
+      "license": "MIT",
+      "lock_strategy": "git_commit+package_version+license",
+      "url": "https://github.com/hubbs5/or-gym"
+    },
+    "pglib_opf": {
+      "license": "CC-BY-4.0 (pglib-opf data) + BSD-3-Clause (pandapower)",
+      "lock_strategy": "git_tag+commit",
+      "url": "https://github.com/power-grid-lib/pglib-opf"
+    },
+    "pglib_uc": {
+      "commit": "39a7f38cf4703de92f0291f0c873c2e98c789301",
+      "delivery": "git_checkout",
+      "license": "CC-BY-4.0 data; MIT software",
+      "license_sha256": "b5ececfa64eb67fd5b0e5c135624f0f9004b938d399150e644f9641b659e628c",
+      "lock_strategy": "git_commit+required_file_sha256+license_sha256",
+      "redistribution": "not redistributed; clone the pinned upstream checkout and verify every required file by SHA-256",
+      "required_file_sha256s": {
+        "works/pglib-uc/LICENSE": "b5ececfa64eb67fd5b0e5c135624f0f9004b938d399150e644f9641b659e628c",
+        "works/pglib-uc/ca/2014-09-01_reserves_0.json": "ec49d9a81f9f39ffd36f3065ab4a3942d28c6bce5356de9b24fbd75e83cd0cde",
+        "works/pglib-uc/rts_gmlc/2020-05-05.json": "415afbe0fd60db75acc2213b60de7bea430321a849e3341bf1c60a0b9667e75b"
+      },
+      "url": "https://github.com/power-grid-lib/pglib-uc/tree/39a7f38cf4703de92f0291f0c873c2e98c789301"
+    },
+    "realm_bench_j2_ccby": {
+      "license": "CC-BY-4.0 (REALM-Bench README, selected J2 JSON instance)",
+      "lock_strategy": "git_commit+file_sha256+selected_row_id+cc-by-runtime-source",
+      "url": "https://github.com/genglongling/REALM-Bench/tree/9c3aa2ae97d65198f6ee29fe942d99f9b3a9c6eb"
+    },
+    "resco:cologne1": {
+      "license": "environment-specific license: works/RESCO/resco_benchmark/environments/cologne1/LICENSE",
+      "lock_strategy": "git_commit+per_file_sha256+environment_license",
+      "url": "https://github.com/Pi-Star-Lab/RESCO.git"
+    },
+    "resco:cologne3": {
+      "license": "environment-specific license: works/RESCO/resco_benchmark/environments/cologne3/LICENSE",
+      "lock_strategy": "git_commit+per_file_sha256+environment_license",
+      "url": "https://github.com/Pi-Star-Lab/RESCO.git"
+    },
+    "resco:cologne8": {
+      "license": "environment-specific license: works/RESCO/resco_benchmark/environments/cologne8/LICENSE",
+      "lock_strategy": "git_commit+per_file_sha256+environment_license",
+      "url": "https://github.com/Pi-Star-Lab/RESCO.git"
+    },
+    "resco:ingolstadt1": {
+      "license": "environment-specific license: works/RESCO/resco_benchmark/environments/ingolstadt1/LICENSE",
+      "lock_strategy": "git_commit+per_file_sha256+environment_license",
+      "url": "https://github.com/Pi-Star-Lab/RESCO.git"
+    },
+    "resco:ingolstadt21": {
+      "license": "environment-specific license: works/RESCO/resco_benchmark/environments/ingolstadt21/LICENSE",
+      "lock_strategy": "git_commit+per_file_sha256+environment_license",
+      "url": "https://github.com/Pi-Star-Lab/RESCO.git"
+    },
+    "resco:ingolstadt7": {
+      "license": "environment-specific license: works/RESCO/resco_benchmark/environments/ingolstadt7/LICENSE",
+      "lock_strategy": "git_commit+per_file_sha256+environment_license",
+      "url": "https://github.com/Pi-Star-Lab/RESCO.git"
+    },
+    "resco_sumo": {
+      "license": "SUMO/RESCO source terms",
+      "lock_strategy": "net_route_sumocfg_sha256",
+      "url": "https://github.com/Pi-Star-Lab/RESCO"
+    },
+    "simbench_official": {
+      "license": "BSD-3-Clause code; SimBench data ODbL/DbCL terms.",
+      "lock_strategy": "git_tag+commit+pypi_version+simbench_code+profile_window",
+      "url": "https://github.com/e2nIEE/simbench"
+    },
+    "vrplib_package_solomon": {
+      "license": "MIT",
+      "lock_strategy": "git_commit+file_sha256",
+      "url": "https://github.com/PyVRP/VRPLIB"
+    },
+    "vrplib_package_test_data": {
+      "license": "MIT",
+      "lock_strategy": "git_commit+file_sha256",
+      "url": "https://github.com/PyVRP/VRPLIB"
+    }
+  },
+  "formal_batch_contract": {
+    "agentic_profile": {
+      "max_consecutive_provider_failures": 1,
+      "max_tokens": 32768,
+      "persistent_context_max_chars": 512000,
+      "persistent_history_max_messages": 64,
+      "persistent_memory_max_items": 128,
+      "protocol_repair_max_tokens": 8192,
+      "provider_failure_policy": "abort",
+      "provider_timeout_s": 300.0,
+      "stream_chat_completions": true,
+      "tool_choice": "auto"
+    },
+    "cardinality": {
+      "models": {
+        "per_shard": 1
+      },
+      "pass_k": {
+        "minimum": 1
+      },
+      "workers": {
+        "maximum": 32,
+        "minimum": 1
+      }
+    },
+    "contract_version": "agentic_persistent.v1",
+    "expected_episode_formula": "n_scenarios * models_per_shard * pass_k",
+    "interaction_mode": "logical_persistent",
+    "primary_inference_version": "physical_cluster_hierarchical_bootstrap_randomization_v1",
+    "primary_leaderboard_formula_version": "effective_source_backend_domain_macro_v1",
+    "prompt_mode": "strict",
+    "requires_explicit_model_capabilities": true,
+    "runtime_evidence_root": "release/operate_v0_61_0",
+    "save_trajectories": true,
+    "scheduler_mode": "global",
+    "seed_mode": "scenario",
+    "selection_source": "release/operate_v0_61_0/formal_runtime_bundle.json#scenarios",
+    "temperature": 0.0,
+    "wakeup_policy": {
+      "agent_scheduled_reviews": true,
+      "harness_periodic_supervisory_scan": false,
+      "session_start": true,
+      "typed_actionable_events": true,
+      "unknown_events_actionable": false
+    }
+  },
+  "formal_evaluation_ready": true,
+  "formal_evidence": {
+    "internal_audit_root": ".hl/release_rebuild/operate_v0_61_0/full_replay_release_final_f90e6234",
+    "internal_readiness": ".hl/release_rebuild/operate_v0_61_0/full_replay_release_final_f90e6234/protocol2_v21_core_readiness.json",
+    "readiness": "release/operate_v0_61_0/formal_runtime_bundle.json",
+    "runtime_root": "release/operate_v0_61_0"
+  },
+  "formal_realtime_batch_contract": {
+    "aggregation_version": "realtime-scorecard-micro-v1",
+    "batch_schema_version": "realtime-formal-batch/1.1",
+    "clock_profile": {
+      "episode_timeout_policy": "horizon_ticks_x_tick_plus_provider_timeout_plus_tick",
+      "kind": "soft_realtime_monotonic_single_writer",
+      "process_hard_timeout_overhead_s": 30.0,
+      "termination_grace_s": 5.0,
+      "tick_interval_s": 5.0
+    },
+    "contract_version": "realtime_persistent.v2",
+    "diagnostic_schema_version": "realtime-diagnostics/1.6",
+    "episode_schema_version": "realtime-episode/1.1",
+    "interaction_mode": "realtime_persistent",
+    "leaderboard": "realtime_supervision",
+    "merge_with_primary_leaderboard": false,
+    "n_scenarios": 769,
+    "realtime_coordinator": "realtime_episode_v5",
+    "required_artifacts": [
+      "provider_audit",
+      "event_contract",
+      "evidence_closure",
+      "action_lifecycle",
+      "semantic_ledger",
+      "structured_memory"
+    ],
+    "runtime_evidence_root": "release/operate_v0_61_0",
+    "safety_profile": {
+      "native_takeover_applicable": false,
+      "supervisor": "domain_neutral_hold"
+    },
+    "scorecard_schema_version": "realtime-formal-scorecard/1.1",
+    "scorecard_version": "realtime-diagnostics/1.6",
+    "selection_binding": "same_release_core",
+    "selection_source": "release/operate_v0_61_0/formal_runtime_bundle.json#scenarios",
+    "suite_manifest_sha256": "87ba888ac497c52f864e41125a563623d86869d3d4dee7423e13a8c995aad68e",
+    "treatment_schema_version": "realtime-treatment/1.1",
+    "wakeup_policy": {
+      "agent_scheduled_reviews": true,
+      "harness_periodic_supervisory_scan": false,
+      "session_start": true,
+      "typed_actionable_events": true,
+      "unknown_events_actionable": false
+    }
+  },
+  "formal_run_contract": {
+    "agentic_profile": {
+      "max_consecutive_provider_failures": 1,
+      "max_tokens": 32768,
+      "persistent_context_max_chars": 512000,
+      "persistent_history_max_messages": 64,
+      "persistent_memory_max_items": 128,
+      "protocol_repair_max_tokens": 8192,
+      "provider_failure_policy": "abort",
+      "provider_timeout_s": 300.0,
+      "stream_chat_completions": true,
+      "tool_choice": "auto"
+    },
+    "contract_version": "agentic_persistent.v1",
+    "maximum_max_workers": 32,
+    "minimum_max_workers": 1,
+    "minimum_pass_k": 1,
+    "realtime_formal_contract": {
+      "aggregation_version": "realtime-scorecard-micro-v1",
+      "batch_schema_version": "realtime-formal-batch/1.1",
+      "clock_profile": {
+        "episode_timeout_policy": "horizon_ticks_x_tick_plus_provider_timeout_plus_tick",
+        "kind": "soft_realtime_monotonic_single_writer",
+        "process_hard_timeout_overhead_s": 30.0,
+        "termination_grace_s": 5.0,
+        "tick_interval_s": 5.0
+      },
+      "contract_version": "realtime_persistent.v2",
+      "diagnostic_schema_version": "realtime-diagnostics/1.6",
+      "episode_schema_version": "realtime-episode/1.1",
+      "interaction_mode": "realtime_persistent",
+      "leaderboard": "realtime_supervision",
+      "merge_with_primary_leaderboard": false,
+      "realtime_coordinator": "realtime_episode_v5",
+      "required_artifacts": [
+        "provider_audit",
+        "event_contract",
+        "evidence_closure",
+        "action_lifecycle",
+        "semantic_ledger",
+        "structured_memory"
+      ],
+      "safety_profile": {
+        "native_takeover_applicable": false,
+        "supervisor": "domain_neutral_hold"
+      },
+      "scorecard_schema_version": "realtime-formal-scorecard/1.1",
+      "scorecard_version": "realtime-diagnostics/1.6",
+      "selection_binding": "same_release_core",
+      "treatment_schema_version": "realtime-treatment/1.1",
+      "wakeup_policy": {
+        "agent_scheduled_reviews": true,
+        "harness_periodic_supervisory_scan": false,
+        "session_start": true,
+        "typed_actionable_events": true,
+        "unknown_events_actionable": false
+      }
+    },
+    "required_construct_contract": "operational_agency.v1",
+    "required_interaction_mode": "logical_persistent",
+    "required_model_count_per_shard": 1,
+    "required_prompt_mode": "strict",
+    "required_scheduler_mode": "global",
+    "required_seed_mode": "scenario",
+    "required_temperature": 0.0,
+    "requires_explicit_model_capabilities": true,
+    "save_trajectories": true,
+    "shard_merge_key": "formal_treatment_family_sha256",
+    "wakeup_policy": {
+      "agent_scheduled_reviews": true,
+      "harness_periodic_supervisory_scan": false,
+      "session_start": true,
+      "typed_actionable_events": true,
+      "unknown_events_actionable": false
+    }
+  },
+  "formal_runtime_bundle": {
+    "n_scenarios": 769,
+    "ordered_scenario_identity_sha256": "2c892202102516e6e9c37ff0a64cc3c10ca485df2306e92e77fe946046714f93",
+    "path": "formal_runtime_bundle.json",
+    "schema_version": "operate-formal-runtime-bundle-v1",
+    "sha256": "cf0e1e5683901b45dec0ffc3682348c3971ab3b5630bd3c4b74e61d185a110f9",
+    "size_bytes": 2731885
+  },
+  "git_head": "b7251d4f1c139d4e9633b2b59193351153bac529",
+  "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+  "leaderboard_eligibility": {
+    "diagnostic_cells": [],
+    "eligible": false,
+    "suite_exclusions": [
+      {
+        "reason": {
+          "code": "formal_logical_persistent_evaluation_pending",
+          "message": "No release-bound single-model persistent shard has completed yet; pass_k is dynamic with a minimum of one."
+        },
+        "scope": "logical_persistent_core"
+      },
+      {
+        "reason": {
+          "code": "formal_realtime_persistent_evaluation_pending",
+          "message": "The independent realtime supervision scorecard has not completed yet."
+        },
+        "scope": "realtime_persistent_core"
+      },
+      {
+        "reason": {
+          "code": "formal_runtime_evidence_distribution_pending",
+          "message": "The hash-bound replay and diagnostic runtime evidence is not yet distributed with the portable Core."
+        },
+        "scope": "public_formal_runtime"
+      }
+    ],
+    "uninformative_cells": []
+  },
+  "leaderboard_eligible": false,
+  "manifest_schema_version": "protocol21-core-v1",
+  "n_effective_sources": 769,
+  "n_physical_sources": 502,
+  "n_scenarios": 769,
+  "parent_published_core": "operate_v0_60_0",
+  "pipeline_artifacts": {
+    "agentic_contract_sha256": "ed15d42aaf21b7198e903c2db1960c6963236dfcf46884426eb877aa87a1835a",
+    "behavioral_sha256": "c126e6acd8d4090a0853c866daea4e215efb30347b7bae7f42d09668fd970fd4",
+    "complexity_sha256": "283739d11c789b77ee26fea4b870f5052ec9c741b4eb61d082ac443956abdf07",
+    "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+    "core_selection_sha256": "3cd4a5eefc24ea5f618ccc5c229bc106c62633e2bff4d7476ecf42b0888954dc",
+    "observed_reference_depth_sha256": "be3d1df1279b6682c536e3b42576f45dd7cae3eb2425aca73e53e2d5fe65d15e",
+    "path": ".hl/release_rebuild/operate_v0_61_0/full_replay_release_final_f90e6234",
+    "pipeline_manifest_sha256": "a0978fa266c563294d9165981aa32afaaa81e1d5fbb35fdc4fbad84905a82b16",
+    "preflight_sha256": "b8f62bcefa663ff450116cffb1b357abb8b2d6bb659fc35f9bd5e291746fca84",
+    "readiness_sha256": "3d0581aaa71e1ea874602b6b706a606d2a38f66a66e6a5e50994200619d1de4d",
+    "release_coverage_sha256": "9d459e51f087169bd762d413ff3f56a6434c9d4e509e4c822b5b2b36a97bac63",
+    "release_tooling_sha256": "0c04b07e19ebdc9ccf17300f20d20b6c7649d8bd2b9f159794d3f18e95ea6498",
+    "source_consumption_sha256": "4599f4b063134b3ede54d004d2fae22dd2a8fc4c84004a6a3e3c88b283eecd48",
+    "source_grounded_sha256": "dcee8f8f2587d4b140a2f6ad7fc09b984c9a28169495855e271dfcc4ea4a6d87",
+    "stage_artifacts": {
+      "agentic_contract": {
+        "relative_path": "agentic_core_contract_protocol2_v21.json",
+        "sha256": "ed15d42aaf21b7198e903c2db1960c6963236dfcf46884426eb877aa87a1835a"
+      },
+      "behavioral": {
+        "relative_path": "behavioral_calibration_protocol2_v21.json",
+        "sha256": "c126e6acd8d4090a0853c866daea4e215efb30347b7bae7f42d09668fd970fd4"
+      },
+      "complexity": {
+        "relative_path": "complexity_protocol2_v21.json",
+        "sha256": "283739d11c789b77ee26fea4b870f5052ec9c741b4eb61d082ac443956abdf07"
+      },
+      "materialize_core": {
+        "relative_path": "refined_core_selection_protocol2_v21.json",
+        "sha256": "3cd4a5eefc24ea5f618ccc5c229bc106c62633e2bff4d7476ecf42b0888954dc"
+      },
+      "observed_reference_depth": {
+        "relative_path": "observed_reference_depth_protocol2_v21.json",
+        "sha256": "be3d1df1279b6682c536e3b42576f45dd7cae3eb2425aca73e53e2d5fe65d15e"
+      },
+      "preflight": {
+        "relative_path": "protocol2_v21_working_set_preflight.json",
+        "sha256": "b8f62bcefa663ff450116cffb1b357abb8b2d6bb659fc35f9bd5e291746fca84"
+      },
+      "readiness": {
+        "relative_path": "protocol2_v21_core_readiness.json",
+        "sha256": "3d0581aaa71e1ea874602b6b706a606d2a38f66a66e6a5e50994200619d1de4d"
+      },
+      "release_coverage": {
+        "relative_path": "release_coverage_protocol2_v21.json",
+        "sha256": "9d459e51f087169bd762d413ff3f56a6434c9d4e509e4c822b5b2b36a97bac63"
+      },
+      "source_consumption": {
+        "relative_path": "source_consumption_protocol2_v21.json",
+        "sha256": "4599f4b063134b3ede54d004d2fae22dd2a8fc4c84004a6a3e3c88b283eecd48"
+      },
+      "source_grounded": {
+        "relative_path": "source_grounded_protocol2_v21.json",
+        "sha256": "dcee8f8f2587d4b140a2f6ad7fc09b984c9a28169495855e271dfcc4ea4a6d87"
+      },
+      "strategy_depth": {
+        "relative_path": "strategy_depth_protocol2_v21.json",
+        "sha256": "651de0f2b94f26df75a5e0d346c2538317c28ed7cb58c762b2c1768f75aa1121"
+      },
+      "task_contracts": {
+        "relative_path": "task_contracts_protocol2_v21.json",
+        "sha256": "4a25e199c8170c3826b2f27db692883072c544828e709e9d368abd086a43bc64"
+      }
+    },
+    "strategy_depth_sha256": "651de0f2b94f26df75a5e0d346c2538317c28ed7cb58c762b2c1768f75aa1121",
+    "task_contracts_sha256": "4a25e199c8170c3826b2f27db692883072c544828e709e9d368abd086a43bc64"
+  },
+  "pipeline_dir": ".hl/release_rebuild/operate_v0_61_0/full_replay_release_final_f90e6234",
+  "protocol21_replay": {
+    "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+    "evidence_bundle": "protocol21_public_evidence_bundle.json",
+    "evidence_bundle_sha256": "eb1f40d6f9dec5e86bdfd89505403d501af47a06c1031ff1fdb13474b6cc952c",
+    "formal_evaluation_ready": true,
+    "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+    "leaderboard_eligible": false,
+    "n_held_repair": 0,
+    "n_rejected": 0,
+    "n_retired_intrinsic": 0,
+    "n_secondary": 0,
+    "n_selected": 769,
+    "n_source": 769,
+    "pipeline_dir": ".hl/release_rebuild/operate_v0_61_0/full_replay_release_final_f90e6234",
+    "release_coverage_passed": true,
+    "release_tooling_sha256": "0c04b07e19ebdc9ccf17300f20d20b6c7649d8bd2b9f159794d3f18e95ea6498",
+    "selection_disposition_counts": {
+      "core_locked": 769
+    },
+    "source_suite": "release/operate_v0_61_0/protocol21_source_suite.json",
+    "source_suite_sha256": "cf05334dd4d9ccace87c540bae3f75afb8cd91927de30ab43cb48d6b62da0434",
+    "status": "complete"
+  },
+  "protocol_version": "2.1",
+  "public_release_blockers": [
+    "formal_logical_persistent_evaluation_pending",
+    "formal_realtime_persistent_evaluation_pending",
+    "formal_runtime_evidence_distribution_pending"
+  ],
+  "public_release_ready": false,
+  "release_id": "operate_v0_61_0",
+  "release_tooling_sha256": "0c04b07e19ebdc9ccf17300f20d20b6c7649d8bd2b9f159794d3f18e95ea6498",
+  "replaces_core": "operate_v0_60_0",
+  "scoring_version": "0.14.0",
+  "status": "formal_evaluation_ready"
+}

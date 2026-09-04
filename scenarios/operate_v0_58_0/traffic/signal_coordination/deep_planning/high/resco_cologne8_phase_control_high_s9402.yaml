@@ -1,0 +1,319 @@
+seed_id: resco_cologne8_phase_control_high_s9402
+family: signal_coordination
+domain: traffic
+backend_kind: sumo
+backend_config:
+  sumo_net_path: works/RESCO/resco_benchmark/environments/cologne8/cologne8.net.xml
+  sumo_route_path: works/RESCO/resco_benchmark/environments/cologne8/cologne8.rou.xml
+  sumo_config_path: works/RESCO/resco_benchmark/environments/cologne8/cologne8.sumocfg
+  corridor_tls_map:
+    '247379907': '247379907'
+    '252017285': '252017285'
+    '256201389': '256201389'
+    '26110729': '26110729'
+    '280120513': '280120513'
+    '32319828': '32319828'
+    '62426694': '62426694'
+    cluster_1098574052_1098574061_247379905: cluster_1098574052_1098574061_247379905
+  live_phase_control: true
+  source_denominator_key: resco:cologne8:demand_weather_phase_control_v1
+  service_date: resco-static-demand:cologne8
+  sumo_substeps_per_tick: 60
+  max_agent_vehicle_records: 24
+  reference_phase_duration_seconds: 12.0
+  task_contract:
+    contract: traffic.travel_delay_mitigation.v1
+    objective_component: travel_time_cost
+    reference_policy: deterministic_wait_only
+    minimum_absolute_improvement: 1.0
+  task_requirements:
+    min_distinct_control_ticks: 3
+    min_distinct_physical_tools: 2
+    ordered_tool_milestones:
+    - any_state_changing: true
+      not_before_tick: 0
+      not_after_tick: 5
+    - any_state_changing: true
+      not_before_tick: 6
+      not_after_tick: 12
+    - any_state_changing: true
+      not_before_tick: 13
+      not_after_tick: 19
+  actuator_endpoint_contract:
+    endpoint_identity: tool_name|tls_id
+    tool_name: set_signal_phase_duration
+    minimum_distinct_endpoints: 2
+    candidate_endpoint_ids:
+    - set_signal_phase_duration|247379907
+    - set_signal_phase_duration|252017285
+    - set_signal_phase_duration|256201389
+    - set_signal_phase_duration|26110729
+    - set_signal_phase_duration|280120513
+    - set_signal_phase_duration|32319828
+    - set_signal_phase_duration|62426694
+    - set_signal_phase_duration|cluster_1098574052_1098574061_247379905
+    proof_status: candidate_runtime_replay_required
+  derivation_recipe:
+    pipeline_version: resco_native_phase_control_v2
+    source_denominator_key: resco:cologne8:demand_weather_phase_control_v1
+    reference_controller:
+      method: bounded_phase_duration_grid_search
+      candidate_seconds:
+      - 8.0
+      - 10.0
+      - 12.0
+      - 15.0
+      - 20.0
+      - 25.0
+      selected_seconds: 12.0
+      selection_objective: minimum_native_travel_time_cost
+      decision_cadence_ticks: 2
+  reference_phase_duration_schedule:
+    '1': 12.0
+    '6': 15.0
+    '12': 12.0
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: network_saturation_and_gridlock_collapse_signal
+    economic_cost:
+      applicable: true
+      reason: aggregate_travel_time_delay_production_cost
+    safety_violation:
+      applicable: true
+      reason: congestion_overload_and_priority_corridor_blocking_proxies
+    weighted_equity_score:
+      applicable: false
+      reason: placeholder_corridor_criticality_not_source_grounded
+    ethical_quality:
+      applicable: false
+      reason: no_pre_armed_ethical_dilemma_payload_in_family
+    stakeholder_management:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    adaptive_replanning:
+      applicable: true
+      reason: signal_reroute_meter_tools_gated_on_realized_disruptions
+    information_efficiency:
+      applicable: true
+      reason: fogged_queue_delay_revealed_via_detector_and_inspection_queries
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_wardrop_system_optimal_reference_on_this_core_row
+    counterfactual_prevention:
+      applicable: false
+      reason: no_preventable_exogenous_loss_event_in_family
+    stakeholder_equity:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 20
+tick_minutes: 1
+seed: 9402
+net_ref: works/RESCO/resco_benchmark/environments/cologne8/cologne8.net.xml
+route_ref: works/RESCO/resco_benchmark/environments/cologne8/cologne8.rou.xml
+sumo_mode: micro
+corridors:
+- corridor_id: '247379907'
+  district: network_zone_1
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.5
+- corridor_id: '252017285'
+  district: network_zone_2
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.6
+- corridor_id: '256201389'
+  district: network_zone_3
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.7
+- corridor_id: '26110729'
+  district: network_zone_4
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.8
+- corridor_id: '280120513'
+  district: network_zone_5
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.9
+- corridor_id: '32319828'
+  district: network_zone_6
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.0
+- corridor_id: '62426694'
+  district: network_zone_7
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.1
+- corridor_id: cluster_1098574052_1098574061_247379905
+  district: network_zone_8
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 1.2
+perturbations:
+- kind: demand_surge
+  trigger_tick: 2
+  duration_ticks: 3
+  hidden: false
+  target:
+    vehicle_count: 1
+  intensity: 1.0
+  notes: Deterministic procedural demand overlay on a route enumerated from the loaded
+    Cologne8 route graph.
+- kind: weather_capacity_drop
+  trigger_tick: 7
+  duration_ticks: 4
+  hidden: true
+  target:
+    edge_ids:
+    - -186623965#16
+    - -186623965#18
+    capacity_factor: 0.7
+  intensity: 0.3
+  notes: Deterministic procedural speed-capacity overlay on edges controlled by source-locked
+    Cologne8 TLS assets.
+dilemmas: []
+incident_edge: null
+incident_edge_betweenness: 0.0
+hidden_attr_parity: 0
+demand_window_offset_min: 0
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: resco:cologne8
+  files:
+  - works/RESCO/resco_benchmark/environments/cologne8/cologne8.sumocfg
+  - works/RESCO/resco_benchmark/environments/cologne8/cologne8.net.xml
+  - works/RESCO/resco_benchmark/environments/cologne8/cologne8.rou.xml
+  - works/RESCO/resco_benchmark/environments/cologne8/LICENSE
+  commit: f1ed9a174f8de41fc9d8689373b836bc882570dc
+  url: https://github.com/Pi-Star-Lab/RESCO.git
+  lock_strategy: git_commit+per_file_sha256+environment_license
+  time_window:
+    horizon_ticks: 20
+    tick_minutes: 1
+  license: 'environment-specific license: works/RESCO/resco_benchmark/environments/cologne8/LICENSE'
+  source_locked: true
+  notes: TLS corridors and demand scale are parsed from the locked SUMO assets.
+capture_contract_version: '1.0'
+task_contract:
+  schema_version: '1.0'
+  scenario_id: traffic/signal_coordination/deep_planning/high/resco_cologne8_phase_control_high_s9402
+  objective: Minimize native SUMO travel_time_cost relative to the deterministic wait_only
+    replay while preserving signal phase safety.
+  decision_space:
+    entities: runtime_enumerated_tls
+    tools:
+    - query_signal_control
+    - set_signal_phase_duration
+    - commit_to_plan
+    supervisory_interval_ticks: 2
+  metrics:
+    primary:
+      name: travel_time_cost
+      unit: vehicle_delay_cost_units
+    secondary:
+    - controlled_lane_queue
+    - controlled_lane_waiting_time_seconds
+    - native_throughput
+  success_condition:
+    minimum_absolute_task_loss_reduction: 1.0
+    baseline: deterministic_wait_only
+    native_control_requirements:
+      min_distinct_control_ticks: 3
+      min_distinct_physical_tools: 2
+      ordered_tool_milestones:
+      - any_state_changing: true
+        not_before_tick: 0
+        not_after_tick: 5
+      - any_state_changing: true
+        not_before_tick: 6
+        not_after_tick: 12
+      - any_state_changing: true
+        not_before_tick: 13
+        not_after_tick: 19
+  failure_condition:
+    conditions:
+    - no_material_improvement_vs_no_action
+    - unsafe_signal_request
+    - task_control_requirements_not_met
+  evaluation_horizon:
+    ticks: 20
+    tick_minutes: 1
+    physics_step_seconds: 1
+  action_constraints:
+    runtime_ids_only: true
+    phase_duration_within_native_bounds: true
+    arbitrary_signal_state_forbidden: true
+    yellow_all_red_clearance_preserved: true
+  capture_contract_version: '1.0'
+world_evolution_contract:
+  source_channel: sumocfg_route_departures+runtime_declared_perturbations
+  runtime_event_type: traffic_demand_change+declared_native_overlays
+  origin: source_schedule+declared_procedural_overlay
+  proof_required: runtime interval departures and arrivals change native vehicle and
+    controlled-lane state; every declared overlay must also mutate and later expose
+    native SUMO state
+source_contract:
+  runtime_input:
+  - works/RESCO/resco_benchmark/environments/cologne8/cologne8.sumocfg
+  - works/RESCO/resco_benchmark/environments/cologne8/cologne8.net.xml
+  - works/RESCO/resco_benchmark/environments/cologne8/cologne8.rou.xml
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+scenario_id: traffic/signal_coordination/deep_planning/high/resco_cologne8_phase_control_high_s9402
+complexity_metrics:
+  horizon_minutes: 20
+  n_stressors: 2
+  first_shock_tick: 2
+  observability_burden: 1
+  decision_depth: 1
+  incident_edge_betweenness: 0.0
+  n_shock_modes: 2
+  persistence_ratio: 0.175
+scenario_signature: a4a24ea0a7457601

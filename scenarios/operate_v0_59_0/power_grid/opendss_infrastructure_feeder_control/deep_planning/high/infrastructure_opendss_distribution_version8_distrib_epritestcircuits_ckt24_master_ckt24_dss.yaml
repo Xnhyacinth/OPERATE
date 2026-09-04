@@ -1,0 +1,297 @@
+seed_id: power_grid/opendss_infrastructure_feeder_control/deep_planning/high/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt24_master_ckt24_dss
+family: opendss_infrastructure_feeder_control
+domain: power_grid
+backend_kind: opendss_fresh_feeders
+backend_config:
+  feeder: infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt24_master_ckt24_dss
+  master_file: Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+  topology: unbalanced_three_phase_distribution
+  decision_axis: fresh_feeder_volt_var_control
+  source_denominator_key: opendss:65d2500528b59ecf63efaafec729b1ebad7411850afd251274aebb1e9d3b11d8:set_transformer_tap
+  controllable_assets:
+  - set_transformer_tap
+  control_action_probe:
+    tool: set_transformer_tap
+    args:
+      trafo_id: 0
+      tap_pos: 12
+  release_ready: true
+  release_reentry_ready: true
+  source_integration_rung: executed_with_live_backend
+  dimension_applicability:
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_volt_var_tools_available
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_passed
+    economic_cost:
+      applicable: true
+      reason: voltage_violation_cost_components_available
+    ethical_quality:
+      applicable: false
+      reason: no_dilemma_or_consequence_manager_for_release
+    foresight_score:
+      applicable: true
+      reason: multi_tick_horizon_and_counterfactual_replay_available
+    information_efficiency:
+      applicable: true
+      reason: partial_observation_and_tool_feedback_available
+    optimality_gap:
+      applicable: false
+      reason: missing_reference_optimum_for_opendss_fresh_feeders_release
+    safety_violation:
+      applicable: true
+      reason: voltage_violation_records_available
+    stakeholder_management:
+      applicable: false
+      reason: no_trust_manager_for_opendss_fresh_feeders_release
+    system_survival:
+      applicable: true
+      reason: voltage_feasibility_tick_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: no_customer_class_or_critical_load_ledger_for_release
+    stakeholder_equity:
+      applicable: false
+      reason: opendss_release_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  honest_zero_keys:
+  - weighted_equity_score
+  - ethical_quality
+  - stakeholder_management
+  - optimality_gap
+  backend_key_aliases:
+    n_voltage_violations: safety_violation
+    voltage_band_deviation_cost: economic_cost
+    opendss_tool_effect: adaptive_replanning
+  source_axes:
+    backend: opendss_fresh_feeders
+    preview_backend: opendss_fresh_feeder_probe
+    source: dss_extensions_electricdss_tst
+    feeder: infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt24_master_ckt24_dss
+    master_file: Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+    topology: unbalanced_three_phase_distribution
+    decision_axis: fresh_feeder_volt_var_control
+    source_denominator_key: opendss:65d2500528b59ecf63efaafec729b1ebad7411850afd251274aebb1e9d3b11d8:set_transformer_tap
+    controllable_assets:
+    - capacitor_banks
+    - voltage_regulators
+    source_root: works/OpenDSS-IEEE13
+    master_sha256: 4e3fbfc86c274c7e4f8194538f77177468e5fa1d513eefa1e65cc17d27f0b023
+    runtime_include_graph:
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Allocated_Loads_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/AllocationFactors_Base.Txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseA.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseB.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseC.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_ThreePhase.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linecodes_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linegeometry_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Monitors_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Bus_Load.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Load_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/TriplexLineCodes_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Wiredata_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/capacitors_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/lines_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/sec_serv_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/stepxfmrs_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/substation_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/transformers_ckt24.dss
+    n_buses: 6058
+    n_lines: 5222
+    n_loads: 3891
+    n_capacitors: 3
+    n_regcontrols: 1
+  stress_profile: standard
+  source_root: works/OpenDSS-IEEE13
+  task_contract_profile:
+    milestone_ticks:
+    - 1
+    - 3
+  initial_native_controls: []
+  control_action_follow_up:
+    tool: set_transformer_tap
+    args:
+      trafo_id: 3
+      tap_pos: 6
+  task_requirements:
+    min_distinct_control_ticks: 1
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: set_transformer_tap
+      not_before_tick: 1
+      not_after_tick: 4
+  runtime_source_lock:
+    master_file: works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+    master_sha256: 4e3fbfc86c274c7e4f8194538f77177468e5fa1d513eefa1e65cc17d27f0b023
+    include_graph_paths:
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Allocated_Loads_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/AllocationFactors_Base.Txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseA.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseB.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseC.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_ThreePhase.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linecodes_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linegeometry_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Monitors_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Bus_Load.txt
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Load_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/TriplexLineCodes_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Wiredata_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/capacitors_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/lines_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/sec_serv_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/stepxfmrs_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/substation_ckt24.dss
+    - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/transformers_ckt24.dss
+    file_sha256s:
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Allocated_Loads_ckt24.dss: 1d39430b1c00ea297449303aa670efc4973b81aadb11368c13cb41c2c97f337d
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/AllocationFactors_Base.Txt: 0facd26da9f19514557ffae56f3ab5142d27efe0dcbb2bcf0746691d5d677105
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseA.txt: e2423657632a8365f624e5f9bbd0cddfdc366821b263b924e990ac88eec632fb
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseB.txt: beaba094c7a083f7c4ce928c3a33e2b84d923ef3818ac18bd8d3abfb1c43aea3
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseC.txt: d6b57395a3e0da7689bae17573ed50f0213b53f03aeafef0f7f3aba562fa8794
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_ThreePhase.txt: c723679c352d1a0a08582527ea135a50602a624d4f04dff64918d88ced151b6a
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linecodes_ckt24.dss: 29dc4b140d1d505ca2a97c9c8dfa62f2be72ff75f3458c0a6c367d45fc46f987
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linegeometry_ckt24.dss: 099a052657522fed6d122e69c68769efe49d7af7c56ae368061665bc1a86c59e
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Monitors_ckt24.dss: b92081a9a20290ab6e6d2ad3f549f87f232e109f3a45df5ffd3ebbfabbb82f29
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Bus_Load.txt: 7bf5ef25519ae0f27dd9e9a394a42b393e5951ca4cbafb671d86e1add478ffef
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Load_ckt24.dss: 4d395e121c573e803e7900c3568bc9a577852f38cb9e8525fa52a91c0b76aba2
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/TriplexLineCodes_ckt24.dss: 87771df44af2358bec0b2b4c2883a1d5b8fd47bbd91469281f69867e52a8647f
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Wiredata_ckt24.dss: 03717fa7b082f767a3a69e7bbad4b8aa1da8b9d9ec3f9d9418e8ca03aedf8ef5
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/capacitors_ckt24.dss: 3fb302ba85a5efa14350136e47f85135be487e9d38414a838704727a7469dcb1
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/lines_ckt24.dss: 98e4112b7a50ad555370c13c847f6b790550292b2a07c439bf346655945cffa2
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss: 4e3fbfc86c274c7e4f8194538f77177468e5fa1d513eefa1e65cc17d27f0b023
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/sec_serv_ckt24.dss: 8a49b1052aaa56a177fc781081a87892031867a083d1ed4bb47eba88fafeac72
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/stepxfmrs_ckt24.dss: 313f8a165a802ea24262f3decbc6d38a33ea45ff4774dea3f0a89d1f9730193e
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/substation_ckt24.dss: 36ff38a775f537a7d5863e768f9de3bd2d5f6d3554241ed5f11f57f50f602305
+      works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/transformers_ckt24.dss: 52f9e9ae30f61372217fb96eedbf2b308b7a74129c90bca83047d04dbd3d5913
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+  preventive_stabilization_recipe:
+    version: opendss_preventive_stabilization_v1
+    source_identity: works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+    runtime_consumption_required: true
+    startup_controls_are_not_agent_actions: true
+  reference_policy_contract: opendss.live_voltage_feedback.v1
+  task_contract:
+    contract: power_grid.opendss.preventive_stabilization.v1
+    control_window:
+      first_tick: 1
+      last_tick: 4
+horizon_ticks: 6
+tick_minutes: 1
+seed: 42
+load_assignments: []
+perturbations:
+- kind: load_surge
+  trigger_tick: 1
+  duration_ticks: 2
+  target:
+    load_fraction: 0.05
+  intensity: 1.0
+  hidden: false
+  notes: Deterministic procedural response-window stress overlay.
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: dss_extensions_electricdss_tst
+  files:
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Allocated_Loads_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/AllocationFactors_Base.Txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseA.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseB.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseC.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_ThreePhase.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linecodes_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linegeometry_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Monitors_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Bus_Load.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Load_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/TriplexLineCodes_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Wiredata_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/capacitors_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/lines_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/sec_serv_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/stepxfmrs_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/substation_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/transformers_ckt24.dss
+  url: https://github.com/dss-extensions/electricdss-tst
+  commit: 3b208397160213cae4a9e2d0a7d1aa3528ce26e1
+  lock_strategy: git_commit+sha256_include_graph
+  license: BSD-3-Clause
+  time_window:
+    master_file: Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+    decision_axis: set_transformer_tap
+  notes: Locked native feeder graph with deterministic typed load-surge response windows;
+    the stress overlay does not create source independence.
+scenario_id: power_grid/opendss_infrastructure_feeder_control/deep_planning/high/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt24_master_ckt24_dss
+complexity_metrics:
+  horizon_minutes: 6
+  n_perturbations: 2
+  suddenness_ticks: 1
+  observability_burden: 0
+  decision_depth: 2
+  cascade_permissiveness: 0
+  persistence_ratio: 0.0
+  ambient_fraction: 0.0
+  n_effective_control_ticks: 2
+source_contract:
+  runtime_input:
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Wiredata_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linegeometry_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linecodes_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/TriplexLineCodes_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/substation_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/lines_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/capacitors_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/stepxfmrs_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/transformers_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/sec_serv_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Allocated_Loads_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Load_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/AllocationFactors_Base.Txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Monitors_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/buscoords_ckt24.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseA.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseB.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseC.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_ThreePhase.txt
+  - works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Bus_Load.txt
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+  file_sha256s:
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/master_ckt24.dss: 4e3fbfc86c274c7e4f8194538f77177468e5fa1d513eefa1e65cc17d27f0b023
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Wiredata_ckt24.dss: 03717fa7b082f767a3a69e7bbad4b8aa1da8b9d9ec3f9d9418e8ca03aedf8ef5
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linegeometry_ckt24.dss: 099a052657522fed6d122e69c68769efe49d7af7c56ae368061665bc1a86c59e
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Linecodes_ckt24.dss: 29dc4b140d1d505ca2a97c9c8dfa62f2be72ff75f3458c0a6c367d45fc46f987
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/TriplexLineCodes_ckt24.dss: 87771df44af2358bec0b2b4c2883a1d5b8fd47bbd91469281f69867e52a8647f
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/substation_ckt24.dss: 36ff38a775f537a7d5863e768f9de3bd2d5f6d3554241ed5f11f57f50f602305
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/lines_ckt24.dss: 98e4112b7a50ad555370c13c847f6b790550292b2a07c439bf346655945cffa2
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/capacitors_ckt24.dss: 3fb302ba85a5efa14350136e47f85135be487e9d38414a838704727a7469dcb1
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/stepxfmrs_ckt24.dss: 313f8a165a802ea24262f3decbc6d38a33ea45ff4774dea3f0a89d1f9730193e
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/transformers_ckt24.dss: 52f9e9ae30f61372217fb96eedbf2b308b7a74129c90bca83047d04dbd3d5913
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/sec_serv_ckt24.dss: 8a49b1052aaa56a177fc781081a87892031867a083d1ed4bb47eba88fafeac72
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Allocated_Loads_ckt24.dss: 1d39430b1c00ea297449303aa670efc4973b81aadb11368c13cb41c2c97f337d
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Load_ckt24.dss: 4d395e121c573e803e7900c3568bc9a577852f38cb9e8525fa52a91c0b76aba2
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/AllocationFactors_Base.Txt: 0facd26da9f19514557ffae56f3ab5142d27efe0dcbb2bcf0746691d5d677105
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Monitors_ckt24.dss: b92081a9a20290ab6e6d2ad3f549f87f232e109f3a45df5ffd3ebbfabbb82f29
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/buscoords_ckt24.dss: a28c32c908d9597a6541104d6ff063fc0a1a20707bd3bea3d284a2fb0081d06e
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseA.txt: e2423657632a8365f624e5f9bbd0cddfdc366821b263b924e990ac88eec632fb
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseB.txt: beaba094c7a083f7c4ce928c3a33e2b84d923ef3818ac18bd8d3abfb1c43aea3
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_PhaseC.txt: d6b57395a3e0da7689bae17573ed50f0213b53f03aeafef0f7f3aba562fa8794
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/LS_ThreePhase.txt: c723679c352d1a0a08582527ea135a50602a624d4f04dff64918d88ced151b6a
+    works/OpenDSS-IEEE13/Version8/Distrib/EPRITestCircuits/ckt24/Other_Bus_Load.txt: 7bf5ef25519ae0f27dd9e9a394a42b393e5951ca4cbafb671d86e1add478ffef
+candidate_only: true
+release_admission: false
+scenario_signature: 26b91b6632e18e64

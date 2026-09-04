@@ -1,0 +1,292 @@
+seed_id: building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_2_w4824_4895
+family: citylearn_der_storage_control
+domain: building_energy
+backend_kind: citylearn
+source_root: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2
+source_lock: sources/locks/citylearn_challenge_2022_phase_2.json
+backend_config:
+  simulation_start_time_step: 4824
+  simulation_end_time_step: 4919
+  episode_time_steps: 96
+  implementation_checkout_root: works/CityLearn
+  oracle_policy_contract: citylearn.locked_future_tariff_storage_arbitrage.v1
+  native_source_events:
+  - event_id: citylearn_challenge_2022_phase_2_solar_rise_t4836
+    kind: generation_change
+    trigger_tick: 4836
+    duration_ticks: 6
+    hidden: false
+    channel: building_timeseries.solar_generation
+    source_asset: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_10.csv
+    source_asset_sha256: d8e4abd5d71ce889423e3239244940ed1c7f7efd0312b17c313ec138883739a4
+    source_row_before: 4835
+    source_row_after: 4836
+    source_value_before: 278.0
+    source_value_after: 659.51666
+    materiality_metric: source_value_absolute_delta
+    materiality_threshold: 190.75833
+    source_observed: true
+    procedural_overlay: false
+  - event_id: citylearn_challenge_2022_phase_2_tariff_rise_t4840
+    kind: tariff_change
+    trigger_tick: 4840
+    duration_ticks: 6
+    hidden: false
+    channel: pricing.electricity_pricing
+    source_asset: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/pricing.csv
+    source_asset_sha256: bb94629d83146658c38015ebf8dade815c2557cd8a6c1abb7e1edc5012a483c6
+    source_row_before: 4839
+    source_row_after: 4840
+    source_value_before: 0.21
+    source_value_after: 0.5
+    materiality_metric: source_value_absolute_delta
+    materiality_threshold: 0.14500000000000002
+    source_observed: true
+    procedural_overlay: false
+  - event_id: citylearn_challenge_2022_phase_2_carbon_drop_t4850
+    kind: carbon_intensity_change
+    trigger_tick: 4850
+    duration_ticks: 6
+    hidden: true
+    channel: carbon_intensity.carbon_intensity
+    source_asset: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/carbon_intensity.csv
+    source_asset_sha256: 3f54295997075a3643a7e5ddee8d8b56fc1c63531ab4387cac77ae1888e1dd93
+    source_row_before: 4849
+    source_row_after: 4850
+    source_value_before: 0.11545109
+    source_value_after: 0.09618093
+    materiality_metric: source_value_absolute_delta
+    materiality_threshold: 0.009635080000000004
+    source_observed: true
+    procedural_overlay: false
+  - event_id: citylearn_challenge_2022_phase_2_load_rise_t4863
+    kind: load_change
+    trigger_tick: 4863
+    duration_ticks: 6
+    hidden: true
+    channel: building_timeseries.non_shiftable_load
+    source_asset: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_10.csv
+    source_asset_sha256: d8e4abd5d71ce889423e3239244940ed1c7f7efd0312b17c313ec138883739a4
+    source_row_before: 4862
+    source_row_after: 4863
+    source_value_before: 0.7112333
+    source_value_after: 2.4346
+    materiality_metric: source_value_absolute_delta
+    materiality_threshold: 0.8616833500000001
+    source_observed: true
+    procedural_overlay: false
+  source_window:
+    first_time_step: 4824
+    last_time_step: 4895
+    runtime_context_last_time_step: 4919
+    source_window_sha256: c60907f91d837fe9b0616f2a47001f22828a29197a3aa3d0e9d01b2e46921335
+  task_contract:
+    contract: building_energy.citylearn.storage_dispatch.v1
+    standing_plan_required: true
+    milestone_ticks:
+    - 0
+    - 10
+    - 17
+    - 34
+    - 41
+    response_windows:
+    - event_id: citylearn_challenge_2022_phase_2_solar_rise_t4836
+      first_tick: 10
+      last_tick: 15
+      native_control: set_storage_dispatch
+      expected_control_policy: charge
+    - event_id: citylearn_challenge_2022_phase_2_tariff_rise_t4840
+      first_tick: 17
+      last_tick: 21
+      native_control: set_storage_dispatch
+      expected_control_policy: discharge
+    - event_id: citylearn_challenge_2022_phase_2_carbon_drop_t4850
+      first_tick: 34
+      last_tick: 39
+      native_control: set_storage_dispatch
+      expected_control_policy: charge
+    - event_id: citylearn_challenge_2022_phase_2_load_rise_t4863
+      first_tick: 41
+      last_tick: 45
+      native_control: set_storage_dispatch
+      expected_control_policy: discharge
+  task_requirements:
+    min_distinct_control_ticks: 3
+    min_distinct_physical_tools: 2
+    min_strategy_reversals: 2
+    min_response_windows: 4
+    required_dependency_depth: 4
+  dimension_applicability:
+    economic_cost:
+      applicable: true
+      reason: native_citylearn_energy_cost
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_storage_action_replay
+    weighted_equity_score:
+      applicable: false
+      reason: pilot_has_no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: pilot_has_no_source_grounded_ethical_dilemma
+    stakeholder_management:
+      applicable: false
+      reason: pilot_has_no_source_grounded_stakeholder_model
+    system_survival:
+      applicable: true
+      reason: building_energy_balance_tick_records_available
+    safety_violation:
+      applicable: true
+      reason: building_electrical_limit_tick_records_available
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_storage_dispatch_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_building_observation_and_inspect_building_state
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_milp_or_opf_reference_optimum_for_citylearn_storage_control
+    stakeholder_equity:
+      applicable: false
+      reason: pilot_has_no_source_grounded_stakeholder_model
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  storage_control_delay_ticks: 1
+  observation_contract:
+    contract: citylearn_building_partial_observation_v1
+    hide_building_attrs:
+    - soc
+    - net_electricity_consumption
+    noise_sigma_rel:
+      storage_energy_balance: 0.03
+    staleness_ticks:
+      storage_capacity: 2
+    selective_reveal_tool: inspect_building_state
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 72
+tick_minutes: 60
+seed: 2022
+difficulty_level: extreme
+scenario_id: building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_2_w4824_4895
+difficulty_mode: source_locked_long_horizon
+perturbations:
+- event_id: citylearn_challenge_2022_phase_2_solar_rise_t4836
+  kind: generation_change
+  duration_ticks: 6
+  hidden: false
+  channel: building_timeseries.solar_generation
+  source_asset: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_10.csv
+  source_asset_sha256: d8e4abd5d71ce889423e3239244940ed1c7f7efd0312b17c313ec138883739a4
+  materiality_metric: source_value_absolute_delta
+  materiality_threshold: 190.75833
+  source_observed: true
+  procedural_overlay: false
+  trigger_tick: 12
+- event_id: citylearn_challenge_2022_phase_2_tariff_rise_t4840
+  kind: tariff_change
+  duration_ticks: 6
+  hidden: false
+  channel: pricing.electricity_pricing
+  source_asset: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/pricing.csv
+  source_asset_sha256: bb94629d83146658c38015ebf8dade815c2557cd8a6c1abb7e1edc5012a483c6
+  materiality_metric: source_value_absolute_delta
+  materiality_threshold: 0.14500000000000002
+  source_observed: true
+  procedural_overlay: false
+  trigger_tick: 16
+- event_id: citylearn_challenge_2022_phase_2_carbon_drop_t4850
+  kind: carbon_intensity_change
+  duration_ticks: 6
+  hidden: true
+  channel: carbon_intensity.carbon_intensity
+  source_asset: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/carbon_intensity.csv
+  source_asset_sha256: 3f54295997075a3643a7e5ddee8d8b56fc1c63531ab4387cac77ae1888e1dd93
+  materiality_metric: source_value_absolute_delta
+  materiality_threshold: 0.009635080000000004
+  source_observed: true
+  procedural_overlay: false
+  trigger_tick: 26
+- event_id: citylearn_challenge_2022_phase_2_load_rise_t4863
+  kind: load_change
+  duration_ticks: 6
+  hidden: true
+  channel: building_timeseries.non_shiftable_load
+  source_asset: works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_10.csv
+  source_asset_sha256: d8e4abd5d71ce889423e3239244940ed1c7f7efd0312b17c313ec138883739a4
+  materiality_metric: source_value_absolute_delta
+  materiality_threshold: 0.8616833500000001
+  source_observed: true
+  procedural_overlay: false
+  trigger_tick: 39
+complexity_metrics:
+  n_periods: 72
+  n_buildings: 5
+  n_native_source_events: 4
+  decision_depth: 4
+  observability_burden: 3
+  native_constraint_axes:
+  - electrical_storage_soc_bounds
+  - time_varying_import_cost
+  native_control_axes:
+  - multi_building_storage_dispatch
+provenance:
+  data_source: citylearn_challenge_2022_phase_2
+  url: https://github.com/intelligent-environments-lab/CityLearn
+  license: MIT
+  commit: v2.5.0@29062af6d077409e1c37a3e53a6cac30fd4d02bc
+  lock_strategy: git_tag+commit+all_schema_referenced_file_sha256
+  package_version: citylearn==2.5.0
+  torch_version: torch==2.13.0
+  implementation_tree_sha256: ed4989f7c91b7d85ab511139dda2ce7d8f56199cd5943cafd0954727d5eef138
+  files:
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_10.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_6.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_7.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_8.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_9.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/carbon_intensity.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/pricing.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/schema.json
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/weather.csv
+  source_window:
+  - 4824
+  - 4895
+  notes: All four named events are exact transitions in locked CityLearn runtime CSV
+    rows; no procedural or random event overlay is used.
+  source_window_sha256: c60907f91d837fe9b0616f2a47001f22828a29197a3aa3d0e9d01b2e46921335
+release_admission: candidate_only
+formal_core_allowed: true
+source_contract:
+  runtime_input:
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_10.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_6.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_7.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_8.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_9.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/carbon_intensity.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/pricing.csv
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/schema.json
+  - works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/weather.csv
+  derivation_input: []
+  file_sha256s:
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_10.csv: d8e4abd5d71ce889423e3239244940ed1c7f7efd0312b17c313ec138883739a4
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_6.csv: ead9a4c2a6c5ca2526dbf747584a84c06d5990eb62c9482db607dc5719c02176
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_7.csv: d140651d84c05dbd1f9a32a17fba5aaa21204685d37d508ebd17398783ccd1dc
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_8.csv: a912f82d8e11aef7e40f6e1af087ac975c5d41dd570dbba50eb5ac0a5f715db5
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_9.csv: 9be368c246f58050f56fc64d31df2966be2e74127aade0b330b2c40849ca08d6
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/carbon_intensity.csv: 3f54295997075a3643a7e5ddee8d8b56fc1c63531ab4387cac77ae1888e1dd93
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/pricing.csv: bb94629d83146658c38015ebf8dade815c2557cd8a6c1abb7e1edc5012a483c6
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/schema.json: 77b0fe518ea023ef2ddcbe6ceca6d47ad1e5ab2e48b04e878173969e91f8d9e9
+    works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/weather.csv: a8b6b70d10fd854b211d63b9376e364f21d227d78ece4fadc38b09d47bb0a75f
+  derived_window:
+    sha256: c60907f91d837fe9b0616f2a47001f22828a29197a3aa3d0e9d01b2e46921335
+    recipe_version: citylearn_locked_csv_window_v1
+candidate_only: true
+construct_contract: operational_agency.v1
+scenario_signature: c0f0b7d53765cfe4

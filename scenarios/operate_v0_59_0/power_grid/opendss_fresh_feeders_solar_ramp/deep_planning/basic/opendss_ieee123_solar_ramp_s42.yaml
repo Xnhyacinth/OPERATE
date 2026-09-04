@@ -1,0 +1,174 @@
+seed_id: power_grid/opendss_fresh_feeders_solar_ramp/deep_planning/basic/opendss_ieee123_solar_ramp_s42
+family: opendss_fresh_feeders_solar_ramp
+domain: power_grid
+backend_kind: opendss_fresh_feeders
+backend_config:
+  feeder: ieee123
+  master_file: 123Bus/IEEE123Master.dss
+  topology: unbalanced_three_phase_distribution
+  decision_axis: source_locked_pv_ramp_volt_var_supervision
+  source_denominator_key: opendss_fresh_feeders:ieee123:SolarRamp:step60
+  controllable_assets:
+  - capacitor_banks
+  - voltage_regulators
+  control_action_probe:
+    tool: set_transformer_tap
+    args:
+      trafo_id: 0
+      tap_pos: 6
+  native_duty_program:
+    scenario_file: works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/SolarRamp.DSS
+    data_file: works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/SolarRamp.csv
+    profile_name: SolarRamp
+    start_step: 60
+    substeps_per_tick: 60
+  task_contract_profile:
+    milestone_ticks:
+    - 1
+  task_requirements:
+    min_distinct_control_ticks: 1
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: set_transformer_tap
+      not_before_tick: 1
+      not_after_tick: 3
+  release_ready: false
+  release_reentry_ready: false
+  source_integration_rung: runtime_selected_source_duty_program
+  dimension_applicability:
+    adaptive_replanning:
+      applicable: true
+      reason: native_source_generation_ramp_with_verified_tap_effect
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_required
+    economic_cost:
+      applicable: true
+      reason: native_voltage_violation_cost_components_available
+    ethical_quality:
+      applicable: false
+      reason: no_native_stakeholder_dilemma_contract
+    foresight_score:
+      applicable: true
+      reason: locked_source_generation_profile_forecast_available
+    information_efficiency:
+      applicable: true
+      reason: native_state_and_tool_feedback_available
+    optimality_gap:
+      applicable: false
+      reason: no_aligned_native_global_optimum
+    safety_violation:
+      applicable: true
+      reason: native_voltage_band_records_available
+    stakeholder_management:
+      applicable: false
+      reason: no_native_stakeholder_trust_contract
+    system_survival:
+      applicable: true
+      reason: native_voltage_feasibility_tick_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: no_source_grounded_customer_criticality_ledger
+    stakeholder_equity:
+      applicable: false
+      reason: opendss_release_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  honest_zero_keys:
+  - weighted_equity_score
+  - ethical_quality
+  - stakeholder_management
+  - optimality_gap
+  backend_key_aliases:
+    n_voltage_violations: safety_violation
+    voltage_band_deviation_cost: economic_cost
+    opendss_tool_effect: adaptive_replanning
+  source_axes:
+    backend: opendss_fresh_feeders
+    source: electricdss_tst_v8_ieee123_solar_ramp
+    feeder: ieee123
+    master_file: 123Bus/IEEE123Master.dss
+    source_program: 123Bus/SolarRamp.DSS
+    source_profile: SolarRamp
+    source_window_start_step: 60
+    topology: unbalanced_three_phase_distribution
+    decision_axis: source_locked_pv_ramp_volt_var_supervision
+    controllable_assets:
+    - capacitor_banks
+    - voltage_regulators
+  stress_profile: source_pv_ramp
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 6
+tick_minutes: 1
+seed: 42
+load_assignments: []
+perturbations: []
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: basic
+provenance:
+  data_source: opendss_ieee123_solar_ramp
+  files:
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Master.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEELineCodes.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Regulators.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Loads.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/IEEELineCodes.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/SolarRamp.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/SolarRamp.csv
+  commit: 3b208397160213cae4a9e2d0a7d1aa3528ce26e1
+  url: https://github.com/dss-extensions/electricdss-tst
+  lock_strategy: git_commit+sha256_manifest
+  time_window:
+    feeder: ieee123
+    program: SolarRamp.DSS
+    profile: SolarRamp
+    source_start_step: 60
+    source_step_seconds: 1
+    native_substeps_per_supervisory_tick: 60
+    horizon_ticks: 6
+  license: BSD-3-Clause
+  notes: Source-locked IEEE123 feeder plus the published SolarRamp LoadShape and Generator.2MWGen
+    duty declaration. The adapter compiles the master graph, then parses and executes
+    only those two selected state-affecting source declarations; SolarRamp.DSS presentation,
+    monitor, storage, and completed batch-solve commands are excluded from this task
+    by the explicit native_duty_program contract. Staging evidence candidate only;
+    not a release row.
+scenario_id: power_grid/opendss_fresh_feeders_solar_ramp/deep_planning/basic/opendss_ieee123_solar_ramp_s42
+complexity_metrics:
+  horizon_minutes: 6
+  n_perturbations: 0
+  suddenness_ticks: 6
+  observability_burden: 0
+  decision_depth: 0
+  cascade_permissiveness: 0
+  persistence_ratio: 0.0
+  ambient_fraction: 0.0
+  source_time_variation: native_duty_profile
+  source_response_window_ticks: 1
+description: Supervise IEEE123 voltage controls while a source-locked SolarRamp generator
+  duty profile advances autonomously in native OpenDSS.
+source_contract:
+  runtime_input:
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Master.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEELineCodes.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Regulators.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Loads.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/IEEELineCodes.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/SolarRamp.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/SolarRamp.csv
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+  file_sha256s:
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Master.dss: c92a69d9b218b1b2646ec7911783826229309038e72f16b848304c0457c0a54d
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEELineCodes.DSS: 40ef533dfcb22738edb1125b1e15e4a1a5d41b2cca4a2f969f5d955c9784daeb
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Regulators.DSS: cd6ad77980dc018631ce39faab528afce40b0b9a50a6bc1c9ac8049ffb8207d7
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/IEEE123Loads.DSS: fd28f52836205506a1980b52c5a7e12ca585aa626c52a6249502c1c3b2fc2255
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/IEEELineCodes.DSS: 71bc16ef9c6084b9e3bab74fbdf967080b79624683465e1483b787ff160f58b3
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/SolarRamp.DSS: 27c7bec86917d13db5df05554f16c36b7682f48adf16ece0159f18d016f00a36
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/123Bus/SolarRamp.csv: 59da0ea251c694886715541bcafe6d96996a086de22f5e0b36cd7f403f1d802e
+scenario_signature: 4906475ce3e8295c

@@ -1,0 +1,337 @@
+seed_id: alibaba_gpu_native_5356_6453_6464_high
+family: gpu_cluster_queue_control
+domain: datacenter
+backend_kind: alibaba_trace_sim
+backend_config:
+  jobs:
+  - job_id: '6453'
+    inst_id: '6453'
+    user: edc10645cc3f
+    start_time: 65395.0
+    end_time: 79953.0
+    duration_seconds: 14558.0
+    instance_count: 9
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.25
+    gpu_types: MISC
+  - job_id: '6454'
+    inst_id: '6454'
+    user: 1480b75a8c96
+    start_time: 65400.0
+    end_time: 65425.0
+    duration_seconds: 25.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 1.0
+    gpu_types: T4
+  - job_id: '6455'
+    inst_id: '6455'
+    user: 58540f191766
+    start_time: 65401.0
+    end_time: 68093.0
+    duration_seconds: 2692.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: MISC
+  - job_id: '6456'
+    inst_id: '6456'
+    user: c4cbaac9966d
+    start_time: 65414.0
+    end_time: 65946.0
+    duration_seconds: 532.0
+    instance_count: 1
+    requested_cpu_percent: 10.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.5
+    gpu_types: T4
+  - job_id: '6457'
+    inst_id: '6457'
+    user: 58540f191766
+    start_time: 65420.0
+    end_time: 68951.0
+    duration_seconds: 3531.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: P100
+  - job_id: '6458'
+    inst_id: '6458'
+    user: 58540f191766
+    start_time: 65433.0
+    end_time: 69566.0
+    duration_seconds: 4133.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: MISC
+  - job_id: '6459'
+    inst_id: '6459'
+    user: 58540f191766
+    start_time: 65436.0
+    end_time: 69584.0
+    duration_seconds: 4148.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: MISC
+  - job_id: '6460'
+    inst_id: '6460'
+    user: 58540f191766
+    start_time: 65449.0
+    end_time: 69555.0
+    duration_seconds: 4106.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: MISC
+  - job_id: '6461'
+    inst_id: '6461'
+    user: 58540f191766
+    start_time: 65457.0
+    end_time: 67688.0
+    duration_seconds: 2231.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: MISC
+  - job_id: '6462'
+    inst_id: '6462'
+    user: 58540f191766
+    start_time: 65467.0
+    end_time: 68691.0
+    duration_seconds: 3224.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: P100
+  - job_id: '6463'
+    inst_id: '6463'
+    user: 58540f191766
+    start_time: 65478.0
+    end_time: 72214.0
+    duration_seconds: 6736.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: MISC
+  - job_id: '6464'
+    inst_id: '6464'
+    user: 58540f191766
+    start_time: 65483.0
+    end_time: 70861.0
+    duration_seconds: 5378.0
+    instance_count: 1
+    requested_cpu_percent: 6.0
+    requested_memory_units: 0.0
+    requested_gpu_units: 0.1
+    gpu_types: MISC
+  gpu_capacity_units: 2.25
+  cpu_capacity_units: 54.0
+  initial_queue_policy: fifo
+  task_requirements:
+    min_queue_policy_changes: 1
+    min_reservation_arrivals: 1
+    min_distinct_control_ticks: 2
+    min_native_physical_tools: 2
+    min_strategy_reversals: 1
+    min_effective_control_ticks: 2
+    response_windows_required: 2
+    ordered_tool_milestones:
+    - tool: set_queue_policy
+      not_after_tick: 1
+    - tool: reserve_gpu_capacity
+      not_before_tick: 2
+  source_transform:
+    window_index: 5356
+    window_size: 12
+    trace_sha256: 9ebd06e82c8cc13ef5049e0054b53c79794e03aff625bb3978620b05e2feaa76
+    source_window_sha256: 4885e636d9181fb85f93c9c3beb4430dbb5baa623b89adebd639ab11cfba0aa9
+    capacity_rule: max(max_job,2x_median_job)
+    arrival_rule: affine_map_original_start_times_to_horizon
+    stress_rule: native_capacity_queue_sla_event_ladder_v1
+    stress_profile: native_high_extreme
+  stress_profile: standard
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: gpu_queue_preemption_and_reservation_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: trace_wait_sla_and_wait_counterfactual_costs_available
+    safety_violation:
+      applicable: true
+      reason: sla_deadline_and_capacity_shortfall_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: alibaba_trace_sim_has_no_source_grounded_load_class_criticality_ledger
+    ethical_quality:
+      applicable: false
+      reason: alibaba_trace_sim_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: true
+      reason: datacenter_native_job_class_trust_manager_available
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_queue_preempt_and_reserve_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_cluster_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_lp_or_milp_reference_optimum_for_alibaba_trace_sim
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_trace_window
+    stakeholder_equity:
+      applicable: true
+      reason: cross_job_class_outcome_balance_recorded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 12
+tick_minutes: 32
+seed: 42
+load_assignments:
+- load_id: '6453'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 2.25
+  bus_id: null
+- load_id: '6454'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 1.0
+  bus_id: null
+- load_id: '6455'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+- load_id: '6456'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.5
+  bus_id: null
+- load_id: '6457'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+- load_id: '6458'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+- load_id: '6459'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+- load_id: '6460'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+- load_id: '6461'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+- load_id: '6462'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+- load_id: '6463'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+- load_id: '6464'
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 0.1
+  bus_id: null
+perturbations:
+- kind: capacity_reduction
+  trigger_tick: 1
+  duration_ticks: 3
+  hidden: false
+  intensity: 0.5
+  target:
+    resource: shared_gpu_service_reservation
+  notes: 6000-trace native visible capacity event.
+- kind: queue_burst
+  trigger_tick: 4
+  duration_ticks: 3
+  hidden: true
+  intensity: 1.0
+  target:
+    scope: shared_gpu_queue
+  notes: 6000-trace native hidden queue event.
+- kind: capacity_reduction
+  trigger_tick: 5
+  duration_ticks: 4
+  hidden: true
+  intensity: 0.5
+  target:
+    resource: shared_gpu_service_reservation
+  notes: 6000-trace native hidden capacity event.
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: alibaba_cluster_trace_gpu_v2020_simulator_100k
+  files:
+  - sources/alibaba/alibaba_trace_gpu_simulator_jobs_6000.csv
+  commit: 0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71
+  url: https://github.com/alibaba/clusterdata/blob/0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71/cluster-trace-gpu-v2020/simulator/traces/pai/pai_job_duration_estimate_100K.csv
+  lock_strategy: upstream_git_commit_and_sha256_plus_derived_subset_sha256
+  time_window:
+    window_index: 0
+    first_job_id: '6453'
+    last_job_id: '6464'
+    start_time_min: 65395.0
+    start_time_max: 65483.0
+    source_window_sha256: 4885e636d9181fb85f93c9c3beb4430dbb5baa623b89adebd639ab11cfba0aa9
+  license: Apache-2.0 upstream repository; trace terms apply
+  notes: Jobs and arrivals are immutable rows from Alibaba's official 100K simulator
+    trace; the local subset preserves upstream order. High/extreme native capacity/queue/SLA
+    event ladder is applied without changing immutable source jobs.
+source_contract:
+  runtime_input: []
+  derivation_input:
+  - sources/alibaba/alibaba_trace_gpu_simulator_jobs_6000.csv
+  implementation_asset: []
+  metadata: []
+  license: []
+  derived_window:
+    sha256: 4885e636d9181fb85f93c9c3beb4430dbb5baa623b89adebd639ab11cfba0aa9
+    recipe_version: alibaba-trace-window-v1
+scenario_id: datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_5356_6453_6464_high
+complexity_metrics:
+  horizon_minutes: 384
+  n_perturbations: 3
+  observability_burden: 2
+  decision_depth: 4
+  n_jobs: 12
+  duration_ratio: 582.32
+  gpu_demand_to_capacity_ratio: 2.066666666666667
+  n_distinct_users: 4
+scenario_signature: 99e142077b44dbcd

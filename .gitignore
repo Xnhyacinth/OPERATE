@@ -1,0 +1,90 @@
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.venv*/
+venv/
+.uv-cache/
+.uv-python/
+
+# Local configuration and secrets
+.env
+.env.*
+.envrc
+api_config_local.py
+.idea/
+.vscode/
+.playwright-mcp/
+.DS_Store
+
+# Build, test, and analysis caches
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.audit-cache/
+
+# Promoter/runtime lock files
+**/.run.lock
+
+# Runtime outputs are content-addressed and distributed separately.
+trajectories/
+batch_logs/
+batch_results/
+outputs/
+reports/
+results/
+# Formal provider evidence is content-addressed and shipped in the public
+# runtime companion, never through Git.
+release/*/formal_results/
+*.jsonl
+*.trajectory.json
+*.summary.json
+*.header.json
+
+# Generated and downloaded data
+scenarios/_cache/
+works/
+hf_trajectories/
+data_candidate*/
+data_operate*/
+operate_data/
+data_v*/
+data/*
+!data/README.md
+!data/__init__.py
+!data/*.py
+!data/*.json
+!sources/dynasched/**/events.jsonl
+
+# The active replay evidence is regenerated from the tracked source suite and
+# uploaded with the private release bundle; it is not stored in Git.
+release/operate_v0_58_0_candidate/
+
+# Local plans, notes, IDE agents, and one-off distribution helpers
+.planning/
+.hl/*
+!.hl/
+!.hl/policy.md
+!.hl/failed_directions.md
+!.hl/archive/superpowers/
+!.hl/archive/superpowers/*
+analysis/
+findings.md
+progress.md
+task_plan.md
+.claude/
+.codex/
+.trae/
+.repo-audit/
+.serena/
+.hf_upload_*.py
+.hf_upload_*.log
+.host_ca_bundle.pem
+.host_ca_extra.pem
+conv*.xml
+feishu_doc*.xml

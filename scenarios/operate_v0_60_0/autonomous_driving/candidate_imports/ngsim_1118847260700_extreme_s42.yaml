@@ -1,0 +1,266 @@
+seed_id: autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847260700_extreme_s42
+scenario_id: autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847260700_extreme_s42
+family: sustained_highway_risk_supervision
+domain: autonomous_driving
+backend_kind: sumo_ego
+backend_config:
+  source_bundle: works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb
+  candidate_id: ngsim:1118847260700:2b2aa7fa960d1adb
+  ego_actor_id: us-101:1109
+  execution_mode: live
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: measured_by_native_evidence
+    safety_violation:
+      applicable: true
+      reason: measured_by_native_evidence
+    economic_cost:
+      applicable: true
+      reason: measured_by_native_evidence
+    adaptive_replanning:
+      applicable: true
+      reason: measured_by_native_evidence
+    information_efficiency:
+      applicable: true
+      reason: measured_by_native_evidence
+    foresight_score:
+      applicable: true
+      reason: measured_by_native_evidence
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_wait_only_counterfactual_replay_available
+    tool_use_efficiency:
+      applicable: true
+      reason: measured_by_native_evidence
+    optimality_gap:
+      applicable: false
+      reason: no_validated_native_trajectory_optimum
+    weighted_equity_score:
+      applicable: false
+      reason: no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: no_source_grounded_ethical_dilemma
+    stakeholder_management:
+      applicable: false
+      reason: no_source_grounded_stakeholder_model
+    stakeholder_equity:
+      applicable: false
+      reason: no_source_grounded_stakeholder_classes
+  ego_vehicle_id: us-101:1109
+  sumo_config_path: works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/run.sumocfg
+  sumo_net_path: works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/network.net.xml
+  sumo_route_path: works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/routes.rou.xml
+  task_requirements:
+    required_stable_dwell_ticks: 6
+    guarded_recovery_required_if_mrm: true
+    recovery_state: nominal_after_guarded_recovery
+    recovery_sequence:
+    - request_minimal_risk_maneuver
+    - request_recovery_check
+    - authorize_recovery
+    required_review_interval_ticks: 1
+    decision_dilemma: guarded_recovery_vs_premature_resume
+    requires_paid_safety_inspection: true
+    required_supervisory_tools:
+    - inspect_local_scene
+    - inspect_safety_state
+    - inspect_odd_status
+    - commit_to_plan
+    - set_driving_envelope
+    - request_tactical_maneuver
+    - request_minimal_risk_maneuver
+    - request_recovery_check
+    - authorize_recovery
+    required_observation_tools:
+    - inspect_local_scene
+    - inspect_safety_state
+    - inspect_odd_status
+    requires_preventive_action: true
+    preventive_action_tools:
+    - set_driving_envelope
+    - request_tactical_maneuver
+    minimum_decision_epochs: 3
+    paid_safety_inspection_deadline_tick: 3
+    latest_preventive_command_tick: 3
+task_contract:
+  contract: autonomous_driving.risk_progress_mitigation.v1
+  standing_plan_required: true
+  hazard_kind: minimum_time_headway_conflict
+  first_observable_time_ms: 1118847256100
+  latest_preventive_command_time_ms: 1118847275700
+  risk_boundary_proxy_time_ms: 1118847277500
+  supervisory_prevention_window_ms: 19600
+  protective_response_window_ms: 1800
+  recovery_window_end_time_ms: 1118847320700
+  first_observable_tick: 0
+  latest_preventive_command_tick: 3
+  protective_response_deadline_tick: 4
+  worst_case_declared_tactical_delay_ticks: 2
+  available_prevention_epochs: 3
+  post_recovery_stable_dwell_ticks: 6
+  required_recovery_state: nominal_after_guarded_recovery
+  decision_dilemma: guarded_recovery_vs_premature_resume
+  required_review_interval_ticks: 1
+  required_recovery_sequence:
+  - request_minimal_risk_maneuver
+  - request_recovery_check
+  - authorize_recovery
+  response_window_semantics: logical supervisory deadline excludes declared tool/plan
+    delay; substep shield owns the protective deadline
+  required_supervisory_tools:
+  - inspect_local_scene
+  - inspect_safety_state
+  - inspect_odd_status
+  - commit_to_plan
+  - set_driving_envelope
+  - request_tactical_maneuver
+  - request_minimal_risk_maneuver
+  - request_recovery_check
+  - authorize_recovery
+  required_observation_tools:
+  - inspect_local_scene
+  - inspect_safety_state
+  - inspect_odd_status
+  requires_preventive_action: true
+  preventive_action_tools:
+  - set_driving_envelope
+  - request_tactical_maneuver
+  minimum_decision_epochs: 3
+  environment_evolution: &id001
+    source_native: true
+    expected_event_kinds:
+    - short_time_headway_boundary
+    observed_event_kinds:
+    - short_time_headway_boundary
+    event_count: 1
+    ordered_by_source_time: true
+    interruptible_after_standing_plan: true
+horizon_ticks: 18
+tick_seconds: 5.0
+clock_contract:
+  schema_version: driving_clock_v1
+  physics_step_seconds: 0.1
+  shield_step_seconds: 0.1
+  substeps_per_supervisory_tick: 50
+  provider_wall_clock_advances_simulation: false
+seed: 42
+difficulty_level: extreme
+difficulty_mode: deep_planning
+difficulty_params:
+  review_interval_ticks: 1
+  requires_paid_safety_inspection: true
+  max_tool_calls_per_tick: 11
+  plan_dependency_depth: 4
+  worst_case_declared_tactical_delay_ticks: 2
+  post_recovery_stable_dwell_ticks: 6
+  decision_dilemma: guarded_recovery_vs_premature_resume
+  recovery_sequence:
+  - request_minimal_risk_maneuver
+  - request_recovery_check
+  - authorize_recovery
+  observation_regime: partial_actor_velocity_until_paid_inspection
+  required_supervisory_tools:
+  - inspect_local_scene
+  - inspect_safety_state
+  - inspect_odd_status
+  - commit_to_plan
+  - set_driving_envelope
+  - request_tactical_maneuver
+  - request_minimal_risk_maneuver
+  - request_recovery_check
+  - authorize_recovery
+  required_observation_tools:
+  - inspect_local_scene
+  - inspect_safety_state
+  - inspect_odd_status
+  requires_preventive_action: true
+  preventive_action_tools:
+  - set_driving_envelope
+  - request_tactical_maneuver
+  minimum_decision_epochs: 3
+  source_event_count: 1
+  source_event_sequence:
+  - short_time_headway_boundary
+  source_event_expected_sequence:
+  - short_time_headway_boundary
+  environment_evolution: *id001
+  available_prevention_epochs: 3
+  protective_response_deadline_tick: 4
+formal_core_allowed: true
+release_admission: pending_protocol21_full_replay
+source_window_sha256: 57b0f12bee9f1992737dde6ab0a962a6bf86f2de684e477bf1a7e9ba87055d1d
+provenance:
+  data_source: U.S. DOT FHWA Next Generation Simulation (NGSIM) US-101 Vehicle Trajectories and Supporting Data
+  dataset_id: 8ect-6jqj
+  url: https://data.transportation.gov/Automobiles/Next-Generation-Simulation-NGSIM-Vehicle-Trajector/8ect-6jqj
+  license: CC-BY-SA-3.0 dataset API metadata; CC-BY-SA-4.0 Common Core metadata (operator-reviewed)
+  lock_strategy: doi+canonical_query_or_archive+raw_sha256+row_semantic_sha256
+  source_release: doi:10.21949/1504477
+  recording_id: us-101
+  license_id: CC-BY-SA-4.0
+  source_evidence_sha256: 18b138891f2662a404caa0c958ff4c2e62e66e283d09dfba06a2cd46c3bd9e97
+  source_event_chain_sha256: 5ebfe06f60554db17ba6fbdc0bfd22c8a683f8b9d3fb59055e947cf1edab4e6d
+  bundle_id: ngsim-3af7b07e3123f66338eb
+  candidate_id: ngsim:1118847260700:2b2aa7fa960d1adb
+  hazard_kind: minimum_time_headway_conflict
+source_contract:
+  runtime_input:
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/bundle.json
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/mining/candidates.json
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/normalized/trajectories.sqlite3
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/runtime/fixture.json
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/network.net.xml
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/routes.rou.xml
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/run.sumocfg
+  derivation_input:
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/source/trajectories-0750am-0805am.txt
+  implementation_asset:
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/commonroad/export.json
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/commonroad/scenario.xml
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/runtime/log_replay.jsonl
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/runtime/reactive_sumo.json
+  metadata:
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/normalized/normalization.lock.json
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/seeds/seeds.json
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/source/source.lock.json
+  license:
+  - works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/LICENSES/NGSIM_LICENSE_REVIEW_APPROVED.md
+  file_sha256s:
+    ? works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/normalized/trajectories.sqlite3
+    : c3478d74a582b860bdd70369df23a7637ac4b48b8907dbe196e2143afd963c7c
+    works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/runtime/fixture.json: 65ac76dc4762cf0ea9981c241b98f85b4c5c4d58a4abd3f3699165c724566cf9
+    works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/network.net.xml: 62e434cda39f4afa2ac66a759121b39fa162e5ba0412e34ca26126145e2318a6
+    works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/routes.rou.xml: 0ee8db8582e235e4899ff19c9d6f66fdeb240d51841f28d27cf3281a8aba82d7
+    works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/sumo/run.sumocfg: 87cfc52cb15c0f0e02cea3ae4ff35b0d08bff343f535022b23874b6693e3925f
+    ? works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/source/trajectories-0750am-0805am.txt
+    : 6676066e5b3e7249b7b003a906b28585202623f5d274938b579b4b836f0668c8
+    ? works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/mining/candidates.json
+    : 5f6fcb2cb66a26f23a6ae1a4fd3adf8b3b5212d7ce7b3c59243380b97f67522b
+    works/autonomous_driving/ngsim/recovery/us101-v60-seven/bundles/ngsim_1118847260700_2b2aa7fa960d1adb/bundle.json: b29a08d7b8997c462432c736df940187962c8fa9fa8cfd2eb89c3fb73537c3d2
+  derived_window:
+    sha256: 57b0f12bee9f1992737dde6ab0a962a6bf86f2de684e477bf1a7e9ba87055d1d
+    recipe_version: ngsim_phase_complete_window_v1
+candidate_admission_evidence:
+  schema_version: autonomous_driving_candidate_admission_evidence_v1
+  candidate_id: ngsim:1118847260700:2b2aa7fa960d1adb
+  historical_candidate_id: ngsim:1118847260700:5aea66c4b9a5ba06
+  readiness_sha256: a2b1dba8cf36fa7049de8e1cbe91c89b28ca619e7b8abb1c3065201fd6135dca
+  oracle_headroom_vs_shield_only: 37.345899
+  hard_gates:
+    active_runtime_assurance: true
+    calibration_horizon_coverage: true
+    catalog_source_identity: true
+    collision_departure_safety: true
+    deterministic_replay: true
+    difficulty_contract: true
+    evidence_binding_current: true
+    license_review: true
+    non_overlapping_windows: true
+    positive_oracle_headroom: true
+    reactive_closed_loop: true
+    source_event_materiality: true
+    suite_primary_execution_binding: true
+    three_leg_presence: true
+scenario_signature: bfa826a317c93401

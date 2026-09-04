@@ -1,0 +1,56 @@
+{
+  "archive_licenses": {
+    "works/OpenDSS-IEEE13": {
+      "backend_kinds": ["opendss_fresh_feeders", "opendss_ieee13"],
+      "path": "works/OpenDSS-IEEE13/License.txt",
+      "sha256": "f13543277f32a6437d4f583200858f0988d3acc9598a6a1a292d710009ec21ef"
+    },
+    "works/PGLib-OPF": {
+      "backend_kinds": ["pandapower_acopf"],
+      "path": "works/PGLib-OPF/LICENSE",
+      "sha256": "95b1cd9fee1676221d74f7c0cbba622d98ac098e9b317b3848113ef4356ab4fd"
+    },
+    "works/PyVRP-Instances": {
+      "backend_kinds": ["pyvrp_cvrp", "pyvrp_vrptw"],
+      "path": "works/PyVRP-Instances/LICENSE",
+      "sha256": "556ce8e194485d83569b20c35bbf486f3de822407fcb42900cbd22e0ae4d1656"
+    },
+    "works/RESCO": {
+      "backend_kinds": ["sumo"],
+      "path": "works/RESCO/LICENSE",
+      "sha256": "8b1ba204bb69a0ade2bfcf65ef294a920f6bb361b317dba43c7ef29d96332b9b"
+    },
+    "works/VRPLIB": {
+      "backend_kinds": ["pyvrp_cvrp", "pyvrp_vrptw"],
+      "path": "works/VRPLIB/LICENSE.md",
+      "sha256": "a989c8ab6a313df35f93ca82156a88f290ce6a419c08b17b6e522fac2cb5354b"
+    },
+    "works/sumo_ingolstadt": {
+      "backend_kinds": ["sumo"],
+      "path": "works/sumo_ingolstadt/LICENSE.md",
+      "sha256": "809fa1ed21450f59827d1e9aec720bbc4b687434fa22283c6cb5dd82a47ab9c0"
+    }
+  },
+  "release_id": "operate_v0_58_0",
+  "schema_version": "operate-backend-runtime-source-lock-v1",
+  "sources": {
+    "orgym": {
+      "delivery": "git_checkout",
+      "files": {
+        "works/OR-Gym/LICENSE": {
+          "roles": ["license"],
+          "sha256": "eac5a4b1bb5aa1e5539923cc24baaaf4ea3c16eb5c64fd1539de39d4a72f0e75"
+        },
+        "works/OR-Gym/or_gym/envs/supply_chain/inventory_management.py": {
+          "roles": ["implementation_asset"],
+          "sha256": "ac5a81c775edbafabc15e29bd20890da4d12846da888568aa9053579dd7c7e40"
+        }
+      },
+      "license_status": "verified_mit",
+      "redistributed": false,
+      "revision": "0b18d16e569e2db70e83f09e867b53bdb4b87298",
+      "root": "works/OR-Gym",
+      "url": "https://github.com/hubbs5/or-gym.git"
+    }
+  }
+}

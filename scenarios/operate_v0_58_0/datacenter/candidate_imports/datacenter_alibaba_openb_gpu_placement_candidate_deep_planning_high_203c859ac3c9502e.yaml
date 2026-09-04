@@ -1,0 +1,282 @@
+seed_id: datacenter/alibaba_openb_gpu_placement_candidate/deep_planning/high/203c859ac3c9502e
+family: gpu_sharing_placement_and_rescheduling
+domain: datacenter
+backend_kind: alibaba_openb_gpu_placement
+backend_config:
+  source_transform:
+    source_schema: alibaba-openb-v2023-v1
+    recipe_version: alibaba-openb-explicit-row-graph-v1
+    source_file_roles:
+      node_inventory: works/clusterdata/cluster-trace-gpu-v2023/csv/openb_node_list_gpu_node.csv
+      pod_trace: works/clusterdata/cluster-trace-gpu-v2023/csv/openb_pod_list_gpuspec33.csv
+    node_trace_sha256: 2beca64b4d3dfa342036a34b56a495c6cef9225db836c81f541282cb1df320b5
+    pod_trace_sha256: eca4f746db1e5b25864ad021b55ece3943e101a3ebd4574d09dcb95c46117652
+    node_row_indices:
+    - 36
+    - 143
+    - 155
+    - 194
+    - 247
+    - 271
+    - 292
+    - 335
+    pod_row_indices:
+    - 1648
+    - 1649
+    - 1650
+    - 1651
+    - 1652
+    - 1653
+    - 1654
+    - 1655
+    - 1656
+    - 1657
+    - 1658
+    - 1659
+    - 1660
+    - 1661
+    - 1662
+    - 1663
+    - 1664
+    - 1665
+    - 1666
+    - 1667
+    - 1668
+    - 1669
+    - 1670
+    - 1671
+    - 1672
+    - 1673
+    - 1674
+    - 1675
+    - 1676
+    - 1677
+    - 1678
+    - 1679
+    - 1680
+    - 1681
+    - 1682
+    - 1683
+    - 1684
+    - 1685
+    - 1686
+    - 1687
+    - 1688
+    - 1689
+    - 1690
+    - 1691
+    - 1692
+    - 1693
+    - 1694
+    - 1695
+    - 1696
+    - 1697
+    - 1698
+    - 1699
+    - 1700
+    - 1701
+    - 1702
+    - 1703
+    - 1704
+    - 1705
+    - 1706
+    - 1707
+    - 1708
+    - 1709
+    - 1710
+    - 1711
+    selected_nodes_sha256: d20c56336128b6c19a588f5893f9aceaff3b767449fd3e4ccbad79796fd87746
+    selected_pods_sha256: ff7e07eed864deee11e6d37e023ff4fc571e5057d185195f7164e7e62cba0601
+    source_graph_sha256: 203c859ac3c9502e7e654ee899bec4203ccfbf22140e0f820b65c46007b32957
+  initial_placement_policy: first_fit
+  autonomous_placement: false
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: openb_pod_queue_and_unfinished_work_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: openb_compute_queue_sla_migration_and_unfinished_costs_available
+    safety_violation:
+      applicable: true
+      reason: openb_qos_sla_and_capacity_shortfall_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: openb_has_no_scenario_load_assignment_criticality_ledger
+    ethical_quality:
+      applicable: false
+      reason: openb_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: true
+      reason: openb_source_qos_tenant_trust_manager_available
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_placement_policy_place_and_migrate_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_pod_node_observation_and_arrival_forecast_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_certified_openb_placement_optimum
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_openb_source_graph
+    stakeholder_equity:
+      applicable: true
+      reason: cross_qos_tenant_outcome_balance_recorded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  candidate_materialization:
+    candidate_id: datacenter/alibaba_openb_gpu_placement_candidate/deep_planning/high/203c859ac3c9502e
+    active_core: false
+  source_event_contract:
+    schema_version: datacenter_source_event_contract_v1
+    registry:
+    - event_type: pod_arrival
+      event_class: task
+      origin: source_schedule
+      actionability: runtime_materiality_and_remaining_horizon
+    unknown_events_actionable: false
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 2
+    ordered_tool_milestones:
+    - tool: set_placement_policy
+      not_after_tick: 0
+    - tool: place_pod
+      not_before_tick: 1
+      not_after_tick: 14
+horizon_ticks: 16
+tick_minutes: 10
+seed: 42
+load_assignments: []
+perturbations: []
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: Alibaba cluster-trace-gpu-v2023 OpenB
+  files:
+  - works/clusterdata/cluster-trace-gpu-v2023/csv/openb_node_list_gpu_node.csv
+  - works/clusterdata/cluster-trace-gpu-v2023/csv/openb_pod_list_gpuspec33.csv
+  commit: 0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71
+  url: https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2023
+  lock_strategy: upstream_git_commit_raw_sha256_and_explicit_row_graph
+  time_window:
+    selection_kind: explicit_raw_row_graph
+    node_row_indices:
+    - 36
+    - 143
+    - 155
+    - 194
+    - 247
+    - 271
+    - 292
+    - 335
+    pod_row_indices:
+    - 1648
+    - 1649
+    - 1650
+    - 1651
+    - 1652
+    - 1653
+    - 1654
+    - 1655
+    - 1656
+    - 1657
+    - 1658
+    - 1659
+    - 1660
+    - 1661
+    - 1662
+    - 1663
+    - 1664
+    - 1665
+    - 1666
+    - 1667
+    - 1668
+    - 1669
+    - 1670
+    - 1671
+    - 1672
+    - 1673
+    - 1674
+    - 1675
+    - 1676
+    - 1677
+    - 1678
+    - 1679
+    - 1680
+    - 1681
+    - 1682
+    - 1683
+    - 1684
+    - 1685
+    - 1686
+    - 1687
+    - 1688
+    - 1689
+    - 1690
+    - 1691
+    - 1692
+    - 1693
+    - 1694
+    - 1695
+    - 1696
+    - 1697
+    - 1698
+    - 1699
+    - 1700
+    - 1701
+    - 1702
+    - 1703
+    - 1704
+    - 1705
+    - 1706
+    - 1707
+    - 1708
+    - 1709
+    - 1710
+    - 1711
+    source_graph_sha256: 203c859ac3c9502e7e654ee899bec4203ccfbf22140e0f820b65c46007b32957
+  license: research trace terms; upstream repository license applies
+  notes: ''
+scenario_id: datacenter/alibaba_openb_gpu_placement_candidate/deep_planning/high/203c859ac3c9502e
+source_contract:
+  runtime_input:
+  - works/clusterdata/cluster-trace-gpu-v2023/csv/openb_node_list_gpu_node.csv
+  - works/clusterdata/cluster-trace-gpu-v2023/csv/openb_pod_list_gpuspec33.csv
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+  derived_window:
+    sha256: 203c859ac3c9502e7e654ee899bec4203ccfbf22140e0f820b65c46007b32957
+    recipe_version: alibaba-openb-explicit-row-graph-v1
+  file_sha256s:
+    works/clusterdata/cluster-trace-gpu-v2023/csv/openb_node_list_gpu_node.csv: 2beca64b4d3dfa342036a34b56a495c6cef9225db836c81f541282cb1df320b5
+    works/clusterdata/cluster-trace-gpu-v2023/csv/openb_pod_list_gpuspec33.csv: eca4f746db1e5b25864ad021b55ece3943e101a3ebd4574d09dcb95c46117652
+candidate_gate:
+  status: requires_bounded_delta_replay
+  core_admission_claimed: false
+  decision_axes:
+  - fractional_gpu_fragmentation
+  - gpu_model_compatibility
+  - multi_resource_node_contention
+  - qos_aware_placement_and_migration
+  required_gates:
+  - source_values_drive_state
+  - deterministic_seeded_replay
+  - reference_beats_no_action
+  - native_control_changes_backend
+  - no_safety_regression
+candidate_only: true
+release_admission: false
+policy_contract:
+  strict_prompt: true
+  benchmark_side_hints: false
+scenario_signature: 4afc544e3536f32c

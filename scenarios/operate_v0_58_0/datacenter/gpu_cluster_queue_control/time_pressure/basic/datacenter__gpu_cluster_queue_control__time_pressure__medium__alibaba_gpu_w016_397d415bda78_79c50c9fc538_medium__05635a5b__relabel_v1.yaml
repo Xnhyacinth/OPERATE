@@ -1,0 +1,305 @@
+seed_id: datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w016_397d415bda78_79c50c9fc538_medium__05635a5b__relabel_v1
+family: gpu_cluster_queue_control
+domain: datacenter
+backend_kind: alibaba_trace_sim
+backend_config:
+  jobs:
+  - job_id: 397d415bda7848c145ef1ebab0f52d05319d69945c97a8231af5e588090e
+    inst_id: 397d415bda7848c145ef1ebab0f52d05319d69945c97a8231af5e588090e
+    user: 61d6b6dd5b15
+    start_time: 3368341.0
+    end_time: 3374046.0
+    duration_seconds: 5705.0
+    instance_count: 5
+    requested_cpu_percent: 3000.0
+    requested_memory_units: 146.484375
+    requested_gpu_units: 2.5
+    gpu_types: MISC
+  - job_id: 7568893fef448bb1c3cd47e170159220fa41a4caa790065e644617999e37
+    inst_id: 7568893fef448bb1c3cd47e170159220fa41a4caa790065e644617999e37
+    user: 61d6b6dd5b15
+    start_time: 3401962.0
+    end_time: 3402118.0
+    duration_seconds: 156.0
+    instance_count: 5
+    requested_cpu_percent: 3000.0
+    requested_memory_units: 146.484375
+    requested_gpu_units: 1.25
+    gpu_types: MISC
+  - job_id: 6022a78900a5b740f472cb28c5128d186891b88fec4679dcdbc9130bfd9c
+    inst_id: 6022a78900a5b740f472cb28c5128d186891b88fec4679dcdbc9130bfd9c
+    user: 61d6b6dd5b15
+    start_time: 3414119.0
+    end_time: 3414793.0
+    duration_seconds: 674.0
+    instance_count: 30
+    requested_cpu_percent: 18000.0
+    requested_memory_units: 878.90625
+    requested_gpu_units: 7.5
+    gpu_types: MISC
+  - job_id: 626c95afde699dec7fca2199a5278506bc0e54760ee28bcb5dfdc2cedf63
+    inst_id: 626c95afde699dec7fca2199a5278506bc0e54760ee28bcb5dfdc2cedf63
+    user: 61d6b6dd5b15
+    start_time: 3429805.0
+    end_time: 3436213.0
+    duration_seconds: 6408.0
+    instance_count: 20
+    requested_cpu_percent: 12000.0
+    requested_memory_units: 1171.875
+    requested_gpu_units: 5.0
+    gpu_types: MISC
+  - job_id: 26bdceb5d85efd007e9fe50b24e668b38a3e13746813cf14ad5605c7e754
+    inst_id: 26bdceb5d85efd007e9fe50b24e668b38a3e13746813cf14ad5605c7e754
+    user: 61d6b6dd5b15
+    start_time: 3431701.0
+    end_time: 3437174.0
+    duration_seconds: 5473.0
+    instance_count: 20
+    requested_cpu_percent: 12000.0
+    requested_memory_units: 585.9375
+    requested_gpu_units: 5.0
+    gpu_types: MISC
+  - job_id: 8df652f2800dc0ade0034346796a84245f625eb26d2b811b801a26bd0f62
+    inst_id: 8df652f2800dc0ade0034346796a84245f625eb26d2b811b801a26bd0f62
+    user: 61d6b6dd5b15
+    start_time: 3437169.0
+    end_time: 3443511.0
+    duration_seconds: 6342.0
+    instance_count: 30
+    requested_cpu_percent: 18000.0
+    requested_memory_units: 878.90625
+    requested_gpu_units: 15.0
+    gpu_types: MISC
+  - job_id: e9ecf4e896e18a6c35d9aa3b5dfbb0c1238e226328a8b2afdc2426bccc54
+    inst_id: e9ecf4e896e18a6c35d9aa3b5dfbb0c1238e226328a8b2afdc2426bccc54
+    user: 61d6b6dd5b15
+    start_time: 3458159.0
+    end_time: 3463809.0
+    duration_seconds: 5650.0
+    instance_count: 5
+    requested_cpu_percent: 3000.0
+    requested_memory_units: 146.484375
+    requested_gpu_units: 1.25
+    gpu_types: MISC
+  - job_id: fc0ddeac1e4d7e87ac22a268ef2d4d20a9ba4bcd88899533b025c2c51af8
+    inst_id: fc0ddeac1e4d7e87ac22a268ef2d4d20a9ba4bcd88899533b025c2c51af8
+    user: 61d6b6dd5b15
+    start_time: 3472551.0
+    end_time: 3478089.0
+    duration_seconds: 5538.0
+    instance_count: 20
+    requested_cpu_percent: 12000.0
+    requested_memory_units: 1171.875
+    requested_gpu_units: 5.0
+    gpu_types: MISC
+  - job_id: 488549caf20d02d3d42a535b81e2482730f57f2f50b3901f4c50ba5db5eb
+    inst_id: 488549caf20d02d3d42a535b81e2482730f57f2f50b3901f4c50ba5db5eb
+    user: 61d6b6dd5b15
+    start_time: 3484247.0
+    end_time: 3484661.0
+    duration_seconds: 414.0
+    instance_count: 5
+    requested_cpu_percent: 3000.0
+    requested_memory_units: 146.484375
+    requested_gpu_units: 1.25
+    gpu_types: MISC
+  - job_id: c067697adfa579d05a374647436491096119f380538b8cadeb9fe5cc4b46
+    inst_id: c067697adfa579d05a374647436491096119f380538b8cadeb9fe5cc4b46
+    user: 61d6b6dd5b15
+    start_time: 3516063.0
+    end_time: 3522218.0
+    duration_seconds: 6155.0
+    instance_count: 20
+    requested_cpu_percent: 12000.0
+    requested_memory_units: 1171.875
+    requested_gpu_units: 5.0
+    gpu_types: MISC
+  - job_id: a73ff5548067366a72bf61d09b2149d2b298eb683f3f3ce2cd69ed1db5e3
+    inst_id: a73ff5548067366a72bf61d09b2149d2b298eb683f3f3ce2cd69ed1db5e3
+    user: 61d6b6dd5b15
+    start_time: 3517679.0
+    end_time: 3542183.0
+    duration_seconds: 24504.0
+    instance_count: 20
+    requested_cpu_percent: 12000.0
+    requested_memory_units: 585.9375
+    requested_gpu_units: 5.0
+    gpu_types: MISC
+  - job_id: 79c50c9fc5383d3aa2ddbcfc3d3917c17e7bbcaa04851c4c4b0586141875
+    inst_id: 79c50c9fc5383d3aa2ddbcfc3d3917c17e7bbcaa04851c4c4b0586141875
+    user: 61d6b6dd5b15
+    start_time: 3523692.0
+    end_time: 3563293.0
+    duration_seconds: 39601.0
+    instance_count: 30
+    requested_cpu_percent: 18000.0
+    requested_memory_units: 878.90625
+    requested_gpu_units: 15.0
+    gpu_types: MISC
+  gpu_capacity_units: 450.0
+  cpu_capacity_units: 540000.0
+  initial_queue_policy: fifo
+  source_transform:
+    window_index: 16
+    window_size: 12
+    trace_sha256: 7259aec53d5de3b6236ab05868a207ebb09394ac4ca7cab153ae0e8ee0238659
+    capacity_rule: max(max_job,2x_median_job)
+    arrival_rule: affine_map_original_start_times_to_horizon
+    stress_rule: natural_trace_arrivals_only
+  stress_profile: standard
+  source_denominator_key: alibaba_gpu_trace_jobs_acbe0f5896a4c12cb208
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: gpu_queue_preemption_and_reservation_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: trace_wait_sla_and_wait_counterfactual_costs_available
+    safety_violation:
+      applicable: true
+      reason: sla_deadline_and_capacity_shortfall_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: alibaba_trace_sim_has_no_source_grounded_load_class_criticality_ledger
+    ethical_quality:
+      applicable: false
+      reason: alibaba_trace_sim_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: true
+      reason: datacenter_native_job_class_trust_manager_available
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_queue_preempt_and_reserve_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_cluster_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_lp_or_milp_reference_optimum_for_alibaba_trace_sim
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_trace_window
+    stakeholder_equity:
+      applicable: true
+      reason: cross_job_class_outcome_balance_recorded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 8
+tick_minutes: 48
+seed: 58
+load_assignments:
+- load_id: 397d415bda7848c145ef1ebab0f52d05319d69945c97a8231af5e588090e
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 12.5
+  bus_id: null
+- load_id: 7568893fef448bb1c3cd47e170159220fa41a4caa790065e644617999e37
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 6.25
+  bus_id: null
+- load_id: 6022a78900a5b740f472cb28c5128d186891b88fec4679dcdbc9130bfd9c
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 225.0
+  bus_id: null
+- load_id: 626c95afde699dec7fca2199a5278506bc0e54760ee28bcb5dfdc2cedf63
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 100.0
+  bus_id: null
+- load_id: 26bdceb5d85efd007e9fe50b24e668b38a3e13746813cf14ad5605c7e754
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 100.0
+  bus_id: null
+- load_id: 8df652f2800dc0ade0034346796a84245f625eb26d2b811b801a26bd0f62
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 450.0
+  bus_id: null
+- load_id: e9ecf4e896e18a6c35d9aa3b5dfbb0c1238e226328a8b2afdc2426bccc54
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 6.25
+  bus_id: null
+- load_id: fc0ddeac1e4d7e87ac22a268ef2d4d20a9ba4bcd88899533b025c2c51af8
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 100.0
+  bus_id: null
+- load_id: 488549caf20d02d3d42a535b81e2482730f57f2f50b3901f4c50ba5db5eb
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 6.25
+  bus_id: null
+- load_id: c067697adfa579d05a374647436491096119f380538b8cadeb9fe5cc4b46
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 100.0
+  bus_id: null
+- load_id: a73ff5548067366a72bf61d09b2149d2b298eb683f3f3ce2cd69ed1db5e3
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 100.0
+  bus_id: null
+- load_id: 79c50c9fc5383d3aa2ddbcfc3d3917c17e7bbcaa04851c4c4b0586141875
+  stakeholder_class: trace_user
+  criticality: 0.5
+  demand: 450.0
+  bus_id: null
+perturbations: []
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: basic
+provenance:
+  data_source: alibaba_cluster_trace_gpu_v2020
+  files:
+  - sources/alibaba/alibaba_trace_gpu_jobs_1000.csv
+  commit: local-lock:7259aec53d5de3b
+  url: https://github.com/alibaba/clusterdata
+  lock_strategy: upstream_archives_sha256_plus_derived_csv_sha256
+  time_window:
+    window_index: 16
+    first_job_id: 397d415bda7848c145ef1ebab0f52d05319d69945c97a8231af5e588090e
+    last_job_id: 79c50c9fc5383d3aa2ddbcfc3d3917c17e7bbcaa04851c4c4b0586141875
+    start_time_min: 3368341.0
+    start_time_max: 3523692.0
+  license: Apache-2.0 upstream repository; trace terms apply
+  notes: Jobs and arrivals are immutable trace rows. High/extreme capacity intervals
+    use the upstream simulator's documented shared-service reservation stress pattern.
+scenario_id: datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w016_397d415bda78_79c50c9fc538_medium__05635a5b__relabel_v1
+complexity_metrics:
+  horizon_minutes: 384
+  n_perturbations: 0
+  observability_burden: 0
+  decision_depth: 1
+  n_jobs: 12
+  duration_ratio: 253.85256410256412
+  gpu_demand_to_capacity_ratio: 3.6805555555555554
+  n_distinct_users: 1
+source_contract:
+  runtime_input: []
+  derivation_input:
+  - sources/alibaba/alibaba_trace_gpu_jobs_1000.csv
+  implementation_asset: []
+  metadata: []
+  license: []
+  derived_window:
+    sha256: cdc123e35cfa1c82e2ba737a2d9870f465444d0cecfdf171770fa16a52869a9a
+    recipe_version: alibaba-trace-window-v1
+difficulty_calibration_lineage:
+  contract_version: source_grounded_behavioral_v3
+  declared_difficulty_level: medium
+  calibrated_difficulty_level: basic
+  source_scenario_id: datacenter/gpu_cluster_queue_control/time_pressure/medium/alibaba_gpu_w016_397d415bda78_79c50c9fc538_medium
+  source_scenario_signature: 1d1e5588e4eb4264
+  strategy_artifact_sha256: 898ac05faa78df3ec087b9624fc56289734c265015decb19cb8179a16acb890b
+  requires_full_protocol21_replay: true
+scenario_signature: d21c818f7dc5c270

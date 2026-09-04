@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+title: "OPERATE: Benchmarking Persistent Operational Agency in Source-Grounded Executable Systems"
+message: If you use this benchmark, cite the repository and the exact release manifest evaluated.
+type: software
+authors:
+  - name: Xnhyacinth
+license: MIT
+repository-code: https://github.com/Xnhyacinth/OPERATE
+abstract: >-
+  OPERATE evaluates LLM agents as persistent operational decision centers
+  against source-grounded, code-driven, seeded executable systems. Its primary
+  formal treatment is logical_persistent; realtime_persistent is a separate
+  formal supervision treatment.

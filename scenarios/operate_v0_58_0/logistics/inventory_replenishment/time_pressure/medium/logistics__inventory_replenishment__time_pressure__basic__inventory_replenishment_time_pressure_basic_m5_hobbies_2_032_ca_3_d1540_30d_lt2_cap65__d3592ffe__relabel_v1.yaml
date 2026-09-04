@@ -1,0 +1,244 @@
+seed_id: logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_hobbies_2_032_ca_3_d1540_30d_lt2_cap65__d3592ffe__relabel_v1
+family: inventory_replenishment
+domain: logistics
+backend_kind: orgym_invmgmt
+backend_config:
+  inventory_environment_id: InvManagement-v1
+  orgym_env_config:
+    periods: 30
+    I0:
+    - 0
+    p: 2.0
+    r:
+    - 1.0
+    - 0.5
+    k:
+    - 3.0
+    - 0.0
+    h:
+    - 0.1
+    c:
+    - 63
+    L:
+    - 2
+    backlog: false
+    dist: 5
+    alpha: 1.0
+    seed_int: 8710
+  orgym_env_config_hash: sha256:bcda053b0f2b006f1f266dd51ea505377b31c464baab4426cc0e74e96ce84c02
+  demand_profile_id: m5_HOBBIES_2_032_CA_3_evaluation_d1540_d1569_lt2_cap65
+  demand_stream_hash: sha256:180edab25c359094552538a8726a75d39670bba6bfc3279bd6d41b7ff6429da8
+  source_denominator_key: orgym_invmgmt:m5_forecasting:InvManagement-v1:HOBBIES_2_032_CA_3_evaluation:d1540_d1569:lt2_cap65
+  stages: 2
+  lead_times:
+  - 2
+  capacities:
+  - 63
+  cost_profile_hash: sha256:329a9f0e84811f7152533d13b8aafc4b94f25ecc8d7e12f0a049884d0b89c89f
+  hide_full_demand_stream: true
+  observation_forecast_horizon: 7
+  honest_zero_keys:
+  - n_voltage_violations
+  - n_disconnected_lines
+  logistics_key_aliases:
+    aggregate_demand_mw: customer_demand_units
+    aggregate_generation_mw: served_customer_units
+    balance_error_mw: lost_sales_units
+    reserves_required_mw: same_tick_customer_demand_units
+    reserves_procured_mw: available_inventory_plus_pipeline_units
+    production_cost: procurement_plus_holding_cost
+    startup_cost: order_actuation_cost
+    shed_penalty: lost_sales_penalty
+    rho_max: demand_or_order_capacity_pressure
+    n_overloads: lost_sales_or_capacity_shortfall_indicator
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: lost_sales_and_capacity_pressure_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: inventory_procurement_holding_lost_sales_costs_and_wait_counterfactual_available
+    safety_violation:
+      applicable: true
+      reason: lost_sales_capacity_shortfall_records_available
+    weighted_equity_score:
+      applicable: true
+      reason: retailer_lost_sales_units_recorded_as_customer_unmet_demand
+    ethical_quality:
+      applicable: false
+      reason: orgym_inventory_m5_release_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: orgym_inventory_m5_release_has_no_trust_manager_delta
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_replenishment_orders_can_prevent_future_lost_sales_events
+    information_efficiency:
+      applicable: false
+      reason: no_paid_investigation_or_forecast_tool_for_first_m5_release_cell
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_milp_reference_optimum_for_first_orgym_m5_release_cell
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_m5_orgym_seed
+    stakeholder_equity:
+      applicable: false
+      reason: orgym_inventory_m5_release_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  release_ready: true
+  release_reentry_ready: true
+  source_integration_rung: executed_with_live_backend
+  m5_source_lock:
+    source_id: m5_forecasting
+    source_url: https://www.kaggle.com/competitions/m5-forecasting-accuracy
+    license: Kaggle competition rules
+    license_or_terms_sha256: sha256:f5b7bb40ee125fff926fd5367ff1c0175128fa49b6300a2f78f7e53975c3c308
+    lock_strategy: kaggle_competition_terms+file_sha256+env_config_hash
+    git_commit_or_release_tag: kaggle:m5-forecasting-accuracy:2020-06-01-files
+    file_sha256s:
+      works/M5/calendar.csv: d12b5914ef03e66649adf5dd9e996e6602251c22b7a6af8f1f7e3aa12f8860f5
+      works/M5/sales_train_evaluation.csv: 4b4a47c44c38380d2a9168216fea8c9ff2f31b1ddb772f8a0995952a038b8aa0
+      works/M5/sell_prices.csv: 9da3ad1f8b8ccacdbdc70612191dd375ec24a4ac6625c24b75b3bc60b0bed2ef
+    redistribution_limit: Do not redistribute raw M5 files in benchmark release; users
+      fetch through Kaggle after accepting competition rules.
+    orgym_runtime_source:
+      commit: 0b18d16e569e2db70e83f09e867b53bdb4b87298
+      license: MIT
+      license_file_sha256: sha256:eac5a4b1bb5aa1e5539923cc24baaaf4ea3c16eb5c64fd1539de39d4a72f0e75
+      url: https://github.com/hubbs5/or-gym
+  m5_sku_store_key: HOBBIES_2_032_CA_3_evaluation
+  m5_item_id: HOBBIES_2_032
+  m5_store_id: CA_3
+  m5_category_id: HOBBIES
+  m5_department_id: HOBBIES_2
+  m5_state_id: CA
+  m5_start_day: d_1540
+  m5_end_day: d_1569
+  m5_window_length_days: 30
+  m5_demand_sum_units: 97
+  m5_nonzero_demand_days: 25
+  inventory_profile_id: lt2_cap65
+  m5_lead_time_days: 2
+  m5_capacity_scale: 0.65
+  orgym_env_config_redacted: true
+  orgym_env_config_redaction_reason: m5_kaggle_raw_demand_stream_not_redistributed
+  m5_demand_handle:
+    source_id: m5_forecasting
+    source_url: https://www.kaggle.com/competitions/m5-forecasting-accuracy
+    source_lock_file: works/M5/source_lock.json
+    sales_file: works/M5/sales_train_evaluation.csv
+    sell_prices_file: works/M5/sell_prices.csv
+    sku_store_key: HOBBIES_2_032_CA_3_evaluation
+    item_id: HOBBIES_2_032
+    store_id: CA_3
+    start_day: d_1540
+    end_day: d_1569
+    window_length_days: 30
+    demand_stream_hash: sha256:180edab25c359094552538a8726a75d39670bba6bfc3279bd6d41b7ff6429da8
+    env_config_hash: sha256:bcda053b0f2b006f1f266dd51ea505377b31c464baab4426cc0e74e96ce84c02
+  stress_profile: standard
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 30
+tick_minutes: 1440
+seed: 8710
+load_assignments:
+- load_id: retailer
+  stakeholder_class: commercial
+  criticality: 0.5
+  demand: 97.0
+  bus_id: null
+perturbations: []
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: medium
+provenance:
+  data_source: m5_forecasting+orgym
+  files:
+  - works/M5/source_lock.json
+  - works/M5/calendar.csv
+  - works/M5/sales_train_evaluation.csv
+  - works/M5/sell_prices.csv
+  - works/OR-Gym/or_gym/envs/supply_chain/inventory_management.py
+  - works/OR-Gym/or_gym/version.py
+  - works/OR-Gym/LICENSE
+  commit: kaggle:m5-forecasting-accuracy:2020-06-01-files;orgym:0b18d16e569e2db70e83f09e867b53bdb4b87298
+  url: https://www.kaggle.com/competitions/m5-forecasting-accuracy
+  lock_strategy: kaggle_competition_terms+file_sha256+orgym_git_commit+env_config_hash
+  time_window:
+    sku_store_key: HOBBIES_2_032_CA_3_evaluation
+    item_id: HOBBIES_2_032
+    store_id: CA_3
+    category_id: HOBBIES
+    department_id: HOBBIES_2
+    state_id: CA
+    start_day: d_1540
+    end_day: d_1569
+    window_length_days: 30
+    demand_sum_units: 97
+    nonzero_demand_days: 25
+    demand_stream_hash: sha256:180edab25c359094552538a8726a75d39670bba6bfc3279bd6d41b7ff6429da8
+    env_config_hash: sha256:bcda053b0f2b006f1f266dd51ea505377b31c464baab4426cc0e74e96ce84c02
+    cost_profile_hash: sha256:329a9f0e84811f7152533d13b8aafc4b94f25ecc8d7e12f0a049884d0b89c89f
+    m5_source_lock_sha256: 96ef17c171b6e8496f951c7d165b6d3a97e85e541fbec0101f8390cd5bdc59fb
+    m5_license_or_terms_sha256: sha256:f5b7bb40ee125fff926fd5367ff1c0175128fa49b6300a2f78f7e53975c3c308
+    orgym_commit: 0b18d16e569e2db70e83f09e867b53bdb4b87298
+    orgym_package_version: 0.5.0
+    inventory_profile_id: lt2_cap65
+    lead_time_days: 2
+    capacity_scale: 0.65
+    raw_demand_stream_redistributed: false
+  license: Kaggle competition rules + OR-Gym MIT
+  notes: Raw M5 files are not redistributed; users fetch through Kaggle after accepting
+    competition rules. M5 supplies empirical SKU-store demand, while OR-Gym supplies
+    native inventory transition dynamics and economic knobs. Procurement/cost parameters
+    are simulator economic parameters, not empirical Walmart procurement costs.
+scenario_id: logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_hobbies_2_032_ca_3_d1540_30d_lt2_cap65__d3592ffe__relabel_v1
+complexity_metrics:
+  horizon_minutes: 43200
+  n_perturbations: 0
+  suddenness_ticks: 30
+  observability_burden: 23
+  decision_depth: 3
+  cascade_permissiveness: 0
+  persistence_ratio: 0.8333
+  ambient_fraction: 0.0
+  n_stressors: 0
+  first_disruption_tick: 30
+  n_priority_customers: 0
+  demand_to_capacity_ratio: 0.0
+  n_stages: 2
+  lead_time_days: 2
+  n_periods: 30
+  forecast_horizon: 7
+  demand_density: 0.8333
+  demand_sum_units: 97
+  capacity_units: 63
+source_contract:
+  runtime_input: []
+  derivation_input:
+  - works/M5/calendar.csv
+  - works/M5/sales_train_evaluation.csv
+  - works/M5/sell_prices.csv
+  implementation_asset: []
+  metadata:
+  - works/M5/source_lock.json
+  license: []
+  derived_window:
+    sha256: 180edab25c359094552538a8726a75d39670bba6bfc3279bd6d41b7ff6429da8
+    recipe_version: m5-sku-store-window-v1
+difficulty_calibration_lineage:
+  contract_version: source_grounded_behavioral_v3
+  declared_difficulty_level: basic
+  calibrated_difficulty_level: medium
+  source_scenario_id: logistics/inventory_replenishment/time_pressure/basic/inventory_replenishment_time_pressure_basic_m5_hobbies_2_032_ca_3_d1540_30d_lt2_cap65
+  source_scenario_signature: a5742e62f3cdd512
+  strategy_artifact_sha256: 48f3c91413165811838b5f3b2f4805dd3f7202b34ef0130190cadb9443d6461f
+  requires_full_protocol21_replay: true
+scenario_signature: e5e2e92d223a0f34

@@ -1,0 +1,241 @@
+seed_id: ingolstadt_24h_evening1650_high20_s9616
+family: signal_coordination
+domain: traffic
+backend_kind: sumo
+backend_config:
+  sumo_net_path: works/sumo_ingolstadt/simulation/ingolstadt_24h.net.xml.gz
+  sumo_route_path: works/sumo_ingolstadt/simulation/motorized_routes_2020-09-16_24h.rou.xml.gz
+  sumo_config_path: works/sumo_ingolstadt/simulation/24h_sim.sumocfg
+  corridor_tls_map:
+    cluster_241292475_4542971985: cluster_241292475_4542971985
+  live_phase_control: true
+  source_denominator_key: sumo_ingolstadt:2020-09-16:24h_sim:evening1650:high20:cluster_241292475_4542971985
+  service_date: '2020-09-16'
+  sumo_substeps_per_tick: 60
+  max_agent_vehicle_records: 24
+  reference_phase_duration_seconds: 20.0
+  sumo_tls_binding_net_sha256: 101412168ec627baa3a56d38226d8a850fee702b90437fb29546d6aadf5a86e7
+  sumo_extra_args:
+  - --begin
+  - '60600'
+  - --end
+  - '61860'
+  physics_step_seconds: 1
+  decision_interval_seconds: 60
+  task_contract:
+    contract: traffic.travel_delay_mitigation.v1
+    objective_component: travel_time_cost
+    reference_policy: deterministic_wait_only
+    minimum_absolute_improvement: 1.0
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - any_state_changing: true
+      not_before_tick: 0
+      not_after_tick: 7
+    - any_state_changing: true
+      not_before_tick: 8
+      not_after_tick: 19
+  derivation_recipe:
+    pipeline_version: sumo_ingolstadt_24h_sim_phase_control_high20_v1
+    source_denominator_key: sumo_ingolstadt:2020-09-16:24h_sim:evening1650:high20:cluster_241292475_4542971985
+    service_date: '2020-09-16'
+    window_begin_seconds: 60600
+    window_end_seconds: 61860
+    reference_controller:
+      method: bounded_phase_duration_grid_search
+      candidate_seconds:
+      - 8.0
+      - 10.0
+      - 12.0
+      - 15.0
+      - 20.0
+      - 25.0
+      selected_seconds: 20.0
+      selection_objective: minimum_native_travel_time_cost
+      decision_cadence_ticks: 2
+      runtime_note: source TLS programs are static minDur=maxDur; oracle clamps the
+        requested remaining duration to the live phase length
+  reference_phase_duration_schedule:
+    '1': 20.0
+    '8': 20.0
+    '14': 20.0
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: network_saturation_and_gridlock_collapse_signal
+    economic_cost:
+      applicable: true
+      reason: aggregate_travel_time_delay_production_cost
+    safety_violation:
+      applicable: true
+      reason: congestion_overload_and_priority_corridor_blocking_proxies
+    weighted_equity_score:
+      applicable: false
+      reason: placeholder_corridor_criticality_not_source_grounded
+    ethical_quality:
+      applicable: false
+      reason: no_pre_armed_ethical_dilemma_payload_in_family
+    stakeholder_management:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    adaptive_replanning:
+      applicable: true
+      reason: signal_reroute_meter_tools_gated_on_realized_disruptions
+    information_efficiency:
+      applicable: true
+      reason: fogged_queue_delay_revealed_via_detector_and_inspection_queries
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_wardrop_system_optimal_reference_on_this_core_row
+    counterfactual_prevention:
+      applicable: false
+      reason: no_preventable_exogenous_loss_event_in_family
+    stakeholder_equity:
+      applicable: false
+      reason: placeholder_corridor_stakeholder_attributes_not_source_grounded
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 20
+tick_minutes: 1
+seed: 9616
+net_ref: works/sumo_ingolstadt/simulation/ingolstadt_24h.net.xml.gz
+route_ref: works/sumo_ingolstadt/simulation/motorized_routes_2020-09-16_24h.rou.xml.gz
+sumo_mode: micro
+corridors:
+- corridor_id: cluster_241292475_4542971985
+  district: network_zone_1
+  demand_veh: 1
+  edges: []
+  income_bracket: mid
+  transit_dependent_fraction: 0.2
+  carries_ems_corridor: false
+  carries_vip_route: false
+  criticality: 0.5
+perturbations: []
+dilemmas: []
+incident_edge: null
+incident_edge_betweenness: 0.0
+hidden_attr_parity: 0
+demand_window_offset_min: 0
+difficulty_mode: deep_planning
+difficulty_level: high
+provenance:
+  data_source: sumo_ingolstadt_24h
+  files:
+  - works/sumo_ingolstadt/simulation/24h_sim.sumocfg
+  - works/sumo_ingolstadt/simulation/ingolstadt_24h.net.xml.gz
+  - works/sumo_ingolstadt/simulation/motorized_routes_2020-09-16_24h.rou.xml.gz
+  - works/sumo_ingolstadt/simulation/tlLogics_WAUT_2020-09-16_24h.add.xml
+  - works/sumo_ingolstadt/simulation/ingolstadt.poly.xml.gz
+  - works/sumo_ingolstadt/LICENSE.md
+  commit: e0a95deebe200ff81b6705044d66310d6266d42b
+  url: https://github.com/TUM-VT/sumo_ingolstadt
+  lock_strategy: git_commit+per_file_sha256+derived_window
+  time_window:
+    service_date: '2020-09-16'
+    window_begin_seconds: 60600
+    window_end_seconds: 61860
+    horizon_ticks: 20
+    tick_minutes: 1
+  license: Apache-2.0
+  source_locked: true
+  notes: Wednesday 2020-09-16 full-weekday motorized demand from locked 24h_sim.sumocfg.
+    Derived window is a begin/end slice; routes are not synthesized. Control is set_signal_phase_duration
+    on source TLS cluster_241292475_4542971985.
+capture_contract_version: '1.0'
+task_contract:
+  schema_version: '1.0'
+  scenario_id: traffic/signal_coordination/deep_planning/high/ingolstadt_24h_evening1650_high20_s9616
+  objective: Minimize native SUMO travel_time_cost relative to the deterministic wait_only
+    replay while preserving signal phase safety.
+  decision_space:
+    entities: runtime_enumerated_tls
+    tools:
+    - query_signal_control
+    - set_signal_phase_duration
+    - commit_to_plan
+    supervisory_interval_ticks: 2
+  metrics:
+    primary:
+      name: travel_time_cost
+      unit: vehicle_delay_cost_units
+    secondary:
+    - controlled_lane_queue
+    - controlled_lane_waiting_time_seconds
+    - native_throughput
+  success_condition:
+    minimum_absolute_task_loss_reduction: 1.0
+    baseline: deterministic_wait_only
+    native_control_requirements:
+      min_distinct_control_ticks: 2
+      min_distinct_physical_tools: 1
+      ordered_tool_milestones:
+      - any_state_changing: true
+        not_before_tick: 0
+        not_after_tick: 7
+      - any_state_changing: true
+        not_before_tick: 8
+        not_after_tick: 19
+  failure_condition:
+    conditions:
+    - no_material_improvement_vs_no_action
+    - unsafe_signal_request
+    - task_control_requirements_not_met
+  evaluation_horizon:
+    ticks: 20
+    tick_minutes: 1
+    physics_step_seconds: 1
+  action_constraints:
+    runtime_ids_only: true
+    phase_duration_within_native_bounds: true
+    arbitrary_signal_state_forbidden: true
+    yellow_all_red_clearance_preserved: true
+  capture_contract_version: '1.0'
+world_evolution_contract:
+  source_channel: sumocfg_route_departures
+  runtime_event_type: traffic_demand_change
+  origin: source_schedule
+  proof_required: runtime interval departures and arrivals change native vehicle and
+    controlled-lane state; every declared overlay must also mutate and later expose
+    native SUMO state
+source_contract:
+  runtime_input:
+  - works/sumo_ingolstadt/simulation/24h_sim.sumocfg
+  - works/sumo_ingolstadt/simulation/ingolstadt_24h.net.xml.gz
+  - works/sumo_ingolstadt/simulation/motorized_routes_2020-09-16_24h.rou.xml.gz
+  - works/sumo_ingolstadt/simulation/tlLogics_WAUT_2020-09-16_24h.add.xml
+  - works/sumo_ingolstadt/simulation/ingolstadt.poly.xml.gz
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license:
+  - works/sumo_ingolstadt/LICENSE.md
+  file_sha256s:
+    works/sumo_ingolstadt/simulation/24h_sim.sumocfg: 5964b17e93607b3d93778faac132d438202396249c8ec2c8406a489c9294e3dc
+    works/sumo_ingolstadt/simulation/ingolstadt_24h.net.xml.gz: 101412168ec627baa3a56d38226d8a850fee702b90437fb29546d6aadf5a86e7
+    works/sumo_ingolstadt/simulation/motorized_routes_2020-09-16_24h.rou.xml.gz: e2e4fb68fcd326884416612d54d882fdd9e9dd24f84272c288ba1f82e5ad360b
+    works/sumo_ingolstadt/simulation/tlLogics_WAUT_2020-09-16_24h.add.xml: deac475b2b17b5471c31fe5b91b39a434065b42bc929f68b764176d5319811f3
+    works/sumo_ingolstadt/simulation/ingolstadt.poly.xml.gz: 6ecda3f71b6c972be7c9555c7580ff18c7379dbc090ce7a3d122dc12439d97a2
+  derived_window:
+    sha256: 612fe6ba90c1e1f578d61d006b4c5389d75f5d4d4dfae5288d276513d779d956
+    recipe_version: sumo_ingolstadt_24h_sim_high20_locked_window_v1
+scenario_id: traffic/signal_coordination/deep_planning/high/ingolstadt_24h_evening1650_high20_s9616
+candidate_only: true
+complexity_metrics:
+  horizon_minutes: 20
+  n_stressors: 0
+  first_shock_tick: 20
+  observability_burden: 0
+  decision_depth: 0
+  incident_edge_betweenness: 0.0
+  n_shock_modes: 0
+  persistence_ratio: 0.0
+scenario_signature: 5db8370329513602

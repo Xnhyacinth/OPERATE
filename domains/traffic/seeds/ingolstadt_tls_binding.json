@@ -1,0 +1,80 @@
+{
+  "corridor_signal_program_map": {
+    "cbd_ring": {
+      "default": "0",
+      "ems_priority": "real_tl_6020_11",
+      "fail_safe": "real_tl_6020_13",
+      "incident_relief": "real_tl_6020_1",
+      "peak_coordination": "real_tl_6020_10",
+      "vip_greenwave": "real_tl_6020_12"
+    },
+    "east_residential": {
+      "default": "0",
+      "ems_priority": "real_tl_6060_11",
+      "fail_safe": "real_tl_6060_13",
+      "incident_relief": "real_tl_6060_1",
+      "peak_coordination": "real_tl_6060_10",
+      "vip_greenwave": "real_tl_6060_12"
+    },
+    "hospital_access": {
+      "default": "0",
+      "ems_priority": "real_tl_4020_11",
+      "fail_safe": "real_tl_4020_13",
+      "incident_relief": "real_tl_4020_1",
+      "peak_coordination": "real_tl_4020_10",
+      "vip_greenwave": "real_tl_4020_12"
+    },
+    "industrial_freight": {
+      "default": "0",
+      "ems_priority": "real_tl_3090_11",
+      "fail_safe": "real_tl_3090_13",
+      "incident_relief": "real_tl_3090_1",
+      "peak_coordination": "real_tl_3090_10",
+      "vip_greenwave": "real_tl_3090_12"
+    },
+    "north_arterial": {
+      "default": "0",
+      "ems_priority": "real_tl_3040_11",
+      "fail_safe": "real_tl_3040_13",
+      "incident_relief": "real_tl_3040_1",
+      "peak_coordination": "real_tl_3040_10",
+      "vip_greenwave": "real_tl_3040_12"
+    },
+    "west_lowincome": {
+      "default": "0",
+      "ems_priority": "real_tl_4010_11",
+      "fail_safe": "real_tl_4010_13",
+      "incident_relief": "real_tl_4010_1",
+      "peak_coordination": "real_tl_4010_10",
+      "vip_greenwave": "real_tl_4010_12"
+    }
+  },
+  "corridor_tls_map": {
+    "cbd_ring": "7628244053",
+    "east_residential": "cluster_1851982706_2119320674_2119320675_251004775_3405515861_3994069657_89180081",
+    "hospital_access": "cluster_1840464316_30503246_311487342_7610014924",
+    "industrial_freight": "30503255",
+    "north_arterial": "cluster_25579770_2633530003_2633530004_2633530005",
+    "west_lowincome": "cluster_1840209242_243641585_7615917758_7615917760"
+  },
+  "data_source": "sumo_ingolstadt",
+  "derivation_rule": {
+    "benchmark_program_slots": [
+      "default",
+      "incident_relief",
+      "peak_coordination",
+      "ems_priority",
+      "vip_greenwave",
+      "fail_safe"
+    ],
+    "caveat": "Structural binding of synthetic benchmark corridors/program-slots to REAL Ingolstadt TLS ids and REAL present program ids. The mock-backend throughput semantics (e.g. incident_relief=+30%) are NOT claimed for the live backend; the live proof only asserts a benchmark signal-plan action causes a real, readback-verified SUMO program switch.",
+    "corridor_rank": "criticality_desc_then_corridor_id_asc",
+    "program_order": "program_0_first_then_lexicographic",
+    "tls_rank": "controlled_lane_count_desc_then_tls_id_asc"
+  },
+  "net_ref": "works/sumo_ingolstadt/simulation/ingolstadt_24h.net.xml.gz",
+  "net_sha256": "101412168ec627baa3a56d38226d8a850fee702b90437fb29546d6aadf5a86e7",
+  "non_release_artifact": true,
+  "schema_version": "0.1",
+  "source_commit": "e0a95deebe200ff81b6705044d66310d6266d42b"
+}

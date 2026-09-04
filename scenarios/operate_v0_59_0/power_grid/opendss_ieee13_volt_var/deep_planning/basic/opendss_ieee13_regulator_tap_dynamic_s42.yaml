@@ -1,0 +1,149 @@
+seed_id: power_grid/opendss_ieee13_volt_var/deep_planning/basic/opendss_ieee13_regulator_tap_dynamic_s42
+family: opendss_ieee13_volt_var
+domain: power_grid
+backend_kind: opendss_ieee13
+backend_config:
+  feeder: ieee13_node_test_feeder
+  master_file: 13Bus/IEEE13Nodeckt.dss
+  topology: unbalanced_three_phase_distribution
+  decision_axis: regulator_tap_adjustment
+  source_denominator_key: opendss_ieee13:ieee13_node_test_feeder:regulator_tap_adjustment
+  controllable_assets:
+  - capacitor_banks
+  - voltage_regulators
+  control_action_probe:
+    tool: set_transformer_tap
+    args:
+      trafo_id: 0
+      tap_pos: 7
+  release_ready: true
+  release_reentry_ready: true
+  source_integration_rung: executed_with_live_backend
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: voltage_feasibility_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: voltage_violation_cost_components_available
+    safety_violation:
+      applicable: true
+      reason: voltage_violation_records_available
+    weighted_equity_score:
+      applicable: false
+      reason: no_customer_class_or_critical_load_ledger_yet
+    ethical_quality:
+      applicable: false
+      reason: no_dilemma_or_consequence_manager_for_release
+    stakeholder_management:
+      applicable: false
+      reason: no_trust_manager_for_opendss_ieee13_release
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_volt_var_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_observation_and_tool_feedback_available
+    foresight_score:
+      applicable: true
+      reason: multi_tick_horizon_and_counterfactual_replay_available
+    optimality_gap:
+      applicable: false
+      reason: missing_reference_optimum_for_opendss_ieee13_release
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_passed
+    stakeholder_equity:
+      applicable: false
+      reason: opendss_release_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  honest_zero_keys:
+  - weighted_equity_score
+  - ethical_quality
+  - stakeholder_management
+  - optimality_gap
+  backend_key_aliases:
+    n_voltage_violations: safety_violation
+    voltage_band_deviation_cost: economic_cost
+    opendss_tool_effect: adaptive_replanning
+  source_axes:
+    backend: opendss_ieee13
+    source: opendss_ieee13
+    feeder: ieee13_node_test_feeder
+    master_file: 13Bus/IEEE13Nodeckt.dss
+    topology: unbalanced_three_phase_distribution
+    decision_axis: regulator_tap_adjustment
+    controllable_assets:
+    - capacitor_banks
+    - voltage_regulators
+  stress_profile: standard
+  world_change_contract:
+    kind: deterministic_procedural_overlay
+    native_state_channel: opendss_load_setpoints
+    source_evidence_role: not_source_consumption_evidence
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 4
+tick_minutes: 1
+seed: 42
+load_assignments: []
+perturbations:
+- kind: load_surge
+  trigger_tick: 1
+  duration_ticks: 1
+  hidden: false
+  target:
+    load_fraction: 0.2
+  intensity: 0.2
+  notes: Deterministic procedural feeder stress applied to native OpenDSS load setpoints;
+    not a source-observed event.
+dilemmas: []
+difficulty_mode: deep_planning
+difficulty_level: basic
+provenance:
+  data_source: opendss_ieee13
+  files:
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/13Bus/IEEE13Nodeckt.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/13Bus/IEEELineCodes.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/IEEELineCodes.DSS
+  commit: 3b208397160213cae4a9e2d0a7d1aa3528ce26e1
+  url: https://github.com/dss-extensions/electricdss-tst
+  lock_strategy: git_commit+sha256_manifest
+  time_window:
+    feeder: ieee13_node_test_feeder
+    decision_axis: regulator_tap_adjustment
+    mode: deep_planning
+    level: basic
+  license: BSD-3-Clause
+  notes: Pinned OpenDSS IEEE 13-node feeder materialized from the non-release source/live/evidence/behavioral/scorer/dataset
+    handoff. The post-reset load surge is an explicitly procedural deterministic overlay
+    applied to native OpenDSS load setpoints; it is not claimed as source-observed
+    data or source-consumption evidence.
+scenario_id: power_grid/opendss_ieee13_volt_var/deep_planning/basic/opendss_ieee13_regulator_tap_dynamic_s42
+complexity_metrics:
+  horizon_minutes: 4
+  n_perturbations: 1
+  suddenness_ticks: 1
+  observability_burden: 0
+  decision_depth: 0
+  cascade_permissiveness: 0
+  persistence_ratio: 0.25
+  ambient_fraction: 0.0
+source_contract:
+  runtime_input:
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/13Bus/IEEE13Nodeckt.dss
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/13Bus/IEEELineCodes.DSS
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/13Bus/IEEE13Node_BusXY.csv
+  - works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/IEEELineCodes.DSS
+  derivation_input: []
+  implementation_asset: []
+  metadata: []
+  license: []
+  file_sha256s:
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/13Bus/IEEE13Nodeckt.dss: 033ccd4005c6538e9de5b2218e83001802ce14fbc5b6c312896ae8cbc5d4a504
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/13Bus/IEEELineCodes.DSS: 40ef533dfcb22738edb1125b1e15e4a1a5d41b2cca4a2f969f5d955c9784daeb
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/13Bus/IEEE13Node_BusXY.csv: f8dd1528c72f339ebf41bf1355ed64ef12fbe30864fcc839ed5e5e9dc527846e
+    works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/IEEELineCodes.DSS: 71bc16ef9c6084b9e3bab74fbdf967080b79624683465e1483b787ff160f58b3
+scenario_signature: bafda3192d001a15

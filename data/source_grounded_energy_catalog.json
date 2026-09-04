@@ -1,0 +1,156 @@
+{
+  "schema_version": "1.0",
+  "pipeline_version": "source_grounded_decision_graph_v1",
+  "automatic_core_promotion": false,
+  "selection_principle": "independent_source_and_control_axes_before_row_count",
+  "domains": {
+    "power_grid": [
+      {
+        "source_id": "simbench",
+        "backend_kind": "cigre_distribution",
+        "native_scope": "MV_HV_network_timeseries_control",
+        "allowed_control_axes": [
+          "set_transformer_tap",
+          "switch_capacitor",
+          "set_der_reactive_power",
+          "set_battery_dispatch"
+        ],
+        "candidate_mining": [
+          "voltage_boundary_search",
+          "reverse_flow_window_scan",
+          "forecast_residual_scan"
+        ],
+        "current_status": "adapter_and_source_consumption_available_task_graph_pending",
+        "core_blocker": "state_changing_task_headroom_and_minimal_decision_graph"
+      },
+      {
+        "source_id": "grid2op_l2rpn",
+        "backend_kind": "grid2op",
+        "native_scope": "transmission_topology_redispatch_maintenance",
+        "allowed_control_axes": [
+          "topology_action",
+          "redispatch_generation",
+          "shed_load"
+        ],
+        "candidate_mining": [
+          "chronics_boundary_scan",
+          "n_minus_one_survival_scan",
+          "maintenance_conflict_scan"
+        ],
+        "current_status": "native_runtime_available_reference_policy_repair_required",
+        "core_blocker": "action_sensitive_reference_policy_and_deterministic_task_headroom"
+      },
+      {
+        "source_id": "pglib_opf",
+        "backend_kind": "pandapower_acopf",
+        "native_scope": "independent_AC_OPF_network_cases",
+        "allowed_control_axes": [
+          "redispatch_generation",
+          "commit_reserve",
+          "shed_load"
+        ],
+        "candidate_mining": [
+          "contingency_feasibility_boundary",
+          "reserve_shortfall_window_scan"
+        ],
+        "current_status": "native_adapter_available_long_replay_cache_required",
+        "core_blocker": "cross_tick_dependency_and_terminal_response_proof"
+      },
+      {
+        "source_id": "powergym_opendss",
+        "backend_kind": "opendss",
+        "native_scope": "distribution_feeder_volt_var_storage",
+        "allowed_control_axes": [
+          "set_transformer_tap",
+          "switch_capacitor",
+          "set_der_reactive_power",
+          "set_battery_dispatch"
+        ],
+        "candidate_mining": [
+          "voltage_violation_boundary",
+          "inverter_saturation_scan",
+          "storage_restoration_scan"
+        ],
+        "current_status": "opendss_adapter_available_powergym_ingestion_pending",
+        "core_blocker": "locked_powergym_assets_and_source_consumption_replay"
+      }
+    ],
+    "microgrid": [
+      {
+        "source_id": "pymgrid25",
+        "backend_kind": "pymgrid_economic_dispatch",
+        "native_scope": "site_level_DER_storage_grid_islanding_dispatch",
+        "allowed_control_axes": [
+          "set_battery_dispatch",
+          "dispatch_genset",
+          "set_grid_exchange",
+          "connect_pcc",
+          "curtail_der",
+          "shed_load"
+        ],
+        "candidate_mining": [
+          "renewable_ramp_boundary",
+          "battery_SOC_boundary",
+          "islanding_feasibility_scan"
+        ],
+        "current_status": "native_adapter_available_source_diversity_expansion_pending",
+        "core_blocker": "independent_site_locks_and_depth_proved_task_graphs"
+      },
+      {
+        "source_id": "citylearn_electrical",
+        "backend_kind": "citylearn",
+        "native_scope": "electrical_DER_storage_outage_demand_response_only",
+        "allowed_control_axes": [
+          "electrical_storage",
+          "demand_response",
+          "renewable_curtailment",
+          "grid_import"
+        ],
+        "candidate_mining": [
+          "outage_window_scan",
+          "peak_demand_response_scan",
+          "storage_SOC_boundary"
+        ],
+        "current_status": "source_lock_available_compatible_runtime_and_adapter_pending",
+        "core_blocker": "isolated_runtime_native_tool_adapter_and_deterministic_replay"
+      },
+      {
+        "source_id": "nrel_oedi_nsrdb",
+        "backend_kind": "pandapower_lv",
+        "native_scope": "source_consumed_site_load_PV_tariff_voltage_control",
+        "allowed_control_axes": [
+          "set_battery_dispatch",
+          "set_der_reactive_power",
+          "set_transformer_tap"
+        ],
+        "candidate_mining": [
+          "site_window_boundary_scan",
+          "PV_ramp_scan",
+          "tariff_storage_conflict_scan"
+        ],
+        "current_status": "source_consuming_pipeline_available",
+        "core_blocker": "additional_independent_sites_and_minimal_depth_proof"
+      }
+    ],
+    "building_energy_candidate": [
+      {
+        "source_id": "citylearn_building",
+        "backend_kind": "citylearn",
+        "native_scope": "HVAC_DHW_thermal_comfort_occupant_control",
+        "allowed_control_axes": [
+          "heating_device",
+          "cooling_device",
+          "dhw_storage",
+          "occupant_comfort"
+        ],
+        "candidate_mining": [
+          "thermal_comfort_boundary",
+          "occupancy_forecast_error",
+          "peak_load_preconditioning"
+        ],
+        "current_status": "candidate_domain_not_microgrid",
+        "core_blocker": "new_domain_adapter_metrics_tools_and_release_contract"
+      }
+    ]
+  }
+}

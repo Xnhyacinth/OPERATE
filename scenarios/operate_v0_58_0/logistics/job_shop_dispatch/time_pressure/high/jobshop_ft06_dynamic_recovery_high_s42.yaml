@@ -1,0 +1,279 @@
+seed_id: logistics/job_shop_dispatch/time_pressure/high/jobshop_ft06_dynamic_recovery_high_s42
+family: job_shop_dispatch
+domain: logistics
+backend_kind: jsplib_job_shop
+backend_config:
+  instance_name: ft06
+  source_integration_rung: staging_dynamic_procedural_overlay
+  release_ready: false
+  release_reentry_ready: false
+  source_denominator_key: jsplib_job_shop:ft06
+  job_shop:
+    instance_name: ft06
+    jobs: 6
+    machines: 6
+    operations: 36
+    machine_ids:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    total_processing_time: 197
+    min_processing_time: 1
+    max_processing_time: 10
+    jobs_detail:
+    - - machine: 2
+        duration: 1
+      - machine: 0
+        duration: 3
+      - machine: 1
+        duration: 6
+      - machine: 3
+        duration: 7
+      - machine: 5
+        duration: 3
+      - machine: 4
+        duration: 6
+    - - machine: 1
+        duration: 8
+      - machine: 2
+        duration: 5
+      - machine: 4
+        duration: 10
+      - machine: 5
+        duration: 10
+      - machine: 0
+        duration: 10
+      - machine: 3
+        duration: 4
+    - - machine: 2
+        duration: 5
+      - machine: 3
+        duration: 4
+      - machine: 5
+        duration: 8
+      - machine: 0
+        duration: 9
+      - machine: 1
+        duration: 1
+      - machine: 4
+        duration: 7
+    - - machine: 1
+        duration: 5
+      - machine: 0
+        duration: 5
+      - machine: 2
+        duration: 5
+      - machine: 3
+        duration: 3
+      - machine: 4
+        duration: 8
+      - machine: 5
+        duration: 9
+    - - machine: 2
+        duration: 9
+      - machine: 1
+        duration: 3
+      - machine: 4
+        duration: 5
+      - machine: 5
+        duration: 4
+      - machine: 0
+        duration: 3
+      - machine: 3
+        duration: 1
+    - - machine: 1
+        duration: 3
+      - machine: 3
+        duration: 3
+      - machine: 5
+        duration: 9
+      - machine: 0
+        duration: 10
+      - machine: 4
+        duration: 4
+      - machine: 2
+        duration: 1
+  reference:
+    type: known_optimum
+    makespan: 55
+  expected_sha256: fee212360082ab31d7a6f375e352dad79973e17e70da40d14fcce5400a721a1c
+  actual_sha256: fee212360082ab31d7a6f375e352dad79973e17e70da40d14fcce5400a721a1c
+  checksum_manifest: works/JSPLIB-Instances/CHECKSUMS.txt
+  source_axes:
+    instance_name: ft06
+    jobs: 6
+    machines: 6
+    operations: 36
+    reference_type: known_optimum
+  logistics_key_aliases:
+    aggregate_demand_mw: operations_total
+    aggregate_generation_mw: operations_scheduled
+    balance_error_mw: operations_unscheduled
+    production_cost: makespan
+    startup_cost: idle_time_proxy
+    shed_penalty: unscheduled_operation_penalty
+    rho_max: machine_queue_pressure
+    n_overloads: machine_conflict_count
+  honest_zero_keys:
+  - reserves_required_mw
+  - reserves_procured_mw
+  - n_voltage_violations
+  - n_disconnected_lines
+  dimension_applicability:
+    optimality_gap:
+      applicable: true
+      reason: known_optimum_or_bound_makespan_reference
+    safety_violation:
+      applicable: true
+      reason: precedence_machine_capacity_and_unscheduled_operation_keys
+    weighted_equity_score:
+      applicable: false
+      reason: classic_jsplib_has_no_stakeholder_priority_classes
+    ethical_quality:
+      applicable: false
+      reason: classic_jsplib_has_no_ethical_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: classic_jsplib_has_no_stakeholder_trust_model
+    counterfactual_prevention:
+      applicable: false
+      reason: static_job_shop_has_no_exogenous_loss_prevention_event
+    system_survival:
+      applicable: true
+      reason: unscheduled_operation_and_makespan_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: makespan_cost_and_wait_counterfactual_available
+    adaptive_replanning:
+      applicable: false
+      reason: static_job_shop_has_no_exogenous_disruption_window
+    information_efficiency:
+      applicable: true
+      reason: partial_shop_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    stakeholder_equity:
+      applicable: false
+      reason: classic_jsplib_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  interaction_budget_basis:
+    operations: 36
+    tool_fail_rate: 0.05
+    tool_delay_ticks: 1
+    retry_allowance_ticks: 4
+    cooldown_after_failure_ticks: 1
+  dynamic_job_shop:
+    enabled: true
+    event_source: jsplib_machine_set_procedural_overlay_v1
+    max_dispatch_batch_size: 2
+    recovery_clearance_ticks: 1
+    source_observed_events: false
+  task_contract:
+    contract: logistics.job_shop.dynamic_recovery.v1
+    event_response_window:
+      first_tick: 10
+      last_tick: 42
+    native_controls:
+    - dispatch_ready_operations
+    - dispatch_job_operation
+    - repair_machine
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 2
+    ordered_tool_milestones:
+    - tool: dispatch_ready_operations
+      not_after_tick: 9
+    - tool: repair_machine
+      not_before_tick: 10
+      not_after_tick: 42
+  source_event_contract:
+    procedural_overlay: true
+    source_identity_fields:
+    - machine_id
+    - job_id
+    source_observed: false
+    runtime_effect_required: true
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 43
+tick_minutes: 1
+seed: 42
+load_assignments: []
+perturbations:
+- kind: machine_breakdown
+  trigger_tick: 9
+  duration_ticks: 4
+  hidden: false
+  target:
+    machine_id: 0
+    source: locked_jsplib_machine_set
+  intensity: 1.0
+  notes: Procedural deterministic maintenance outage over a machine identity consumed
+    from the locked JSPLIB instance.
+- kind: demand_surge
+  trigger_tick: 11
+  duration_ticks: 4
+  hidden: true
+  target:
+    job_id: j5
+    source: locked_jsplib_job_set
+  intensity: 1.5
+  notes: Procedural urgent-job priority overlay over a locked JSPLIB job identity;
+    not a source-observed arrival.
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: high
+provenance:
+  data_source: jsplib
+  files:
+  - works/JSPLIB-Instances/instances/ft06
+  - works/JSPLIB-Instances/CHECKSUMS.txt
+  - works/JSPLIB-Instances/instances.json
+  commit: eea2b60dd7e2f5c907ff7302662c61812eb7efdf
+  url: https://github.com/tamy0612/JSPLIB
+  lock_strategy: git_commit+file_sha256
+  time_window:
+    objective: minimize_makespan
+    operations: 36
+  license: public academic OR benchmark mirror; see works/JSPLIB-Instances/LICENSE
+  notes: Parsed JSPLIB job-shop instance 'ft06'; non-release seed/scoring skeleton
+    only. Dynamic recovery staging uses only deterministic procedural overlays whose
+    target IDs are validated against the consumed JSPLIB instance; the overlays are
+    not provenance evidence.
+scenario_id: logistics/job_shop_dispatch/time_pressure/high/jobshop_ft06_dynamic_recovery_high_s42
+complexity_metrics:
+  horizon_minutes: 43
+  n_perturbations: 2
+  suddenness_ticks: 9
+  observability_burden: 1
+  decision_depth: 36
+  cascade_permissiveness: 0
+  persistence_ratio: 0.093
+  ambient_fraction: 0.0
+  n_stressors: 2
+  first_disruption_tick: 9
+  n_priority_customers: 0
+  demand_to_capacity_ratio: 0.0
+  n_jobs: 6
+  n_machines: 6
+  n_operations: 36
+  machine_conflict_density: 6.0
+  processing_time_density: 5.4722
+  reference_type: known_optimum
+  dynamic_event_contract: machine_recovery_with_priority_overlay_v1
+source_contract:
+  runtime_input:
+  - works/JSPLIB-Instances/instances/ft06
+  derivation_input: []
+  implementation_asset: []
+  metadata:
+  - works/JSPLIB-Instances/CHECKSUMS.txt
+  - works/JSPLIB-Instances/instances.json
+  license: []
+scenario_signature: d613e156defbe0fa

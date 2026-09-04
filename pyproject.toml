@@ -1,0 +1,118 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "operate-benchmark"
+version = "0.61.0"
+description = "OPERATE: persistent operational agency in source-grounded executable systems."
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+license = "MIT"
+authors = [{ name = "Xnhyacinth" }]
+dependencies = [
+  "numpy>=1.24,<2.3; python_version < '3.14'",
+  "numpy>=2.3.3,<2.4; python_version >= '3.14'",
+  "pandas>=2.0; python_version < '3.14'",
+  "pandas>=2.3.3,<3; python_version >= '3.14'",
+  "scipy>=1.10; python_version < '3.14'",
+  "scipy>=1.16.1; python_version >= '3.14'",
+  "networkx>=3.0",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Backend extras are intentionally explicit.  ``uv sync`` can reproduce the
+# framework without silently installing every licensed/system runtime, while a
+# formal shard selects the extras required by its declared Core slice.
+simulators = [
+  "grid2op>=1.10.0",
+  "pandapower>=2.14.0",
+  "matpowercaseframes>=1.1.0",
+  "dss-python>=0.15.7",
+  "simbench>=1.6.2",
+  "shapely>=2.0",
+]
+power-grid = [
+  "grid2op>=1.10.0",
+  "pandapower>=2.14.0",
+  "matpowercaseframes>=1.1.0",
+  "dss-python>=0.15.7",
+  "simbench>=1.6.2",
+]
+logistics = [
+  "pyvrp>=0.10",
+  "vrplib>=0.1",
+  "or-gym>=0.5",
+  "ortools>=9.10",
+  "dsbx @ git+https://github.com/dsbx7/DynaSchedBench.git@08975bf4a0473c5dff9177393bc6743db9ddc946",
+]
+microgrid = [
+  "pandapower>=2.14.0",
+  "pymgrid>=1.2",
+]
+traffic = [
+  "eclipse-sumo>=1.20",
+  "traci>=1.20",
+]
+building-energy = [
+  "citylearn==2.5.0; python_version < '3.14'",
+]
+released-backends = [
+  "grid2op>=1.10.0",
+  "pandapower>=2.14.0",
+  "matpowercaseframes>=1.1.0",
+  "dss-python>=0.15.7",
+  "simbench>=1.6.2",
+  "pyvrp>=0.10",
+  "vrplib>=0.1",
+  "or-gym>=0.5",
+  "ortools>=9.10",
+  "dsbx @ git+https://github.com/dsbx7/DynaSchedBench.git@08975bf4a0473c5dff9177393bc6743db9ddc946",
+  "pymgrid>=1.2",
+  "eclipse-sumo>=1.20",
+  "traci>=1.20",
+  "citylearn==2.5.0; python_version < '3.14'",
+]
+llm = [
+  "openai>=1.40",
+  "httpx>=0.27",
+  "anthropic>=0.34",
+  "google-genai>=0.3",
+]
+dev = [
+  "pytest>=7.4",
+  "pytest-asyncio>=0.23",
+  "ruff==0.16.0",
+]
+hf = [
+  "huggingface_hub>=0.24",
+]
+
+[project.urls]
+Homepage = "https://github.com/Xnhyacinth/OPERATE"
+Issues = "https://github.com/Xnhyacinth/OPERATE/issues"
+
+[tool.setuptools.packages.find]
+include = ["core*", "evaluation*", "baselines*", "audit*", "runner*", "domains*", "data"]
+exclude = ["data.backends*"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.uv]
+# or-gym 0.5 declares the obsolete gym<=0.19 build pin.  The released adapter
+# is exercised with gym 0.26.2 on Python 3.10-3.14; keep that compatibility
+# override visible and lock-bound instead of relying on a manual --no-deps step.
+override-dependencies = [
+  "gym==0.26.2",
+  { package = { name = "citylearn", version = "2.5.0" }, dependencies = ["scikit-learn>=1.6,<2"] },
+]
+# CityLearn declares OpenStudio for dataset generation, but the released
+# storage-control runtime does not import it. OpenStudio 3.3.0 has no Apple
+# Silicon wheel, so exclude only this scoped transitive edge while retaining
+# every dependency used by the benchmark backend.
+exclude-dependencies = [
+  { package = { name = "citylearn", version = "2.5.0" }, dependencies = ["openstudio"] },
+  { package = { name = "doe-xstock", version = "2.0.0" }, dependencies = ["openstudio"] },
+]

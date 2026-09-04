@@ -1,0 +1,138 @@
+{
+  "archive_licenses": {
+    "works/OpenDSS-IEEE13": {
+      "backend_kinds": ["opendss_fresh_feeders", "opendss_ieee13"],
+      "path": "works/OpenDSS-IEEE13/License.txt",
+      "sha256": "f13543277f32a6437d4f583200858f0988d3acc9598a6a1a292d710009ec21ef"
+    },
+    "works/PGLib-OPF": {
+      "backend_kinds": ["pandapower_acopf"],
+      "path": "works/PGLib-OPF/LICENSE",
+      "sha256": "95b1cd9fee1676221d74f7c0cbba622d98ac098e9b317b3848113ef4356ab4fd"
+    },
+    "works/PyVRP-Instances": {
+      "backend_kinds": ["pyvrp_cvrp", "pyvrp_vrptw"],
+      "path": "works/PyVRP-Instances/LICENSE",
+      "sha256": "556ce8e194485d83569b20c35bbf486f3de822407fcb42900cbd22e0ae4d1656"
+    },
+    "works/RESCO": {
+      "backend_kinds": ["sumo"],
+      "path": "works/RESCO/LICENSE",
+      "sha256": "8b1ba204bb69a0ade2bfcf65ef294a920f6bb361b317dba43c7ef29d96332b9b"
+    },
+    "works/VRPLIB": {
+      "backend_kinds": ["pyvrp_cvrp", "pyvrp_vrptw"],
+      "path": "works/VRPLIB/LICENSE.md",
+      "sha256": "a989c8ab6a313df35f93ca82156a88f290ce6a419c08b17b6e522fac2cb5354b"
+    },
+    "works/sumo_ingolstadt": {
+      "backend_kinds": ["sumo"],
+      "path": "works/sumo_ingolstadt/LICENSE.md",
+      "sha256": "809fa1ed21450f59827d1e9aec720bbc4b687434fa22283c6cb5dd82a47ab9c0"
+    }
+  },
+  "release_id": "operate_v0_60_0",
+  "schema_version": "operate-backend-runtime-source-lock-v1",
+  "sources": {
+    "orgym": {
+      "delivery": "git_checkout",
+      "files": {
+        "works/OR-Gym/LICENSE": {
+          "roles": ["license"],
+          "sha256": "eac5a4b1bb5aa1e5539923cc24baaaf4ea3c16eb5c64fd1539de39d4a72f0e75"
+        },
+        "works/OR-Gym/or_gym/envs/supply_chain/inventory_management.py": {
+          "roles": ["implementation_asset"],
+          "sha256": "ac5a81c775edbafabc15e29bd20890da4d12846da888568aa9053579dd7c7e40"
+        }
+      },
+      "license_status": "verified_mit",
+      "redistributed": false,
+      "revision": "0b18d16e569e2db70e83f09e867b53bdb4b87298",
+      "root": "works/OR-Gym",
+      "url": "https://github.com/hubbs5/or-gym.git"
+    },
+    "pglib_uc": {
+      "backend_kinds": ["pglib_uc_synthetic"],
+      "delivery": "git_checkout",
+      "files": {
+        "works/pglib-uc/LICENSE": {
+          "roles": ["license"],
+          "sha256": "b5ececfa64eb67fd5b0e5c135624f0f9004b938d399150e644f9641b659e628c"
+        },
+        "works/pglib-uc/rts_gmlc/2020-05-05.json": {
+          "roles": ["runtime_input"],
+          "sha256": "415afbe0fd60db75acc2213b60de7bea430321a849e3341bf1c60a0b9667e75b"
+        }
+      },
+      "license_status": "verified_cc_by_4_data_and_mit_software",
+      "redistributed": false,
+      "revision": "39a7f38cf4703de92f0291f0c873c2e98c789301",
+      "root": "works/pglib-uc",
+      "url": "https://github.com/power-grid-lib/pglib-uc.git"
+    },
+    "sumo_ingolstadt_upstream": {
+      "backend_kinds": ["sumo"],
+      "delivery": "git_checkout",
+      "files": {
+        "works/sumo_ingolstadt_upstream/LICENSE.md": {
+          "roles": ["license"],
+          "sha256": "809fa1ed21450f59827d1e9aec720bbc4b687434fa22283c6cb5dd82a47ab9c0"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/2023-06-26.sumocfg": {
+          "roles": ["runtime_input"],
+          "sha256": "ace83ca4e6b98590f34e82c1238f54a30e659900712963a236586e9fe211711c"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/2023-07-02.sumocfg": {
+          "roles": ["runtime_input"],
+          "sha256": "403b5e742172265f70eb6f7e0c4ac3ffc55c4cb0d8973e73e4f943943d16fd9a"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/PT/2023-06-26_gtfs_trips.rou.xml": {
+          "roles": ["runtime_input"],
+          "sha256": "c4e7c3d61b7c8cf9e25c84a66c9d6db851a4072e377c0e53f73f342d4e367615"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/PT/2023-07-02_gtfs_trips.rou.xml": {
+          "roles": ["runtime_input"],
+          "sha256": "fb34a42083e61057a74c255c60c2810753d3e88b6ffdffcae85e60cb5af186c3"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/PT/pt_stops.add.xml": {
+          "roles": ["runtime_input"],
+          "sha256": "6eaa43bf0b8cd80f53146b02fa26e6282cc9c184b2c16190f2d51974936ef03f"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/Routes/routes_2023-06-26_24h_det_calib.rou.xml.gz": {
+          "roles": ["runtime_input"],
+          "sha256": "95cacf99a1d95e93443d99f9fe719b7508c1bc865d3ae19b486d4ad8490cc668"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/Routes/routes_2023-07-02_24h_det_calib.rou.xml.gz": {
+          "roles": ["runtime_input"],
+          "sha256": "dd6b63e57abdd8c6a90385dc6ed476803b519ce555ad89edadd11bef33aaac3a"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/TL/2023-06-26_WAUT.xml": {
+          "roles": ["runtime_input"],
+          "sha256": "4b9b669434646b96b55a712a856a98519d60b203d3264178fd614b9aa727e8f7"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/TL/2023-06-26_tlLogics_24h.tll.xml": {
+          "roles": ["runtime_input"],
+          "sha256": "6eed28be792995ad8cedd97761428f95e8d574229ed7fc1d2ff48f658424d4c9"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/TL/2023-07-02_WAUT.xml": {
+          "roles": ["runtime_input"],
+          "sha256": "136aea20ea1c45be0339a774f1c94411590a5cab8c442b915cd052b97d080e2c"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/TL/2023-07-02_tlLogics_24h.tll.xml": {
+          "roles": ["runtime_input"],
+          "sha256": "9dbf071c410192b586fb6d016572c286166e2333c4c2579ad5a317e304f8fb9f"
+        },
+        "works/sumo_ingolstadt_upstream/simulation/Ingolstadt SUMO 365/ingolstadt_net.net.xml": {
+          "roles": ["runtime_input"],
+          "sha256": "ab043e0974eb3ccd8f76799c8687960f3ac42c155f6efe7b01405ebba34549f8"
+        }
+      },
+      "license_status": "verified_apache_2_0",
+      "redistributed": false,
+      "revision": "e0a95deebe200ff81b6705044d66310d6266d42b",
+      "root": "works/sumo_ingolstadt_upstream",
+      "url": "https://github.com/TUM-VT/sumo_ingolstadt.git"
+    }
+  }
+}

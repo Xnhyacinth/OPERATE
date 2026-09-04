@@ -1,0 +1,282 @@
+seed_id: candidate_delta/logistics/m5_orgym/m5_orgym_HOUSEHOLD_1_116_TX_2_evaluation_d1882_d1941
+family: inventory_replenishment
+domain: logistics
+backend_kind: orgym_invmgmt
+backend_config:
+  inventory_environment_id: InvManagement-v1
+  orgym_env_config:
+    periods: 60
+    I0:
+    - 0
+    p: 5.94
+    r:
+    - 2.97
+    - 1.485
+    k:
+    - 8.91
+    - 0.0
+    h:
+    - 0.297
+    c:
+    - 55
+    L:
+    - 1
+    backlog: false
+    dist: 5
+    user_D:
+    - 0
+    - 1
+    - 7
+    - 0
+    - 1
+    - 1
+    - 1
+    - 1
+    - 0
+    - 2
+    - 1
+    - 0
+    - 2
+    - 1
+    - 1
+    - 1
+    - 2
+    - 1
+    - 1
+    - 3
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 1
+    - 1
+    - 3
+    - 1
+    - 2
+    - 1
+    - 0
+    - 0
+    - 3
+    - 1
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    - 12
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    alpha: 1.0
+    seed_int: 2119528901
+  orgym_env_config_hash: sha256:6b4c8d2affce7fe35c6634e4ffcd12fac5bd2e61ababb74e12f6753a77604247
+  demand_profile_id: m5_HOUSEHOLD_1_116_TX_2_evaluation_d1882_d1941
+  demand_stream_hash: sha256:b10ceddd1d620facb5b91582fafc1637a10899cf55ee47253092bd6e9c71bb41
+  source_denominator_key: orgym_invmgmt:m5_forecasting:InvManagement-v1:HOUSEHOLD_1_116_TX_2_evaluation:d1882_d1941
+  stages: 2
+  lead_times:
+  - 1
+  capacities:
+  - 55
+  cost_profile_hash: sha256:760aa6b666d4924f17204c50aa61999244b3fde174d46eb46188ddba4b610eeb
+  hide_full_demand_stream: true
+  observation_forecast_horizon: 7
+  honest_zero_keys:
+  - n_voltage_violations
+  - n_disconnected_lines
+  logistics_key_aliases:
+    aggregate_demand_mw: customer_demand_units
+    aggregate_generation_mw: served_customer_units
+    balance_error_mw: lost_sales_units
+    reserves_required_mw: same_tick_customer_demand_units
+    reserves_procured_mw: available_inventory_plus_pipeline_units
+    production_cost: procurement_plus_holding_cost
+    startup_cost: order_actuation_cost
+    shed_penalty: lost_sales_penalty
+    rho_max: demand_or_order_capacity_pressure
+    n_overloads: lost_sales_or_capacity_shortfall_indicator
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: lost_sales_and_capacity_pressure_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: inventory_procurement_holding_lost_sales_costs_and_wait_counterfactual_available
+    safety_violation:
+      applicable: true
+      reason: lost_sales_capacity_shortfall_records_available
+    weighted_equity_score:
+      applicable: true
+      reason: retailer_lost_sales_units_recorded_as_customer_unmet_demand
+    ethical_quality:
+      applicable: false
+      reason: orgym_inventory_m5_release_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: orgym_inventory_m5_release_has_no_trust_manager_delta
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_replenishment_orders_can_prevent_future_lost_sales_events
+    information_efficiency:
+      applicable: false
+      reason: no_paid_investigation_or_forecast_tool_for_first_m5_release_cell
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: no_milp_reference_optimum_for_first_orgym_m5_release_cell
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_m5_orgym_seed
+    stakeholder_equity:
+      applicable: false
+      reason: orgym_inventory_m5_release_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  release_ready: true
+  release_reentry_ready: true
+  source_integration_rung: executed_with_live_backend
+  m5_source_lock:
+    source_id: m5_forecasting
+    source_url: https://www.kaggle.com/competitions/m5-forecasting-accuracy
+    license: Kaggle competition rules
+    license_or_terms_sha256: sha256:a0bd1145695db0295030c9d187a38924934320d25398528fa85b0350b755529c
+    lock_strategy: null
+    git_commit_or_release_tag: m5-forecasting-accuracy 2020-06-01 files
+    file_sha256s:
+      works/M5/sales_train_evaluation.csv: 4b4a47c44c38380d2a9168216fea8c9ff2f31b1ddb772f8a0995952a038b8aa0
+      works/M5/sell_prices.csv: 9da3ad1f8b8ccacdbdc70612191dd375ec24a4ac6625c24b75b3bc60b0bed2ef
+      works/M5/calendar.csv: d12b5914ef03e66649adf5dd9e996e6602251c22b7a6af8f1f7e3aa12f8860f5
+    redistribution_limit: null
+    orgym_runtime_source:
+      commit: 0b18d16e569e2db70e83f09e867b53bdb4b87298
+      license: MIT
+  m5_sku_store_key: HOUSEHOLD_1_116_TX_2_evaluation
+  m5_item_id: HOUSEHOLD_1_116
+  m5_store_id: TX_2
+  m5_category_id: HOUSEHOLD_1
+  m5_department_id: HOUSEHOLD_1
+  m5_state_id: TX
+  m5_start_day: d_1882
+  m5_end_day: d_1941
+  m5_window_length_days: 60
+  m5_demand_sum_units: 55
+  m5_nonzero_demand_days: 28
+  source_event_registry:
+    demand_observation:
+      actionable: true
+      event_class: task
+      origin: locked_m5_demand_stream
+      unknown_events_actionable: false
+  reference:
+    type: native_heuristic_policy
+    policy: base_stock_replenishment_v1
+    formal_optimality_applicable: false
+  task_requirements:
+    min_distinct_control_ticks: 2
+    min_distinct_physical_tools: 1
+    ordered_tool_milestones:
+    - tool: place_replenishment_order
+      not_after_tick: 59
+    - tool: place_replenishment_order
+      not_after_tick: 59
+  candidate_materialization:
+    candidate_id: m5_orgym/HOUSEHOLD_1_116_TX_2_evaluation/d1882_d1941
+    source_family: m5_orgym
+    active_core: false
+horizon_ticks: 60
+tick_minutes: 1440
+seed: 2119528901
+load_assignments:
+- load_id: retailer
+  stakeholder_class: commercial
+  criticality: 0.5
+  demand: 55.0
+  bus_id: null
+perturbations: []
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: high
+provenance:
+  data_source: m5_forecasting+orgym
+  files:
+  - works/M5/source_lock.json
+  - works/M5/calendar.csv
+  - works/M5/sales_train_evaluation.csv
+  - works/M5/sell_prices.csv
+  - works/OR-Gym/or_gym/envs/supply_chain/inventory_management.py
+  - works/OR-Gym/or_gym/version.py
+  - works/OR-Gym/LICENSE
+  commit: m5-forecasting-accuracy 2020-06-01 files;orgym:0b18d16e569e2db70e83f09e867b53bdb4b87298
+  url: https://www.kaggle.com/competitions/m5-forecasting-accuracy
+  lock_strategy: kaggle_competition_terms+file_sha256+orgym_git_commit+env_config_hash
+  time_window:
+    sku_store_key: HOUSEHOLD_1_116_TX_2_evaluation
+    item_id: HOUSEHOLD_1_116
+    store_id: TX_2
+    category_id: HOUSEHOLD_1
+    department_id: HOUSEHOLD_1
+    state_id: TX
+    start_day: d_1882
+    end_day: d_1941
+    window_length_days: 60
+    demand_sum_units: 55
+    nonzero_demand_days: 28
+    demand_stream_hash: sha256:b10ceddd1d620facb5b91582fafc1637a10899cf55ee47253092bd6e9c71bb41
+    env_config_hash: sha256:6b4c8d2affce7fe35c6634e4ffcd12fac5bd2e61ababb74e12f6753a77604247
+    cost_profile_hash: sha256:760aa6b666d4924f17204c50aa61999244b3fde174d46eb46188ddba4b610eeb
+    m5_source_lock_sha256: 271c94965d27bf74b0d66ba89e71b5bc239ddc5192ce99305bbac256a848a9b3
+    m5_license_or_terms_sha256: sha256:a0bd1145695db0295030c9d187a38924934320d25398528fa85b0350b755529c
+    orgym_commit: 0b18d16e569e2db70e83f09e867b53bdb4b87298
+    orgym_package_version: 0.5.0
+  license: Kaggle competition rules + OR-Gym MIT
+  notes: Raw M5 files are not redistributed; users fetch through Kaggle after accepting
+    competition rules. M5 supplies empirical SKU-store demand, while OR-Gym supplies
+    native inventory transition dynamics and economic knobs. Procurement/cost parameters
+    are simulator economic parameters, not empirical Walmart procurement costs.
+source_contract:
+  runtime_input:
+  - works/M5/calendar.csv
+  - works/M5/sales_train_evaluation.csv
+  - works/M5/sell_prices.csv
+  derivation_input: []
+  implementation_asset:
+  - works/OR-Gym/or_gym/envs/supply_chain/inventory_management.py
+  metadata:
+  - works/M5/source_lock.json
+  license:
+  - works/OR-Gym/LICENSE
+  file_sha256s:
+    works/M5/calendar.csv: d12b5914ef03e66649adf5dd9e996e6602251c22b7a6af8f1f7e3aa12f8860f5
+    works/M5/sales_train_evaluation.csv: 4b4a47c44c38380d2a9168216fea8c9ff2f31b1ddb772f8a0995952a038b8aa0
+    works/M5/sell_prices.csv: 9da3ad1f8b8ccacdbdc70612191dd375ec24a4ac6625c24b75b3bc60b0bed2ef
+  derived_window:
+    sha256: b10ceddd1d620facb5b91582fafc1637a10899cf55ee47253092bd6e9c71bb41
+    recipe_version: m5_orgym_inventory_window_v1
+procedural_stress:
+  label: none_required
+  source_native: true
+scenario_id: candidate_delta/logistics/m5_orgym/m5_orgym_HOUSEHOLD_1_116_TX_2_evaluation_d1882_d1941
+policy_contract:
+  strict_prompt: true
+  benchmark_side_hints: false
+scenario_signature: 6f023c18ccb64b95
