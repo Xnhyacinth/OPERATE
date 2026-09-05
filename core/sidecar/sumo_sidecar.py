@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import importlib.metadata
 import importlib.util
 import math
 import os
@@ -117,6 +118,45 @@ def _find_spec_safe(dotted_name: str):
         return importlib.util.find_spec(dotted_name)
     except ModuleNotFoundError:
         return None
+
+
+def _resolve_traci_launch() -> tuple[str, dict[str, str] | None]:
+    """Bypass only the installed wheel's subprocess launcher, not system SUMO."""
+    selected = shutil.which("sumo")
+    try:
+        distribution = importlib.metadata.distribution("eclipse-sumo")
+    except importlib.metadata.PackageNotFoundError:
+        distribution = None
+    package_root: Path | None = None
+    if distribution is not None:
+        wheel_launcher = bool(selected) and any(
+            entry.group == "console_scripts"
+            and entry.name == "sumo" and entry.value == "sumo:sumo"
+            for entry in distribution.entry_points
+        ) and any(
+            str(record) != "sumo/bin/sumo"
+            and record.name == "sumo"
+            and Path(distribution.locate_file(record)).resolve() == Path(selected).resolve()
+            for record in distribution.files or []
+        )
+        if selected is None or wheel_launcher:
+            package_root = Path(distribution.locate_file("sumo"))
+    elif selected is None:
+        spec = _find_spec_safe("sumo")
+        if spec is not None and spec.submodule_search_locations:
+            package_root = Path(spec.submodule_search_locations[0])
+    if package_root is not None:
+        native = package_root / "bin" / "sumo"
+        if not native.is_file() or not os.access(native, os.X_OK):
+            raise SumoSidecarUnavailable(f"SUMO wheel native binary unavailable: {native}")
+        # Mirror eclipse-sumo's __init__ environment setup without spawning its
+        # Python console script, so Popen owns the actual simulator on failure.
+        environment = dict(os.environ)
+        environment.setdefault("SUMO_HOME", str(package_root))
+        if not environment.get("PROJ_LIB") and not environment.get("PROJ_DATA"):
+            environment["PROJ_LIB"] = environment["PROJ_DATA"] = str(package_root / "data" / "proj")
+        return str(native), environment
+    return selected or "sumo", None
 
 
 def sumo_available() -> bool:
@@ -380,18 +420,7 @@ class SumoSidecar:
     def _start_traci(self) -> None:
         import traci  # type: ignore[import-not-found]
 
-        sumo_bin = shutil.which("sumo") or "sumo"
-        # When eclipse-sumo is installed as a pip package, the sumo binary lives
-        # in <package_root>/bin/ which may not be on PATH. Resolve it via the
-        # same sumo.__path__ probe used in probe_sumo_transport.
-        if not shutil.which(sumo_bin):
-            try:
-                import sumo as _sumo  # type: ignore[import]
-                _p = Path(_sumo.__path__[0]) / "bin" / "sumo"
-                if _p.is_file() and os.access(_p, os.X_OK):
-                    sumo_bin = str(_p)
-            except Exception:  # noqa: BLE001
-                pass
+        sumo_bin, environment = _resolve_traci_launch()
         start_lock = (
             _sumo_start_port_lock() if self.traci_port is None else nullcontext()
         )
@@ -410,6 +439,7 @@ class SumoSidecar:
                 [sumo_bin, *command],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                env=environment,
             )
             try:
                 retries = max(

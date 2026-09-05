@@ -7,7 +7,7 @@
     <a href="https://github.com/Xnhyacinth/OPERATE/actions/workflows/ci.yml"><img src="https://github.com/Xnhyacinth/OPERATE/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
     <a href="https://huggingface.co/datasets/Xnhyacinth/OPERATE"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-Full%20%7C%20Lite-FFD21E" alt="Hugging Face dataset: Full and Lite" /></a>
     <img src="https://img.shields.io/badge/Full-769%20scenarios-0F766E" alt="Full: 769 scenarios" />
-    <img src="https://img.shields.io/badge/Lite-159%20scenarios-0EA5A4" alt="Lite: 159 scenarios" />
+    <img src="https://img.shields.io/badge/Lite-154%20scenarios-0EA5A4" alt="Lite: 154 scenarios" />
     <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white" alt="Python 3.10 through 3.14" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/Code-MIT-blue" alt="Code license: MIT" /></a>
   </p>
@@ -55,28 +55,28 @@ does not create harness-periodic scans, and keeps unknown events non-actionable.
 ## Full and Lite
 
 The official Full track contains 769 source-grounded scenarios across 502 physical
-sources and seven domains. OPERATE-Lite retains every row from the five smaller
-domains and downsamples strata in the two larger domains under the policy below. It
+sources and seven domains. OPERATE-Lite selects a coverage core and enriches it
+with independent physical-source support under the policy below. It
 preserves all 17 backends, 22 task families, four difficulty levels, and six
 horizon buckets, but it is not a substitute for the Full leaderboard denominator.
 
 | Domain | Full rows | Lite rows | Full sources | Lite sources |
 | --- | ---: | ---: | ---: | ---: |
 | Autonomous Driving | 7 | 7 | 7 | 7 |
-| Building Energy | 18 | 18 | 6 | 6 |
-| Datacenter | 142 | 24 | 4 | 4 |
-| Logistics | 527 | 35 | 443 | 29 |
-| Microgrid | 37 | 37 | 21 | 21 |
-| Power Grid | 19 | 19 | 11 | 11 |
-| Traffic | 19 | 19 | 10 | 10 |
-| **Total** | **769** | **159** | **502** | **88** |
+| Building Energy | 18 | 6 | 6 | 6 |
+| Datacenter | 142 | 18 | 4 | 4 |
+| Logistics | 527 | 66 | 443 | 63 |
+| Microgrid | 37 | 30 | 21 | 21 |
+| Power Grid | 19 | 11 | 11 | 11 |
+| Traffic | 19 | 16 | 10 | 10 |
+| **Total** | **769** | **154** | **502** | **122** |
 
 Candidate closure is complete: all 2,476 independent candidates have a terminal
 disposition and none remain unresolved. The manifest-bound twelve-stage replay
 promoted all 769 source rows and marks the release formal-evaluation ready.
 The public Hugging Face dataset exposes only the current snapshot. Formal runs
 record its resolved immutable commit in the local owner receipt. Formal provider
-runs are still in progress, so the published code/data are ready for independent
+results remain pending, so the published code/data are ready for independent
 evaluation while official leaderboard eligibility remains false.
 
 The promoted `core_suite.json` and `manifest.json` define the formal denominator.
@@ -104,7 +104,7 @@ released backend. The smoke checks runtime and evidence integrity, not model
 performance. Model evaluation additionally requires your model API credentials.
 Unanswered alarms from the passive baseline remain visible as policy warnings;
 the installation profile does not turn them into successful interventions.
-The default strict diagnostic and formal evaluation checks are unchanged.
+Strict agent/action validation and safety checks remain unchanged.
 
 The public HF download is content-addressed and does not require `HF_TOKEN`.
 The installer resolves the current public snapshot once and records its exact
@@ -153,20 +153,24 @@ uv run python run.py \
 
 ## Run OPERATE-Lite
 
-`OPERATE-Lite` is a policy-derived 159-row efficiency/development track built
-only from Core-locked rows. Core admission supplies the quality gate. A domain
-is downsampled only when its row count is
-greater than twice the median domain count; this identifies Datacenter and
-Logistics without naming them in the selector. Every other Core row is retained.
-Within each overrepresented domain, the selector keeps up to three diverse rows
-per non-empty backend × family × difficulty × horizon stratum, prioritizing new
-physical sources and semantic/structural fingerprints. The resulting suite
-retains all 17 backends, 22 task families, four difficulty levels, and six
-horizon buckets. The 2× threshold and three-row stratum limit are predeclared
-engineering compression heuristics, not additional quality thresholds or claims
-of statistical representativeness or optimal selection. Neither domain names nor
-a target total are hard-coded. Lite scores must not be reported as Full leaderboard
-scores.
+`OPERATE-Lite` contains 154 exact Core-locked rows from 122 physical sources.
+Core admission and verified YAML identities supply the quality requirement;
+selection does not rank cases by any LLM's scores.
+
+First, deterministic coverage selection retains joint task classes, source
+families, native event/control mechanisms, scale shapes and declared source
+variation: driving hazards/deadlines, microgrid site/forecast/supply conditions,
+building event channels, power networks/feeders and controllable traffic topology.
+This yields a 104-row coverage core. Then complete rounds increase independent
+physical-source support for those features, stopping at the first complete round
+inside the 150–200-row development budget. The current rounds add 23, 14 and 13
+rows, retaining the entire coverage core. There are no domain quotas.
+
+The budget is an explicit cost/coverage tradeoff, not a quality threshold.
+All 17 backends, 22 task families, four difficulty levels and six horizon buckets
+remain covered. The suite records inclusion, exclusion and coverage reasons;
+it is neither a statistical sample nor a mathematical minimum. Full retains
+the complete admitted source/window variation. Lite scores are not Full scores.
 
 ```bash
 OPERATE_TRAFFIC_BACKEND_REAL=1 \
@@ -202,6 +206,11 @@ per-model capability, provider route, quota, reasoning, concurrency, and dry-run
 bindings. Provider failures, output truncation, route fallback, text-only
 pseudo-tools, or identity drift remain explicit failures; they are never
 converted to `wait`.
+
+Historical qualification records are checked against their original snapshot;
+new runs bind the code they actually execute. Maintenance changes use
+[affected-scope validation](docs/VALIDATION_POLICY.md), not automatic whole-suite
+calibration. Resume and merge remain strict about actual execution identities.
 
 ## Evidence and scoring
 

@@ -8865,7 +8865,7 @@ def test_formal_finalize_json_tree_is_clone_portable(
 def test_formal_main_dry_run_writes_only_treatment_leaf(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    scenario = "logistics/formal-namespace-fixture"
+    scenario = "logistics/formal-namespace-fixture-" + "x" * 240
     output_root = tmp_path / "formal-root"
     formal_binding = {
         "slice_name": "manifest_fixture",
@@ -8904,7 +8904,10 @@ def test_formal_main_dry_run_writes_only_treatment_leaf(
         "_suite_eligibility_binding",
         lambda _slice: {"suite_blocked": False, "formal_evaluation_ready": True},
     )
-    monkeypatch.setattr(mod, "_validate_protocol21_formal_run", lambda *_a, **_k: [])
+    monkeypatch.setattr(
+        mod, "_validate_protocol21_formal_run",
+        lambda *_a, **_k: ["formal_git_tree_must_be_clean"],
+    )
     monkeypatch.setattr(
         mod,
         "_native_runtime_binding",
@@ -8916,7 +8919,7 @@ def test_formal_main_dry_run_writes_only_treatment_leaf(
         lambda: {
             "git_commit": "commit",
             "git_metadata_available": True,
-            "git_dirty": False,
+            "git_dirty": True,
             "git_status_short": [],
         },
     )
@@ -8961,6 +8964,53 @@ def test_formal_main_dry_run_writes_only_treatment_leaf(
     )["path"]
     assert config["output_namespace_treatment_sha256"] == digest
     assert not (output_root / "run_config.json").exists()
+    assert config["git_dirty"] is True
+    assert config["implementation_tree_sha256"] == mod.implementation_identity(
+        mod.REPO_ROOT
+    )["implementation_tree_sha256"]
+    config_path = leaves[0] / "run_config.json"
+    config["git_dirty"] = False  # A prior compatible clean execution record.
+    config_path.write_text(json.dumps(config))
+    (leaves[0] / "episodes.jsonl").write_text('{"interrupted":')
+    (leaves[0] / "path_shorten_map.json").write_text('{"prior": true}')
+    def snapshot():
+        return {
+            path.relative_to(leaves[0]).as_posix(): (path.read_bytes(), path.stat().st_mtime_ns)
+            for path in leaves[0].rglob("*") if path.is_file()
+        }
+    with mod._acquire_output_dir_lock(leaves[0]):
+        original = snapshot()
+        assert mod.main() == 0  # Even a locked existing namespace is read-only.
+        assert snapshot() == original
+    original_argv = list(sys.argv)
+    real_acquire = mod._acquire_output_dir_lock
+    for mismatch in (False, True):
+        raced = {}
+        def acquire_with_new_config(out_dir):
+            handle = real_acquire(out_dir)
+            payload = {
+                **config, "max_tokens": config["max_tokens"] + int(mismatch),
+                "output_dir": mod._portable_formal_manifest({"path": str(out_dir.resolve())})["path"],
+            }
+            target = out_dir / "run_config.json"
+            target.write_text(json.dumps(payload))
+            raced["path"], raced["bytes"] = target, target.read_bytes()
+            return handle
+        monkeypatch.setattr(mod, "_acquire_output_dir_lock", acquire_with_new_config)
+        argv = list(original_argv)
+        argv[argv.index("--output-dir") + 1] = str(tmp_path / f"race-{mismatch}")
+        monkeypatch.setattr(sys, "argv", argv)
+        assert mod.main() == int(mismatch)
+        assert raced["path"].read_bytes() == raced["bytes"]
+    monkeypatch.setattr(mod, "_acquire_output_dir_lock", real_acquire)
+    monkeypatch.setattr(sys, "argv", original_argv)
+    config["max_tokens"] += 1
+    config_path.write_text(json.dumps(config))
+    incompatible = snapshot()
+    assert mod.main() == 1
+    assert snapshot() == incompatible
+    monkeypatch.setattr(sys, "argv", [arg for arg in sys.argv if arg != "--dry-run"])
+    assert mod.main() == 1  # Actual execution still rejects this dirty checkout.
 
 
 def test_run_config_loader_rejects_corrupt_existing_json(tmp_path: Path) -> None:

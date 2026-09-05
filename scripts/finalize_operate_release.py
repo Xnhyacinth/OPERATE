@@ -263,7 +263,7 @@ def _validate_pending_release(
 def _runtime_identity(
     manifest: dict[str, Any], *, release_dir: Path, manifest_sha256: str
 ) -> dict[str, str]:
-    """Derive the exact release identity every provider run must bind."""
+    """Read immutable qualification identity; execution code is bound separately."""
 
     replay = manifest.get("protocol21_replay")
     candidate = manifest.get("candidate_closure")
@@ -762,7 +762,7 @@ def finalize_release_manifest(
         raise ReleaseFinalizationError("release identity does not match its directory")
     _validate_pending_release(release_dir, manifest, repo_root=repo_root)
     _core, rows = _release_rows(manifest, release_dir=release_dir)
-    expected = _runtime_identity(
+    qualification_identity = _runtime_identity(
         manifest, release_dir=release_dir, manifest_sha256=manifest_sha
     )
     logical_path = logical_batch_manifest_path.resolve()
@@ -775,9 +775,13 @@ def finalize_release_manifest(
         )
     if logical_path == realtime_path:
         raise ReleaseFinalizationError("logical and realtime evidence must be distinct")
+    run_tree = str(logical.get("implementation_tree_sha256") or "")
+    if _SHA256_RE.fullmatch(run_tree) is None:
+        raise ReleaseFinalizationError("logical execution implementation tree is invalid")
+    expected = {**qualification_identity, "implementation_tree_sha256": run_tree}
     _validate_batch_identities(logical, realtime, expected)
 
-    tree = manifest.get("implementation_tree_sha256")
+    tree = run_tree
     logical_contract = manifest.get("formal_batch_contract")
     run_contract = manifest.get("formal_run_contract")
     realtime_contract = manifest.get("formal_realtime_batch_contract")
@@ -917,6 +921,10 @@ def finalize_release_manifest(
             "logical_batch_manifest": logical_binding,
             "realtime_batch_manifest": realtime_binding,
         }
+        if run_tree != qualification_identity["implementation_tree_sha256"]:
+            candidate["formal_evaluation_completion"]["qualification_implementation_tree_sha256"] = (
+                qualification_identity["implementation_tree_sha256"]
+            )
         if not prepare_distribution_candidate:
             assert distribution_bundle_manifest_path is not None
             assert distribution_receipt_path is not None
@@ -937,7 +945,7 @@ def finalize_release_manifest(
                 release_dir=release_dir,
                 manifest_sha256=manifest_sha,
             )
-            != expected
+            != qualification_identity
         ):
             raise ReleaseFinalizationError(
                 "release runtime identity changed during validation"

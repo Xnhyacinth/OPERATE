@@ -9,7 +9,11 @@
 - Prevent command-line overrides of the fixed Lite scope; propagate installation and smoke failures. Scope SUMO leak checks to the owning episode process group.
 - Carry original NGSIM checksum lists and the M5 source lock with runtime assets, so a fresh download retains native source-verification metadata.
 - Separate passive-baseline terminal warnings from installation failures in an explicit installation-only profile; preserve strict diagnostics and the original warning evidence.
+- Start the locked SUMO wheel's native executable directly so failed TraCI handshakes cannot strand a child behind its console launcher; verify the executable during setup.
 - Document Lite compression parameters as engineering heuristics, distinct from Core quality admission. Keep historical candidate and private publication tools out of the public current tree.
+- Separate immutable dataset qualification from actual new-run identity; preserve result, source, resume and merge checks without requiring full replay after every maintenance edit. Dry-run can inspect an uncommitted tree without authorizing execution.
+- Replace Lite domain/stratum quotas with coverage plus independent-source enrichment: 154 rows and 122 physical sources within the explicit 150–200 development budget.
+- Publish 22-column public Parquet with shared suite metadata stored once; retain complete private metadata and exact v1/v2 reconstruction.
 - Regenerate Full/Lite Parquet, runtime companion and release evidence for the current code and data. Published artifact filenames remain versionless; immutable commits and content hashes identify reproducible snapshots.
 
 Full provider evaluation is still incomplete. A successfully installed benchmark or an admitted scenario is not a completed model evaluation. Results from older implementation or scenario hashes cannot be resumed into this snapshot.

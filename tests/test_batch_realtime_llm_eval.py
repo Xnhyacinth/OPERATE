@@ -2158,11 +2158,11 @@ def test_dry_run_preflights_without_key_output_provider_or_quota_claim(
             },
         },
     )
-    monkeypatch.setattr(
-        batch,
-        "_require_clean_git_tree",
-        lambda: clean_tree_checks.append(True),
-    )
+    def dirty_tree():
+        clean_tree_checks.append(True)
+        raise ValueError("formal git tree must be clean")
+
+    monkeypatch.setattr(batch, "_require_clean_git_tree", dirty_tree)
     monkeypatch.setattr(
         batch,
         "implementation_identity",
@@ -2198,6 +2198,14 @@ def test_dry_run_preflights_without_key_output_provider_or_quota_claim(
         )
         == 0
     )
+    assert clean_tree_checks == []
+    assert not output_root.exists()
+    assert batch.main([
+        "--suite", str(suite_path), "--formal-manifest", str(manifest_path),
+        "--output-root", str(output_root), "--model", "z-ai/glm-5.2:free",
+        "--model-context-window-tokens", "256000",
+        "--model-max-output-tokens", "230400",
+    ]) == 1
     assert clean_tree_checks == [True]
     assert not output_root.exists()
 

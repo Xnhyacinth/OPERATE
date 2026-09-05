@@ -1,7 +1,7 @@
 # OPERATE formal evaluation
 
-This runbook applies only to the promoted 769-row `operate_v0_61_0` release on
-its manifest-bound implementation tree. The promoted `core_suite.json` and
+This runbook applies to the promoted 769-row `operate_v0_61_0` dataset and
+records the actual implementation used by each new run. The `core_suite.json` and
 `manifest.json`, not a pre-admission source suite, define a formal shard. Any
 older artifacts and interrupted provider runs are not compatible checkpoints.
 
@@ -24,11 +24,13 @@ older artifacts and interrupted provider runs are not compatible checkpoints.
   the agent, disables harness-periodic scans, delivers typed actionable events,
   and treats unknown events as non-actionable.
 
-Formal startup fails closed when the promoted manifest, native runtime
-evidence, provider capability, streaming route, or output namespace is stale or
-incomplete. The portable public Core is sufficient for inspection, but not a
-substitute for the manifest-bound native replay. Baseline smoke and agency
-positive controls are independent diagnostics and are not formal startup gates.
+Formal startup verifies dataset/source integrity, compatible scoring contracts,
+backend assets, provider settings and the run namespace. Historical qualification
+proof is checked against its original snapshot, not required to match the code
+of a new independent run. That run binds its actual current implementation;
+resume and merge still reject incompatible execution identities. A maintenance
+fix does not require repeating the full native qualification pipeline.
+See [Validation policy](VALIDATION_POLICY.md) for affected-scope tests.
 
 ## Runtime bootstrap
 
@@ -94,8 +96,8 @@ backend with a mock or emulated fallback in a formal shard.
 
 ## Provider shards
 
-Do not start a provider shard until the atomically promoted manifest passes
-full integrity verification.
+Start a provider shard only after the dataset/runtime integrity check passes.
+This reads and verifies existing artifacts; it does not execute calibration.
 
 The examples read your own OpenRouter credential from `O_KEY` and Tencent
 credential from `T_KEY`. Export the appropriate variable securely before
@@ -127,13 +129,6 @@ Core contains any Grid2Op row, formal startup fails closed for more than one
 worker; that release must use a new output namespace with `max-workers=1`.
 A different worker count is always a different run scope and is not a
 compatible formal checkpoint.
-
-`stealth/ox-alpha` disappeared from OpenRouter's live model catalog on
-2026-08-27 after the preview was revealed as GLM-5.3-Flash. Its requested
-1,048,576-context, 131,072-output, `reasoning_effort=high` binding is retained
-only as an unavailable historical treatment. There is no executable formal
-command for it: do not substitute GLM-5.3-Flash, resume the pre-OPERATE
-diagnostic trajectory, or merge it with another model identity.
 
 `tool_choice=auto` is the formal cross-provider profile. This does not permit a
 model to evade an action-required decision: the protocol validator still
@@ -233,7 +228,9 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
 
 The logical dry-run is not filesystem-empty: it writes `run_config.json`,
 `batch_run.log`, `logs/`, and, because trajectories are required,
-`trajectories/`. After
+`trajectories/` when creating a new preview namespace, under the normal output
+lock. Inspecting an existing compatible namespace is read-only: it does not
+overwrite configuration, repair journals, append logs or rewrite path maps. After
 reviewing the resolved treatment hash, model identity, provider route,
 capabilities and manifest-selected formal scope, the same output namespace may
 be reused by removing only `--dry-run` while keeping every immutable run-scope
@@ -326,9 +323,7 @@ artifacts from another implementation tree fail closed.
 A shard may be reported only after every manifest-selected Core row is terminal,
 derived reports are finalized, provider and artifact audits pass, and there are no
 fatal, orphan, missing, duplicate, or treatment-mismatched rows. Domain/backend
-strata and evidence support accompany the primary aggregate. The interrupted
-four-case ox-alpha run on the pre-OPERATE tree is diagnostic evidence only and
-must not be resumed, merged, or presented as a leaderboard result.
+strata and evidence support accompany the primary aggregate.
 
 After one same single model has completed both formal treatments, prepare the
 exact candidate manifest outside the canonical release directory:
