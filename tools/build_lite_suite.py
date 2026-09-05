@@ -15,6 +15,13 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PREFERRED_RANGE = (150, 200)
+FULL_RETENTION_DOMAINS = (
+    "autonomous_driving",
+    "building_energy",
+    "microgrid",
+    "power_grid",
+    "traffic",
+)
 REQUIRED_CORE_FIELDS = (
     "backend_kind",
     "difficulty_level",
@@ -312,11 +319,21 @@ def _select_with_audit(
                 ),
             }
         )
+    # Preserve admitted window/condition variants in the current small domains.
+    # This is additive, so the existing large-domain selection stays unchanged.
+    retained = set()
+    for row in list(remaining):
+        if row["domain"] in FULL_RETENTION_DOMAINS:
+            selected.append(row)
+            retained.add(row["scenario_id"])
+            for token in tokens[row["scenario_id"]]:
+                supported[token].add(row["physical_source_key"])
+            remaining.remove(row)
     audit_rows = []
     for row in sorted(rows, key=lambda row: row["scenario_id"]):
         scenario_id = row["scenario_id"]
         in_core = scenario_id in gains
-        included = in_core or scenario_id in enrichment
+        included = in_core or scenario_id in enrichment or scenario_id in retained
         can_add_support = any(
             row["physical_source_key"] not in supported[token]
             for token in tokens[scenario_id]
@@ -327,16 +344,23 @@ def _select_with_audit(
                 "included": included,
                 "selection_stage": "coverage_core"
                 if in_core
-                else ("diversity_enrichment" if included else "excluded"),
+                else (
+                    "small_domain_retention" if scenario_id in retained
+                    else ("diversity_enrichment" if included else "excluded")
+                ),
                 "reason": "adds_coverage"
                 if in_core
                 else (
-                    "adds_independent_source_support"
-                    if included
+                    "preserves_admitted_small_domain_variation"
+                    if scenario_id in retained
                     else (
-                        "preferred_budget_reached"
-                        if can_add_support
-                        else "coverage_already_represented"
+                        "adds_independent_source_support"
+                        if included
+                        else (
+                            "preferred_budget_reached"
+                            if can_add_support
+                            else "coverage_already_represented"
+                        )
                     )
                 ),
                 "feature_ids": sorted(
@@ -356,6 +380,7 @@ def _select_with_audit(
         "coverage_core_scenario_ids": core_ids,
         "n_coverage_core": len(core_ids),
         "n_diversity_enrichment": len(enrichment),
+        "n_small_domain_retention": len(retained),
         "preferred_size_range": list(preferred_range),
         "budget_satisfied": minimum <= len(selected) <= maximum,
         "enrichment_rounds": rounds,
@@ -396,12 +421,13 @@ def build_payload(core_path: Path, *, repo_root: Path = REPO_ROOT) -> dict[str, 
         "formal_full_leaderboard_eligible": False,
         "parent_release_id": core["release_id"],
         "parent_core_suite_sha256": _sha256_bytes(core_bytes),
-        "selection_algorithm": "quality_gated_native_coverage_enrichment_v3",
+        "selection_algorithm": "quality_gated_native_coverage_retention_v4",
         "selection_policy": {
             "eligibility": "exact Core-locked rows with complete identities and verified YAML hashes",
             "inclusion": (
                 "preserve coverage closure, then add distinct physical-source support "
-                "in complete support rounds until the preferred size range is reached"
+                "in complete support rounds until the preferred size range is reached; "
+                "retain all admitted rows in the declared small domains"
             ),
             "priority": [
                 "most_uncovered_features",
@@ -423,9 +449,11 @@ def build_payload(core_path: Path, *, repo_root: Path = REPO_ROOT) -> dict[str, 
             "native_size_fields": list(SCALE_FIELDS),
             "horizon_buckets": [label for _, _, label in HORIZON_BUCKETS],
             "preferred_size_range": list(PREFERRED_RANGE),
+            "full_retention_domains": list(FULL_RETENTION_DOMAINS),
             "budget_interpretation": (
                 "user-selected development cost/diversity tradeoff, not a quality "
-                "gate; the upper bound limits enrichment, never required coverage"
+                "gate; the upper bound limits enrichment, never required coverage "
+                "or small-domain retention"
             ),
             "enrichment_priority": [
                 "most_feature_source_support_deficits_filled",

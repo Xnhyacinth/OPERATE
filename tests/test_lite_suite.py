@@ -56,6 +56,8 @@ def test_committed_lite_suite_is_deterministic_and_covers_runtime_strata() -> No
         if row["included"]:
             if row["selection_stage"] == "coverage_core":
                 assert row["new_feature_ids"]
+            elif row["selection_stage"] == "small_domain_retention":
+                assert row["reason"] == "preserves_admitted_small_domain_variation"
             else:
                 assert row["selection_stage"] == "diversity_enrichment"
                 assert row["new_source_support_feature_ids"]
@@ -161,7 +163,7 @@ def test_new_coverage_is_included_without_a_stratum_quantity_cap(tmp_path):
     assert builder.select_lite(list(reversed(rows)), repo_root=tmp_path) == rows
 
 
-def test_coverage_redundant_rows_are_not_forced_into_small_domains(tmp_path):
+def test_coverage_redundant_rows_are_not_forced_into_compressed_domains(tmp_path):
     builder = _builder_module()
     rows = [_row(tmp_path, name) for name in ("a", "b", "c")]
     for row in rows:

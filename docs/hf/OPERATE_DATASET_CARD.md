@@ -47,13 +47,16 @@ Lite and runtime artifacts. See the repository
 ## Benchmark scope
 
 The Core contains 769 scenarios over 502 physical sources and seven domains.
-OPERATE-Lite contains 154 exact Core-locked rows from 122 physical sources.
+OPERATE-Lite contains 184 exact Core-locked rows from 122 physical sources.
 It retains a 104-row coverage core over joint task classes, source families,
 event/control mechanisms, native scale and declared source variation. Complete
 rounds then increase independent-source support, adding 23, 14 and 13 rows until
-the first complete round inside the 150–200-row development budget. Every row
-has an inclusion/exclusion reason; there are no domain quotas or LLM-score-based
-selection. Core admission supplies the quality requirement, not the size budget.
+the first complete round inside the 150–200-row development budget. All admitted
+Autonomous Driving, Building Energy, Microgrid, Power Grid and Traffic rows are
+then retained, adding 30 window/condition variants; Logistics and Datacenter
+remain selectively compressed. Every row has an inclusion/exclusion reason.
+Selection does not use LLM scores. Core admission supplies the quality
+requirement, not the size budget.
 All 17 backends, 22 task families, four difficulty levels and six horizon buckets
 remain covered. This is a development/ablation subset, not a statistical sample,
 a mathematical minimum or the Full/Core leaderboard denominator.
