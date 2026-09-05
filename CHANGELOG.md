@@ -2,6 +2,7 @@
 
 ## 2026-09-05
 
+- Include every admitted Datacenter medium/high case in Lite: 11 medium, 7 high and the existing 9 basic cases. Lite expands from 184 to 193 rows; other domains, Full and runtime assets are unchanged.
 - Retain every admitted scenario in Autonomous Driving, Building Energy, Microgrid, Power Grid and Traffic. Lite expands from 154 to 184 rows (122 physical sources), preserving the existing Logistics/Datacenter selections; Full and runtime assets are unchanged.
 - Replace four JSPLIB scheduling scenarios (swv14, swv15, yn1, yn2) with source-preserving refinements that expose procedural disruptions before scheduling can finish. Full remains 769 scenarios from 502 physical sources; the old scenario files are removed from the public current tree.
 - Fit persistent observations and structured memory to the complete provider request budget, reserving mission, event, memory identity and output space. Strict prompt failures cannot become model-selected waits.

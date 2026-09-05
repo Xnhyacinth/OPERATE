@@ -7,7 +7,7 @@
     <a href="https://github.com/Xnhyacinth/OPERATE/actions/workflows/ci.yml"><img src="https://github.com/Xnhyacinth/OPERATE/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
     <a href="https://huggingface.co/datasets/Xnhyacinth/OPERATE"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-Full%20%7C%20Lite-FFD21E" alt="Hugging Face dataset: Full and Lite" /></a>
     <img src="https://img.shields.io/badge/Full-769%20scenarios-0F766E" alt="Full: 769 scenarios" />
-    <img src="https://img.shields.io/badge/Lite-184%20scenarios-0EA5A4" alt="Lite: 184 scenarios" />
+    <img src="https://img.shields.io/badge/Lite-193%20scenarios-0EA5A4" alt="Lite: 193 scenarios" />
     <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white" alt="Python 3.10 through 3.14" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/Code-MIT-blue" alt="Code license: MIT" /></a>
   </p>
@@ -65,12 +65,12 @@ horizon buckets, but it is not a substitute for the Full leaderboard denominator
 | --- | ---: | ---: | ---: | ---: |
 | Autonomous Driving | 7 | 7 | 7 | 7 |
 | Building Energy | 18 | 18 | 6 | 6 |
-| Datacenter | 142 | 18 | 4 | 4 |
+| Datacenter | 142 | 27 | 4 | 4 |
 | Logistics | 527 | 66 | 443 | 63 |
 | Microgrid | 37 | 37 | 21 | 21 |
 | Power Grid | 19 | 19 | 11 | 11 |
 | Traffic | 19 | 19 | 10 | 10 |
-| **Total** | **769** | **184** | **502** | **122** |
+| **Total** | **769** | **193** | **502** | **122** |
 
 Candidate closure is complete: all 2,476 independent candidates have a terminal
 disposition and none remain unresolved. The manifest-bound twelve-stage replay
@@ -154,7 +154,7 @@ uv run python run.py \
 
 ## Run OPERATE-Lite
 
-`OPERATE-Lite` contains 184 exact Core-locked rows from 122 physical sources.
+`OPERATE-Lite` contains 193 exact Core-locked rows from 122 physical sources.
 Core admission and verified YAML identities supply the quality requirement;
 selection does not rank cases by any LLM's scores.
 
@@ -167,12 +167,14 @@ physical-source support for those features, stopping at the first complete round
 inside the 150–200-row development budget. The current rounds add 23, 14 and 13
 rows, retaining the entire coverage core. Finally, all admitted rows in
 Autonomous Driving, Building Energy, Microgrid, Power Grid and Traffic are
-retained, adding 30 window/condition variants. The Logistics and Datacenter
-selections remain unchanged. This explicit current-domain retention policy
+retained, adding 30 window/condition variants. Datacenter additionally retains
+all 11 medium and 7 high cases, alongside its 9 selected basic cases; this adds
+9 rows. Logistics remains at 66 selected rows. This explicit retention policy
 avoids overcompressing already small domains; it is not a quality exception.
 
 The budget is an explicit cost/coverage tradeoff, not a quality threshold or a
-reason to discard required coverage or small-domain variants.
+reason to discard required coverage, small-domain variants or the scarce
+medium/high datacenter cases.
 All 17 backends, 22 task families, four difficulty levels and six horizon buckets
 remain covered. The suite records inclusion, exclusion and coverage reasons;
 it is neither a statistical sample nor a mathematical minimum. Full retains
