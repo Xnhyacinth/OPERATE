@@ -107,7 +107,7 @@ Its `MANIFEST.json` and the dataset manifest bind the installed bytes and
 qualification snapshot. Each formal shard separately records its actual current
 implementation and Git commit; qualification code need not be identical.
 
-`OPERATE-Lite` is a separate 154-row, 122-source efficiency/development track. It preserves
+`OPERATE-Lite` is a separate 184-row, 122-source efficiency/development track. It preserves
 all released backends and task families, but its diversity-weighted scores are
 not interchangeable with the 769-row Full leaderboard.
 
