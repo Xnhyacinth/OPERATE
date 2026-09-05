@@ -1,8 +1,8 @@
 {
   "backend_runtime_closure": {
-    "identity_sha256": "79a1406a1dc0d7a88fdca46b5be48eee896ceb90fd6dd7f78deb82c123f528cc",
+    "identity_sha256": "af02783d07c926623bca2c2486612b9c86af73538cefb3b0855838f7afd70145",
     "path": "backend_runtime_closure.json",
-    "sha256": "a828ddab703026a524684ab50a424c910b141b4f27f26d530b260dc54fd28aa6"
+    "sha256": "8711b96c40dd46c7a60597258fb83aaee22dc01f107041a2551bd5a018bef511"
   },
   "candidate_closure": {
     "identity_set_sha256": {
@@ -14,18 +14,18 @@
     "path": "candidate_closure.json",
     "sha256": "e4b3440f44c0c5bba217a5ecace500c6337a4596b6f973dc5e6a7af590b3e42e"
   },
-  "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+  "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
   "core_selection_policy": "quality_core_v2_v060",
   "core_settings_stamp": "v0.61.0-settings",
   "core_suite": {
     "n_scenarios": 769,
-    "ordered_scenario_identity_sha256": "2c892202102516e6e9c37ff0a64cc3c10ca485df2306e92e77fe946046714f93",
+    "ordered_scenario_identity_sha256": "afce601ef75d53748b2b9e634c3e250121077100a879d521141d1b694f3b7471",
     "path": "core_suite.json",
-    "sha256": "f499e704a049f3db6cc36f317773e3e5240925b5e56868bb8b8ed532ac89b801"
+    "sha256": "cb88ec7cccd3c77e70a828ed32b597d823548e074f254ea217627753dc99166c"
   },
   "formal_batch_contract_sha256": "c1eb84cbd039d981d7d3132fdc662bc5701a3d364f4e59517f13b8a7224da486",
   "formal_evaluation_ready": true,
-  "formal_realtime_batch_contract_sha256": "a02213ad77fd1aecc6e33d794dc48b26cdfbac3e3b6a45d92a76b50ffbd5e76d",
+  "formal_realtime_batch_contract_sha256": "78a4d4291abc0a689c0928bc928db7a51c70214446c5ea4a872867c863bdb15b",
   "formal_run_blockers": [],
   "formal_run_contract": {
     "agentic_profile": {
@@ -103,45 +103,45 @@
       "unknown_events_actionable": false
     }
   },
-  "git_head": "b7251d4f1c139d4e9633b2b59193351153bac529",
-  "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+  "git_head": "06431aa29c8d5eb8e3dce1ec990e4330645b8b2d",
+  "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
   "internal_audit": {
-    "pipeline_manifest_sha256": "a0978fa266c563294d9165981aa32afaaa81e1d5fbb35fdc4fbad84905a82b16",
-    "readiness_sha256": "3d0581aaa71e1ea874602b6b706a606d2a38f66a66e6a5e50994200619d1de4d",
+    "pipeline_manifest_sha256": "9a1d8f29261189684b122baf756c71b75331046d040f32e5f6a46376b0f850d2",
+    "readiness_sha256": "15116c172ed3152394b18260e2c4e71955b551044811f87e2ed1487e9d3a7460",
     "stage_attestations": [
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
-          "n_code_files": 237,
+          "n_code_files": 240,
           "n_completed": 769,
-          "n_core_release_pipeline_files": 255,
+          "n_core_release_pipeline_files": 258,
           "n_environment_pending": 0,
           "n_expected": 769,
           "n_fatal": 0,
           "n_formal_disallowed": 0,
-          "n_release_tooling_files": 194,
+          "n_release_tooling_files": 195,
           "n_runtime_pending": 769
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "preflight",
-        "output_sha256": "b8f62bcefa663ff450116cffb1b357abb8b2d6bb659fc35f9bd5e291746fca84",
+        "output_sha256": "61eab656e63087334ea31c7df69634ea9f35a658a6065165f11b5b0f9ce01d6e",
         "return_code": 0,
         "status": "passed"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_completed": 769,
           "n_expected": 769
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "behavioral",
-        "output_sha256": "c126e6acd8d4090a0853c866daea4e215efb30347b7bae7f42d09668fd970fd4",
+        "output_sha256": "c028d36aec17d692af38c23eb9193a66d50014c0d21fc2ebf741e0e4c56e881d",
         "return_code": 0,
         "status": "complete"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_completed": 769,
           "n_expected": 769,
@@ -149,14 +149,14 @@
           "n_held": 0,
           "n_passed": 769
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "source_consumption",
-        "output_sha256": "4599f4b063134b3ede54d004d2fae22dd2a8fc4c84004a6a3e3c88b283eecd48",
+        "output_sha256": "098d614305ed53a6b621a186d50262695a3d937a93c195db9782972bfb20a73c",
         "return_code": 0,
         "status": "complete"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_completed": 769,
           "n_errors": 0,
@@ -164,67 +164,67 @@
           "n_failed": 0,
           "n_passed": 769
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "task_contracts",
-        "output_sha256": "4a25e199c8170c3826b2f27db692883072c544828e709e9d368abd086a43bc64",
+        "output_sha256": "3038d58e85fbab8ade6e887cf5b7f1e4622906961a2de6dbe6afcf247fb1e38f",
         "return_code": 0,
         "status": "complete"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_completed": 2307,
           "n_expected": 2307
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "complexity",
-        "output_sha256": "283739d11c789b77ee26fea4b870f5052ec9c741b4eb61d082ac443956abdf07",
+        "output_sha256": "8debf45b4063f9ac955334303c576851f2f8984b04b7a69003cde0951953d25a",
         "return_code": 0,
         "status": "complete"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_completed": 769,
           "n_expected": 769,
           "n_retired": 9,
           "n_reviewed": 769
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "observed_reference_depth",
-        "output_sha256": "be3d1df1279b6682c536e3b42576f45dd7cae3eb2425aca73e53e2d5fe65d15e",
+        "output_sha256": "0ef309ab90dae7b7863da0867f6025503efce9f346c0a378d194bab4e0475450",
         "return_code": 0,
         "status": "complete"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_completed": 769,
           "n_expected": 769,
           "n_reference_results": 2307
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "strategy_depth",
-        "output_sha256": "651de0f2b94f26df75a5e0d346c2538317c28ed7cb58c762b2c1768f75aa1121",
+        "output_sha256": "99dfae2c8c7413486c62f7f24548c824a984640ca8659314c20d35b1790f61fa",
         "return_code": 0,
         "status": null
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_admitted": 769,
           "n_completed": 769,
           "n_expected": 769,
           "n_held": 0
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "source_grounded",
-        "output_sha256": "dcee8f8f2587d4b140a2f6ad7fc09b984c9a28169495855e271dfcc4ea4a6d87",
+        "output_sha256": "3317757d6d85f0cc26f270abbf0f17144e3537108df72148a97cde7af3d4d1ba",
         "return_code": 0,
         "status": "complete"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_completed": 769,
           "n_expected": 769,
@@ -232,64 +232,64 @@
           "n_passed": 769,
           "n_retired": 0
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "agentic_contract",
-        "output_sha256": "ed15d42aaf21b7198e903c2db1960c6963236dfcf46884426eb877aa87a1835a",
+        "output_sha256": "76a379d7b7fed81b32de8291805fc4d866e60f9ad51e9b1f0763030b24ada165",
         "return_code": 0,
         "status": "complete"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_rejected": 0,
           "n_secondary": 0,
           "n_selected": 769,
           "n_source": 769
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "materialize_core",
-        "output_sha256": "3cd4a5eefc24ea5f618ccc5c229bc106c62633e2bff4d7476ecf42b0888954dc",
+        "output_sha256": "6ca50330bd5a3294b30816f7419d3a1bb07614821e57b71d90e120cdbd37c1bd",
         "return_code": 0,
         "status": "protocol21_core_candidate"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_completed": 769,
           "n_domains_with_high_or_extreme": 6,
           "n_expected": 769,
           "n_rows": 769
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "release_coverage",
-        "output_sha256": "9d459e51f087169bd762d413ff3f56a6434c9d4e509e4c822b5b2b36a97bac63",
+        "output_sha256": "e9c39d11701714f714642d759cb8ee7a03a2eca428c20d31835a0a712386105a",
         "return_code": 0,
         "status": "complete"
       },
       {
-        "core_release_pipeline_sha256": "542ba861e55cffa0643b74d64a2330ddf2bb029556dc44b25a918e2fa6868772",
+        "core_release_pipeline_sha256": "4254d7713014dad69f215dcf3cf93b874fdf55061da93c2ac8b4fb9fca598c86",
         "counts": {
           "n_scenarios": 769
         },
-        "implementation_tree_sha256": "f90e6234858fb4d3e8b3642d294707cfac4b31c3844039abb409cfa39f21a5e3",
+        "implementation_tree_sha256": "5e8c33375770d554b02177865f29ce75179d1d391be1c15a96c133a6354ccec6",
         "name": "readiness",
-        "output_sha256": "3d0581aaa71e1ea874602b6b706a606d2a38f66a66e6a5e50994200619d1de4d",
+        "output_sha256": "15116c172ed3152394b18260e2c4e71955b551044811f87e2ed1487e9d3a7460",
         "return_code": 0,
         "status": "formal_evaluation_ready"
       }
     ]
   },
   "n_scenarios": 769,
-  "ordered_scenario_identity_sha256": "2c892202102516e6e9c37ff0a64cc3c10ca485df2306e92e77fe946046714f93",
+  "ordered_scenario_identity_sha256": "afce601ef75d53748b2b9e634c3e250121077100a879d521141d1b694f3b7471",
   "primary_inference_version": "physical_cluster_hierarchical_bootstrap_randomization_v1",
   "primary_leaderboard_formula_version": "effective_source_backend_domain_macro_v1",
   "public_evidence": {
-    "binding_root_sha256": "5b44d52ef0c6803bdbde5f9a1f92565adaf45222eea998036392e17a232ddc21",
+    "binding_root_sha256": "c576b43649c863c021b159828ce6dcbbe2e45ee87c202ce4654e6bd1e1690ac6",
     "path": "protocol21_public_evidence_bundle.json",
-    "sha256": "eb1f40d6f9dec5e86bdfd89505403d501af47a06c1031ff1fdb13474b6cc952c"
+    "sha256": "df3c49de0116234e45497bd1a654ce46a154bdddc00cc92f31c25f33520e561a"
   },
   "release_id": "operate_v0_61_0",
-  "release_tooling_sha256": "0c04b07e19ebdc9ccf17300f20d20b6c7649d8bd2b9f159794d3f18e95ea6498",
+  "release_tooling_sha256": "88c23953685d1e34a26f65aa70e95a36456eae37574bd6ec467b8974b317964f",
   "release_version": "0.61.0",
   "scenarios": [
     {
@@ -36225,7 +36225,7 @@
         ],
         "decision_pressure_axis": "operation_precedence_machine_capacity_and_makespan_optimization",
         "independence_axis": "job_shop_instance",
-        "keep_rationale": "Independent source denominator jsplib_job_shop:swv14 retained after Protocol-2.0 task completion, terminal integrity, provenance, duplicate, and necessary-depth gates.",
+        "keep_rationale": "Replaces the same physical-source Core row with explicitly procedural earlier events so native recovery remains observable before optimistic scheduling completion; admission is established by current replay evidence.",
         "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv14\",\"sha256\":\"c8a4244770ccb4e452c45fde675866a38ff774e6881349249c77d45e57531d1c\"}],\"schema_version\":\"source_asset_graph_v1\"}",
         "physical_source_lock": {
           "backend_kind": "jsplib_job_shop",
@@ -36238,7 +36238,18 @@
           "schema_version": "source_asset_graph_v1"
         },
         "schema_version": "0.1",
-        "source_denominator_key": "jsplib_job_shop:swv14"
+        "source_denominator_key": "jsplib_job_shop:swv14",
+        "timing_refinement": {
+          "kind": "procedural_early_event_exposure",
+          "max_tool_calls_per_tick": 8,
+          "optimistic_completion_ticks": 14,
+          "parent_file_sha256": "629f8542506a747347784a3359bf5a56127b75d1d2640f4f73d1390b5d323727",
+          "parent_scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45",
+          "parent_scenario_signature": "3a0c51fe7dff1657",
+          "source_independence_credit": false,
+          "standing_plan_batches_reserved": 1,
+          "trigger_shift_ticks": 122
+        }
       },
       "construct_contract": "operational_agency.v1",
       "core_disposition": "core_locked",
@@ -36247,16 +36258,16 @@
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 592,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv14\",\"sha256\":\"c8a4244770ccb4e452c45fde675866a38ff774e6881349249c77d45e57531d1c\"}],\"schema_version\":\"source_asset_graph_v1\"}",
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45",
-      "scenario_signature": "3a0c51fe7dff1657",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure",
+      "scenario_signature": "923c4089ae418ce0",
       "seed": 45,
-      "semantic_fingerprint": "7de1c33f4f24e725",
+      "semantic_fingerprint": "ee6edd23ba4af706",
       "source_denominator_key": "jsplib_job_shop:swv14",
       "status": "core_locked",
-      "structural_fingerprint": "4e8def55b84574b6",
-      "yaml_sha256": "629f8542506a747347784a3359bf5a56127b75d1d2640f4f73d1390b5d323727"
+      "structural_fingerprint": "7806d687438d11fc",
+      "yaml_sha256": "0c5dd05216917f4bb7ff4912e98ab1c524c24558c704f2aed63e2dd288678638"
     },
     {
       "backend_kind": "jsplib_job_shop",
@@ -36271,7 +36282,7 @@
         ],
         "decision_pressure_axis": "operation_precedence_machine_capacity_and_makespan_optimization",
         "independence_axis": "job_shop_instance",
-        "keep_rationale": "Independent source denominator jsplib_job_shop:swv15 retained after Protocol-2.0 task completion, terminal integrity, provenance, duplicate, and necessary-depth gates.",
+        "keep_rationale": "Replaces the same physical-source Core row with explicitly procedural earlier events so native recovery remains observable before optimistic scheduling completion; admission is established by current replay evidence.",
         "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv15\",\"sha256\":\"187911d174712ea9ce066916fa25bf3e8e2c7ab68e47065f6ebd29a8faa6a098\"}],\"schema_version\":\"source_asset_graph_v1\"}",
         "physical_source_lock": {
           "backend_kind": "jsplib_job_shop",
@@ -36284,7 +36295,18 @@
           "schema_version": "source_asset_graph_v1"
         },
         "schema_version": "0.1",
-        "source_denominator_key": "jsplib_job_shop:swv15"
+        "source_denominator_key": "jsplib_job_shop:swv15",
+        "timing_refinement": {
+          "kind": "procedural_early_event_exposure",
+          "max_tool_calls_per_tick": 8,
+          "optimistic_completion_ticks": 14,
+          "parent_file_sha256": "5f7b803b65220edb1f8e5c92354c914d3f2c5254b9186b47b05a80bc3c749913",
+          "parent_scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46",
+          "parent_scenario_signature": "6f298e2995a044d9",
+          "source_independence_credit": false,
+          "standing_plan_batches_reserved": 1,
+          "trigger_shift_ticks": 122
+        }
       },
       "construct_contract": "operational_agency.v1",
       "core_disposition": "core_locked",
@@ -36293,16 +36315,16 @@
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 592,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv15\",\"sha256\":\"187911d174712ea9ce066916fa25bf3e8e2c7ab68e47065f6ebd29a8faa6a098\"}],\"schema_version\":\"source_asset_graph_v1\"}",
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46",
-      "scenario_signature": "6f298e2995a044d9",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure",
+      "scenario_signature": "ff2837a366aef5c4",
       "seed": 46,
-      "semantic_fingerprint": "470b379a1ee1385d",
+      "semantic_fingerprint": "23e08202c0312111",
       "source_denominator_key": "jsplib_job_shop:swv15",
       "status": "core_locked",
-      "structural_fingerprint": "166acf6ac81aa68d",
-      "yaml_sha256": "5f7b803b65220edb1f8e5c92354c914d3f2c5254b9186b47b05a80bc3c749913"
+      "structural_fingerprint": "06c8b72921745460",
+      "yaml_sha256": "8dad0bc18192c74d92076a895b6a3a66a9f7f726416eed55fddc8b31fd1090c1"
     },
     {
       "backend_kind": "jsplib_job_shop",
@@ -36455,7 +36477,7 @@
         ],
         "decision_pressure_axis": "operation_precedence_machine_capacity_and_makespan_optimization",
         "independence_axis": "job_shop_instance",
-        "keep_rationale": "Independent source denominator jsplib_job_shop:yn1 retained after Protocol-2.0 task completion, terminal integrity, provenance, duplicate, and necessary-depth gates.",
+        "keep_rationale": "Replaces the same physical-source Core row with explicitly procedural earlier events so native recovery remains observable before optimistic scheduling completion; admission is established by current replay evidence.",
         "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn1\",\"sha256\":\"425ea308aa084d01a8e3d9fea62ca4fdb002c3a05ec963c6b4ee06212ad2dc1a\"}],\"schema_version\":\"source_asset_graph_v1\"}",
         "physical_source_lock": {
           "backend_kind": "jsplib_job_shop",
@@ -36468,7 +36490,18 @@
           "schema_version": "source_asset_graph_v1"
         },
         "schema_version": "0.1",
-        "source_denominator_key": "jsplib_job_shop:yn1"
+        "source_denominator_key": "jsplib_job_shop:yn1",
+        "timing_refinement": {
+          "kind": "procedural_early_event_exposure",
+          "max_tool_calls_per_tick": 8,
+          "optimistic_completion_ticks": 12,
+          "parent_file_sha256": "3c717c6f78506898229b57cb55fd8ee986e54f3173b6b0e1b558923835d591e1",
+          "parent_scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43",
+          "parent_scenario_signature": "1e6739be905ecf2e",
+          "source_independence_credit": false,
+          "standing_plan_batches_reserved": 1,
+          "trigger_shift_ticks": 97
+        }
       },
       "construct_contract": "operational_agency.v1",
       "core_disposition": "core_locked",
@@ -36477,16 +36510,16 @@
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 474,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_yn1_dynamic_recovery_extreme_s43_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn1\",\"sha256\":\"425ea308aa084d01a8e3d9fea62ca4fdb002c3a05ec963c6b4ee06212ad2dc1a\"}],\"schema_version\":\"source_asset_graph_v1\"}",
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43",
-      "scenario_signature": "1e6739be905ecf2e",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43_early_exposure",
+      "scenario_signature": "3090392a2050886c",
       "seed": 43,
-      "semantic_fingerprint": "424da5f91cea7732",
+      "semantic_fingerprint": "fb2062d62467fa6d",
       "source_denominator_key": "jsplib_job_shop:yn1",
       "status": "core_locked",
-      "structural_fingerprint": "1548cce1ad81d7de",
-      "yaml_sha256": "3c717c6f78506898229b57cb55fd8ee986e54f3173b6b0e1b558923835d591e1"
+      "structural_fingerprint": "76f885c5f3406ca3",
+      "yaml_sha256": "833a0acce52b7b3d59abb2d5bfef17f1024375db84b1954858d0262fff03c569"
     },
     {
       "backend_kind": "jsplib_job_shop",
@@ -36501,7 +36534,7 @@
         ],
         "decision_pressure_axis": "operation_precedence_machine_capacity_and_makespan_optimization",
         "independence_axis": "job_shop_instance",
-        "keep_rationale": "Independent source denominator jsplib_job_shop:yn2 retained after Protocol-2.0 task completion, terminal integrity, provenance, duplicate, and necessary-depth gates.",
+        "keep_rationale": "Replaces the same physical-source Core row with explicitly procedural earlier events so native recovery remains observable before optimistic scheduling completion; admission is established by current replay evidence.",
         "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn2\",\"sha256\":\"275ab62557e37c0537255f832818967675857c827c9ae0f15480bc49325e46ce\"}],\"schema_version\":\"source_asset_graph_v1\"}",
         "physical_source_lock": {
           "backend_kind": "jsplib_job_shop",
@@ -36514,7 +36547,18 @@
           "schema_version": "source_asset_graph_v1"
         },
         "schema_version": "0.1",
-        "source_denominator_key": "jsplib_job_shop:yn2"
+        "source_denominator_key": "jsplib_job_shop:yn2",
+        "timing_refinement": {
+          "kind": "procedural_early_event_exposure",
+          "max_tool_calls_per_tick": 8,
+          "optimistic_completion_ticks": 12,
+          "parent_file_sha256": "15c8d368e14489edf5c65b7e7b9c255155d50a932475b97299c1951ed2a71f00",
+          "parent_scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45",
+          "parent_scenario_signature": "bc6ed7d7bcf5a7f5",
+          "source_independence_credit": false,
+          "standing_plan_batches_reserved": 1,
+          "trigger_shift_ticks": 97
+        }
       },
       "construct_contract": "operational_agency.v1",
       "core_disposition": "core_locked",
@@ -36523,16 +36567,16 @@
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 474,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_yn2_dynamic_recovery_extreme_s45_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn2\",\"sha256\":\"275ab62557e37c0537255f832818967675857c827c9ae0f15480bc49325e46ce\"}],\"schema_version\":\"source_asset_graph_v1\"}",
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45",
-      "scenario_signature": "bc6ed7d7bcf5a7f5",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45_early_exposure",
+      "scenario_signature": "e366eb14de055c60",
       "seed": 45,
-      "semantic_fingerprint": "7670dea1ebf95edf",
+      "semantic_fingerprint": "d84945f11a2cbdf1",
       "source_denominator_key": "jsplib_job_shop:yn2",
       "status": "core_locked",
-      "structural_fingerprint": "f7c7400f869ecab4",
-      "yaml_sha256": "15c8d368e14489edf5c65b7e7b9c255155d50a932475b97299c1951ed2a71f00"
+      "structural_fingerprint": "5e653b2b8e0734aa",
+      "yaml_sha256": "6852bc49769a39aeaf4e2465477bfedf965b90571bc96485e278cb65a8c73acd"
     },
     {
       "backend_kind": "dynasched_flexible_job_shop",
@@ -41379,12 +41423,12 @@
   "scoring_version": "0.14.0",
   "source_suite": {
     "n_scenarios": 769,
-    "ordered_scenario_identity_sha256": "2c892202102516e6e9c37ff0a64cc3c10ca485df2306e92e77fe946046714f93",
+    "ordered_scenario_identity_sha256": "afce601ef75d53748b2b9e634c3e250121077100a879d521141d1b694f3b7471",
     "path": "protocol21_source_suite.json",
-    "sha256": "cf05334dd4d9ccace87c540bae3f75afb8cd91927de30ab43cb48d6b62da0434"
+    "sha256": "5d03863f724f50d0962834c2313d72a9d8afe9363f6ee65c767e87a7984bc97a"
   },
   "status": "formal_evaluation_ready",
-  "suite_manifest_sha256": "87ba888ac497c52f864e41125a563623d86869d3d4dee7423e13a8c995aad68e",
+  "suite_manifest_sha256": "2ac36262263488295aa85e58362fc4b351bc00f809b914c3f0efcccd9ff6eb27",
   "task_completion_input_unit": "fraction_0_1",
   "task_completion_score_unit": "points_0_100",
   "weighted_equity_formula_version": "entity_criticality_unit_interval_v2"

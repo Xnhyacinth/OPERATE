@@ -509,7 +509,8 @@ def _build_event_response_records(
             )
             or action_tick
         )
-        request_tick = int(edge.get("request_tick", action_tick) or action_tick)
+        request_tick = edge.get("request_tick")
+        request_tick = int(action_tick if request_tick is None else request_tick)
         consumes_parent_evidence = bool(
             set(parent_ids).intersection(edge.get("consumes_evidence_ids") or [])
         )
@@ -527,7 +528,9 @@ def _build_event_response_records(
                     str(parent.get("origin") or "") == "declared_perturbation"
                 ),
                 "event_tick": event_tick,
-                "visibility": "hidden" if parent.get("hidden") else "visible",
+                "visibility": parent.get("visibility") or (
+                    "hidden" if parent.get("hidden") else "visible"
+                ),
                 "surprise": bool(parent.get("surprise", False)),
                 "first_observed_tick": (
                     request_tick if consumes_parent_evidence else None

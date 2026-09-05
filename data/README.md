@@ -2,10 +2,10 @@
 
 The promoted `operate_v0_61_0` source suite contains 769 rows over 502 physical
 sources. Its candidate ledger is terminal (2,476 independent candidates, 0
-unresolved). The manifest selects 747 inherited contracts under
+unresolved). The manifest selects 743 inherited contracts under
 `scenarios/operate_v0_58_0/` and 8 additions under
 `scenarios/operate_v0_59_0/`, 13 additions under
-`scenarios/operate_v0_60_0/`, and 1 addition under
+`scenarios/operate_v0_60_0/`, and 5 additions under
 `scenarios/operate_v0_61_0/`; all 769 are active v0.61 inputs. Compact
 redistributable source assets live under `sources/`. Only an atomically
 promoted `core_suite.json` plus its matching `manifest.json` defines the formal

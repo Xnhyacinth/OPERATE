@@ -97,8 +97,10 @@ backend with a mock or emulated fallback in a formal shard.
 Do not start a provider shard until the atomically promoted manifest passes
 full integrity verification.
 
-The local login shell exposes OpenRouter as `O_KEY` and Tencent as `T_KEY`;
-never place either value in a command, config, trajectory, or log. The
+The examples read your own OpenRouter credential from `O_KEY` and Tencent
+credential from `T_KEY`. Export the appropriate variable securely before
+executing a shard; no maintainer shell configuration is required. Never place
+the credential value in command arguments, config, trajectories, or logs. The
 per-turn benchmark budget is 32,768 tokens, with a separate 8,192-token
 protocol-repair budget. Formal logical and realtime shards use
 `provider_failure_policy=abort` with a one-failure circuit threshold: a failed
@@ -114,6 +116,10 @@ and model-identity failures are not transient retries.
 | ---------- | --------------------- | ------: | -------------: | ------------------: | ---------------- |
 | OpenRouter | `z-ai/glm-5.2:free`   | 256,000 |        230,400 |                   8 | `high`           |
 | Tencent    | `hy3-ioa`             | 192,000 |         64,000 |                  16 | omitted          |
+
+These are explicit example bindings, not auto-detected provider guarantees.
+Verify your exact route's advertised limits and account quota before execution;
+different bindings require a new treatment and output namespace.
 
 The promoted v0.61 Core contains no Grid2Op-backed row, so the manifest-required
 global scheduler may use the provider-specific worker counts above. If a later
@@ -156,19 +162,17 @@ reset, and parks remaining cells instead of blocking workers for hours. Changing
 the RPM, RPD, or scope requires a fresh output directory because all three fields
 are treatment- and run-config-bound.
 
-Current formal execution starts with the Tencent `hy3-ioa` single-model shard.
-OpenRouter `z-ai/glm-5.2:free` remains a separate follow-up shard.
+The following commands describe separate Tencent and OpenRouter example shards;
+there is no required provider order or fixed model roster.
 Tencent uses `https://copilot.tencent.com/v2` with streamed
 `/chat/completions`; set that public route in `T_BASE_URL` at process launch and
 read the credential only from `T_KEY`. Never merge their limiter scopes,
 trajectories, or treatment hashes.
 
-The OpenRouter GLM dry preflight is optional until the Tencent shard has been
-validated. Set the account-specific daily cap; do not copy one of the documented
+Set the account-specific daily cap for the OpenRouter example; do not copy one of the documented
 allowance strata without checking which one applies to the account.
 
 ```bash
-source ~/.zshrc
 export OPERATE_OPENROUTER_BASE_URL='https://openrouter.ai/api/v1'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
@@ -203,7 +207,6 @@ account-specific limit, start a new treatment namespace with all three quota
 arguments supplied together.
 
 ```bash
-source ~/.zshrc
 export T_BASE_URL='https://copilot.tencent.com/v2'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
@@ -254,7 +257,6 @@ directory without creating it; remove only `--dry-run` to execute and retain
 OpenRouter GLM:
 
 ```bash
-source ~/.zshrc
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 : "${OPERATE_OPENROUTER_FREE_RPD_LIMIT:?set the applicable OpenRouter free-tier RPD limit}"
@@ -284,7 +286,6 @@ PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
 Tencent hy3-ioa:
 
 ```bash
-source ~/.zshrc
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
@@ -342,10 +343,7 @@ PYTHONPATH=. .venv/bin/python scripts/finalize_operate_release.py \
   --prepare-distribution-candidate
 ```
 
-Maintainers build and upload the private CAS bundle from those exact candidate
-bytes to the historical/audit repository. The uploader writes a receipt only
-after the immutable private HF snapshot has been
-read back and verified:
+Maintainers build the private CAS bundle from those exact candidate bytes:
 
 ```bash
 export OPERATE_FINAL_BUNDLE_DIR='.hl/distribution/operate_v0_61_0/final_cas'
@@ -355,12 +353,13 @@ PYTHONPATH=. .venv/bin/python scripts/build_operate_bundle.py \
   --release-dir release/operate_v0_61_0 \
   --release-manifest .hl/release_finalize/operate_v0_61_0/candidate_manifest.json \
   --output-dir "$OPERATE_FINAL_BUNDLE_DIR" --repo-id Xnhyacinth/OPERATE-Benchmark
-
-PYTHONPATH=. .venv/bin/python scripts/upload_to_hf.py \
-  --private --repo-id Xnhyacinth/OPERATE-Benchmark \
-  --data-dir "$OPERATE_FINAL_BUNDLE_DIR" \
-  --receipt-output release/operate_v0_61_0/formal_distribution_receipt.json
 ```
+
+Upload runs only from the private maintainer repository, using its private CAS
+publication tools. Those tools read back and verify the immutable HF snapshot
+before writing `release/operate_v0_61_0/formal_distribution_receipt.json`.
+The uploader is intentionally absent from the public checkout; this maintainer
+step is not required for independent evaluation.
 
 Phase B deterministically rebuilds the same candidate and refuses to replace
 the canonical manifest unless the bundle, receipt, candidate hash, and both

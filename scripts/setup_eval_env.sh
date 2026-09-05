@@ -61,10 +61,12 @@ esac
 
 # ── 1. Backend imports ────────────────────────────────────────────────
 log "verify locked backend imports"
-for pkg in grid2op pandapower pyvrp vrplib ortools simbench pymgrid dss matpowercaseframes lightsim2grid; do
-	"$PY" -c "import $pkg" 2>/dev/null && ok "$pkg" || warn "$pkg import failed"
+for pkg in grid2op pandapower pyvrp vrplib ortools simbench pymgrid dss matpowercaseframes citylearn dsbx traci; do
+	"$PY" -c "import $pkg"
+	ok "$pkg"
 done
-"$PY" -c "from or_gym.envs.supply_chain.inventory_management import InvManagementLostSalesEnv" 2>/dev/null && ok "or_gym" || warn "or_gym import failed"
+"$PY" -c "from or_gym.envs.supply_chain.inventory_management import InvManagementLostSalesEnv"
+ok "or_gym"
 
 if [ "$SKIP_DATA" -eq 1 ]; then
 	log "skip-data: stopping after deps"
@@ -143,7 +145,28 @@ fi
 # ── 5. Optional per-backend smoke ────────────────────────────────────
 if [ "$SMOKE" -eq 1 ]; then
 	log "per-backend smoke (one wait_only episode each)"
-	"$PY" scripts/smoke_backends.py 2>&1 | tail -20 || warn "smoke had failures (see above)"
+	OPERATE_TRAFFIC_BACKEND_REAL=1 OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1 "$PY" - <<'PY'
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+core = json.loads(Path("release/operate_v0_61_0/core_suite.json").read_text())
+by_backend = {}
+for row in core["scenarios"]:
+    by_backend.setdefault(row["backend_kind"], row)
+if not by_backend:
+    raise SystemExit("FATAL: Core contains no runtime backends")
+output = Path(".hl/setup_smoke")
+output.mkdir(parents=True, exist_ok=True)
+slice_path = output / "slice.json"
+slice_path.write_text(json.dumps({"scenarios": list(by_backend.values())}))
+subprocess.run([
+    sys.executable, "scripts/run_protocol21_diagnostic_smoke.py",
+    "--slice", str(slice_path), "--output-dir", str(output),
+    "--agents", "wait_only",
+], check=True)
+PY
 fi
 
 log "setup complete"

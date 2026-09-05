@@ -56,7 +56,7 @@ does not create harness-periodic scans, and keeps unknown events non-actionable.
 
 The official Full track contains 769 source-grounded scenarios across 502 physical
 sources and seven domains. OPERATE-Lite retains every row from the five smaller
-domains and applies diversity-aware caps only to Datacenter and Logistics. It
+domains and downsamples strata in the two larger domains under the policy below. It
 preserves all 17 backends, 22 task families, four difficulty levels, and six
 horizon buckets, but it is not a substitute for the Full leaderboard denominator.
 
@@ -95,20 +95,21 @@ single-environment full-Core run because of current upstream CityLearn pins.
 git clone https://github.com/Xnhyacinth/OPERATE.git
 cd OPERATE
 python -m pip install uv==0.12.5
-uv sync --frozen --python 3.13 --extra dev --extra llm --extra hf \
-  --extra released-backends --extra simulators
-
-uv run python scripts/download_from_hf.py --download-only
+bash scripts/setup_eval_env.sh --smoke
 ```
 
+This installs the locked environment, downloads and verifies the runtime
+companion, restores declared sources, and runs one `wait_only` episode per
+released backend. The smoke checks runtime and evidence integrity, not model
+performance. Model evaluation additionally requires your model API credentials.
+
 The public HF download is content-addressed and does not require `HF_TOKEN`.
-The command resolves the current public snapshot once and records its exact
+The installer resolves the current public snapshot once and records its exact
 commit in `operate_data/.operate-bundle-owner.json`. For a pinned reproduction,
-pass `--revision <HF-COMMIT-SHA>` explicitly. The companion includes the
+set `OPERATE_HF_REVISION=<HF-COMMIT-SHA>`. The companion includes the
 permission-cleared, byte-exact M5 source tables used by the Full track; no
 `M5_ZIP`, `KAGGLE_TOKEN`, or other manual data credential is required. Run
-`bash scripts/setup_eval_env.sh` to download, verify, restore all source/runtime
-assets, and install the locked environment. Traffic execution is
+`bash scripts/setup_eval_env.sh` to install without the smoke. Traffic execution is
 fail-closed unless `OPERATE_TRAFFIC_BACKEND_REAL=1`, and Autonomous Driving is
 fail-closed unless
 `OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1`; both require a real TraCI/libsumo
@@ -150,14 +151,19 @@ uv run python run.py \
 ## Run OPERATE-Lite
 
 `OPERATE-Lite` is a policy-derived 159-row efficiency/development track built
-only from Core-locked rows. A domain is downsampled only when its row count is
+only from Core-locked rows. Core admission supplies the quality gate. A domain
+is downsampled only when its row count is
 greater than twice the median domain count; this identifies Datacenter and
 Logistics without naming them in the selector. Every other Core row is retained.
 Within each overrepresented domain, the selector keeps up to three diverse rows
 per non-empty backend × family × difficulty × horizon stratum, prioritizing new
 physical sources and semantic/structural fingerprints. The resulting suite
 retains all 17 backends, 22 task families, four difficulty levels, and six
-horizon buckets. Lite scores must not be reported as Full leaderboard scores.
+horizon buckets. The 2× threshold and three-row stratum limit are predeclared
+engineering compression heuristics, not additional quality thresholds or claims
+of statistical representativeness or optimal selection. Neither domain names nor
+a target total are hard-coded. Lite scores must not be reported as Full leaderboard
+scores.
 
 ```bash
 OPERATE_TRAFFIC_BACKEND_REAL=1 \

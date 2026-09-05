@@ -1,4 +1,58 @@
 {
+  "core_refinements": [
+    {
+      "parent": {
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45",
+        "scenario_signature": "3a0c51fe7dff1657"
+      },
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure.yaml",
+      "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv14\",\"sha256\":\"c8a4244770ccb4e452c45fde675866a38ff774e6881349249c77d45e57531d1c\"}],\"schema_version\":\"source_asset_graph_v1\"}",
+      "replacement": {
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure",
+        "scenario_signature": "923c4089ae418ce0"
+      },
+      "reason": "Move explicitly procedural disruptions into an active scheduling window while preserving native source and controls."
+    },
+    {
+      "parent": {
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46",
+        "scenario_signature": "6f298e2995a044d9"
+      },
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure.yaml",
+      "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv15\",\"sha256\":\"187911d174712ea9ce066916fa25bf3e8e2c7ab68e47065f6ebd29a8faa6a098\"}],\"schema_version\":\"source_asset_graph_v1\"}",
+      "replacement": {
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure",
+        "scenario_signature": "ff2837a366aef5c4"
+      },
+      "reason": "Move explicitly procedural disruptions into an active scheduling window while preserving native source and controls."
+    },
+    {
+      "parent": {
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43",
+        "scenario_signature": "1e6739be905ecf2e"
+      },
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_yn1_dynamic_recovery_extreme_s43_early_exposure.yaml",
+      "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn1\",\"sha256\":\"425ea308aa084d01a8e3d9fea62ca4fdb002c3a05ec963c6b4ee06212ad2dc1a\"}],\"schema_version\":\"source_asset_graph_v1\"}",
+      "replacement": {
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43_early_exposure",
+        "scenario_signature": "3090392a2050886c"
+      },
+      "reason": "Move explicitly procedural disruptions into an active scheduling window while preserving native source and controls."
+    },
+    {
+      "parent": {
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45",
+        "scenario_signature": "bc6ed7d7bcf5a7f5"
+      },
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_yn2_dynamic_recovery_extreme_s45_early_exposure.yaml",
+      "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn2\",\"sha256\":\"275ab62557e37c0537255f832818967675857c827c9ae0f15480bc49325e46ce\"}],\"schema_version\":\"source_asset_graph_v1\"}",
+      "replacement": {
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45_early_exposure",
+        "scenario_signature": "e366eb14de055c60"
+      },
+      "reason": "Move explicitly procedural disruptions into an active scheduling window while preserving native source and controls."
+    }
+  ],
   "abandoned_candidates": [
     {
       "disposition": "abandoned_terminal",
@@ -852,12 +906,12 @@
         "scenario_signature": "b92b536adad28214"
       },
       {
-        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45",
-        "scenario_signature": "3a0c51fe7dff1657"
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure",
+        "scenario_signature": "923c4089ae418ce0"
       },
       {
-        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46",
-        "scenario_signature": "6f298e2995a044d9"
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure",
+        "scenario_signature": "ff2837a366aef5c4"
       },
       {
         "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_ta24_dynamic_recovery_extreme_s44",
@@ -872,12 +926,12 @@
         "scenario_signature": "83d8f7af677b9a2e"
       },
       {
-        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43",
-        "scenario_signature": "1e6739be905ecf2e"
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43_early_exposure",
+        "scenario_signature": "3090392a2050886c"
       },
       {
-        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45",
-        "scenario_signature": "bc6ed7d7bcf5a7f5"
+        "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45_early_exposure",
+        "scenario_signature": "e366eb14de055c60"
       },
       {
         "scenario_id": "logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42",
@@ -3413,6 +3467,7 @@
   "n_effective_sources": 769,
   "n_physical_sources": 502,
   "n_scenarios": 769,
+  "release_id": "operate_v0_61_0",
   "release_ready": false,
   "scenarios": [
     {
@@ -41487,6 +41542,7 @@
       "backend_kind": "jsplib_job_shop",
       "case_ledger": {
         "candidate_report": "v0_54_core_suite_resolved_source_contract",
+        "keep_rationale": "Replaces the same physical-source Core row with explicitly procedural earlier events so native recovery remains observable before optimistic scheduling completion; admission is established by current replay evidence.",
         "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv14\",\"sha256\":\"c8a4244770ccb4e452c45fde675866a38ff774e6881349249c77d45e57531d1c\"}],\"schema_version\":\"source_asset_graph_v1\"}",
         "physical_source_lock": {
           "backend_kind": "jsplib_job_shop",
@@ -41499,14 +41555,25 @@
           "schema_version": "source_asset_graph_v1"
         },
         "schema_version": "0.1",
-        "source_denominator_key": "jsplib_job_shop:swv14"
+        "source_denominator_key": "jsplib_job_shop:swv14",
+        "timing_refinement": {
+          "kind": "procedural_early_event_exposure",
+          "max_tool_calls_per_tick": 8,
+          "optimistic_completion_ticks": 14,
+          "parent_file_sha256": "629f8542506a747347784a3359bf5a56127b75d1d2640f4f73d1390b5d323727",
+          "parent_scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45",
+          "parent_scenario_signature": "3a0c51fe7dff1657",
+          "source_independence_credit": false,
+          "standing_plan_batches_reserved": 1,
+          "trigger_shift_ticks": 122
+        }
       },
       "difficulty_level": "extreme",
       "difficulty_mode": "time_pressure",
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 592,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv14\",\"sha256\":\"c8a4244770ccb4e452c45fde675866a38ff774e6881349249c77d45e57531d1c\"}],\"schema_version\":\"source_asset_graph_v1\"}",
       "protocol21_lineage": {
         "physical_identity_origin": "v0_54_yaml_source_contract_resolved",
@@ -41520,19 +41587,21 @@
         "candidate_only",
         "requires_full_protocol21_replay"
       ],
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45",
-      "scenario_signature": "3a0c51fe7dff1657",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure",
+      "scenario_signature": "923c4089ae418ce0",
       "seed": 45,
-      "semantic_fingerprint": "7de1c33f4f24e725",
+      "semantic_fingerprint": "ee6edd23ba4af706",
       "source_denominator_key": "jsplib_job_shop:swv14",
       "source_key": "jsplib_job_shop:swv14",
       "status": "pending_fresh_union_replay",
-      "structural_fingerprint": "4e8def55b84574b6"
+      "structural_fingerprint": "7806d687438d11fc",
+      "yaml_sha256": "0c5dd05216917f4bb7ff4912e98ab1c524c24558c704f2aed63e2dd288678638"
     },
     {
       "backend_kind": "jsplib_job_shop",
       "case_ledger": {
         "candidate_report": "v0_54_core_suite_resolved_source_contract",
+        "keep_rationale": "Replaces the same physical-source Core row with explicitly procedural earlier events so native recovery remains observable before optimistic scheduling completion; admission is established by current replay evidence.",
         "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv15\",\"sha256\":\"187911d174712ea9ce066916fa25bf3e8e2c7ab68e47065f6ebd29a8faa6a098\"}],\"schema_version\":\"source_asset_graph_v1\"}",
         "physical_source_lock": {
           "backend_kind": "jsplib_job_shop",
@@ -41545,14 +41614,25 @@
           "schema_version": "source_asset_graph_v1"
         },
         "schema_version": "0.1",
-        "source_denominator_key": "jsplib_job_shop:swv15"
+        "source_denominator_key": "jsplib_job_shop:swv15",
+        "timing_refinement": {
+          "kind": "procedural_early_event_exposure",
+          "max_tool_calls_per_tick": 8,
+          "optimistic_completion_ticks": 14,
+          "parent_file_sha256": "5f7b803b65220edb1f8e5c92354c914d3f2c5254b9186b47b05a80bc3c749913",
+          "parent_scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46",
+          "parent_scenario_signature": "6f298e2995a044d9",
+          "source_independence_credit": false,
+          "standing_plan_batches_reserved": 1,
+          "trigger_shift_ticks": 122
+        }
       },
       "difficulty_level": "extreme",
       "difficulty_mode": "time_pressure",
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 592,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv15\",\"sha256\":\"187911d174712ea9ce066916fa25bf3e8e2c7ab68e47065f6ebd29a8faa6a098\"}],\"schema_version\":\"source_asset_graph_v1\"}",
       "protocol21_lineage": {
         "physical_identity_origin": "v0_54_yaml_source_contract_resolved",
@@ -41566,14 +41646,15 @@
         "candidate_only",
         "requires_full_protocol21_replay"
       ],
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46",
-      "scenario_signature": "6f298e2995a044d9",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure",
+      "scenario_signature": "ff2837a366aef5c4",
       "seed": 46,
-      "semantic_fingerprint": "470b379a1ee1385d",
+      "semantic_fingerprint": "23e08202c0312111",
       "source_denominator_key": "jsplib_job_shop:swv15",
       "source_key": "jsplib_job_shop:swv15",
       "status": "pending_fresh_union_replay",
-      "structural_fingerprint": "166acf6ac81aa68d"
+      "structural_fingerprint": "06c8b72921745460",
+      "yaml_sha256": "8dad0bc18192c74d92076a895b6a3a66a9f7f726416eed55fddc8b31fd1090c1"
     },
     {
       "backend_kind": "jsplib_job_shop",
@@ -41717,6 +41798,7 @@
       "backend_kind": "jsplib_job_shop",
       "case_ledger": {
         "candidate_report": "v0_54_core_suite_resolved_source_contract",
+        "keep_rationale": "Replaces the same physical-source Core row with explicitly procedural earlier events so native recovery remains observable before optimistic scheduling completion; admission is established by current replay evidence.",
         "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn1\",\"sha256\":\"425ea308aa084d01a8e3d9fea62ca4fdb002c3a05ec963c6b4ee06212ad2dc1a\"}],\"schema_version\":\"source_asset_graph_v1\"}",
         "physical_source_lock": {
           "backend_kind": "jsplib_job_shop",
@@ -41729,14 +41811,25 @@
           "schema_version": "source_asset_graph_v1"
         },
         "schema_version": "0.1",
-        "source_denominator_key": "jsplib_job_shop:yn1"
+        "source_denominator_key": "jsplib_job_shop:yn1",
+        "timing_refinement": {
+          "kind": "procedural_early_event_exposure",
+          "max_tool_calls_per_tick": 8,
+          "optimistic_completion_ticks": 12,
+          "parent_file_sha256": "3c717c6f78506898229b57cb55fd8ee986e54f3173b6b0e1b558923835d591e1",
+          "parent_scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43",
+          "parent_scenario_signature": "1e6739be905ecf2e",
+          "source_independence_credit": false,
+          "standing_plan_batches_reserved": 1,
+          "trigger_shift_ticks": 97
+        }
       },
       "difficulty_level": "extreme",
       "difficulty_mode": "time_pressure",
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 474,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_yn1_dynamic_recovery_extreme_s43_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn1\",\"sha256\":\"425ea308aa084d01a8e3d9fea62ca4fdb002c3a05ec963c6b4ee06212ad2dc1a\"}],\"schema_version\":\"source_asset_graph_v1\"}",
       "protocol21_lineage": {
         "physical_identity_origin": "v0_54_yaml_source_contract_resolved",
@@ -41750,19 +41843,21 @@
         "candidate_only",
         "requires_full_protocol21_replay"
       ],
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43",
-      "scenario_signature": "1e6739be905ecf2e",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn1_dynamic_recovery_extreme_s43_early_exposure",
+      "scenario_signature": "3090392a2050886c",
       "seed": 43,
-      "semantic_fingerprint": "424da5f91cea7732",
+      "semantic_fingerprint": "fb2062d62467fa6d",
       "source_denominator_key": "jsplib_job_shop:yn1",
       "source_key": "jsplib_job_shop:yn1",
       "status": "pending_fresh_union_replay",
-      "structural_fingerprint": "1548cce1ad81d7de"
+      "structural_fingerprint": "76f885c5f3406ca3",
+      "yaml_sha256": "833a0acce52b7b3d59abb2d5bfef17f1024375db84b1954858d0262fff03c569"
     },
     {
       "backend_kind": "jsplib_job_shop",
       "case_ledger": {
         "candidate_report": "v0_54_core_suite_resolved_source_contract",
+        "keep_rationale": "Replaces the same physical-source Core row with explicitly procedural earlier events so native recovery remains observable before optimistic scheduling completion; admission is established by current replay evidence.",
         "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn2\",\"sha256\":\"275ab62557e37c0537255f832818967675857c827c9ae0f15480bc49325e46ce\"}],\"schema_version\":\"source_asset_graph_v1\"}",
         "physical_source_lock": {
           "backend_kind": "jsplib_job_shop",
@@ -41775,14 +41870,25 @@
           "schema_version": "source_asset_graph_v1"
         },
         "schema_version": "0.1",
-        "source_denominator_key": "jsplib_job_shop:yn2"
+        "source_denominator_key": "jsplib_job_shop:yn2",
+        "timing_refinement": {
+          "kind": "procedural_early_event_exposure",
+          "max_tool_calls_per_tick": 8,
+          "optimistic_completion_ticks": 12,
+          "parent_file_sha256": "15c8d368e14489edf5c65b7e7b9c255155d50a932475b97299c1951ed2a71f00",
+          "parent_scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45",
+          "parent_scenario_signature": "bc6ed7d7bcf5a7f5",
+          "source_independence_credit": false,
+          "standing_plan_batches_reserved": 1,
+          "trigger_shift_ticks": 97
+        }
       },
       "difficulty_level": "extreme",
       "difficulty_mode": "time_pressure",
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 474,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_yn2_dynamic_recovery_extreme_s45_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"yn2\",\"sha256\":\"275ab62557e37c0537255f832818967675857c827c9ae0f15480bc49325e46ce\"}],\"schema_version\":\"source_asset_graph_v1\"}",
       "protocol21_lineage": {
         "physical_identity_origin": "v0_54_yaml_source_contract_resolved",
@@ -41796,14 +41902,15 @@
         "candidate_only",
         "requires_full_protocol21_replay"
       ],
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45",
-      "scenario_signature": "bc6ed7d7bcf5a7f5",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_yn2_dynamic_recovery_extreme_s45_early_exposure",
+      "scenario_signature": "e366eb14de055c60",
       "seed": 45,
-      "semantic_fingerprint": "7670dea1ebf95edf",
+      "semantic_fingerprint": "d84945f11a2cbdf1",
       "source_denominator_key": "jsplib_job_shop:yn2",
       "source_key": "jsplib_job_shop:yn2",
       "status": "pending_fresh_union_replay",
-      "structural_fingerprint": "f7c7400f869ecab4"
+      "structural_fingerprint": "5e653b2b8e0734aa",
+      "yaml_sha256": "6852bc49769a39aeaf4e2465477bfedf965b90571bc96485e278cb65a8c73acd"
     },
     {
       "backend_kind": "dynasched_flexible_job_shop",

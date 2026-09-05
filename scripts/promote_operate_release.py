@@ -1377,11 +1377,14 @@ def _validate_parent_core_ancestry(
     parent: Mapping[str, Any],
     source_rows: list[dict[str, Any]],
     release_id: str,
+    core_refinements: object = (),
 ) -> None:
-    """Require every prior Core identity and stable field in the new source."""
+    """Retain prior Core rows, or explicitly replace them within the same source."""
 
     parent_release_id = parent.get("release_id")
     if release_id == RELEASE_ID and parent_release_id is None:
+        if core_refinements:
+            raise ValueError("parent_core_refinement_requires_parent")
         return
     if (
         not isinstance(parent_release_id, str)
@@ -1432,11 +1435,47 @@ def _validate_parent_core_ancestry(
         or len(source_by_identity) != len(source_rows)
     ):
         raise ValueError("parent_core_ancestry_mismatch")
+    if not isinstance(core_refinements, (list, tuple)):
+        raise ValueError("parent_core_refinement_invalid")
+    replacements: dict[tuple[str, str], tuple[str, str]] = {}
+    targets: set[tuple[str, str]] = set()
+    for entry in core_refinements:
+        if not (
+            isinstance(entry, Mapping)
+            and isinstance(entry.get("parent"), Mapping)
+            and isinstance(entry.get("replacement"), Mapping)
+            and isinstance(entry.get("reason"), str)
+            and entry["reason"].strip()
+        ):
+            raise ValueError("parent_core_refinement_invalid")
+        previous = _scenario_pair(entry["parent"])
+        replacement = _scenario_pair(entry["replacement"])
+        if (
+            not all(previous) or not all(replacement)
+            or previous not in parent_identities
+            or previous in source_by_identity
+            or replacement not in source_by_identity
+            or replacement in parent_identities
+            or previous in replacements or replacement in targets
+        ):
+            raise ValueError("parent_core_refinement_identity_invalid")
+        replacements[previous] = replacement
+        targets.add(replacement)
     for parent_row, identity in zip(parent_rows, parent_identities):
-        source_row = source_by_identity.get(identity)
+        source_row = source_by_identity.get(replacements.get(identity, identity))
+        retained_fields = PARENT_RETAINED_SCENARIO_FIELDS
+        if identity in replacements:
+            # Refinement may change stress, timing and difficulty, but cannot
+            # silently exchange physical sources or the native task family.
+            retained_fields = (
+                "physical_source_key", "source_denominator_key", "backend_kind",
+                "domain", "family",
+            )
+            if any(not parent_row.get(field) for field in retained_fields):
+                raise ValueError("parent_core_refinement_provenance_missing")
         if source_row is None or any(
             parent_row.get(field) != source_row.get(field)
-            for field in PARENT_RETAINED_SCENARIO_FIELDS
+            for field in retained_fields
         ):
             raise ValueError("parent_core_ancestry_mismatch")
 
@@ -2104,6 +2143,7 @@ def promote_release(
         parent=parent,
         source_rows=source["scenarios"],
         release_id=release_id,
+        core_refinements=source.get("core_refinements", []),
     )
     pipeline_manifest_path = pipeline_dir / "protocol2_v21_pipeline_manifest.json"
 

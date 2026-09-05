@@ -68,6 +68,6 @@ invariants:
 | Scorer / statistics | `evaluation/` |
 | Replay and release tools | `scripts/` |
 | New v0.61 scenario contracts | `scenarios/operate_v0_61_0/` |
-| Inherited active contracts | `scenarios/operate_v0_58_0/` (747 manifest-selected paths) |
+| Inherited active contracts | `scenarios/operate_v0_58_0/` (743 manifest-selected paths) |
 | Earlier active additions | `scenarios/operate_v0_59_0/` (8 paths), `scenarios/operate_v0_60_0/` (13 paths) |
 | Active release | `release/operate_v0_61_0/` |

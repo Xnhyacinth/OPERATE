@@ -23,6 +23,7 @@ from scripts.promote_operate_release import (
     _validate_backend_runtime_closure,
     _validate_candidate_closure_input,
     _validate_formal_run_contract_for_release,
+    _validate_parent_core_ancestry,
     _validate_scenario_yaml,
     _validated_relocation_identity_map,
     promote_release as _promote_release,
@@ -2160,6 +2161,47 @@ def test_promoter_rejects_new_release_without_parent_release(
             selection_policy="quality_core_v2_v059",
             core_settings_stamp="v0.59.0-settings",
         )
+
+
+@pytest.mark.parametrize("case", [
+    "valid", "missing", "cross_source", "cross_physical_source", "duplicate",
+    "unknown_parent", "missing_reason", "missing_replacement", "retained_parent",
+])
+def test_parent_core_explicit_refinement(tmp_path: Path, case: str) -> None:
+    paths = _fixture(tmp_path)
+    _bind_parent_release(paths)
+    parent = json.loads(paths["parent"].read_text())
+    row = json.loads(paths["source_suite"].read_text())["scenarios"][0]
+    replacement = {**row, "scenario_id": "refined", "scenario_signature": "new-signature"}
+    entry = {
+        "parent": {key: row[key] for key in ("scenario_id", "scenario_signature")},
+        "replacement": {key: replacement[key] for key in ("scenario_id", "scenario_signature")},
+        "reason": "Expose the seeded disruption before the reference completes.",
+    }
+    if case == "cross_source":
+        replacement["source_denominator_key"] = "different-source"
+    if case == "cross_physical_source":
+        replacement["physical_source_key"] = "different-source"
+    if case == "unknown_parent":
+        entry["parent"]["scenario_id"] = "unknown"
+    if case == "missing_reason":
+        entry.pop("reason")
+    if case == "missing_replacement":
+        entry["replacement"]["scenario_id"] = "missing"
+    refinements = [] if case == "missing" else [entry]
+    if case == "duplicate":
+        refinements.append(deepcopy(entry))
+    kwargs = dict(
+        parent_manifest_path=paths["parent"], parent=parent,
+        source_rows=[replacement, row] if case == "retained_parent" else [replacement],
+        release_id="operate_v0_59_0",
+        core_refinements=refinements,
+    )
+    if case == "valid":
+        _validate_parent_core_ancestry(**kwargs)
+    else:
+        with pytest.raises(ValueError, match="parent_core_"):
+            _validate_parent_core_ancestry(**kwargs)
 
 
 def test_promoter_rejects_parent_core_ancestry_drift(

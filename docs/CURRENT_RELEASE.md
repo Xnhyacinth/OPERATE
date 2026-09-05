@@ -11,9 +11,9 @@ not valid inputs to a current formal run.
 - seven domains: Autonomous Driving, Building Energy, Datacenter, Logistics,
   Microgrid, Power Grid, and Traffic
 - tracked source locks and compact Alibaba/DynaSched assets under `sources/`
-- 747 inherited scenario contracts under `scenarios/operate_v0_58_0/`, 8
+- 743 inherited scenario contracts under `scenarios/operate_v0_58_0/`, 8
   additions under `scenarios/operate_v0_59_0/`, and 13
-  additions under `scenarios/operate_v0_60_0/`, plus 1 under
+  additions under `scenarios/operate_v0_60_0/`, plus 5 under
   `scenarios/operate_v0_61_0/`, exactly as selected by the manifest
 - Core suite at `release/operate_v0_61_0/core_suite.json`
 - matching formal manifest at `release/operate_v0_61_0/manifest.json`
@@ -89,8 +89,10 @@ No hidden summarizer rewrites the authoritative history.
 
 ## Distribution
 
-The public GitHub repository and history-squashed `Xnhyacinth/OPERATE` Hugging
-Face dataset expose the current code/data surface. The downloader resolves the
+The public GitHub repository and `Xnhyacinth/OPERATE` Hugging Face dataset
+expose the current code/data surface. Commits and the changelog record updates;
+superseded scenario files and archives are absent from the current tree.
+The downloader resolves the
 current snapshot once and records its immutable HF commit in the local owner
 receipt; no earlier revision is a valid substitute. The setup script restores
 the runtime companion through the stable `operate_data/` install root; that

@@ -4,11 +4,12 @@
   "track": "efficiency_development",
   "formal_full_leaderboard_eligible": false,
   "parent_release_id": "operate_v0_61_0",
-  "parent_core_suite_sha256": "f499e704a049f3db6cc36f317773e3e5240925b5e56868bb8b8ed532ac89b801",
+  "parent_core_suite_sha256": "cb88ec7cccd3c77e70a828ed32b597d823548e074f254ea217627753dc99166c",
   "selection_algorithm": "quality_gated_adaptive_stratified_selection_v1",
   "selection_policy": {
     "eligibility": "exact Core-locked rows with complete identity and hash fields",
-    "domain_row_policy": "retain_all_rows_except_statistically_overrepresented_domains",
+    "domain_row_policy": "retain_all_rows_except_policy_overrepresented_domains",
+    "parameter_interpretation": "Core admission is the quality gate; the 2x threshold and three-row stratum limit are predeclared engineering compression heuristics, not quality thresholds or claims of statistical representativeness or optimal selection",
     "overrepresentation_rule": "domain_rows > 2 * median_domain_rows",
     "overrepresentation_multiplier": 2.0,
     "median_domain_rows": 19,
@@ -1588,16 +1589,16 @@
       "domain": "logistics",
       "family": "job_shop_dispatch",
       "horizon_ticks": 592,
-      "path": "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45.yaml",
+      "path": "scenarios/operate_v0_61_0/logistics/refined/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure.yaml",
       "physical_source_key": "{\"backend_kind\":\"jsplib_job_shop\",\"required_source_assets\":[{\"declared_path\":\"swv14\",\"sha256\":\"c8a4244770ccb4e452c45fde675866a38ff774e6881349249c77d45e57531d1c\"}],\"schema_version\":\"source_asset_graph_v1\"}",
-      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45",
-      "scenario_signature": "3a0c51fe7dff1657",
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv14_dynamic_recovery_extreme_s45_early_exposure",
+      "scenario_signature": "923c4089ae418ce0",
       "seed": 45,
-      "semantic_fingerprint": "7de1c33f4f24e725",
+      "semantic_fingerprint": "ee6edd23ba4af706",
       "source_denominator_key": "jsplib_job_shop:swv14",
       "status": "core_locked",
-      "structural_fingerprint": "4e8def55b84574b6",
-      "yaml_sha256": "629f8542506a747347784a3359bf5a56127b75d1d2640f4f73d1390b5d323727"
+      "structural_fingerprint": "7806d687438d11fc",
+      "yaml_sha256": "0c5dd05216917f4bb7ff4912e98ab1c524c24558c704f2aed63e2dd288678638"
     },
     {
       "backend_kind": "jsplib_job_shop",
@@ -3300,5 +3301,5 @@
       "yaml_sha256": "dd01fa59d8742a02cdee35a14473fae0b6f46963d270647bf8544f345900eb7f"
     }
   ],
-  "suite_sha256": "7d4568e70f9b4a9fe27fcc7cfde266bcd44d947ad6cf0fd7c2e137383216c3d9"
+  "suite_sha256": "de057b6d24162aaadd410bdf83adb6a317f99c1064a26577bf630bf2443e35ae"
 }

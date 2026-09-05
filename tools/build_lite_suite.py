@@ -188,7 +188,13 @@ def build_payload(core_path: Path) -> dict[str, Any]:
         "selection_algorithm": "quality_gated_adaptive_stratified_selection_v1",
         "selection_policy": {
             "eligibility": "exact Core-locked rows with complete identity and hash fields",
-            "domain_row_policy": "retain_all_rows_except_statistically_overrepresented_domains",
+            "domain_row_policy": "retain_all_rows_except_policy_overrepresented_domains",
+            "parameter_interpretation": (
+                "Core admission is the quality gate; the 2x threshold and three-row "
+                "stratum limit are predeclared engineering compression heuristics, "
+                "not quality thresholds or claims of statistical representativeness "
+                "or optimal selection"
+            ),
             "overrepresentation_rule": "domain_rows > 2 * median_domain_rows",
             "overrepresentation_multiplier": OVERREPRESENTATION_MULTIPLIER,
             "median_domain_rows": median_domain_rows,

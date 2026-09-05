@@ -12,9 +12,9 @@ The frozen `operate_v0_61_0` candidate closure consists of:
   dispositions with zero unresolved candidates;
 - `release/operate_v0_61_0/protocol21_source_suite.json` — the closed 769-row
   replay and provenance suite spanning 502 physical sources;
-- 747 inherited canonical contracts under `scenarios/operate_v0_58_0/`, 8
+- 743 inherited canonical contracts under `scenarios/operate_v0_58_0/`, 8
   additions under `scenarios/operate_v0_59_0/`, and 13 additions under
-  `scenarios/operate_v0_60_0/`, plus 1 under
+  `scenarios/operate_v0_60_0/`, plus 5 under
   `scenarios/operate_v0_61_0/`, exactly as selected by the v0.61 manifest;
 - `sources/locks/` — tracked CityLearn source locks;
 - `sources/alibaba/` — compact trace inputs used by released Datacenter rows;

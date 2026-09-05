@@ -4880,8 +4880,8 @@ def test_finalize_pipeline_writes_expected_artifacts_and_manifest(
 
     analysis_md = (output_dir / "ANALYSIS.md").read_text(encoding="utf-8")
     assert "Coverage & comparability" in analysis_md
-    assert "pass^k reliability" in analysis_md
-    assert "Overall pass^k success probability" in analysis_md
+    assert "Replicate execution completion" in analysis_md
+    assert "Fraction of planned cells with all replicates completed" in analysis_md
     assert "Intersection leaderboard" in analysis_md
 
 
@@ -6287,6 +6287,7 @@ def test_coverage_summary_counts_pass_k_units_when_configured() -> None:
 
 def test_resume_retries_treatment_bound_rows_with_missing_or_tampered_sidecars(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     row = _bind_formal_artifacts(
         _formally_eligible_protocol21_row(), tmp_path, key="resume-cell"
@@ -6324,10 +6325,17 @@ def test_resume_retries_treatment_bound_rows_with_missing_or_tampered_sidecars(
 
     assert mod._filter_pending_jobs([job], [row]) == []
 
+    portable = mod._portable_formal_result_paths([row], batch_root=tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    assert mod._filter_pending_jobs([job], portable, batch_root=tmp_path) == []
+
     provider_path = Path(row["trajectory_summary"]["provider_audit_artifact"]["path"])
     provider_payload = provider_path.read_bytes()
     provider_path.unlink()
     assert mod._filter_pending_jobs([job], [row]) == [job]
+    assert mod._filter_pending_jobs([job], portable, batch_root=tmp_path) == [job]
 
     provider_path.write_bytes(provider_payload)
     semantic_path = Path(row["trajectory_summary"]["semantic_ledger_artifact"]["path"])

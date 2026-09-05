@@ -13,7 +13,9 @@ from typing import Any
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
+from evaluation.trajectory_paths import trajectory_file as _trajectory_file  # noqa: E402
 from evaluation.action_taxonomy import CONTROL_TOOL_NAMES  # noqa: E402
+from evaluation.score_evidence import native_effect_is_scored  # noqa: E402
 from scripts.analyze_decision_impact import (  # noqa: E402
     _backend_from_row,  # noqa: E402
     _domain_from_row,  # noqa: E402
@@ -78,23 +80,6 @@ def _bump(bucket: dict[str, int], key: str, amount: int = 1) -> None:
 def _bump_all(buckets: list[dict[str, int]], key: str, amount: int = 1) -> None:
     for bucket in buckets:
         _bump(bucket, key, amount)
-
-
-def _trajectory_file(row: dict[str, Any]) -> Path | None:
-    traj = row.get("trajectory_summary") or {}
-    raw = traj.get("trajectory_path") if isinstance(traj, dict) else None
-    if not raw:
-        return None
-    base = Path(str(raw))
-    candidates = [base]
-    if not str(base).endswith(".trajectory.jsonl"):
-        candidates.append(Path(str(base) + ".trajectory.jsonl"))
-    if base.suffix:
-        candidates.append(base.with_suffix(".trajectory.jsonl"))
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
-    return candidates[1] if len(candidates) > 1 else base
 
 
 def _load_trajectory(path: Path) -> list[dict[str, Any]] | None:
@@ -483,13 +468,14 @@ def _audit_decision_impact(
 def _audit_trajectory(
     row: dict[str, Any],
     *,
+    batch_root: Path | None = None,
     domain: str,
     backend: str,
     buckets: list[dict[str, int]],
     examples: dict[str, list[dict[str, Any]]],
     evidence_gap_drilldown: dict[str, Any],
 ) -> None:
-    traj_path = _trajectory_file(row)
+    traj_path = _trajectory_file(row, batch_root=batch_root)
     entries = _load_trajectory(traj_path) if traj_path is not None else None
     if entries is None:
         _record_recipe(
@@ -568,6 +554,8 @@ def _audit_trajectory(
             missing_score = sorted(
                 ev for ev in evidence_ids if ev not in score_evidence
             )
+            if missing_score and native_effect_is_scored(result, entry, score_evidence):
+                missing_score = []
             if is_control and missing_score:
                 _record_evidence_gap_drilldown(
                     evidence_gap_drilldown,
@@ -749,7 +737,9 @@ def _status(totals: dict[str, int]) -> tuple[str, list[str], list[str]]:
     return "pass", [], []
 
 
-def build_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def build_report(
+    rows: list[dict[str, Any]], *, batch_root: Path | None = None
+) -> dict[str, Any]:
     ok_rows = [r for r in rows if r.get("status", "ok") == "ok"]
     by_domain: dict[str, dict[str, int]] = defaultdict(_empty_bucket)
     by_domain_backend: dict[str, dict[str, dict[str, int]]] = defaultdict(
@@ -781,6 +771,7 @@ def build_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
         )
         _audit_trajectory(
             row,
+            batch_root=batch_root,
             domain=domain,
             backend=backend,
             buckets=buckets,
@@ -931,7 +922,7 @@ def main() -> int:
     if not episodes_path.is_file():
         print(f"missing {episodes_path}", file=sys.stderr)
         return 1
-    report = build_report(_load_jsonl_rows(episodes_path))
+    report = build_report(_load_jsonl_rows(episodes_path), batch_root=out_dir)
     (out_dir / "agent_failure_recipes_report.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
     )

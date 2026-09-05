@@ -227,8 +227,10 @@ def validate_result(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _sumo_process_ids() -> tuple[set[int], bool]:
+def _sumo_process_ids(*, pgid: int | None = None) -> tuple[set[int], bool]:
+    """Inspect only SUMO children in the isolated episode's process group."""
     try:
+        owner_pgid = os.getpgrp() if pgid is None else pgid
         completed = subprocess.run(
             ["pgrep", "-f", r"(^|/)sumo( |$)"],
             check=False,
@@ -245,7 +247,17 @@ def _sumo_process_ids() -> tuple[set[int], bool]:
         for value in completed.stdout.split()
         if value.isdigit()
     }
-    return pids, True
+    owned: set[int] = set()
+    for pid in pids:
+        try:
+            if os.getpgid(pid) == owner_pgid:
+                owned.add(pid)
+        except ProcessLookupError:
+            # A process that exited between inventory and lookup is not orphaned.
+            continue
+        except OSError:
+            return set(), False
+    return owned, True
 
 
 def _run_episode(
@@ -408,7 +420,6 @@ def _run_episode_isolated(
     runner: Callable[..., dict[str, Any]] = _run_episode,
 ) -> dict[str, Any]:
     """Run one episode in a killable process so native calls obey the timeout."""
-    before_pids, before_check_available = _sumo_process_ids()
     context = mp.get_context("spawn")
     receive, send = context.Pipe(duplex=False)
     process = context.Process(
@@ -444,7 +455,9 @@ def _run_episode_isolated(
         receive.close()
 
     end_tree = implementation_identity(REPO_ROOT)["implementation_tree_sha256"]
-    after_pids, after_check_available = _sumo_process_ids()
+    # The worker calls setsid before launching native backends; its PID is the
+    # owned PGID even after worker exit. Other simultaneous runs are unrelated.
+    after_pids, after_check_available = _sumo_process_ids(pgid=process.pid)
     return {
         "status": "error",
         "agent_name": agent,
@@ -469,10 +482,8 @@ def _run_episode_isolated(
             "implementation_tree_stable": (
                 end_tree == expected_implementation_tree_sha256
             ),
-            "process_check_available": (
-                before_check_available and after_check_available
-            ),
-            "orphan_pids": sorted(after_pids.difference(before_pids)),
+            "process_check_available": after_check_available,
+            "orphan_pids": sorted(after_pids),
         },
     }
 

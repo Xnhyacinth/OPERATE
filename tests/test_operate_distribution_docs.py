@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tomllib
 from pathlib import Path
 
@@ -29,7 +30,14 @@ def test_documented_environment_and_formal_scope_are_current() -> None:
     assert "operate_v0_61_0" in contents
     assert "769" in contents
     assert "502" in contents
-    assert "747 inherited" in contents
+    core = json.loads(
+        (REPO_ROOT / "release/operate_v0_61_0/core_suite.json").read_text()
+    )
+    inherited = sum(
+        row["path"].startswith("scenarios/operate_v0_58_0/")
+        for row in core["scenarios"]
+    )
+    assert f"{inherited} inherited" in contents
     assert "scenarios/operate_v0_59_0/" in contents
     assert "scenarios/operate_v0_60_0/" in contents
     assert "scenarios/operate_v0_61_0/" in contents
