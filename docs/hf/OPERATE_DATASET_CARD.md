@@ -47,16 +47,16 @@ Lite and runtime artifacts. See the repository
 ## Benchmark scope
 
 The Core contains 769 scenarios over 502 physical sources and seven domains.
-The 159-row OPERATE-Lite subset contains exact Core-locked rows; Core admission
-supplies its quality gate. Selection has no hard-coded domain names or target total.
-It retains every row unless a domain has more than twice the median domain row
-count, then keeps up to three diverse rows per non-empty backend × family ×
-difficulty × horizon stratum. It preserves all 17 backends, 22 task families,
-four difficulty levels, six horizon buckets, and 88 physical sources. Lite is
-for development and ablations; it is not the Full/Core leaderboard denominator.
-The 2× threshold and three-row stratum limit are predeclared engineering
-compression heuristics, not additional quality thresholds or claims of
-statistical representativeness or optimal selection.
+OPERATE-Lite contains 154 exact Core-locked rows from 122 physical sources.
+It retains a 104-row coverage core over joint task classes, source families,
+event/control mechanisms, native scale and declared source variation. Complete
+rounds then increase independent-source support, adding 23, 14 and 13 rows until
+the first complete round inside the 150–200-row development budget. Every row
+has an inclusion/exclusion reason; there are no domain quotas or LLM-score-based
+selection. Core admission supplies the quality requirement, not the size budget.
+All 17 backends, 22 task families, four difficulty levels and six horizon buckets
+remain covered. This is a development/ablation subset, not a statistical sample,
+a mathematical minimum or the Full/Core leaderboard denominator.
 
 Primary results use `logical_persistent`. `realtime_persistent` is a separate
 supervision treatment for proactive monitoring, correct silence, latency,
@@ -67,7 +67,7 @@ cancellation, supersession, action lifecycle, and safety takeover.
 
 | File | Purpose |
 | --- | --- |
-| `MANIFEST.json` | Exact file hashes, release identity, and runtime bindings |
+| `MANIFEST.json` | Exact file hashes and required runtime/source bindings |
 | `release_manifest.json` | Promoted Core and scientific readiness contract |
 | `backend_runtime_closure.json` | Runtime packages, archives, links, and external sources |
 | `candidate_closure.json` | Terminal disposition of the candidate inventory |
@@ -75,7 +75,7 @@ cancellation, supersession, action lifecycle, and safety takeover.
 | `lite/test-00000-of-00001.parquet` | Self-contained Lite scenario contracts and suite metadata |
 | `parquet_manifest.json` | Full/Lite Parquet hashes, row counts, and source-suite bindings |
 | `backends.tar.zst` | Redistributable native runtime assets |
-| `formal_evidence.tar.zst` | Hash-bound replay evidence |
+| `formal_evidence.tar.zst` | Compact qualification metadata with original identity |
 
 Scenario contracts, Full/Lite definitions, source locks, evaluation code, and
 install tooling live in GitHub. This companion restores the large redistributed
@@ -83,8 +83,19 @@ assets omitted from Git. Assets distributed through their upstream repositories
 remain URL- and checksum-bound in the manifests.
 
 The Parquet configurations are independently browsable and reversible. Each
-row contains the exact scenario YAML plus its ordered suite metadata; see the
+row contains the exact scenario YAML and row metadata; shared suite metadata
+is stored once in the original Parquet file, not repeated in the viewer. See the
 [Parquet schema](https://github.com/Xnhyacinth/OPERATE/blob/main/docs/hf/PARQUET_SCHEMA.md).
+The 22 public columns omit redundant release IDs, track labels, and admission
+status fields. Full/Lite is identified by `subset`. Internal reference IDs remain
+inside the reversible JSON/YAML payloads and runtime manifests where required
+for exact reconstruction and cross-file checks; they are not selectable public
+tags. The private archive retains the full maintenance metadata and history.
+
+Historical qualification does not have to match the code of a new independent
+evaluation. Each run records its actual implementation; data integrity,
+same-run stability and compatible resume/merge remain mandatory. Maintenance
+uses affected-scope tests rather than automatically repeating full calibration.
 
 ```python
 from datasets import load_dataset

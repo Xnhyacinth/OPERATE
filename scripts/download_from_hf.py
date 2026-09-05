@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Download and verify the public OPERATE runtime companion.
 
-The default bundle complements an exact GitHub release tree with hash-bound
-formal evidence and native runtime assets.  It is not a portable Core and will
-fail closed unless the local release manifest and evaluation runtime match.
+The default bundle complements a source-bound GitHub checkout with hash-bound
+admission evidence and native runtime assets. It is not a portable Core and
+requires the exact local release manifest, source assets, and package locks.
+Compact admission evidence keeps its historical implementation identity;
+current evaluation runs record their own implementation identity separately.
 
 Authentication is optional for the public dataset. If present, ``HF_TOKEN`` or
 the token returned by ``huggingface_hub.get_token()`` is passed through.
@@ -951,12 +953,14 @@ def validate_runtime_bundle_compatibility(
     verify_implementation: bool = True,
     require_canonical_release_manifest: bool = True,
 ) -> None:
-    """Require an exact local release/runtime before installation or upload.
+    """Require exact release/data bindings before installation or upload.
 
     A final distribution candidate is intentionally staged outside the
     canonical release directory until its private CAS receipt exists. Upload
     preflight validates those bundled candidate bytes directly; installation
     continues to require the canonical local manifest by default.
+    Compact admission proofs retain their historical code identity; a new run
+    binds its current code separately rather than relabelling that old proof.
     """
     if verify_manifest(data_dir) != manifest:
         raise ValueError("runtime_bundle_manifest_argument_mismatch")
@@ -1009,7 +1013,13 @@ def validate_runtime_bundle_compatibility(
 
         live_tree = implementation_identity(repo_root)["implementation_tree_sha256"]
         if live_tree != expected_tree:
-            raise ValueError("local_implementation_tree_mismatch")
+            if not isinstance(bundled_release.get("formal_runtime_bundle"), dict):
+                raise ValueError("local_implementation_tree_mismatch")
+            print(
+                "INFO: admission evidence uses an earlier implementation; "
+                "current evaluation runs bind the installed code separately",
+                file=sys.stderr,
+            )
 
     _validate_bundle_source_asset_bindings(
         manifest,

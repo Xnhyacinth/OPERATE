@@ -290,12 +290,16 @@ def resolve_formal_manifest_slice(
             report.get("checks") or {}
         ).get("agentic_formal_runtime_bundle_valid"):
             raise ValueError("formal runtime bundle integrity mismatch")
-        live_tree = implementation_identity(repo_root)["implementation_tree_sha256"]
+        # Qualification artifacts retain their original implementation identity.
+        # A new run binds the current tree separately in its treatment hash.
+        qualification_tree = manifest.get("implementation_tree_sha256")
         if not (
-            manifest.get("implementation_tree_sha256") == live_tree
-            and readiness.get("implementation_tree_sha256") == live_tree
+            re.fullmatch(r"[0-9a-f]{64}", str(qualification_tree or ""))
+            and readiness.get("implementation_tree_sha256") == qualification_tree
         ):
-            raise ValueError("formal implementation tree mismatch")
+            raise ValueError("formal qualification implementation tree mismatch")
+        if readiness.get("scoring_version") != SCORING_VERSION:
+            raise ValueError("formal scoring version mismatch")
         replay_binding = manifest.get("protocol21_replay")
         if not isinstance(replay_binding, dict):
             raise ValueError("formal source suite binding missing")
@@ -406,10 +410,10 @@ def resolve_formal_manifest_slice(
     ):
         raise ValueError("formal readiness is not current and green")
 
-    live_tree = implementation_identity(repo_root)["implementation_tree_sha256"]
+    qualification_tree = manifest.get("implementation_tree_sha256")
     if not (
-        manifest.get("implementation_tree_sha256") == live_tree
-        and readiness.get("implementation_tree_sha256") == live_tree
+        re.fullmatch(r"[0-9a-f]{64}", str(qualification_tree or ""))
+        and readiness.get("implementation_tree_sha256") == qualification_tree
     ):
         raise ValueError("formal implementation tree mismatch")
 
@@ -479,7 +483,7 @@ def resolve_formal_manifest_slice(
     }
     if (
         pipeline_manifest.get("status") != "formal_evaluation_ready"
-        or pipeline_manifest.get("implementation_tree_sha256") != live_tree
+        or pipeline_manifest.get("implementation_tree_sha256") != qualification_tree
         or pipeline_manifest.get("source_suite_sha256") != declared_source_hash
         or tuple(stage_names) != FORMAL_CORE_PIPELINE_STAGES
         or set(stage_bindings) != set(FORMAL_CORE_PIPELINE_STAGES)
@@ -516,7 +520,7 @@ def resolve_formal_manifest_slice(
             and stage_hash == hashlib.sha256(stage_path.read_bytes()).hexdigest()
             and row.get("output_sha256") == stage_hash
             and row.get("return_code") == 0
-            and row.get("implementation_tree_sha256") == live_tree
+            and row.get("implementation_tree_sha256") == qualification_tree
             and row.get("core_release_pipeline_sha256") == release_pipeline_hash
             and isinstance(stage_artifact, dict)
             and stage_artifact.get("core_release_pipeline_sha256")
@@ -6624,7 +6628,7 @@ def _build_jobs(
                     )
                     jobs.append(job)
     jobs.sort(key=lambda job: -int(job.get("estimated_horizon_ticks", 0) or 0))
-    if path_mapping:
+    if path_mapping and not bool(getattr(args, "dry_run", False)):
         if bool(getattr(args, "formal_run", False)):
             path_mapping = canonicalize_repo_owned_paths(
                 path_mapping, repo_root=REPO_ROOT
@@ -7061,6 +7065,13 @@ def main() -> int:
             suite_manifest_sha256=suite_manifest_sha256,
             scenario_bodies=scenario_bodies,
         )
+        if args.dry_run:
+            # Inspect the actual working bytes without authorizing execution.
+            # Git metadata and every semantic/input check remain mandatory.
+            formal_reasons = [
+                reason for reason in formal_reasons
+                if reason != "formal_git_tree_must_be_clean"
+            ]
         if formal_reasons:
             print(
                 "[FATAL] formal Protocol-2.1 contract failed: "
@@ -7683,29 +7694,38 @@ def main() -> int:
             return 1
     out_dir.mkdir(parents=True, exist_ok=True)
     _run_lock_handle = None
-    if not args.dry_run:
+    write_run_state = not args.dry_run or existing_run_config is None
+    if write_run_state:
         try:
             _run_lock_handle = _acquire_output_dir_lock(out_dir)
-        except RuntimeError as exc:
+            if args.dry_run:
+                # A runner may have created its config since the earlier read.
+                latest_config = _load_run_config_fail_closed(out_dir / "run_config.json")
+                if latest_config is not None:
+                    reasons = _run_config_treatment_compatibility_reasons(latest_config, meta)
+                    if reasons:
+                        raise ValueError("incompatible existing run_config.json: " + ", ".join(reasons))
+                    write_run_state = False
+        except (RuntimeError, ValueError) as exc:
             print(f"[FATAL] {exc}", file=sys.stderr)
             return 1
-    (out_dir / "logs").mkdir(exist_ok=True)
-    if args.save_trajectories:
-        (out_dir / "trajectories").mkdir(exist_ok=True)
-    log_file = out_dir / "batch_run.log"
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+    if write_run_state:
+        (out_dir / "logs").mkdir(exist_ok=True)
+        if args.save_trajectories:
+            (out_dir / "trajectories").mkdir(exist_ok=True)
+        handlers.insert(0, logging.FileHandler(out_dir / "batch_run.log", encoding="utf-8"))
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.FileHandler(log_file, encoding="utf-8"),
-            logging.StreamHandler(sys.stdout),
-        ],
+        handlers=handlers,
         force=True,
     )
-    _atomic_write_text(
-        out_dir / "run_config.json",
-        json.dumps(meta, indent=2, ensure_ascii=False),
-    )
+    if write_run_state:
+        _atomic_write_text(
+            out_dir / "run_config.json",
+            json.dumps(meta, indent=2, ensure_ascii=False),
+        )
 
     jobs: list[dict[str, Any]] = []
     retry_payload: dict[str, Any] | None = None
@@ -7755,7 +7775,7 @@ def main() -> int:
 
     episodes_path = out_dir / "episodes.jsonl"
     prior_rows = (
-        _load_episodes_jsonl(episodes_path, repair_trailing=True) if args.resume else []
+        _load_episodes_jsonl(episodes_path, repair_trailing=not args.dry_run) if args.resume else []
     )
     if args.resume and jobs:
         before = len(jobs)

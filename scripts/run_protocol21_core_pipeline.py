@@ -722,7 +722,6 @@ def _load_resume_manifest(
     scenario_yaml_graph: list[dict[str, str]],
     implementation_tree_sha256: str,
     core_release_pipeline_sha256: str,
-    release_tooling_sha256: str | None,
     runtime_binding: dict[str, Any],
 ) -> dict[str, Any]:
     """Load a compatible stage checkpoint, failing closed on suite/code drift."""
@@ -739,8 +738,8 @@ def _load_resume_manifest(
         raise RuntimeError("resume manifest implementation tree mismatch")
     if payload.get("core_release_pipeline_sha256") != core_release_pipeline_sha256:
         raise RuntimeError("resume manifest core release pipeline mismatch")
-    if payload.get("release_tooling_sha256") != release_tooling_sha256:
-        raise RuntimeError("resume manifest release tooling mismatch")
+    # Publisher and maintenance tooling is provenance, not stage compatibility.
+    # Runtime, pipeline, source and output identities remain checked separately.
     if payload.get("runtime_binding") != runtime_binding:
         raise RuntimeError("resume manifest runtime binding mismatch")
     stages = payload.get("stages")
@@ -876,6 +875,7 @@ def main(argv: list[str] | None = None) -> int:
             return 3
     prior_stages: dict[str, dict[str, Any]] = {}
     prior_manifest_sha256: str | None = None
+    prior_release_tooling_sha256: str | None = None
     if args.resume:
         try:
             prior_manifest = _load_resume_manifest(
@@ -885,7 +885,6 @@ def main(argv: list[str] | None = None) -> int:
                 scenario_yaml_graph=plan["scenario_yaml_graph"],
                 implementation_tree_sha256=plan["implementation_tree_sha256"],
                 core_release_pipeline_sha256=plan["core_release_pipeline_sha256"],
-                release_tooling_sha256=plan.get("release_tooling_sha256"),
                 runtime_binding=plan["runtime_binding"],
             )
         except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
@@ -894,6 +893,7 @@ def main(argv: list[str] | None = None) -> int:
         prior_manifest_sha256 = hashlib.sha256(
             pipeline_manifest_path.read_bytes()
         ).hexdigest()
+        prior_release_tooling_sha256 = prior_manifest.get("release_tooling_sha256")
         prior_stages = {str(entry["name"]): entry for entry in prior_manifest["stages"]}
         print(f"RESUME_MANIFEST={pipeline_manifest_path}")
     manifest = {
@@ -911,6 +911,7 @@ def main(argv: list[str] | None = None) -> int:
         "resume": {
             "enabled": bool(args.resume),
             "prior_manifest_sha256": prior_manifest_sha256,
+            "prior_release_tooling_sha256": prior_release_tooling_sha256,
         },
         "stages": [],
     }

@@ -36,7 +36,7 @@ provenance ledger.
 
 ## Release status
 
-- twelve-stage replay and atomic promotion are complete;
+- the dataset's admission replay and atomic promotion are complete;
 - `formal_evaluation_ready=true`;
 - `formal_logical_persistent_evaluation_pending`;
 - `formal_realtime_persistent_evaluation_pending`;
@@ -46,6 +46,12 @@ provenance ledger.
 Agency positive controls and baseline smoke remain available as independent
 diagnostics. They are not release-admission gates, formal provider inputs, or
 members of the runtime evidence bundle.
+
+Qualification records retain the code identity under which they were produced.
+Later maintenance fixes use [affected-scope validation](VALIDATION_POLICY.md),
+not automatic whole-suite requalification. New evaluations record their actual
+current code; historical proof is not relabelled as a new execution. Integrity
+diagnostics expose any difference between these two identities.
 
 Interrupted or completed results from an earlier package name, release ID,
 implementation tree, prompt/context profile, or provider binding are excluded.
@@ -97,11 +103,11 @@ current snapshot once and records its immutable HF commit in the local owner
 receipt; no earlier revision is a valid substitute. The setup script restores
 the runtime companion through the stable `operate_data/` install root; that
 directory name is not a release identity.
-Its `MANIFEST.json` and the current release manifest
-must bind the installed bytes, implementation tree, and Git commit before a
-formal shard starts.
+Its `MANIFEST.json` and the dataset manifest bind the installed bytes and
+qualification snapshot. Each formal shard separately records its actual current
+implementation and Git commit; qualification code need not be identical.
 
-`OPERATE-Lite` is a separate policy-derived 159-row efficiency/development track. It preserves
+`OPERATE-Lite` is a separate 154-row, 122-source efficiency/development track. It preserves
 all released backends and task families, but its diversity-weighted scores are
 not interchangeable with the 769-row Full leaderboard.
 

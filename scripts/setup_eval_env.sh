@@ -68,6 +68,29 @@ done
 "$PY" -c "from or_gym.envs.supply_chain.inventory_management import InvManagementLostSalesEnv"
 ok "or_gym"
 
+log "verify native SUMO executable"
+"$PY" - <<'SUMO_PREFLIGHT'
+import subprocess
+import sys
+
+from core.sidecar.sumo_sidecar import _resolve_traci_launch
+
+try:
+    binary, environment = _resolve_traci_launch()
+    print(f"  SUMO executable: {binary}", flush=True)
+    completed = subprocess.run(
+        [binary, "--version"], env=environment, check=True,
+        capture_output=True, text=True, timeout=30,
+    )
+except (OSError, RuntimeError, subprocess.SubprocessError) as exc:
+    print(f"FATAL: native SUMO preflight failed: {exc}", file=sys.stderr)
+    if getattr(exc, "stderr", None):
+        print(exc.stderr, file=sys.stderr)
+    raise SystemExit(1) from exc
+version_lines = (completed.stdout or completed.stderr).strip().splitlines()
+print(f"  SUMO version: {version_lines[0] if version_lines else '(no version output)'}")
+SUMO_PREFLIGHT
+
 if [ "$SKIP_DATA" -eq 1 ]; then
 	log "skip-data: stopping after deps"
 	exit 0

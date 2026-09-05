@@ -37,7 +37,7 @@ from runner import EVALUATION_IMPLEMENTATION_FINGERPRINT
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_DIR = REPO_ROOT / "release" / "operate_v0_61_0"
+RELEASE_DIR = verify_mod.DEFAULT_RELEASE
 
 
 def test_dimension_applicability_contract_is_canonical_and_fail_closed() -> None:
@@ -1406,7 +1406,7 @@ def test_active_release_portable_integrity() -> None:
     scenario_count = _authoritative_release_scenario_count()
 
     assert report["ok"], report["issues"]
-    assert report["release_id"] == "operate_v0_61_0"
+    assert report["release_id"] == RELEASE_DIR.name
     assert report["core"]["len_scenarios"] == scenario_count
     assert report["verification_mode"] == "portable"
 

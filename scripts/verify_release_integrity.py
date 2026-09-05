@@ -521,10 +521,20 @@ def _formal_runtime_identity(
         ),
     }
     runtime_evidence = runtime.get("public_evidence") or {}
+    qualification_tree = manifest.get("implementation_tree_sha256")
+    if "qualification_implementation_tree_sha256" in completion:
+        execution = completion.get("runtime_identity")
+        if (
+            completion["qualification_implementation_tree_sha256"] != qualification_tree
+            or not isinstance(execution, dict)
+            or not _valid_sha256(execution.get("implementation_tree_sha256"))
+        ):
+            return {}, False
+        identity["implementation_tree_sha256"] = execution["implementation_tree_sha256"]
     internally_bound = bool(
         runtime.get("release_id") == identity["release_id"]
         and runtime.get("implementation_tree_sha256")
-        == identity["implementation_tree_sha256"]
+        == qualification_tree
         and runtime.get("core_release_pipeline_sha256")
         == identity["formal_core_release_pipeline_sha256"]
         and runtime.get("release_tooling_sha256")
@@ -2436,11 +2446,8 @@ def _agentic_formal_checks(
     if runtime_bundle_required:
         pipeline_ok = bool(pipeline_ok and runtime_bundle_ok)
 
-    live_release_pipeline_sha256 = (
-        None
-        if portable
-        else implementation_identity(artifact_root).get("core_release_pipeline_sha256")
-    )
+    # These hashes attest the qualification that was actually run. New runs
+    # record their own current implementation; never relabel historical proof.
     release_pipeline_ok = bool(
         _valid_sha256(release_pipeline_sha256)
         and pipeline_artifacts.get("core_release_pipeline_sha256")
@@ -2448,7 +2455,6 @@ def _agentic_formal_checks(
         and replay.get("core_release_pipeline_sha256") == release_pipeline_sha256
         and pipeline.get("core_release_pipeline_sha256") == release_pipeline_sha256
         and readiness.get("core_release_pipeline_sha256") == release_pipeline_sha256
-        and live_release_pipeline_sha256 == release_pipeline_sha256
     )
     if portable:
         release_pipeline_ok = bool(
@@ -2460,7 +2466,7 @@ def _agentic_formal_checks(
         )
     elif public_evidence_fallback:
         release_pipeline_ok = bool(
-            live_release_pipeline_sha256 == release_pipeline_sha256
+            _valid_sha256(release_pipeline_sha256)
             and pipeline_artifacts.get("core_release_pipeline_sha256")
             == release_pipeline_sha256
             and replay.get("core_release_pipeline_sha256") == release_pipeline_sha256
@@ -2489,14 +2495,8 @@ def _agentic_formal_checks(
         )
 
     tree = manifest.get("implementation_tree_sha256")
-    live_tree = (
-        None
-        if portable
-        else implementation_identity(artifact_root)["implementation_tree_sha256"]
-    )
     tree_ok = bool(
         _valid_sha256(tree)
-        and live_tree == tree
         and core.get("implementation_tree_sha256") == tree
         and readiness.get("implementation_tree_sha256") == tree
         and pipeline.get("implementation_tree_sha256") == tree
@@ -2516,8 +2516,7 @@ def _agentic_formal_checks(
         )
     elif public_evidence_fallback:
         tree_ok = bool(
-            live_tree == tree
-            and _valid_sha256(tree)
+            _valid_sha256(tree)
             and core.get("implementation_tree_sha256") == tree
             and replay.get("implementation_tree_sha256") == tree
         )
@@ -2592,6 +2591,14 @@ def _agentic_formal_checks(
         and replay_complete
     )
     published_evidence_ok = False
+    # Completed runs may use newer code than the immutable qualification. The
+    # completion identity and both result trees must agree on that run tree.
+    published_tree = tree
+    completion = manifest.get("formal_evaluation_completion")
+    if isinstance(completion, dict) and "qualification_implementation_tree_sha256" in completion:
+        execution_identity, execution_valid = _formal_runtime_identity(release, manifest)
+        if execution_valid:
+            published_tree = execution_identity["implementation_tree_sha256"]
     if isinstance(formal_evidence, dict):
         logical_binding = formal_evidence.get("logical_batch_manifest")
         realtime_binding = formal_evidence.get("realtime_batch_manifest")
@@ -2617,7 +2624,7 @@ def _agentic_formal_checks(
                 and _logical_published_manifest_valid(
                     logical_payload,
                     manifest_path=logical_path,
-                    tree=tree,
+                    tree=published_tree,
                     suite_sha256=expected_suite_sha256,
                     suite_rows=rows,
                     logical_contract=logical_contract,
@@ -2625,7 +2632,7 @@ def _agentic_formal_checks(
                 and _realtime_published_manifest_valid(
                     realtime_payload,
                     manifest_path=realtime_path,
-                    tree=tree,
+                    tree=published_tree,
                     suite_sha256=expected_suite_sha256,
                     suite_rows=rows,
                     run_contract=run_contract,
@@ -2997,11 +3004,22 @@ def build_protocol21_core_integrity_report(
         portable=portable,
         artifact_root=repo,
     )
+    live_identity = {} if portable else implementation_identity(repo)
     diagnostics = {
+        "qualification_implementation_tree_sha256": manifest.get("implementation_tree_sha256"),
+        "live_implementation_tree_sha256": live_identity.get("implementation_tree_sha256"),
+        "live_implementation_matches_qualification": (
+            None if portable else live_identity.get("implementation_tree_sha256")
+            == manifest.get("implementation_tree_sha256")
+        ),
+        "live_core_pipeline_matches_qualification": (
+            None if portable else live_identity.get("core_release_pipeline_sha256")
+            == manifest.get("core_release_pipeline_sha256")
+        ),
         "live_release_tooling_matches_promoted_snapshot": (
             None
             if portable
-            else implementation_identity(repo).get("release_tooling_sha256")
+            else live_identity.get("release_tooling_sha256")
             == manifest.get("release_tooling_sha256")
         )
     }
@@ -3181,8 +3199,12 @@ def build_protocol21_core_integrity_report(
         "issues": issues,
         "verification_mode": "portable" if portable else "full",
         "runtime_evidence_bytes_verified": runtime_evidence_verified,
+        "runtime_evidence_implementation_tree_sha256": (
+            manifest.get("implementation_tree_sha256") if runtime_evidence_verified else None
+        ),
         "portable_formal_input_ready": portable_formal_input_ready,
         "formal_run_ready": formal_run_ready,
+        "formal_run_ready_scope": "new_treatment_with_live_runtime_preflight",
         "ok": ok,
     }
 

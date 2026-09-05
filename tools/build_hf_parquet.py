@@ -11,6 +11,13 @@ from typing import Any
 
 
 EXPORT_SCHEMA_VERSION = "operate-hf-parquet-v1"
+PUBLIC_EXPORT_SCHEMA_VERSION = "operate-hf-parquet-v2"
+_PUBLIC_OMITTED_COLUMNS = {
+    "release_id", "suite_id", "track", "is_official_full_denominator",
+    "declared_leaderboard_eligible", "selection_algorithm", "status",
+    "core_disposition", "construct_contract",
+    "suite_template_json",
+}
 DEFAULT_RELEASE_DIR = Path("release/operate_v0_61_0")
 PARQUET_NAME = "test-00000-of-00001.parquet"
 _SCENARIOS_SENTINEL = {"__operate_scenarios__": True}
@@ -221,15 +228,26 @@ def _write_parquet(
     output_path: Path,
     *,
     subset: str,
+    public_metadata: bool = False,
 ) -> None:
     pa, pq = _require_pyarrow()
-    schema = _arrow_schema(pa).with_metadata(
+    version = PUBLIC_EXPORT_SCHEMA_VERSION if public_metadata else EXPORT_SCHEMA_VERSION
+    schema = _arrow_schema(pa)
+    if public_metadata:
+        schema = pa.schema([field for field in schema if field.name not in _PUBLIC_OMITTED_COLUMNS])
+        records = [{**record, "export_schema_version": version} for record in records]
+    schema = schema.with_metadata(
         {
-            b"operate.export_schema_version": EXPORT_SCHEMA_VERSION.encode(),
+            b"operate.export_schema_version": version.encode(),
             b"operate.subset": subset.encode(),
             b"operate.rebuild_contract": b"suite-template+ordered-row-json+yaml-bytes",
         }
     )
+    if public_metadata:
+        schema = schema.with_metadata({
+            **(schema.metadata or {}),
+            b"operate.suite_template_json": _single_value(records, "suite_template_json").encode("utf-8"),
+        })
     table = pa.Table.from_pylist(records, schema=schema)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(
@@ -268,6 +286,7 @@ def build_exports(
     output_dir: Path,
     *,
     release_dir: Path = DEFAULT_RELEASE_DIR,
+    public_metadata: bool = False,
 ) -> dict[str, Any]:
     """Build deterministic Full/Lite Parquet files and their integrity manifest."""
 
@@ -283,7 +302,7 @@ def build_exports(
     for subset, suite_path in (("full", core_path), ("lite", lite_path)):
         records, suite = _records_for_suite(repo_root, suite_path, subset=subset)
         output_path = output_dir / subset / PARQUET_NAME
-        _write_parquet(records, output_path, subset=subset)
+        _write_parquet(records, output_path, subset=subset, public_metadata=public_metadata)
         artifacts[subset] = {
             "path": output_path.relative_to(output_dir).as_posix(),
             "sha256": _sha256_bytes(output_path.read_bytes()),
@@ -295,12 +314,17 @@ def build_exports(
                 {row["physical_source_key"] for row in suite["scenarios"]}
             ),
         }
+        if public_metadata:
+            artifacts[subset].pop("suite_id")
 
     manifest = {
         "schema_version": EXPORT_SCHEMA_VERSION,
         "release_id": str(full["release_id"]),
         "artifacts": artifacts,
     }
+    if public_metadata:
+        manifest["schema_version"] = PUBLIC_EXPORT_SCHEMA_VERSION
+        manifest.pop("release_id")
     manifest_path = output_dir / "parquet_manifest.json"
     manifest_path.write_bytes(_pretty_json_bytes(manifest))
     return manifest
@@ -350,15 +374,23 @@ def rebuild_parquet(parquet_path: Path, output_dir: Path) -> Path:
     """Rebuild the exact suite JSON and scenario YAML tree from one Parquet file."""
 
     _, pq = _require_pyarrow()
-    records = pq.read_table(parquet_path).to_pylist()
+    table = pq.read_table(parquet_path)
+    records = table.to_pylist()
     if not records:
         raise ValueError("Parquet contains no rows")
-    if _single_value(records, "export_schema_version") != EXPORT_SCHEMA_VERSION:
+    version = _single_value(records, "export_schema_version")
+    if version not in {EXPORT_SCHEMA_VERSION, PUBLIC_EXPORT_SCHEMA_VERSION}:
         raise ValueError("unsupported Parquet export schema")
     subset = _single_value(records, "subset")
     if subset not in {"full", "lite"}:
         raise ValueError(f"unsupported subset: {subset!r}")
-    template_json = _single_value(records, "suite_template_json")
+    if version == PUBLIC_EXPORT_SCHEMA_VERSION:
+        template_bytes = (table.schema.metadata or {}).get(b"operate.suite_template_json")
+        if not template_bytes:
+            raise ValueError("public suite template metadata missing")
+        template_json = template_bytes.decode("utf-8")
+    else:
+        template_json = _single_value(records, "suite_template_json")
     expected_suite_sha256 = _single_value(records, "suite_file_sha256")
 
     indices = [int(record["row_index"]) for record in records]
@@ -375,6 +407,8 @@ def rebuild_parquet(parquet_path: Path, output_dir: Path) -> Path:
         if not isinstance(row, dict):
             raise ValueError("scenario_metadata_json must decode to an object")
         for field in _ROW_FIELDS:
+            if version == PUBLIC_EXPORT_SCHEMA_VERSION and field in _PUBLIC_OMITTED_COLUMNS:
+                continue
             expected = int(record[field]) if field in {"horizon_ticks", "seed"} else record[field]
             if row.get(field) != expected:
                 raise ValueError(
@@ -416,6 +450,8 @@ def main() -> int:
     export.add_argument("--repo-root", type=Path, default=Path("."))
     export.add_argument("--release-dir", type=Path, default=DEFAULT_RELEASE_DIR)
     export.add_argument("--output-dir", type=Path, required=True)
+    export.add_argument("--public-metadata", action="store_true",
+                        help="omit redundant internal display columns; preserve reversible payloads")
 
     rebuild = subparsers.add_parser("rebuild", help="restore suite JSON and YAML")
     rebuild.add_argument("--parquet", type=Path, required=True)
@@ -427,6 +463,7 @@ def main() -> int:
             args.repo_root.resolve(),
             args.output_dir,
             release_dir=args.release_dir,
+            public_metadata=args.public_metadata,
         )
         print(json.dumps(manifest, indent=2, ensure_ascii=False))
         return 0

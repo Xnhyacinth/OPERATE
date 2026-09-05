@@ -3023,7 +3023,8 @@ def main(argv: list[str] | None = None) -> int:
                 )
         formal = load_formal_contract(args.formal_manifest)
         if not args.finalize_only:
-            _require_clean_git_tree()
+            if not args.dry_run:
+                _require_clean_git_tree()
             if not args.dry_run and not os.getenv(args.api_key_env):
                 raise ValueError(
                     f"formal provider credential is missing: {args.api_key_env}"
@@ -3101,8 +3102,8 @@ def main(argv: list[str] | None = None) -> int:
             safety_profile_identity(formal_safety_profile),
         )
         tree_sha = implementation_identity(REPO_ROOT)["implementation_tree_sha256"]
-        if tree_sha != formal["implementation_tree_sha256"]:
-            raise ValueError("formal implementation tree mismatch")
+        # The release tree identifies immutable qualification, not this new
+        # provider run. Its actual current tree is bound below and on resume.
         reasoning_effort = _effective_reasoning_effort(args.reasoning_effort)
         provider_transport = _resolve_formal_provider_transport(
             provider=args.provider,

@@ -2390,15 +2390,28 @@ def _resolve_formal_evidence(
 ) -> tuple[Path, str, dict[str, str], dict[str, dict[str, Any]]]:
     live_identity = implementation_identity(repo_root)
     live_tree = live_identity["implementation_tree_sha256"]
-    if release_manifest.get("implementation_tree_sha256") != live_tree:
+    compact_proof = isinstance(release_manifest.get("formal_runtime_bundle"), dict)
+    if not _is_sha256(release_manifest.get("implementation_tree_sha256")):
+        raise ValueError("release_implementation_tree_mismatch")
+    if not compact_proof and release_manifest.get("implementation_tree_sha256") != live_tree:
         raise ValueError("release_implementation_tree_mismatch")
     live_pipeline_hash = live_identity.get("core_release_pipeline_sha256")
     if not (
         isinstance(live_pipeline_hash, str)
         and len(live_pipeline_hash) == 64
-        and release_manifest.get("core_release_pipeline_sha256") == live_pipeline_hash
+        and _is_sha256(release_manifest.get("core_release_pipeline_sha256"))
+        and (compact_proof or release_manifest.get("core_release_pipeline_sha256") == live_pipeline_hash)
     ):
         raise ValueError("release_core_pipeline_mismatch")
+    if compact_proof and (
+        release_manifest["implementation_tree_sha256"] != live_tree
+        or release_manifest["core_release_pipeline_sha256"] != live_pipeline_hash
+    ):
+        print(
+            "INFO: packaging immutable admission evidence with newer code; "
+            "current evaluation runs bind their own implementation identity",
+            file=sys.stderr,
+        )
 
     formal_contract = release_manifest.get("formal_batch_contract")
     formal_evidence = release_manifest.get("formal_evidence")
@@ -2803,6 +2816,7 @@ def build_operate_bundle(
         "source_assets": source_assets if include_backends else {},
     }
     if versionless_filenames:
+        manifest.pop("release_version")
         manifest["distribution_profile"] = "public_runtime_companion_v1"
     if include_backends:
         manifest["backend_archive"] = archive_name
