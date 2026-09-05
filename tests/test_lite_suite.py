@@ -58,6 +58,8 @@ def test_committed_lite_suite_is_deterministic_and_covers_runtime_strata() -> No
                 assert row["new_feature_ids"]
             elif row["selection_stage"] == "small_domain_retention":
                 assert row["reason"] == "preserves_admitted_small_domain_variation"
+            elif row["selection_stage"] == "datacenter_difficulty_retention":
+                assert row["reason"] == "preserves_admitted_datacenter_medium_high"
             else:
                 assert row["selection_stage"] == "diversity_enrichment"
                 assert row["new_source_support_feature_ids"]
