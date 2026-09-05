@@ -29,6 +29,10 @@ def test_public_downloader_accepts_exact_m5_runtime_assets() -> None:
         "works/M5/sales_train_evaluation.csv",
         "works/M5/sell_prices.csv",
     }
+    assert spec["metadata"] == {
+        "works/M5/source_lock.json":
+        "271c94965d27bf74b0d66ba89e71b5bc239ddc5192ce99305bbac256a848a9b3"
+    }
 
 
 def test_m5_bundle_contract_requires_both_source_roles_and_exact_paths() -> None:
@@ -45,9 +49,16 @@ def test_m5_bundle_contract_requires_both_source_roles_and_exact_paths() -> None
         }
         for index, path in enumerate(sorted(spec["paths"]), start=1)
     }
+    files["works/M5/source_lock.json"] = {
+        "archive_path": "backends/release_source_assets/m5/works/M5/source_lock.json",
+        "delivery": "bundle",
+        "sha256": "271c94965d27bf74b0d66ba89e71b5bc239ddc5192ce99305bbac256a848a9b3",
+        "roles": ["metadata"],
+        "scenario_ids": ["scenario-1"],
+    }
     contract = {
         "n_scenarios": 1,
-        "n_files": 3,
+        "n_files": 4,
         "delivery": "bundle",
         "scenario_ids": ["scenario-1"],
         "redistribution": spec["redistribution"],
@@ -58,7 +69,7 @@ def test_m5_bundle_contract_requires_both_source_roles_and_exact_paths() -> None
         download_from_hf._source_asset_file_rows(
             {"source_assets": {"m5": contract}}
         )
-    ) == spec["paths"]
+    ) == spec["paths"] | {"works/M5/source_lock.json"}
 
     files[next(iter(files))]["roles"] = ["derivation_input"]
     with pytest.raises(ValueError, match="m5_source_asset_contract_invalid"):

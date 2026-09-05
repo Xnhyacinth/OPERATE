@@ -115,6 +115,9 @@ owner receipt records the resolved immutable HF commit. Pass
 
 The runtime bundle includes only the three byte-exact M5 tables referenced by
 Core. Their hashes and 81 scenario bindings are recorded in `MANIFEST.json`.
+The original `source_lock.json` is carried separately as metadata, without
+adding a fourth physical input. NGSIM bundles also retain their original
+`checksums.sha256` lists for native verification.
 On 2026-09-04, the dataset publisher confirmed that it holds permission to
 redistribute these files. The M5 Competition Rules remain applicable; OR-Gym
 code remains MIT-licensed. No `M5_ZIP` or `KAGGLE_TOKEN` is required for the
@@ -134,6 +137,8 @@ The setup script acquires the remaining declared sources and runs one
 `wait_only` episode per released backend. Required-source and smoke failures
 are fatal. This validates runtime/evidence integrity, not model performance;
 model evaluation additionally requires your model API credentials.
+Unanswered passive-baseline alarms remain reported as policy warnings, not
+successful interventions; default strict evaluation is unchanged.
 
 See the GitHub [README](https://github.com/Xnhyacinth/OPERATE#readme) for a
 baseline episode and Lite command, and the

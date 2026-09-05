@@ -77,6 +77,10 @@ _EXACT_SOURCE_ASSET_SPECS = {
             "works/M5/sales_train_evaluation.csv",
             "works/M5/sell_prices.csv",
         },
+        "metadata": {
+            "works/M5/source_lock.json":
+            "271c94965d27bf74b0d66ba89e71b5bc239ddc5192ce99305bbac256a848a9b3",
+        },
         "roles": ["derivation_input", "runtime_input"],
         "redistribution": {
             "dataset": "m5_forecasting_accuracy",
@@ -1150,7 +1154,7 @@ def _source_asset_file_rows(manifest: dict[str, Any]) -> dict[str, dict[str, Any
                 raise ValueError(error)
         else:
             spec = _EXACT_SOURCE_ASSET_SPECS[source_id]
-            if set(files) != set(spec["paths"]):
+            if set(files) != set(spec["paths"]) | set(spec.get("metadata", {})):
                 raise ValueError(error)
             if contract.get("delivery") != spec["delivery"]:
                 raise ValueError(error)
@@ -1174,7 +1178,14 @@ def _source_asset_file_rows(manifest: dict[str, Any]) -> dict[str, dict[str, Any
             trusted_path = (
                 _is_trusted_dynasched_asset_path(install)
                 if source_id == "dynasched"
-                else install_path in _EXACT_SOURCE_ASSET_SPECS[source_id]["paths"]
+                else install_path in (
+                    _EXACT_SOURCE_ASSET_SPECS[source_id]["paths"]
+                    | set(_EXACT_SOURCE_ASSET_SPECS[source_id].get("metadata", {}))
+                )
+            )
+            metadata_digest = (
+                None if source_id == "dynasched"
+                else _EXACT_SOURCE_ASSET_SPECS[source_id].get("metadata", {}).get(install_path)
             )
             if not (
                 isinstance(install_path, str)
@@ -1188,14 +1199,18 @@ def _source_asset_file_rows(manifest: dict[str, Any]) -> dict[str, dict[str, Any
                 and archive == expected_archive
                 and archive_path not in archive_paths
                 and re.fullmatch(r"[0-9a-f]{64}", digest) is not None
+                and (metadata_digest is None or digest == metadata_digest)
                 and isinstance(roles, list)
                 and roles == sorted(set(roles))
                 and roles
                 and (
                     source_id == "dynasched"
                     or roles
-                    == _EXACT_SOURCE_ASSET_SPECS[source_id].get(
-                        "roles", ["runtime_input"]
+                    == (
+                        ["metadata"] if metadata_digest is not None
+                        else _EXACT_SOURCE_ASSET_SPECS[source_id].get(
+                            "roles", ["runtime_input"]
+                        )
                     )
                 )
                 and (
@@ -2090,6 +2105,38 @@ def _formal_install_replay_lock(
         handle.close()
 
 
+def _validate_m5_source_metadata(
+    source: Path, rows: dict[str, dict[str, Any]],
+) -> None:
+    """Keep native M5 lock semantics separate from its three physical inputs."""
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    required = {
+        "source_id": "m5_forecasting",
+        "source_url": "https://www.kaggle.com/competitions/m5-forecasting-accuracy",
+        "license": "Kaggle competition rules",
+        "inventory_environment_id": "InvManagement-v1",
+        "package_version": "or-gym==0.5.0",
+    }
+    if not (
+        isinstance(payload, dict)
+        and all(payload.get(key) == value for key, value in required.items())
+        and payload.get("license_verified") is True
+        and payload.get("terms_accepted") is True
+        and re.fullmatch(
+            r"sha256:[0-9a-f]{64}", str(payload.get("license_or_terms_sha256") or "")
+        ) is not None
+        and payload.get("files") == {
+            path: rows[path]["sha256"]
+            for path in _EXACT_SOURCE_ASSET_SPECS["m5"]["paths"]
+        }
+        and payload.get("orgym_runtime_source") == {
+            "commit": "0b18d16e569e2db70e83f09e867b53bdb4b87298",
+            "license": "MIT",
+        }
+    ):
+        raise ValueError("m5_source_lock_metadata_invalid")
+
+
 def install_bundle_source_assets(
     data_dir: Path,
     manifest: dict[str, Any],
@@ -2145,6 +2192,8 @@ def install_bundle_source_assets(
             verified_blobs[source] = observed
         if observed != expected:
             raise ValueError(f"bundle_source_asset_hash_mismatch:{install_path}")
+        if install_path in _EXACT_SOURCE_ASSET_SPECS["m5"]["metadata"]:
+            _validate_m5_source_metadata(source, rows)
         if destination.exists() or destination.is_symlink():
             if not destination.is_file() or destination.is_symlink():
                 raise ValueError(f"bundle_source_asset_target_invalid:{install_path}")

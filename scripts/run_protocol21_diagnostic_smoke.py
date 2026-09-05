@@ -207,12 +207,38 @@ def _strict_errors(result: dict[str, Any]) -> list[str]:
     return errors
 
 
-def validate_result(result: dict[str, Any]) -> dict[str, Any]:
+def validate_result(
+    result: dict[str, Any], *, check_profile: str = "strict",
+) -> dict[str, Any]:
     """Return machine-readable smoke checks for one episode result."""
     errors = _strict_errors(result)
+    strict_errors = list(errors)
+    warnings: list[str] = []
+    if check_profile not in {"strict", "runtime_installation"}:
+        raise ValueError(f"unknown check profile: {check_profile}")
+    if check_profile == "runtime_installation":
+        if result.get("agent_name") != "wait_only":
+            raise ValueError("runtime_installation requires wait_only")
+        terminal = (result.get("trajectory_summary") or {}).get("terminal_integrity")
+        if (
+            result.get("status") == "ok"
+            and isinstance(terminal, dict)
+            and terminal.get("release_ready") is False
+            and terminal.get("unresolved_pending_actions") == {}
+            and terminal.get("terminal_feedback_reasons") == []
+            and isinstance(terminal.get("unanswered_interrupt_reasons"), list)
+            and bool(terminal["unanswered_interrupt_reasons"])
+            and all(isinstance(reason, str) and reason for reason in terminal["unanswered_interrupt_reasons"])
+            and "terminal_integrity_not_ready" in errors
+        ):
+            errors.remove("terminal_integrity_not_ready")
+            warnings.append("wait_only_unanswered_interrupts")
     return {
         "passed": not errors,
         "errors": errors,
+        "check_profile": check_profile,
+        "strict_errors": strict_errors,
+        "warnings": warnings,
         "unknown_tool_names": list(
             ((result.get("trajectory_summary") or {}).get("tool_semantic_coverage") or {}).get(
                 "unknown_tool_names", []
@@ -506,9 +532,12 @@ def build_report(
     results: Iterable[dict[str, Any]],
     requested_agents: list[str],
     repeats: int,
+    check_profile: str = "strict",
 ) -> dict[str, Any]:
+    if check_profile == "runtime_installation" and requested_agents != ["wait_only"]:
+        raise ValueError("runtime_installation requires only wait_only")
     rows = list(results)
-    checks = [validate_result(result) for result in rows]
+    checks = [validate_result(result, check_profile=check_profile) for result in rows]
     by_agent: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for result, check in zip(rows, checks, strict=True):
         result["diagnostic_smoke_check"] = check
@@ -533,12 +562,12 @@ def build_report(
             "n_fatal": sum(
                 check["fatal"] for check in (validate_result(row) for row in agent_rows)
             ),
-            "n_incomplete": sum(not validate_result(row)["passed"] for row in agent_rows),
+            "n_incomplete": sum(not row["diagnostic_smoke_check"]["passed"] for row in agent_rows),
             "mean_total_score": statistics.fmean(scores) if scores else None,
             "mean_prevented_loss": statistics.fmean(prevented) if prevented else None,
         }
     expected = len(slice_payload.get("scenarios") or []) * len(requested_agents) * repeats
-    strict_failures = [
+    check_failures = [
         {
             "scenario_id": row.get("scenario_id"),
             "agent_name": row.get("agent_name"),
@@ -547,13 +576,22 @@ def build_report(
         for row, check in zip(rows, checks, strict=True)
         if not check["passed"]
     ]
+    strict_failures = [
+        {"scenario_id": row.get("scenario_id"), "agent_name": row.get("agent_name"),
+         "errors": check["strict_errors"]}
+        for row, check in zip(rows, checks, strict=True) if check["strict_errors"]
+    ]
     return {
         "schema_version": "protocol21-diagnostic-smoke-v1",
         "status": "passed"
-        if len(rows) == expected and not strict_failures
+        if len(rows) == expected and not check_failures
         else "blocked_quality_gate",
         "diagnostic_only": True,
         "release_admission": False,
+        "check_profile": check_profile,
+        "model_success_claimed": False,
+        "n_check_failures": len(check_failures),
+        "check_failures": check_failures,
         "strict_prompt": True,
         "provider_fallback": False,
         "slice_schema_version": slice_payload.get("schema_version"),
@@ -580,10 +618,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--slice", type=Path, default=DEFAULT_SLICE)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--agents", nargs="+", default=list(DEFAULT_AGENTS))
+    parser.add_argument("--check-profile", choices=["strict", "runtime_installation"], default="strict")
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--max-workers", type=int, default=1)
     parser.add_argument("--episode-timeout-seconds", type=float, default=900.0)
     args = parser.parse_args(argv)
+    if args.check_profile == "runtime_installation" and args.agents != ["wait_only"]:
+        parser.error("runtime_installation requires --agents wait_only")
     if args.repeats < 1:
         parser.error("--repeats must be >= 1")
     if args.max_workers != 1:
@@ -623,6 +664,7 @@ def main(argv: list[str] | None = None) -> int:
         results=portable_results,
         requested_agents=[str(agent) for agent in args.agents],
         repeats=args.repeats,
+        check_profile=args.check_profile,
     )
     report["input_bindings"] = {
         "slice": {
@@ -637,6 +679,11 @@ def main(argv: list[str] | None = None) -> int:
     }
     if implementation_start != implementation_end:
         report["status"] = "blocked_quality_gate"
+        report["n_check_failures"] += 1
+        report["check_failures"].append({
+            "scenario_id": None, "agent_name": None,
+            "errors": ["implementation_tree_drift"],
+        })
         report["n_strict_failures"] += 1
         report["strict_failures"].append(
             {
@@ -663,6 +710,9 @@ def main(argv: list[str] | None = None) -> int:
                 "n_results": report["n_results"],
                 "n_expected": report["n_expected"],
                 "n_strict_failures": report["n_strict_failures"],
+                "check_profile": report["check_profile"],
+                "n_check_failures": report["n_check_failures"],
+                "model_success_claimed": False,
                 "output_dir": str(args.output_dir),
             },
             sort_keys=True,

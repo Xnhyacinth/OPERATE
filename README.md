@@ -102,6 +102,9 @@ This installs the locked environment, downloads and verifies the runtime
 companion, restores declared sources, and runs one `wait_only` episode per
 released backend. The smoke checks runtime and evidence integrity, not model
 performance. Model evaluation additionally requires your model API credentials.
+Unanswered alarms from the passive baseline remain visible as policy warnings;
+the installation profile does not turn them into successful interventions.
+The default strict diagnostic and formal evaluation checks are unchanged.
 
 The public HF download is content-addressed and does not require `HF_TOKEN`.
 The installer resolves the current public snapshot once and records its exact
