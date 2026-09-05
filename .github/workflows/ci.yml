@@ -61,6 +61,8 @@ jobs:
             tests/test_lite_suite.py \
             tests/test_public_entrypoint_guards.py \
             tests/test_smoke_process_scope.py \
+            tests/test_runtime_installation_smoke.py \
+            tests/test_public_source_metadata.py \
             tests/test_public_hf_download.py \
             tests/test_opendss_formal_evidence_paths.py \
             tests/test_operate_distribution_docs.py \

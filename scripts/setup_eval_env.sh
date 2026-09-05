@@ -164,7 +164,7 @@ slice_path.write_text(json.dumps({"scenarios": list(by_backend.values())}))
 subprocess.run([
     sys.executable, "scripts/run_protocol21_diagnostic_smoke.py",
     "--slice", str(slice_path), "--output-dir", str(output),
-    "--agents", "wait_only",
+    "--agents", "wait_only", "--check-profile", "runtime_installation",
 ], check=True)
 PY
 fi

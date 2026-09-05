@@ -964,6 +964,13 @@ def _ngsim_shared_source_fixture(
             os.link(first_license, license_path)
         runtime_relative = runtime.relative_to(repo).as_posix()
         license_relative = license_path.relative_to(repo).as_posix()
+        (root / "checksums.sha256").write_text(
+            "".join(
+                f"{_sha256(path)}  {path.relative_to(root).as_posix()}\n"
+                for path in sorted((runtime, license_path))
+            ),
+            encoding="ascii",
+        )
         scenario_id = f"autonomous_driving/{candidate}"
         scenario = repo / "scenarios/operate_v0_60_0" / f"{candidate}.yaml"
         scenario.parent.mkdir(parents=True, exist_ok=True)
@@ -1020,9 +1027,15 @@ def test_ngsim_shared_bundle_deduplicates_bytes_and_preserves_install_paths(
     contract = _collect_ngsim_us101_source_assets(repo, suite)
 
     assert contract["n_scenarios"] == 2
-    assert contract["n_files"] == 4
-    assert contract["n_blobs"] == 2
-    assert len({row["archive_path"] for row in contract["files"].values()}) == 2
+    assert contract["n_files"] == 6
+    assert contract["n_blobs"] == 3
+    assert len({row["archive_path"] for row in contract["files"].values()}) == 3
+    checksums = {
+        path: row for path, row in contract["files"].items()
+        if path.endswith("/checksums.sha256")
+    }
+    assert len(checksums) == 2
+    assert all(row["roles"] == ["metadata"] for row in checksums.values())
     assert all(
         row["archive_path"].startswith(
             "backends/release_source_assets/ngsim_us101/blobs/"
@@ -1075,6 +1088,92 @@ def test_ngsim_shared_bundle_rejects_missing_license_path(
 
     with pytest.raises(FileNotFoundError):
         _collect_ngsim_us101_source_assets(repo, suite)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "tampered"])
+def test_ngsim_bundle_rejects_missing_or_stale_checksum_metadata(
+    tmp_path: Path, mutation: str,
+) -> None:
+    repo, suite = _ngsim_shared_source_fixture(tmp_path)
+    checksum = next(repo.glob("works/**/candidate-a/checksums.sha256"))
+    if mutation == "missing":
+        checksum.unlink()
+    else:
+        checksum.write_bytes(b"0" * 64 + b"  normalized/trajectories.sqlite3\n")
+    with pytest.raises((FileNotFoundError, ValueError), match="checksums"):
+        _collect_ngsim_us101_source_assets(repo, suite)
+
+
+def _m5_metadata_fixture(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> tuple[Path, dict[str, Any]]:
+    repo = tmp_path / "repo"
+    spec = bundle_builder._EXACT_SOURCE_SPECS["m5"]
+    locked = {}
+    for relative in sorted(spec["paths"]):
+        path = repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"fixture CSV\n")
+        locked[relative] = _sha256(path)
+    metadata_path = repo / "works/M5/source_lock.json"
+    _write_json(metadata_path, {"source_id": "m5_forecasting", "files": locked})
+    monkeypatch.setitem(spec, "metadata", {
+        "works/M5/source_lock.json": _sha256(metadata_path),
+    })
+    provenance = spec["provenance_variants"][0]
+    scenario = repo / "scenarios/m5.yaml"
+    _write_json(scenario, {
+        "scenario_id": "fixture/m5", "backend_kind": "orgym_invmgmt",
+        "source_contract": {
+            "runtime_input": sorted(locked), "metadata": ["works/M5/source_lock.json"],
+        },
+        "provenance": {
+            "license": provenance["license"], "url": provenance["url"],
+            "lock_strategy": provenance["lock_strategy"],
+            "commit": provenance["upstream_commit"],
+        },
+    })
+    return repo, {"scenarios": [{
+        "scenario_id": "fixture/m5", "backend_kind": "orgym_invmgmt",
+        "path": "scenarios/m5.yaml", "case_ledger": {"physical_source_lock": {
+            "schema_version": "source_asset_graph_v1", "backend_kind": "orgym_invmgmt",
+            "required_source_assets": [
+                {"declared_path": p, "sha256": digest} for p, digest in locked.items()
+            ],
+        }},
+    }]}
+
+
+def test_m5_bundle_includes_locked_metadata_without_changing_physical_sources(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo, suite = _m5_metadata_fixture(tmp_path, monkeypatch)
+    contract = _collect_exact_source_assets(repo, suite, source_id="m5")
+    assert contract["n_files"] == 4
+    metadata = contract["files"]["works/M5/source_lock.json"]
+    assert metadata["roles"] == ["metadata"]
+    assert metadata["sha256"] == _sha256(repo / "works/M5/source_lock.json")
+    assert metadata["scenario_ids"] == ["fixture/m5"]
+    assert len(suite["scenarios"][0]["case_ledger"]["physical_source_lock"]["required_source_assets"]) == 3
+
+
+@pytest.mark.parametrize("mutation", ["missing", "tampered", "undeclared"])
+def test_m5_bundle_rejects_unverified_source_lock_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str,
+) -> None:
+    repo, suite = _m5_metadata_fixture(tmp_path, monkeypatch)
+    path = repo / "works/M5/source_lock.json"
+    if mutation == "missing":
+        path.unlink()
+    elif mutation == "tampered":
+        path.write_bytes(b"{}\n")
+    else:
+        scenario = repo / suite["scenarios"][0]["path"]
+        body = json.loads(scenario.read_text())
+        body["source_contract"]["metadata"] = []
+        _write_json(scenario, body)
+    with pytest.raises((FileNotFoundError, ValueError), match="source_lock|metadata"):
+        _collect_exact_source_assets(repo, suite, source_id="m5")
 
 
 def test_ngsim_shared_bundle_rejects_blob_manifest_drift(

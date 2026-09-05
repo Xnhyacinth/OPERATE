@@ -7,6 +7,8 @@
 - Resolve portable and legacy trajectory paths consistently for reporting, artifact verification and resume. Separate quota availability, execution completion and observed task success.
 - Link score citations to proven native effects and preserve hidden-event visibility and zero-tick requests.
 - Prevent command-line overrides of the fixed Lite scope; propagate installation and smoke failures. Scope SUMO leak checks to the owning episode process group.
+- Carry original NGSIM checksum lists and the M5 source lock with runtime assets, so a fresh download retains native source-verification metadata.
+- Separate passive-baseline terminal warnings from installation failures in an explicit installation-only profile; preserve strict diagnostics and the original warning evidence.
 - Document Lite compression parameters as engineering heuristics, distinct from Core quality admission. Keep historical candidate and private publication tools out of the public current tree.
 - Regenerate Full/Lite Parquet, runtime companion and release evidence for the current code and data. Published artifact filenames remain versionless; immutable commits and content hashes identify reproducible snapshots.
 

@@ -55,6 +55,11 @@ _EXACT_SOURCE_SPECS = {
             "works/M5/sales_train_evaluation.csv",
             "works/M5/sell_prices.csv",
         },
+        "metadata": {
+            "works/M5/source_lock.json": (
+                "271c94965d27bf74b0d66ba89e71b5bc239ddc5192ce99305bbac256a848a9b3"
+            ),
+        },
         "provenance_variants": (
             {
                 "license": "Kaggle competition rules + OR-Gym MIT",
@@ -730,6 +735,9 @@ def _collect_exact_source_assets(
         file_sha256s = source_contract.get("file_sha256s")
         if file_sha256s is not None and file_sha256s != locked:
             raise ValueError(f"{source_id}_source_contract_hash_mismatch:{scenario_id}")
+        metadata = dict(spec.get("metadata") or {})
+        if not set(metadata).issubset(set(source_contract.get("metadata") or [])):
+            raise ValueError(f"{source_id}_source_metadata_missing:{scenario_id}")
 
         provenance = body.get("provenance")
         if not isinstance(provenance, dict):
@@ -779,7 +787,8 @@ def _collect_exact_source_assets(
         elif redistribution != current_redistribution:
             raise ValueError(f"{source_id}_redistribution_metadata_conflict")
 
-        for install_path, expected in locked.items():
+        for install_path, expected in {**locked, **metadata}.items():
+            role = "metadata" if install_path in metadata else contract_role
             _, source_path = _repo_relative_path(
                 repo_root,
                 install_path,
@@ -801,12 +810,12 @@ def _collect_exact_source_assets(
                     "archive_path": _exact_source_archive_path(source_id, install_path),
                     "delivery": str(spec["delivery"]),
                     "sha256": expected,
-                    "roles": [contract_role],
+                    "roles": [role],
                     "scenario_ids": [],
                 }
                 files[install_path] = current
-            elif contract_role not in current["roles"]:
-                current["roles"].append(contract_role)
+            elif role not in current["roles"]:
+                current["roles"].append(role)
             if scenario_id not in current["scenario_ids"]:
                 current["scenario_ids"].append(scenario_id)
         scenario_ids.append(scenario_id)
@@ -968,6 +977,38 @@ def _collect_ngsim_us101_source_assets(
                 files[install_path] = current
             if scenario_id not in current["scenario_ids"]:
                 current["scenario_ids"].append(scenario_id)
+
+        bundle_roots = {
+            Path(root) / Path(path).relative_to(root).parts[0]
+            for path in roles_by_path
+        }
+        if len(bundle_roots) != 1:
+            raise ValueError(f"ngsim_us101_checksums_bundle_mismatch:{scenario_id}")
+        bundle_root = bundle_roots.pop()
+        checksum_relative = (bundle_root / "checksums.sha256").as_posix()
+        _, checksum_path = _repo_relative_path(
+            repo_root, checksum_relative, label="ngsim_us101_checksums"
+        )
+        if not checksum_path.is_file() or checksum_path.is_symlink():
+            raise FileNotFoundError(checksum_path)
+        expected_checksums = "".join(
+            f"{files[path]['sha256']}  {Path(path).relative_to(bundle_root).as_posix()}\n"
+            for path in sorted(roles_by_path)
+        ).encode("ascii")
+        if checksum_path.read_bytes() != expected_checksums:
+            raise ValueError(f"ngsim_us101_checksums_mismatch:{checksum_relative}")
+        checksum_digest = hashlib.sha256(expected_checksums).hexdigest()
+        checksum_row = files.setdefault(checksum_relative, {
+            "archive_path": _ngsim_us101_archive_path(checksum_digest),
+            "delivery": "bundle",
+            "sha256": checksum_digest,
+            "roles": ["metadata"],
+            "scenario_ids": [],
+        })
+        if checksum_row["sha256"] != checksum_digest:
+            raise ValueError(f"ngsim_us101_checksums_conflict:{checksum_relative}")
+        if scenario_id not in checksum_row["scenario_ids"]:
+            checksum_row["scenario_ids"].append(scenario_id)
         scenario_ids.append(scenario_id)
     for row in files.values():
         row["scenario_ids"].sort()
