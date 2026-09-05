@@ -228,8 +228,10 @@ Long-running context is divided into three layers:
    linear episode history into avoidable request growth.
 
 Compaction count, covered hashes and tick are recorded. No hidden evaluator LLM
-generates a privileged summary. The current visible prompt budget and the
-session-history message budget are independent controls.
+generates a privileged summary. Persistent observations use the session's
+configured character budget; the legacy 8,000-character observation limit
+applies only to the stateless compatibility treatment. The message-count cap
+and the provider's complete-request budget remain separate controls.
 If the logical runner cannot ingest a transition into agent-maintained plan
 state, it records a structured `agent_transition_ingest_failed` violation in
 the trajectory. The event contract then fails closed, so the episode cannot be
@@ -280,6 +282,15 @@ model is covered by the frozen per-model registry.
 These formal budgets leave output capacity after reasoning while keeping
 actions bounded; they are not applied retroactively to frozen
 `logical_stateless` treatments.
+
+Provider-budget projection also reduces detail in the latest event's structured
+memory, which cannot be made smaller by removing older messages alone. Memory
+identities, statuses and pending-call references survive that projection;
+the full memory and semantic ledger remain unchanged. The bound is conservative
+UTF-8 byte accounting, not a model tokenizer measurement. Under the formal
+`abort` policy, an irreducible local prompt/context error terminates the episode
+with its recorded error in decision, investigation and receipt-reconciliation
+paths. It cannot be converted into a model-chosen wait.
 The current formal realtime clock is 5 wall seconds per simulator tick. Its
 episode timeout is derived from the scenario horizon plus one provider-timeout
 and one tick of teardown slack, so long-horizon rows are not silently cut off

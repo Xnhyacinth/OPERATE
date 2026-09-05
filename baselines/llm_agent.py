@@ -1430,6 +1430,8 @@ class LLMAgent(BaselineAgent):
             raise
         except Exception as exc:
             reason = self._note_failed_llm_call(exc)
+            if self.config.provider_failure_policy == "abort":
+                raise
             LOGGER.warning(
                 "LLM call failed at tick %d (%s): %s; falling back to wait.",
                 self._tick,
@@ -1478,6 +1480,8 @@ class LLMAgent(BaselineAgent):
             raise
         except Exception as exc:
             reason = self._note_failed_llm_call(exc)
+            if self.config.provider_failure_policy == "abort":
+                raise
             LOGGER.warning(
                 "LLM investigation failed at tick %d (%s): %s; continuing to commit stage.",
                 self._tick,
@@ -1593,6 +1597,8 @@ class LLMAgent(BaselineAgent):
             raise
         except Exception as exc:
             reason = self._note_failed_llm_call(exc)
+            if self.config.provider_failure_policy == "abort":
+                raise
             LOGGER.warning(
                 "LLM control receipt reconciliation failed at tick %d (%s): %s; "
                 "continuing without a retry.",
@@ -3491,8 +3497,12 @@ class LLMAgent(BaselineAgent):
         *,
         event: dict[str, Any],
         event_context: dict[str, Any],
+        max_chars: int | None = None,
     ) -> dict[str, Any]:
-        max_chars = max(500, int(self.config.persistent_context_max_chars))
+        max_chars = max(
+            500,
+            int(self.config.persistent_context_max_chars if max_chars is None else max_chars),
+        )
         system_content = (
             str(self._session_messages[0].get("content", ""))
             if self._session_messages
@@ -3505,6 +3515,45 @@ class LLMAgent(BaselineAgent):
                     **event_context,
                     "structured_memory": memory_projection,
                 },
+            }
+            encoded = json.dumps(
+                candidate,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            if len(system_content) + len(encoded) <= max_chars:
+                return candidate
+        # The observation may fit by itself but leave no room for the mission,
+        # typed envelope and memory identities. Reserve their actual encoding
+        # before compacting optional observation detail. Realtime payloads are
+        # protected because they can contain unacknowledged action receipts.
+        protected_context = {"structured_memory": memory_projection}
+        if "realtime_event" in event_context:
+            protected_context["realtime_event"] = event_context["realtime_event"]
+        overhead = len(
+            json.dumps(
+                {"event": event, "event_context": protected_context},
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+        available_chars = max_chars - len(system_content) - overhead
+        if available_chars > 0:
+            compact_context = json.loads(
+                self._serialize_prompt_body(
+                    {
+                        key: value for key, value in event_context.items()
+                        if key not in protected_context
+                    },
+                    max_chars=available_chars,
+                    include_cost_units=True,
+                )
+            )
+            candidate = {
+                "event": event,
+                "event_context": {**compact_context, **protected_context},
             }
             encoded = json.dumps(
                 candidate,
@@ -3726,7 +3775,14 @@ class LLMAgent(BaselineAgent):
             body["allowed_tool_names"] = list(allowed_tools)
         serialized_body = self._serialize_prompt_body(
             body,
-            max_chars=self._observation_budget_chars,
+            # Persistent treatments bind a complete session budget. Applying
+            # the legacy stateless 8k cap first discards usable observations
+            # before the provider-aware context projection can budget them.
+            max_chars=(
+                int(self.config.persistent_context_max_chars)
+                if self._uses_persistent_session()
+                else self._observation_budget_chars
+            ),
             include_cost_units=self._uses_persistent_session(),
         )
         if self._uses_persistent_session():
@@ -3771,16 +3827,16 @@ class LLMAgent(BaselineAgent):
             request_kind=request_kind,
             tools=self._tool_specs,
         )
-        messages, context_projection = self._provider_cap_aware_projection(
-            messages=messages,
-            tools=self._tool_specs,
-            max_tokens=self.config.max_tokens,
-            effective_tool_choice=effective_decision_tool_choice,
-            effective_wire_stream=self._effective_wire_stream(),
-            effective_temperature=self.config.temperature,
-        )
         self._last_provider_response_metadata = {}
         try:
+            messages, context_projection = self._provider_cap_aware_projection(
+                messages=messages,
+                tools=self._tool_specs,
+                max_tokens=self.config.max_tokens,
+                effective_tool_choice=effective_decision_tool_choice,
+                effective_wire_stream=self._effective_wire_stream(),
+                effective_temperature=self.config.temperature,
+            )
             action, provider_started_ns, provider_request_sequence = (
                 self._call_with_transient_provider_retries(
                     invoke=lambda: self._invoke_decision_provider(messages),
@@ -4284,6 +4340,31 @@ class LLMAgent(BaselineAgent):
         for _ in range(8):
             if effective_max_chars < requested_max_chars:
                 try:
+                    # Memory can dominate the latest event; compacting only
+                    # older messages cannot make that request fit. Reproject
+                    # its detail while retaining every memory identity/status.
+                    # The append-only session ledger keeps the original event.
+                    latest = self._session_messages[-1]
+                    try:
+                        payload = json.loads(str(latest.get("content", "")))
+                    except (ValueError, TypeError):
+                        payload = None
+                    if (
+                        isinstance(payload, dict)
+                        and isinstance(payload.get("event"), dict)
+                        and isinstance(payload.get("event_context"), dict)
+                    ):
+                        fitted = self._fit_persistent_event_memory(
+                            event=payload["event"],
+                            event_context=payload["event_context"],
+                            max_chars=effective_max_chars,
+                        )
+                        latest["content"] = json.dumps(
+                            fitted,
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        )
                     self._compact_persistent_context(
                         max_chars=effective_max_chars
                     )

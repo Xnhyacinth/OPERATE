@@ -4,8 +4,8 @@ The Hugging Face export contains two configurations:
 
 - `full/test-00000-of-00001.parquet` is the official complete evaluation
   denominator selected by `core_suite.json`.
-- `lite/test-00000-of-00001.parquet` is the evidence-maximizing development
-  and low-cost subset selected by `lite_suite.json`. Lite results are not Full
+- `lite/test-00000-of-00001.parquet` is the deterministic, diversity-oriented
+  development subset selected by `lite_suite.json`. Lite results are not Full
   leaderboard results.
 
 Both files use schema `operate-hf-parquet-v1`. Columns such as `domain`,

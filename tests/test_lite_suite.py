@@ -93,7 +93,8 @@ def test_lite_runner_forwards_all_rows_as_scenario_slugs(monkeypatch) -> None:
 
     assert runner.main() == 0
     start = captured.index("--scenarios") + 1
-    slugs = captured[start : captured.index("--dry-run")]
+    assert captured.index("--dry-run") < start
+    slugs = captured[start:]
     assert len(slugs) == 159
     assert all(not slug.startswith("scenarios/") for slug in slugs)
     assert all(not slug.endswith(".yaml") for slug in slugs)

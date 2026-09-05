@@ -5513,7 +5513,7 @@
       "url": "https://github.com/TUM-VT/sumo_ingolstadt.git"
     }
   },
-  "identity_sha256": "79a1406a1dc0d7a88fdca46b5be48eee896ceb90fd6dd7f78deb82c123f528cc",
+  "identity_sha256": "af02783d07c926623bca2c2486612b9c86af73538cefb3b0855838f7afd70145",
   "portable": true,
   "release_id": "operate_v0_61_0",
   "repo_tracked_files": {
@@ -9884,7 +9884,7 @@
       "sha256": "87cfc52cb15c0f0e02cea3ae4ff35b0d08bff343f535022b23874b6693e3925f"
     }
   },
-  "source_suite_sha256": "cf05334dd4d9ccace87c540bae3f75afb8cd91927de30ab43cb48d6b62da0434",
+  "source_suite_sha256": "5d03863f724f50d0962834c2313d72a9d8afe9363f6ee65c767e87a7984bc97a",
   "status": "backend_runtime_closure_complete",
   "summary": {
     "n_archived_files": 330,

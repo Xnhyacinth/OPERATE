@@ -40,15 +40,23 @@ This public dataset is the runtime companion to the single current state of the
 ungated, and intentionally has no selectable public version series. For a
 formal run, record the exact 40-character HF commit SHA shown by the Hub.
 
+Updates accumulate as commits; the current tree contains only the latest Full,
+Lite and runtime artifacts. See the repository
+[update log](https://github.com/Xnhyacinth/OPERATE/blob/main/CHANGELOG.md).
+
 ## Benchmark scope
 
 The Core contains 769 scenarios over 502 physical sources and seven domains.
-The 159-row OPERATE-Lite subset is selected without per-domain manual quotas.
+The 159-row OPERATE-Lite subset contains exact Core-locked rows; Core admission
+supplies its quality gate. Selection has no hard-coded domain names or target total.
 It retains every row unless a domain has more than twice the median domain row
 count, then keeps up to three diverse rows per non-empty backend × family ×
 difficulty × horizon stratum. It preserves all 17 backends, 22 task families,
 four difficulty levels, six horizon buckets, and 88 physical sources. Lite is
 for development and ablations; it is not the Full/Core leaderboard denominator.
+The 2× threshold and three-row stratum limit are predeclared engineering
+compression heuristics, not additional quality thresholds or claims of
+statistical representativeness or optimal selection.
 
 Primary results use `logical_persistent`. `realtime_persistent` is a separate
 supervision treatment for proactive monitoring, correct silence, latency,
@@ -116,9 +124,16 @@ The immutable release closure retains its admission-time external-acquisition
 record. The top-level `source_assets.m5` entry in `MANIFEST.json` is the
 authoritative distribution-time overlay for the now-bundled files.
 
-For a complete native installation, run `bash scripts/setup_eval_env.sh`.
-The setup script acquires the remaining declared sources and fails closed when
-a required upstream asset is unavailable.
+For complete native installation and a baseline runtime check, run:
+
+```bash
+bash scripts/setup_eval_env.sh --smoke
+```
+
+The setup script acquires the remaining declared sources and runs one
+`wait_only` episode per released backend. Required-source and smoke failures
+are fatal. This validates runtime/evidence integrity, not model performance;
+model evaluation additionally requires your model API credentials.
 
 See the GitHub [README](https://github.com/Xnhyacinth/OPERATE#readme) for a
 baseline episode and Lite command, and the

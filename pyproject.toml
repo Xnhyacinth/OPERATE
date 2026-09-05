@@ -101,6 +101,7 @@ exclude = ["data.backends*"]
 select = ["E4", "E7", "E9", "F"]
 
 [tool.uv]
+link-mode = "copy"
 # or-gym 0.5 declares the obsolete gym<=0.19 build pin.  The released adapter
 # is exercised with gym 0.26.2 on Python 3.10-3.14; keep that compatibility
 # override visible and lock-bound instead of relying on a manual --no-deps step.

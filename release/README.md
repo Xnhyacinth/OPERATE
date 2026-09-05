@@ -6,10 +6,10 @@ public version.
 
 ```text
 release/operate_v0_61_0/          current Core, manifest, and candidate closure
-scenarios/operate_v0_58_0/        747 inherited contracts selected by the current manifest
+scenarios/operate_v0_58_0/        743 inherited contracts selected by the current manifest
 scenarios/operate_v0_59_0/        8 inherited scenario additions
 scenarios/operate_v0_60_0/        13 inherited scenario additions
-scenarios/operate_v0_61_0/        1 current scenario addition
+scenarios/operate_v0_61_0/        5 current scenario additions
 release/operate_v0_61_0/lite_suite.json  policy-derived 159-row efficiency/development track
 ```
 

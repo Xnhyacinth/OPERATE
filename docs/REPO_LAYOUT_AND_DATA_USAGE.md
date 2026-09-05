@@ -8,10 +8,10 @@ domains/       native operational backends and tools
 runner/        logical and realtime coordinators
 baselines/     baseline and LLM agent implementations
 evaluation/    scoring, counterfactuals, and statistics
-scenarios/operate_v0_58_0/  747 inherited contracts selected by v0.61
+scenarios/operate_v0_58_0/  743 inherited contracts selected by v0.61
 scenarios/operate_v0_59_0/  8 inherited additions introduced by v0.59
 scenarios/operate_v0_60_0/  13 scenario additions introduced by v0.60
-scenarios/operate_v0_61_0/  1 scenario addition introduced by v0.61
+scenarios/operate_v0_61_0/  5 scenario additions introduced by v0.61
 sources/       compact source assets and immutable locks
 release/operate_v0_61_0/    active source suite and promoted manifest
 scripts/       replay, audit, evaluation, merge, and distribution entrypoints
@@ -63,5 +63,6 @@ manifest-pinned commits. A
 `--download-only` bundle check verifies remote bytes, not formal runtime
 readiness.
 
-The history-squashed public dataset is the only current remote data namespace;
-the private maintainer archive is not an evaluation input.
+The public dataset exposes one current data state; commits may retain update
+history, but superseded files and redundant version tags are not part of the
+current public surface. The private maintainer archive is not an evaluation input.

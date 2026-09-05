@@ -16,8 +16,18 @@ LITE_SUITE = REPO_ROOT / "release/operate_v0_61_0/lite_suite.json"
 
 def main() -> int:
     forwarded = sys.argv[1:]
-    forbidden = {"--formal-run", "--scenario-slice", "--scenarios"}
-    conflicts = sorted(forbidden.intersection(forwarded))
+    forbidden = {
+        "--formal-run", "--formal-manifest", "--scenario-slice", "--scenarios",
+        "--finalize-only", "--retry-cells",
+    }
+    # The downstream argparse parser accepts both --flag=value and long-option
+    # abbreviations. Neither may replace the fixed Lite scope or recover Full.
+    conflicts = sorted({
+        argument for argument in forwarded
+        if argument.startswith("--")
+        and argument.split("=", 1)[0] != "--finalize"
+        and any(flag.startswith(argument.split("=", 1)[0]) for flag in forbidden)
+    })
     if conflicts:
         joined = ", ".join(conflicts)
         raise SystemExit(
@@ -36,11 +46,11 @@ def main() -> int:
         paths.append(path)
     sys.argv = [
         "scripts/batch_llm_eval.py",
+        *forwarded,
         "--scenario-slice",
         "custom",
         "--scenarios",
         *paths,
-        *forwarded,
     ]
     return batch_llm_eval.main()
 

@@ -69,6 +69,7 @@ from evaluation import (  # noqa: E402
     operational_agency_profile_is_consistent,
 )
 from evaluation.discrimination import build_discrimination_report  # noqa: E402
+from evaluation.trajectory_paths import resolve_batch_path  # noqa: E402
 from evaluation.leaderboard import (  # noqa: E402
     PRIMARY_LEADERBOARD_FORMULA_VERSION,
     PrimaryLeaderboardContractError,
@@ -90,6 +91,10 @@ from runner import (  # noqa: E402
 )
 from runner import run_one_safe as _run_one_safe  # noqa: E402, F401
 from scripts.analyze_batch_results import analyze_output_dir  # noqa: E402
+from evaluation.batch_status import (  # noqa: E402
+    execution_status_counts as _execution_status_counts,
+    row_is_quota_exhausted as _row_is_quota_exhausted,
+)
 from scripts.analyze_decision_impact import (  # noqa: E402
     build_report as build_decision_impact_report,
 )
@@ -994,19 +999,12 @@ def _write_quota_sentinel(job: dict[str, Any], row: dict[str, Any]) -> Path | No
     return path
 
 
-def _row_is_quota_exhausted(row: dict[str, Any]) -> bool:
-    if str(row.get("status")) != "error":
-        return False
-    if row.get("quota_parked"):
-        return True
-    error = str(row.get("error") or "")
-    return "ProviderQuotaExhaustedError" in error
-
-
 def _apply_llm_job_metadata(job: dict[str, Any], r: dict[str, Any]) -> dict[str, Any]:
     model = job["model"]
     r["model"] = model
     r["scenario_slug"] = job["scenario_slug"]
+    if r.get("seed") is None and job.get("seed") is not None:
+        r["seed"] = int(job["seed"])
     r["temperature"] = float(job.get("temperature", 0.0))
     r["evaluation_implementation_fingerprint"] = str(
         job.get("evaluation_implementation_fingerprint")
@@ -1058,6 +1056,7 @@ def _quota_parked_result(
         "status": "error",
         "error": message,
         "quota_parked": True,
+        "execution_started": False,
     }
     if reset_at:
         r["quota_reset_at"] = reset_at
@@ -2930,6 +2929,7 @@ def _recover_models_for_finalize(
 
 def _completed_ok_resume_index(
     rows: list[dict[str, Any]],
+    *, batch_root: Path | None = None,
 ) -> tuple[
     set[tuple[str, str, int]],
     set[tuple[str, str, int, str, str, str, str, str, str]],
@@ -2939,7 +2939,7 @@ def _completed_ok_resume_index(
     for r in rows:
         if r.get("status") != "ok":
             continue
-        if not _row_is_clean_for_resume(r):
+        if not _row_is_clean_for_resume(r, batch_root=batch_root):
             continue
         legacy, strong = _row_resume_keys(r)
         if not legacy[0] or not legacy[1] or legacy[2] < 0:
@@ -3131,16 +3131,10 @@ def _trajectory_sidecar_eligibility_reasons(
         return [f"{reason_prefix}_path_missing"]
     root = batch_root.resolve() if batch_root is not None else None
 
-    def resolve_path(value: object) -> Path:
-        path = Path(str(value))
-        if not path.is_absolute() and root is not None:
-            path = root / path
-        return path.resolve()
-
-    expected_path = resolve_path(
-        f"{trajectory_prefix}.{path_stem or stem}.jsonl"
+    expected_path = resolve_batch_path(
+        f"{trajectory_prefix}.{path_stem or stem}.jsonl", batch_root=root
     )
-    declared_path = resolve_path(artifact_path)
+    declared_path = resolve_batch_path(artifact_path, batch_root=root)
     if root is not None:
         try:
             expected_path.relative_to(root)
@@ -3595,13 +3589,15 @@ def _formal_row_eligibility(
     return not reasons, reasons
 
 
-def _row_is_clean_for_resume(row: dict[str, Any]) -> bool:
+def _row_is_clean_for_resume(
+    row: dict[str, Any], *, batch_root: Path | None = None
+) -> bool:
     # Historical diagnostic rows predate treatment identity. They may remain
     # readable for legacy analysis, but formal eligibility above still fails
     # closed and every newly treatment-bound row must carry an exact mode.
     historical_unbound = not row.get("agent_treatment_sha256")
     _, reasons = _formal_row_eligibility(
-        row, verify_artifact_bytes=not historical_unbound
+        row, verify_artifact_bytes=not historical_unbound, batch_root=batch_root
     )
     tolerated = {"suite_release_blocked"}
     if "interaction_mode" not in row and historical_unbound:
@@ -3631,7 +3627,8 @@ def _row_is_clean_for_resume(row: dict[str, Any]) -> bool:
 
 
 def _filter_pending_jobs(
-    jobs: list[dict[str, Any]], rows: list[dict[str, Any]]
+    jobs: list[dict[str, Any]], rows: list[dict[str, Any]],
+    *, batch_root: Path | None = None,
 ) -> list[dict[str, Any]]:
     required_trees = {
         str(job.get("implementation_tree_sha256") or "") for job in jobs
@@ -3645,7 +3642,9 @@ def _filter_pending_jobs(
         if required_trees
         else rows
     )
-    legacy_done, strong_done = _completed_ok_resume_index(eligible_rows)
+    legacy_done, strong_done = _completed_ok_resume_index(
+        eligible_rows, batch_root=batch_root
+    )
     pending: list[dict[str, Any]] = []
     for job in jobs:
         legacy, strong = _job_resume_keys(job)
@@ -3689,6 +3688,7 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
         }
     else:
         r = _run_one_safe((slug, "llm_agent", seed, kwargs, run_options))
+    r["execution_started"] = start_tree == expected_tree
     _portabilize_formal_trajectory_json_sidecars(job)
     end_tree = implementation_identity(REPO_ROOT)["implementation_tree_sha256"]
     r["implementation_tree_sha256"] = expected_tree
@@ -4282,7 +4282,10 @@ def _pass_k_success_summary(
         if pass_id in per_model_pass[model][cell]:
             duplicate_counts[model] += 1
             continue
-        per_model_pass[model][cell][pass_id] = str(row.get("status", "ok"))
+        per_model_pass[model][cell][pass_id] = (
+            "unavailable" if _row_is_quota_exhausted(row)
+            else str(row.get("status", "ok"))
+        )
 
     per_model: dict[str, dict[str, Any]] = {}
     total_successful = 0
@@ -4292,6 +4295,8 @@ def _pass_k_success_summary(
         failed_cells = 0
         missing_pass_units = 0
         error_pass_units = 0
+        unavailable_pass_units = 0
+        unavailable_cells = 0
         expected_cells = (
             sorted(pair_filter)
             if pair_filter is not None
@@ -4307,11 +4312,19 @@ def _pass_k_success_summary(
                 pass_id for pass_id in required_pass_ids if pass_id not in pass_status
             ]
             errors = [
-                pass_id for pass_id, status in pass_status.items() if status != "ok"
+                pass_id for pass_id, status in pass_status.items()
+                if status not in {"ok", "unavailable"}
+            ]
+            unavailable = [
+                pass_id for pass_id, status in pass_status.items()
+                if status == "unavailable"
             ]
             missing_pass_units += len(missing)
             error_pass_units += len(errors)
-            if not missing and not errors:
+            unavailable_pass_units += len(unavailable)
+            if unavailable:
+                unavailable_cells += 1
+            elif not missing and not errors:
                 successful_cells += 1
             else:
                 failed_cells += 1
@@ -4328,16 +4341,21 @@ def _pass_k_success_summary(
             "success_probability": round(probability, 4),
             "missing_pass_units": missing_pass_units,
             "error_pass_units": error_pass_units,
+            "unavailable_pass_units": unavailable_pass_units,
+            "unavailable_cells": unavailable_cells,
             "duplicate_pass_units_ignored": duplicate_counts[model],
             "extra_pass_units_ignored": ignored_extra_pass_counts[model],
         }
 
     overall_probability = total_successful / total_cells if total_cells else 0.0
     return {
+        "metric_kind": "execution_completion",
         "pass_k": pass_k,
         "definition": (
             "A scenario/model/seed cell succeeds only when every required "
-            "explicit pass_id has status=ok."
+            "explicit pass_id has status=ok. This measures execution completion, "
+            "not task success or formal eligibility. Provider quota-unavailable "
+            "cells retain the planned denominator but are not execution failures."
         ),
         "required_pass_ids": required_pass_ids,
         "configured_models": list(configured_models),
@@ -4444,6 +4462,7 @@ def _batch_state(
     """
     reasons: list[str] = []
     coverage = coverage or {}
+    execution_counts = _execution_status_counts(results)
     configured_models = list(coverage.get("configured_models") or [])
     if not configured_models:
         return {
@@ -4451,14 +4470,22 @@ def _batch_state(
             "reasons": [
                 "no configured models recorded; batch state cannot be determined",
             ],
-            "n_episodes_error": sum(1 for r in results if r.get("status") != "ok"),
+            **execution_counts,
             "n_orphan_interrupted_logs": int(
                 (log_audit_report or {}).get("log_files_orphan_interrupted", 0) or 0
             ),
         }
 
-    is_partial = bool(coverage.get("is_partial_batch", False))
-    n_errors = sum(1 for r in results if r.get("status") != "ok")
+    is_partial = bool(coverage.get("is_partial_batch", False)) or bool(
+        execution_counts["n_episodes_quota_unavailable"]
+        or execution_counts["n_episodes_in_flight"]
+    )
+    n_errors = execution_counts["n_episodes_error"]
+    if execution_counts["n_episodes_quota_unavailable"]:
+        reasons.append(
+            f"{execution_counts['n_episodes_quota_unavailable']} provider-quota-unavailable "
+            "episodes require retry; no task outcome measured"
+        )
     n_interrupted = int(
         (log_audit_report or {}).get("log_files_orphan_interrupted", 0) or 0
     )
@@ -4594,7 +4621,7 @@ def _batch_state(
     return {
         "batch_state": state,
         "reasons": reasons,
-        "n_episodes_error": n_errors,
+        **execution_counts,
         "n_orphan_interrupted_logs": n_interrupted,
         "n_provider_contaminated_episodes": n_provider_contaminated,
         "n_prompt_budget_contaminated_episodes": n_prompt_budget_contaminated,
@@ -4615,9 +4642,10 @@ def _write_analysis(
 ) -> None:
     """Emit ANALYSIS.md + per-model stats JSON from episode rows."""
     ok = [r for r in results if r.get("status") == "ok"]
-    err = [r for r in results if r.get("status") != "ok"]
-    clean_ok = [r for r in ok if _row_is_clean_for_resume(r)]
-    dirty_ok = [r for r in ok if not _row_is_clean_for_resume(r)]
+    err = [r for r in results if r.get("status") != "ok" and not _row_is_quota_exhausted(r)]
+    execution_counts = _execution_status_counts(results)
+    clean_ok = [r for r in ok if _row_is_clean_for_resume(r, batch_root=out_dir)]
+    dirty_ok = [r for r in ok if not _row_is_clean_for_resume(r, batch_root=out_dir)]
     by_model: dict[str, list[float]] = defaultdict(list)
     by_model_family: dict[str, dict[str, list[float]]] = defaultdict(
         lambda: defaultdict(list)
@@ -4654,7 +4682,9 @@ def _write_analysis(
         f"- Episodes OK: {len(ok)} / {len(results)}",
         f"- Clean OK used for score means: {len(clean_ok)}",
         f"- Dirty OK excluded from score means: {len(dirty_ok)}",
-        f"- Episodes failed: {len(err)}",
+        f"- Execution errors: {execution_counts['n_episodes_error']}",
+        f"- Provider quota unavailable: {execution_counts['n_episodes_quota_unavailable']} (not task failures)",
+        f"- Parked before execution: {execution_counts['n_episodes_quota_parked']}",
         f"- Trajectories: `{out_dir / 'trajectories'}/<model>/`",
         f"- Per-episode logs: `{out_dir / 'logs'}/<model>/`",
         f"- Plot directory: `{out_dir / 'plots'}`",
@@ -4775,7 +4805,7 @@ def _write_analysis(
             lines.extend(
                 [
                     "",
-                    "### pass^k reliability",
+                    "### Replicate execution completion",
                     "",
                     (
                         "- Cell success requires every configured `pass_id` for "
@@ -4783,12 +4813,12 @@ def _write_analysis(
                         "`status=ok`. This is execution-completed, not formal-clean."
                     ),
                     (
-                        "- Overall pass^k success probability: "
+                        "- Fraction of planned cells with all replicates completed: "
                         f"**{pass_k_success['overall_success_probability']:.2%}**"
                     ),
                     "",
-                    "| model | successful cells | expected cells | pass^k | missing pass units | error pass units |",
-                    "|-------|------------------|----------------|--------|--------------------|------------------|",
+                    "| model | completed cells | planned cells | completion fraction | missing attempts | execution errors | quota unavailable attempts |",
+                    "|-------|-----------------|---------------|---------------------|------------------|------------------|----------------------------|",
                 ]
             )
             for model in pass_k_success.get("configured_models", []):
@@ -4798,7 +4828,8 @@ def _write_analysis(
                     f"{row.get('expected_cells', 0)} | "
                     f"{float(row.get('success_probability', 0.0)):.2%} | "
                     f"{row.get('missing_pass_units', 0)} | "
-                    f"{row.get('error_pass_units', 0)} |"
+                    f"{row.get('error_pass_units', 0)} | "
+                    f"{row.get('unavailable_pass_units', 0)} |"
                 )
 
         if intersection_leaderboard:
@@ -4821,6 +4852,7 @@ def _write_analysis(
 
     (out_dir / "ANALYSIS.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     stats_export = {
+        **execution_counts,
         "by_model": {
             m: {"mean": sum(s) / len(s), "n": len(s)} for m, s in by_model.items()
         },
@@ -6290,19 +6322,19 @@ def _finalize_outputs(
     write_evidence_applicability_markdown(
         evidence_report, out_dir / "EVIDENCE_APPLICABILITY.md"
     )
-    tool_effect_report = build_tool_effect_report(results)
+    tool_effect_report = build_tool_effect_report(results, batch_root=out_dir)
     (out_dir / "tool_effect_audit_report.json").write_text(
         json.dumps(tool_effect_report, indent=2, ensure_ascii=False), encoding="utf-8"
     )
     write_tool_effect_markdown(tool_effect_report, out_dir / "TOOL_EFFECT_AUDIT.md")
-    staleness_report = build_staleness_consumption_report(results)
+    staleness_report = build_staleness_consumption_report(results, batch_root=out_dir)
     (out_dir / "staleness_consumption_report.json").write_text(
         json.dumps(staleness_report, indent=2, ensure_ascii=False), encoding="utf-8"
     )
     write_staleness_consumption_markdown(
         staleness_report, out_dir / "STALENESS_CONSUMPTION.md"
     )
-    failure_recipes_report = build_agent_failure_recipes_report(results)
+    failure_recipes_report = build_agent_failure_recipes_report(results, batch_root=out_dir)
     (out_dir / "agent_failure_recipes_report.json").write_text(
         json.dumps(failure_recipes_report, indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -6357,8 +6389,7 @@ def _finalize_outputs(
         "has_grid2op": manifest_has_grid2op,
         "finalized_at_utc": datetime.now(UTC).isoformat(),
         "n_episodes_total": len(results),
-        "n_episodes_ok": sum(1 for r in results if r.get("status") == "ok"),
-        "n_episodes_error": sum(1 for r in results if r.get("status") != "ok"),
+        **_execution_status_counts(results),
         "expected_total": coverage["expected_total"],
         "realized_coverage": coverage["per_model_coverage"],
         "comparable_intersection_size": coverage["comparable_intersection_size"],
@@ -7728,7 +7759,7 @@ def main() -> int:
     )
     if args.resume and jobs:
         before = len(jobs)
-        jobs = _filter_pending_jobs(jobs, prior_rows)
+        jobs = _filter_pending_jobs(jobs, prior_rows, batch_root=out_dir)
         skipped = before - len(jobs)
         if skipped:
             LOGGER.info(

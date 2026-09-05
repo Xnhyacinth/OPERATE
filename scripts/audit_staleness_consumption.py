@@ -14,6 +14,7 @@ from typing import Any
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
+from evaluation.trajectory_paths import trajectory_file as _trajectory_file  # noqa: E402
 from scripts.analyze_decision_impact import _backend_from_row  # noqa: E402
 from scripts.analyze_decision_impact import _domain_from_row as _base_domain_from_row  # noqa: E402
 
@@ -216,23 +217,6 @@ def _information_applicable(row: dict[str, Any]) -> bool:
     return False
 
 
-def _trajectory_file(row: dict[str, Any]) -> Path | None:
-    traj = row.get("trajectory_summary") or {}
-    raw = traj.get("trajectory_path") if isinstance(traj, dict) else None
-    if not raw:
-        return None
-    base = Path(str(raw))
-    candidates = [base]
-    if not str(base).endswith(".trajectory.jsonl"):
-        candidates.append(Path(str(base) + ".trajectory.jsonl"))
-    if base.suffix:
-        candidates.append(base.with_suffix(".trajectory.jsonl"))
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
-    return candidates[1] if len(candidates) > 1 else base
-
-
 def _load_trajectory(path: Path) -> list[dict[str, Any]] | None:
     if not path.is_file():
         return None
@@ -371,6 +355,7 @@ def _stale_consumption(
 def _audit_row(
     row: dict[str, Any],
     *,
+    batch_root: Path | None = None,
     by_domain: dict[str, dict[str, int]],
     by_domain_backend: dict[str, dict[str, dict[str, int]]],
     by_family: dict[str, dict[str, int]],
@@ -387,7 +372,7 @@ def _audit_row(
     for bucket in buckets:
         _bump(bucket, "episodes")
 
-    traj_path = _trajectory_file(row)
+    traj_path = _trajectory_file(row, batch_root=batch_root)
     entries = _load_trajectory(traj_path) if traj_path is not None else None
     if entries is None:
         rollup["trajectory_missing"] += 1
@@ -469,7 +454,9 @@ def _audit_row(
     return rollup
 
 
-def build_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def build_report(
+    rows: list[dict[str, Any]], *, batch_root: Path | None = None
+) -> dict[str, Any]:
     ok_rows = [r for r in rows if r.get("status", "ok") == "ok"]
     by_domain: dict[str, dict[str, int]] = defaultdict(_empty_bucket)
     by_domain_backend: dict[str, dict[str, dict[str, int]]] = defaultdict(
@@ -481,6 +468,7 @@ def build_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     for row in ok_rows:
         _audit_row(
             row,
+            batch_root=batch_root,
             by_domain=by_domain,
             by_domain_backend=by_domain_backend,
             by_family=by_family,
@@ -615,7 +603,7 @@ def main() -> int:
     if not ep_path.is_file():
         print(f"missing {ep_path}", file=sys.stderr)
         return 1
-    report = build_report(_load_jsonl_rows(ep_path))
+    report = build_report(_load_jsonl_rows(ep_path), batch_root=out_dir)
     (out_dir / "staleness_consumption_report.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
     )

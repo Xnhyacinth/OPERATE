@@ -9,6 +9,10 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from evaluation.batch_status import execution_status_counts  # noqa: E402
+
 
 def _coverage_entry(applicable: int, total: int) -> dict[str, float | int]:
     return {
@@ -130,7 +134,7 @@ def analyze_output_dir(
             raise FileNotFoundError(f"no {ep_path}")
         rows = _load_jsonl_rows(ep_path)
     ok = [r for r in rows if r.get("status") == "ok"]
-    err = [r for r in rows if r.get("status") != "ok"]
+    execution_counts = execution_status_counts(rows)
 
     by_model: dict[str, list[float]] = defaultdict(list)
     tool_hist: dict[str, Counter[str]] = defaultdict(Counter)
@@ -177,9 +181,9 @@ def analyze_output_dir(
         model_totals["plan_revisions_confirmed"] += int(
             llm.get("plan_revisions_confirmed", 0) or 0
         )
-        model_totals["task_completed"] += int(
-            bool((r.get("task_completion") or {}).get("completed"))
-        )
+        completed = (r.get("task_completion") or {}).get("completed")
+        model_totals["task_outcome_observed"] += int(isinstance(completed, bool))
+        model_totals["task_completed"] += int(completed is True)
         model_totals["tool_results_failed"] += int(
             traj.get("tool_results_failed", 0) or 0
         )
@@ -245,7 +249,7 @@ def analyze_output_dir(
                 f"{model} {r.get('scenario_id')}: LLM ok but zero tool calls (check parsing)"
             )
 
-    autonomy_by_model: dict[str, dict[str, float | int]] = {}
+    autonomy_by_model: dict[str, dict[str, float | int | None]] = {}
     for model, counts in autonomy_totals.items():
         simulator_ticks = int(counts["simulator_ticks"])
         autonomy_by_model[model] = {
@@ -260,16 +264,18 @@ def analyze_output_dir(
                 else 0.0
             ),
             "task_completion_rate": (
-                float(counts["task_completed"]) / counts["episodes"]
-                if counts["episodes"]
-                else 0.0
+                float(counts["task_completed"]) / counts["task_outcome_observed"]
+                if counts["task_outcome_observed"]
+                else None
             ),
         }
 
     return {
         "n_total": len(rows),
         "n_ok": len(ok),
-        "n_error": len(err),
+        "n_error": execution_counts["n_episodes_error"],
+        **execution_counts,
+        "measurement_scope": "execution_ok_diagnostic_including_contaminated_rows",
         "mean_by_model": {m: sum(s) / len(s) for m, s in by_model.items()},
         "tool_histogram_by_model": {m: dict(c) for m, c in tool_hist.items()},
         "event_adaptive_autonomy_by_model": autonomy_by_model,

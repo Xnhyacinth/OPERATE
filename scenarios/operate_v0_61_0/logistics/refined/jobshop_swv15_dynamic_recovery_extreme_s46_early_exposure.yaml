@@ -1,4 +1,4 @@
-seed_id: logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46
+seed_id: logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure
 family: job_shop_dispatch
 domain: logistics
 backend_kind: jsplib_job_shop
@@ -1110,7 +1110,7 @@ backend_config:
   task_contract:
     contract: logistics.job_shop.dynamic_recovery.v1
     event_response_window:
-      first_tick: 126
+      first_tick: 4
       last_tick: 591
     native_controls:
     - dispatch_ready_operations
@@ -1121,12 +1121,12 @@ backend_config:
     min_distinct_physical_tools: 2
     ordered_tool_milestones:
     - tool: dispatch_ready_operations
-      not_after_tick: 125
+      not_after_tick: 3
     - tool: repair_machine
-      not_before_tick: 126
+      not_before_tick: 4
       not_after_tick: 591
     - tool: repair_machine
-      not_before_tick: 131
+      not_before_tick: 9
       not_after_tick: 591
   source_event_contract:
     procedural_overlay: true
@@ -1137,13 +1137,23 @@ backend_config:
     runtime_effect_required: true
   observation_budget_chars: 16000
   core_settings_stamp: v0.54.0-settings
+  timing_refinement:
+    parent_scenario_id: logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46
+    parent_scenario_signature: 6f298e2995a044d9
+    max_tool_calls_per_tick: 8
+    standing_plan_batches_reserved: 1
+    optimistic_completion_ticks: 14
+    trigger_shift_ticks: 122
+    source_independence_credit: false
+    parent_file_sha256: 5f7b803b65220edb1f8e5c92354c914d3f2c5254b9186b47b05a80bc3c749913
+    kind: procedural_early_event_exposure
 horizon_ticks: 592
 tick_minutes: 1
 seed: 46
 load_assignments: []
 perturbations:
 - kind: machine_breakdown
-  trigger_tick: 125
+  trigger_tick: 3
   duration_ticks: 10
   hidden: false
   target:
@@ -1151,9 +1161,10 @@ perturbations:
     source: locked_jsplib_machine_set
   intensity: 1.0
   notes: Procedural deterministic maintenance outage over a machine identity consumed
-    from the locked JSPLIB instance.
+    from the locked JSPLIB instance. Procedural candidate timing refinement; not a
+    historical event.
 - kind: demand_surge
-  trigger_tick: 127
+  trigger_tick: 5
   duration_ticks: 4
   hidden: true
   target:
@@ -1161,9 +1172,10 @@ perturbations:
     source: locked_jsplib_job_set
   intensity: 2.0
   notes: Procedural urgent-job priority overlay over a locked JSPLIB job identity;
-    not a source-observed arrival.
+    not a source-observed arrival. Procedural candidate timing refinement; not a historical
+    event.
 - kind: machine_breakdown
-  trigger_tick: 130
+  trigger_tick: 8
   duration_ticks: 20
   hidden: true
   target:
@@ -1171,9 +1183,10 @@ perturbations:
     source: locked_jsplib_machine_set
   intensity: 1.0
   notes: Second deterministic machine outage for extreme recovery staging; target
-    remains source-locked.
+    remains source-locked. Procedural candidate timing refinement; not a historical
+    event.
 - kind: urgent_order
-  trigger_tick: 128
+  trigger_tick: 6
   duration_ticks: 4
   hidden: true
   target:
@@ -1181,7 +1194,8 @@ perturbations:
     source: locked_jsplib_job_set
   intensity: 3.0
   notes: Deterministic urgent-order priority overlay over a locked JSPLIB job identity
-    for extreme recovery staging.
+    for extreme recovery staging. Procedural candidate timing refinement; not a historical
+    event.
 dilemmas: []
 difficulty_mode: time_pressure
 difficulty_level: extreme
@@ -1202,18 +1216,18 @@ provenance:
     only. Dynamic recovery staging uses only deterministic procedural overlays whose
     target IDs are validated against the consumed JSPLIB instance; the overlays are
     not provenance evidence.
-scenario_id: logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46
+scenario_id: logistics/job_shop_dispatch/time_pressure/extreme/jobshop_swv15_dynamic_recovery_extreme_s46_early_exposure
 complexity_metrics:
   horizon_minutes: 592
   n_perturbations: 4
-  suddenness_ticks: 125
+  suddenness_ticks: 3
   observability_burden: 3
   decision_depth: 500
   cascade_permissiveness: 0
   persistence_ratio: 0.016
   ambient_fraction: 0.0
   n_stressors: 4
-  first_disruption_tick: 125
+  first_disruption_tick: 3
   n_priority_customers: 0
   demand_to_capacity_ratio: 0.0
   n_jobs: 50
@@ -1232,4 +1246,4 @@ source_contract:
   - works/JSPLIB-Instances/CHECKSUMS.txt
   - works/JSPLIB-Instances/instances.json
   license: []
-scenario_signature: 6f298e2995a044d9
+scenario_signature: ff2837a366aef5c4

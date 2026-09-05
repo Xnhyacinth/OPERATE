@@ -9,9 +9,10 @@ The maintained command groups are:
 - `batch_realtime_llm_eval.py`: independent `realtime_persistent` scorecard;
 - `merge_formal_llm_shards.py`: merge compatible complete shards;
 - `download_from_hf.py`: anonymous, manifest-backed public bundle download;
-- `upload_to_hf.py`: maintainer-only private CAS publication for completed
-  formal-result bundles, not the public dataset bootstrap path;
 - `setup_eval_env.sh`: reproducible environment, runtime-companion, and backend setup.
+
+Private CAS publication tools remain in the private maintainer repository;
+they are not needed to download the public dataset or evaluate a model.
 
 Candidate-generation and historical-release utilities are not part of the
 supported release surface and are removed once the corresponding source rows
