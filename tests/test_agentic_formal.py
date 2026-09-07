@@ -46,7 +46,7 @@ def _formal_config() -> dict:
         "git_dirty": False,
         "model_context_window_tokens": 192_000,
         "model_max_output_tokens": 64_000,
-        "max_tokens": 32_768,
+        "max_tokens": 64_000,
         "protocol_repair_max_tokens": 8_192,
         "persistent_history_max_messages": 64,
         "persistent_context_max_chars": 512_000,
@@ -71,7 +71,8 @@ def test_v058_contract_promotes_persistent_single_model_shards() -> None:
     assert contract["minimum_pass_k"] == 1
     assert contract["required_temperature"] == 0.0
     assert contract["maximum_max_workers"] == 32
-    assert contract["agentic_profile"]["max_tokens"] == 32_768
+    assert contract["agentic_profile"]["protocol_repair_max_tokens"] == 8_192
+    assert "max_tokens" not in contract["agentic_profile"]
     assert contract["agentic_profile"]["persistent_context_max_chars"] == 512_000
     assert contract["agentic_profile"]["provider_failure_policy"] == "abort"
 
@@ -109,7 +110,7 @@ def test_v058_formal_contract_rejects_profile_drift() -> None:
         suite_manifest_sha256="suite",
     )
 
-    assert "formal_agentic_profile_max_tokens_mismatch" in reasons
+    assert "formal_max_tokens_must_equal_model_max_output" in reasons
 
 
 def test_formal_run_rejects_frozen_legacy_contract() -> None:
@@ -183,7 +184,7 @@ def test_effective_llm_config_matches_v057_agentic_profile() -> None:
     profile = readiness.FORMAL_RUN_CONTRACT["agentic_profile"]
     args = SimpleNamespace(
         interaction_mode="logical_persistent",
-        max_tokens=profile["max_tokens"],
+        max_tokens=64_000,
         model_context_window_tokens=192_000,
         model_max_output_tokens=64_000,
         persistent_history_max_messages=profile[
@@ -209,7 +210,7 @@ def test_effective_llm_config_matches_v057_agentic_profile() -> None:
         responses_base_url=None,
     )
 
-    assert cfg.max_tokens == profile["max_tokens"]
+    assert cfg.max_tokens == 64_000
     assert cfg.protocol_repair_max_tokens == profile["protocol_repair_max_tokens"]
     assert cfg.persistent_history_max_messages == profile[
         "persistent_history_max_messages"

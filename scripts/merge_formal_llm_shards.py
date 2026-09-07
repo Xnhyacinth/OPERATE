@@ -35,7 +35,6 @@ FAMILY_SCHEMA_VERSION = "formal_treatment_family/1.0"
 FORMAL_CONTRACT_VERSION = "agentic_persistent.v1"
 FORMAL_INTERACTION_MODE = "logical_persistent"
 FORMAL_AGENTIC_PROFILE = {
-    "max_tokens": 32_768,
     "protocol_repair_max_tokens": 8_192,
     "persistent_history_max_messages": 64,
     "persistent_context_max_chars": 512_000,
@@ -244,7 +243,11 @@ def _formal_treatment_family_projection(
         "pass_k": manifest.get("pass_k"),
         "save_trajectories": manifest.get("save_trajectories"),
         "scheduler_mode": manifest.get("scheduler_mode"),
-        "persistent_agent_profile": _profile(manifest),
+        "persistent_agent_profile": {
+            key: value
+            for key, value in _profile(manifest).items()
+            if key != "max_tokens"
+        },
     }
 
 
@@ -389,6 +392,11 @@ def _validate_current_formal_contract(manifest: dict[str, Any]) -> None:
     output = _positive_int(output_caps[model], label="model output capability")
     if output > context:
         raise FormalShardMergeError("model output capability exceeds context")
+    request_tokens = _positive_int(profile.get("max_tokens"), label="max_tokens")
+    if request_tokens != output:
+        raise FormalShardMergeError(
+            "request max_tokens must equal model output capability"
+        )
     treatment_map = manifest.get("agent_treatment_sha256_by_model")
     if not isinstance(treatment_map, dict) or set(treatment_map) != {model}:
         raise FormalShardMergeError("agent treatment binding is incomplete")

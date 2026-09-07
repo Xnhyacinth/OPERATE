@@ -1,5 +1,9 @@
 # Updates
 
+## 2026-09-07
+
+- Request `--max-tokens` now equals each route's advertised maximum output instead of a shared 32,768-token pin. Formal Hy3 examples use a 192,000-token envelope and 64,000-token output; Luna's request envelope is 272,000 when that route is used.
+
 ## 2026-09-05
 
 - Include every admitted Datacenter medium/high case in Lite: 11 medium, 7 high and the existing 9 basic cases. Lite expands from 184 to 193 rows; other domains, Full and runtime assets are unchanged.
