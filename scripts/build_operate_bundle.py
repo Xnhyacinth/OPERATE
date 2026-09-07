@@ -23,7 +23,7 @@ if str(REPO_ROOT) not in sys.path:
 from core.implementation_identity import implementation_identity  # noqa: E402
 from core.protocol21_evidence import canonicalize_repo_owned_paths  # noqa: E402
 
-DEFAULT_RELEASE = REPO_ROOT / "release" / "operate_v0_62_0"
+DEFAULT_RELEASE = REPO_ROOT / "benchmark"
 DEFAULT_OUTPUT = REPO_ROOT / "data_operate_v061"
 DEFAULT_REPO_ID = "Xnhyacinth/OPERATE"
 FORMAL_RESULT_TREE_INDEX_NAME = "FORMAL_RESULT_TREE_INDEX.json"

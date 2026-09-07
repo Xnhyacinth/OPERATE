@@ -17,14 +17,10 @@ domains/       native operational backends and tools
 runner/        logical and realtime coordinators
 baselines/     baseline and LLM agent implementations
 evaluation/    scoring, counterfactuals, and statistics
-scenarios/operate_v0_58_0/  80 inherited contracts selected by v0.62
-scenarios/operate_v0_59_0/  8 inherited additions introduced by v0.59
-scenarios/operate_v0_60_0/  11 selected inherited contracts from v0.60
-scenarios/operate_v0_61_0/  1 selected inherited contract from v0.61
-scenarios/operate_v0_62_0/  669 corrected contracts selected by v0.62
+scenarios/     769 current contracts as `scenarios/<domain>/...`
 sources/       compact source assets and immutable locks
-release/operate_v0_62_0/    active source suite and promoted manifest
-scripts/       replay, audit, evaluation, merge, and distribution entrypoints
+benchmark/     current Core, Lite, and runtime-closure catalogs
+scripts/       replay, evaluation, and distribution entrypoints
 tests/         current runtime and release-contract tests
 docs/          current design and runbooks
 ```
@@ -33,12 +29,9 @@ docs/          current design and runbooks
 outputs, trajectories, and reports are local/generated and ignored by Git.
 Their required hashes and install locations are bound by the promoted manifest
 and public HF bundle. The local runtime-companion install root is
-`operate_data/`; `MANIFEST.json`
-binds the installed bytes to `operate_v0_62_0`. When a bundle declares
-`candidate_evidence_archive`, those inputs are restored under
-`candidate_evidence/.hl/artifacts/`. The compact v0.62 companion must ship
-`candidate_closure.json` instead of that archive. Either form is evidence for
-the terminal 2,476-candidate partition, not additional evaluation rows.
+`operate_data/`; `MANIFEST.json` records the installed runtime companion.
+Compact companions restore binaries under `operate_data/` and `works/`; they
+do not overlay `benchmark/`.
 
 The frozen working set contains 769 rows across 502 physical sources;
 the parent admission ledger has 2,476 terminal decisions and none remain unresolved. These
@@ -64,7 +57,7 @@ closed instead of sharing checkpoints.
 ```bash
 python -m pip install uv==0.12.5
 bash scripts/setup_eval_env.sh
-.venv/bin/python scripts/verify_release_integrity.py release/operate_v0_62_0
+.venv/bin/python scripts/verify_release_integrity.py benchmark
 ```
 
 The setup script restores bundle-delivered assets and clones CityLearn,

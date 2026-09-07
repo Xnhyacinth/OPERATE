@@ -33,11 +33,11 @@ from core.implementation_identity import implementation_identity  # noqa: E402
 from runner.episode import run_one  # noqa: E402
 
 DEFAULT_BASE = (
-    REPO_ROOT / "scenarios/operate_v0_58_0/logistics/job_shop_dispatch/"
+    REPO_ROOT / "scenarios/logistics/job_shop_dispatch/"
     "time_pressure/extreme/jobshop_swv06_dynamic_recovery_extreme_s44.yaml"
 )
 DEFAULT_OUTPUT = (
-    REPO_ROOT / "reports/operate_v0_58_0/agency/generic_runtime.json"
+    REPO_ROOT / "reports/agency/generic_runtime.json"
 )
 CONTROL_SCENARIO_ID = "diagnostic/agency_positive_control/jsplib_swv06_early_machine_breakdown"
 CONTROL_AGENT_NAME = "agency_positive_control_oracle"

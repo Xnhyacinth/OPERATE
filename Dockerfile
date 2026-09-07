@@ -7,5 +7,5 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY . .
 RUN uv sync --frozen --no-dev
 
-# This tracked inherited scenario is selected by release/operate_v0_61_0/.
-CMD ["uv", "run", "python", "run.py", "--scenario", "operate_v0_58_0/datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high", "--agent", "wait_only", "--seed", "42"]
+# Current Full scenario, relative to scenarios/.
+CMD ["uv", "run", "python", "run.py", "--scenario", "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high", "--agent", "wait_only", "--seed", "42"]

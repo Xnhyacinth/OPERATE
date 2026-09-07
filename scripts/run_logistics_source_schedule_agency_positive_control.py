@@ -32,14 +32,14 @@ from scripts.run_operational_agency_known_groups_calibration import (  # noqa: E
 AGENT_NAME = "diagnostic_logistics_source_schedule_control"
 DEFAULT_SCENARIO = (
     REPO_ROOT
-    / "scenarios/operate_v0_58_0/logistics/"
+    / "scenarios/logistics/"
     "inventory_replenishment/"
     "time_pressure/medium/"
     "m5_household_1_004_ca_2_d1705_30d_lt6_cap56_protocol21_migration_v57__12b2fe55__relabel_v1.yaml"
 )
 DEFAULT_OUTPUT = (
     REPO_ROOT
-    / "reports/operate_v0_58_0/agency/logistics_natural.json"
+    / "reports/agency/logistics_natural.json"
 )
 
 

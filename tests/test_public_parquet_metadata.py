@@ -28,7 +28,7 @@ def test_public_metadata_is_minimal_and_reversible(tmp_path):
         assert b"operate.suite_template_json" in table.schema.metadata
         assert {"subset", "scenario_id", "scenario_yaml", "yaml_sha256"} <= set(table.column_names)
         rebuilt = builder.rebuild_parquet(source, tmp_path / subset)
-        assert rebuilt.read_bytes() == (ROOT / "release/operate_v0_61_0" / suite_name).read_bytes()
+        assert rebuilt.read_bytes() == (ROOT / "benchmark" / suite_name).read_bytes()
 
 
 def test_private_export_keeps_existing_metadata(tmp_path):
@@ -40,7 +40,7 @@ def test_private_export_keeps_existing_metadata(tmp_path):
     assert {"release_id", "suite_id", "status", "core_disposition", "construct_contract"} <= set(table.column_names)
     assert "suite_template_json" in table.column_names
     rebuilt = builder.rebuild_parquet(tmp_path / artifact["path"], tmp_path / "rebuilt")
-    assert rebuilt.read_bytes() == (ROOT / "release/operate_v0_61_0/core_suite.json").read_bytes()
+    assert rebuilt.read_bytes() == (ROOT / "benchmark/core_suite.json").read_bytes()
 
 
 @pytest.mark.parametrize("tamper", [False, True])

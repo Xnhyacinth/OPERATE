@@ -74,7 +74,7 @@ jobs:
             tests/test_protocol21_evidence.py \
             tests/test_verify_release_integrity.py
           uv run --no-sync python scripts/verify_release_integrity.py \
-            release/operate_v0_61_0 --portable
+            benchmark
       - name: HF Parquet round trip
         run: |
           uv run --no-sync --with pyarrow==25.0.1 python -m pytest -q \

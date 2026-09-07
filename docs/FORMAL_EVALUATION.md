@@ -1,9 +1,7 @@
 # OPERATE formal evaluation
 
-This runbook applies to the promoted 769-row `operate_v0_62_0` dataset and
-records the actual implementation used by each new run. The `core_suite.json` and
-`manifest.json`, not a pre-admission source suite, define a formal shard. Any
-older artifacts and interrupted provider runs are not compatible checkpoints.
+This runbook applies to the current 769-row public Core. The
+`benchmark/core_suite.json` and `benchmark/manifest.json` define the shard.
 
 ## Contract
 
@@ -65,20 +63,7 @@ supported on Python 3.10 through 3.14.
 ```bash
 : "${OPERATE_HF_REVISION:?set the resolved immutable HF revision}"
 bash scripts/setup_eval_env.sh
-export OPERATE_FORMAL_MANIFEST='release/operate_v0_62_0/manifest.json'
-export OPERATE_FORMAL_READINESS="$(
-  .venv/bin/python - <<'PY'
-import json
-import os
-from pathlib import Path
-
-manifest = json.loads(Path(os.environ["OPERATE_FORMAL_MANIFEST"]).read_text())
-print(manifest["formal_evidence"]["readiness"])
-PY
-)"
-test -f "$OPERATE_FORMAL_READINESS"
-.venv/bin/python scripts/verify_release_integrity.py \
-  release/operate_v0_62_0
+.venv/bin/python scripts/verify_release_integrity.py benchmark
 ```
 
 `setup_eval_env.sh` installs the locked environment, clones the six
@@ -244,7 +229,7 @@ export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
 PYTHONPATH=. .venv/bin/python run_lite.py \
   --output-dir batch_results/operate_v0_62_0/lite/logical_persistent/glm_5_3_flash_ioa_w12 \
-  --lite-suite release/operate_v0_62_0/lite_suite.json \
+  --lite-suite benchmark/lite_suite.json \
   --models glm-5.3-flash-ioa \
   --api-key-env API_KEY --base-url-env BASE_URL \
   --api-mode chat_completions --stream-chat-completions \
@@ -369,7 +354,7 @@ exact candidate manifest outside the canonical release directory:
 ```bash
 mkdir -p output/release_finalize
 PYTHONPATH=. .venv/bin/python scripts/finalize_operate_release.py \
-  --release-manifest release/operate_v0_62_0/manifest.json \
+  --release-manifest benchmark/manifest.json \
   --logical-batch-manifest '<logical-treatment>/RUN_MANIFEST.json' \
   --realtime-batch-manifest '<realtime-treatment>/RUN_MANIFEST.json' \
   --output-manifest output/release_finalize/candidate_manifest.json \

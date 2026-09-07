@@ -1,0 +1,27 @@
+{
+  "schema_version": "operate-public-benchmark-v1",
+  "name": "OPERATE",
+  "version": "0.62.0",
+  "scoring_version": "0.15.0",
+  "n_scenarios": 769,
+  "n_physical_sources": 502,
+  "n_lite_scenarios": 193,
+  "n_lite_physical_sources": 122,
+  "core_suite": {
+    "path": "core_suite.json",
+    "n_scenarios": 769,
+    "sha256": "a27134686db28ea0689cfb999009c8b3dbf3b529c479330a499870baafc949ed"
+  },
+  "lite_suite": {
+    "path": "lite_suite.json",
+    "n_scenarios": 193,
+    "sha256": "74a1458d476dbfd73ad1f30ae93fea60d978502e4d5dce746a4123174842360d"
+  },
+  "backend_runtime_closure": {
+    "path": "backend_runtime_closure.json",
+    "sha256": "27e947af2ec56b6dba4d80dd2c4f404c76c54bedeea2ce94502f798bc1a6d1cb"
+  },
+  "formal_evaluation_ready": true,
+  "leaderboard_eligible": false,
+  "public_release_ready": false
+}

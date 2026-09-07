@@ -28,7 +28,7 @@ from evaluation.dimension_applicability import (  # noqa: E402
 )
 from runner import EVALUATION_IMPLEMENTATION_FINGERPRINT  # noqa: E402
 
-DEFAULT_RELEASE = REPO_ROOT / "release" / "operate_v0_62_0"
+DEFAULT_RELEASE = REPO_ROOT / "benchmark"
 
 JsonDict = dict[str, Any]
 
@@ -3190,6 +3190,80 @@ def build_protocol21_core_integrity_report(
     }
 
 
+def build_public_suite_integrity_report(
+    release: Path,
+    *,
+    artifact_root: Path | None = None,
+    manifest_override: JsonDict | None = None,
+) -> JsonDict:
+    """Public checkout check: current YAML and suite catalogs, no maintainer trees."""
+    manifest = (
+        deepcopy(manifest_override)
+        if manifest_override is not None
+        else _load_json(release / "manifest.json")
+    )
+    repo = (artifact_root or _repo_root()).resolve()
+    core_entry = _manifest_suite_entry(manifest, "core_suite")
+    lite_entry = _manifest_suite_entry(manifest, "lite_suite")
+    core_path, core_ok = _resolve_suite_path(release, core_entry, "core_suite.json")
+    lite_path, lite_ok = _resolve_suite_path(release, lite_entry, "lite_suite.json")
+    core = _load_json(core_path) if core_ok and core_path.is_file() else {}
+    lite = _load_json(lite_path) if lite_ok and lite_path.is_file() else {}
+    rows = list(core.get("scenarios") or [])
+    lite_rows = list(lite.get("scenarios") or [])
+    missing_yaml = []
+    versioned_paths = []
+    sha_mismatch = []
+    for row in rows:
+        rel = str(row.get("path") or "")
+        if rel.startswith("scenarios/operate_v0_"):
+            versioned_paths.append(rel)
+        yaml_path, contained = _resolve_repo_artifact(rel, artifact_root=repo)
+        if not contained or not yaml_path.is_file():
+            missing_yaml.append(rel)
+            continue
+        expected = str(row.get("yaml_sha256") or "")
+        if expected and _sha256(yaml_path) != expected:
+            sha_mismatch.append(_scenario_id(row))
+    leaked_hl = []
+    for path in (release / "manifest.json", core_path, lite_path):
+        if path.is_file() and ".hl/" in path.read_text(encoding="utf-8"):
+            leaked_hl.append(path.name)
+    core_ids = {_scenario_id(row) for row in rows}
+    lite_ids = {_scenario_id(row) for row in lite_rows}
+    issues = []
+    if missing_yaml:
+        issues.append(f"missing_yaml:{len(missing_yaml)}")
+    if versioned_paths:
+        issues.append(f"versioned_scenario_paths:{len(versioned_paths)}")
+    if sha_mismatch:
+        issues.append(f"yaml_sha256_mismatch:{len(sha_mismatch)}")
+    if leaked_hl:
+        issues.append("maintainer_workspace_paths")
+    if int(manifest.get("n_scenarios") or 0) != len(rows):
+        issues.append("scenario_count_mismatch")
+    if lite_ids - core_ids:
+        issues.append("lite_not_subset_of_core")
+    checks = {
+        "public_suite_present": core_ok and core_path.is_file() and lite_ok and lite_path.is_file(),
+        "scenario_yaml_present": not missing_yaml,
+        "scenario_paths_current": not versioned_paths,
+        "yaml_sha256_valid": not sha_mismatch,
+        "no_maintainer_workspace_paths": not leaked_hl,
+        "lite_subset_of_core": not (lite_ids - core_ids),
+    }
+    return {
+        "schema_version": "operate-public-benchmark-v1",
+        "release_id": str(manifest.get("version") or release.name),
+        "verification_mode": "public",
+        "core": {"len_scenarios": len(rows), "missing_yaml": missing_yaml[:25]},
+        "lite": {"len_scenarios": len(lite_rows)},
+        "checks": checks,
+        "issues": issues,
+        "ok": all(checks.values()) and not issues,
+    }
+
+
 def build_release_integrity_report(
     release: Path = DEFAULT_RELEASE,
     *,
@@ -3203,6 +3277,12 @@ def build_release_integrity_report(
         if manifest_override is not None
         else _load_json(manifest_path)
     )
+    if manifest.get("schema_version") == "operate-public-benchmark-v1":
+        return build_public_suite_integrity_report(
+            release,
+            artifact_root=artifact_root,
+            manifest_override=manifest,
+        )
     if manifest.get("manifest_schema_version") == "protocol21-core-v1":
         return build_protocol21_core_integrity_report(
             release,

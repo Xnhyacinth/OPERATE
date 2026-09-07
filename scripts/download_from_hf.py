@@ -961,7 +961,11 @@ def validate_runtime_bundle_compatibility(
     continues to require the canonical local manifest by default.
     Compact admission proofs retain their historical code identity; a new run
     binds its current code separately rather than relabelling that old proof.
+    Public companions restore runtime assets only; they must not require a
+    byte-identical maintainer qualification manifest in Git.
     """
+    if manifest.get("bundle_kind") == "public_runtime_companion":
+        require_canonical_release_manifest = False
     if verify_manifest(data_dir) != manifest:
         raise ValueError("runtime_bundle_manifest_argument_mismatch")
     if not (
@@ -3152,12 +3156,14 @@ def main() -> int:
             candidate_manifest,
             force=args.force_extract,
         )
-        evidence_extracted = _extract_formal_evidence_archive(
-            installed_dir,
-            candidate_manifest,
-            repo_root=REPO,
-            force=args.force_extract,
-        )
+        evidence_extracted = False
+        if candidate_manifest.get("bundle_kind") != "public_runtime_companion":
+            evidence_extracted = _extract_formal_evidence_archive(
+                installed_dir,
+                candidate_manifest,
+                repo_root=REPO,
+                force=args.force_extract,
+            )
         install_state.update(
             extracted=extracted,
             linked=linked,
@@ -3234,13 +3240,7 @@ def main() -> int:
             "  runtime compatibility: deferred until backend installation "
             "(download-only)"
         )
-    release_id = str(manifest.get("release_id") or "")
-    if release_id:
-        print(
-            f"  ready: python scripts/verify_release_integrity.py release/{release_id}"
-        )
-    else:
-        print("  ready: bundle installed; verify its declared release before testing")
+    print("  ready: python scripts/verify_release_integrity.py benchmark")
     return 0
 
 

@@ -10,12 +10,10 @@ from pathlib import Path
 import __init__ as package_metadata
 
 from scripts.verify_release_integrity import DEFAULT_RELEASE
-from scripts.promote_operate_release import DEFAULT_PARENT
 from scripts.summarize_leaderboard_results import (
     DEFAULT_RELEASE as SUMMARY_DEFAULT_RELEASE,
     DEFAULT_OUTPUT_JSON,
     DEFAULT_OUTPUT_MARKDOWN,
-    DEFAULT_SUMMARY_CSV,
 )
 
 
@@ -76,13 +74,11 @@ def test_public_bundle_cli_starts_from_external_cwd_without_install(
 
 
 def test_default_release_is_anchored_to_repository() -> None:
-    assert DEFAULT_RELEASE == REPO_ROOT / "release" / "operate_v0_61_0"
+    assert DEFAULT_RELEASE == REPO_ROOT / "benchmark"
     assert DEFAULT_RELEASE.is_absolute()
     assert SUMMARY_DEFAULT_RELEASE == DEFAULT_RELEASE
-    assert "operate_v0_61_0" in DEFAULT_SUMMARY_CSV.parts
-    assert DEFAULT_OUTPUT_JSON.name == "operate_v061_leaderboard_results.json"
-    assert DEFAULT_OUTPUT_MARKDOWN.name == "operate_v061_leaderboard_results.md"
-    assert DEFAULT_PARENT == REPO_ROOT / "release" / "operate_v0_60_0" / "manifest.json"
+    assert DEFAULT_OUTPUT_JSON.parent.name == "output"
+    assert DEFAULT_OUTPUT_MARKDOWN.parent.name == "output"
 
 
 def test_package_version_matches_project_metadata() -> None:
@@ -119,10 +115,10 @@ def test_fresh_clone_entrypoints_target_current_release() -> None:
         encoding="utf-8"
     )
 
-    assert "release/operate_v0_61_0/manifest.json" in setup
+    assert 'RELEASE_DIR="$REPO/benchmark"' in setup or "[ -f \"$REPO/benchmark/manifest.json\" ]" in setup
     assert "scripts/prepare_local_source_locks.py" in setup
-    assert "release/operate_v0_61_0" in ci
-    assert "operate_v0_61_0/" in dockerfile
+    assert "benchmark" in ci
+    assert "operate_v0_58_0/" not in dockerfile
     assert 'DATA = REPO / "operate_data"' in downloader
     assert "data_operate_v058" not in downloader
     data_readme = (REPO_ROOT / "data" / "README.md").read_text(encoding="utf-8")

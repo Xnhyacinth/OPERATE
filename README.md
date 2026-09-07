@@ -23,15 +23,15 @@ the environment or the judge.
 [Evaluation protocol](docs/FORMAL_EVALUATION.md) ·
 [Data provenance](docs/DATA_PROVENANCE.md)
 
-The public repository and Hugging Face dataset each expose one versionless,
-current benchmark state; the private maintainer archive retains development
-history. There are no public release tags or selectable historical datasets.
-Internal release IDs and content hashes remain in manifests solely to bind
-code, data, prompts, treatments, and results reproducibly.
+The public repository and Hugging Face dataset each expose one current
+benchmark state. Scenario contracts live under `scenarios/<domain>/...`.
+Manifests keep a release identifier and content hashes only to bind code, data,
+prompts, treatments, and results. There are no public release tags or
+selectable historical datasets.
 
-## Current v0.62 qualification and provider status
+## Current qualification and provider status
 
-The promoted input namespace is `operate_v0_62_0`, with scoring `0.15.0`,
+The current Core uses scoring `0.15.0`,
 769 Core rows across 502 physical sources and 193 Lite rows across 122 sources.
 Native qualification is bound to its recorded implementation identity. Later
 verified maintenance changes bind their actual new execution identity; resume
@@ -152,13 +152,12 @@ uv run python -m pytest -q \
   tests/test_batch_realtime_llm_eval.py \
   tests/test_agentic_formal.py
 
-# Verify the promoted release
-uv run python scripts/verify_release_integrity.py \
-  release/operate_v0_62_0 --portable
+# Verify the current public catalog
+uv run python scripts/verify_release_integrity.py benchmark
 
-# One baseline episode selected by the current manifest
+# One baseline episode selected by the current catalog
 uv run python run.py \
-  --scenario operate_v0_62_0/datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high \
+  --scenario datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high \
   --agent wait_only --seed 42
 ```
 
@@ -209,7 +208,7 @@ uv run python run_lite.py \
 ```
 
 The exact selection and generator are
-[`release/operate_v0_62_0/lite_suite.json`](release/operate_v0_62_0/lite_suite.json)
+[`benchmark/lite_suite.json`](benchmark/lite_suite.json)
 and [`tools/build_lite_suite.py`](tools/build_lite_suite.py).
 
 ## Formal persistent evaluation

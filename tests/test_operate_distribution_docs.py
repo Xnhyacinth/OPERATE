@@ -20,36 +20,30 @@ def test_documented_environment_and_formal_scope_are_current() -> None:
         REPO_ROOT / "docs" / "CURRENT_RELEASE.md",
         REPO_ROOT / "docs" / "FORMAL_EVALUATION.md",
     ]
-    if (REPO_ROOT / "AGENTS.md").is_file():
-        paths.append(REPO_ROOT / "AGENTS.md")
     contents = "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
     assert ".venv313" not in contents
-    assert "pre-admission" in contents
     assert "core_suite.json" in contents
     assert "manifest.json" in contents
-    assert "formal_evaluation_ready" in contents
-    manifest = json.loads(
-        (REPO_ROOT / "release/operate_v0_62_0/manifest.json").read_text()
-    )
-    current_release = manifest["release_id"]
-    assert current_release in contents
     assert "769" in contents
     assert "502" in contents
-    core = json.loads(
-        (REPO_ROOT / "release/operate_v0_62_0/core_suite.json").read_text()
-    )
-    inherited = sum(
-        row["path"].startswith("scenarios/operate_v0_58_0/")
+    manifest = json.loads((REPO_ROOT / "benchmark/manifest.json").read_text())
+    core = json.loads((REPO_ROOT / "benchmark/core_suite.json").read_text())
+    assert manifest["n_scenarios"] == 769
+    assert manifest["version"] == "0.62.0"
+    assert all(
+        row["path"].startswith("scenarios/")
+        and not row["path"].startswith("scenarios/operate_v0_")
         for row in core["scenarios"]
     )
-    assert f"{inherited} inherited" in contents
-    assert "scenarios/operate_v0_59_0/" in contents
-    assert "scenarios/operate_v0_60_0/" in contents
-    assert "scenarios/operate_v0_61_0/" in contents
-    assert "formal_logical_persistent_evaluation_pending" in contents
-    assert "formal_realtime_persistent_evaluation_pending" in contents
-    assert "formal_runtime_evidence_distribution_pending" in contents
+    assert "scenarios/" in contents
+    assert "benchmark/" in contents
+
+
+def test_public_suite_has_no_maintainer_workspace_paths() -> None:
+    for path in (REPO_ROOT / "benchmark").glob("*.json"):
+        assert ".hl/" not in path.read_text(encoding="utf-8")
+    assert not (REPO_ROOT / "release").exists()
 
 
 def test_maintained_setup_uses_operate_runtime_bundle() -> None:
@@ -71,7 +65,8 @@ def test_setup_requires_candidate_evidence_only_when_bundle_declares_it() -> Non
 
     assert 'manifest.get("candidate_evidence_archive")' in setup
     assert 'if [ "$CANDIDATE_EVIDENCE_REQUIRED" -eq 1 ]; then' in setup
-    assert '[ -d "$RUNTIME_DATA_DIR/candidate_evidence/.hl/artifacts" ]' in setup
+    assert '[ -d "$RUNTIME_DATA_DIR/candidate_evidence" ]' in setup
+    assert ".hl/" not in setup
     assert "candidate closure evidence is not required by this compact bundle" in setup
     assert "candidate closure evidence was not restored from the bundle" in setup
 
@@ -108,23 +103,15 @@ def test_runtime_companion_is_not_documented_as_portable_core() -> None:
     provenance = (REPO_ROOT / "docs" / "DATA_PROVENANCE.md").read_text(
         encoding="utf-8"
     )
-    release_map = (REPO_ROOT / "release" / "README.md").read_text(encoding="utf-8")
 
     assert "--portable" not in data_readme
     assert "runtime companion" in data_readme.lower()
-    assert "data_operate_v058" in data_readme
-    assert "data_operate_v059" not in data_readme
-    assert "compatibility path" in data_readme
     assert dataset_card.startswith("---\nlicense: other\n")
     assert "relicensing upstream data under MIT" in dataset_card
     assert "portable bundle" not in downloader.lower()
     assert "--portable" not in downloader
-    assert "data_operate_v058/" in layout
-    assert "candidate_evidence_archive" in layout
-    assert "candidate_evidence_archive" in provenance
-    assert "operate_v0_61_0" in release_map
-    assert "data_operate_v058/" in release_map
-    assert "historical v0.58 package snapshot" in release_map
+    assert "benchmark/" in layout
+    assert "769" in provenance
 
 
 def test_formal_runbook_uses_resumable_logical_and_realtime_commands() -> None:
@@ -139,7 +126,6 @@ def test_formal_runbook_uses_resumable_logical_and_realtime_commands() -> None:
     assert "--interaction-mode logical_persistent" in runbook
     assert "--resume" in runbook
     assert ".hl/release_rebuild/" not in runbook
-    assert 'manifest["formal_evidence"]["readiness"]' in runbook
 
 
 def test_formal_runbook_documents_release_finalizer_and_unknown_quota() -> None:
