@@ -2,7 +2,13 @@
 
 ## 2026-09-07
 
+- Public GitHub ships one current catalog under `benchmark/` and flattened
+  `scenarios/<domain>/...` paths. Maintainer mining scripts, versioned lock
+  folders, and `release/` trees are not part of this checkout.
+- Clone plus `bash scripts/setup_eval_env.sh` installs the public Hugging Face
+  runtime companion without overlaying Git catalogs.
 - Public runbook examples use `API_KEY` and `BASE_URL` only. Request `--max-tokens` equals advertised output: Hy3 192k/64k, Luna 272k/128k, GLM-5.3-Flash 1M/128k, DeepSeek Flash 1M/50k.
+
 - Record native per-route envelopes in `docs/provider_route_bindings.json`. Formal Hy3 examples use a 192,000-token envelope and 64,000-token output; Luna's request envelope is 272,000 when that route is used.
 
 ## 2026-09-05

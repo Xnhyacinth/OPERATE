@@ -22,11 +22,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.run_protocol21_core_pipeline import STAGE_ORDER  # noqa: E402
 
-
-DEFAULT_INVENTORY = ROOT / ".hl/artifacts/operate_v058_candidate_inventory.json"
-DEFAULT_OUTPUT = ROOT / ".hl/artifacts/operate_v058_candidate_terminal_ledger.json"
+DEFAULT_INVENTORY = ROOT / "output/candidate_inventory.json"
+DEFAULT_OUTPUT = ROOT / "output/candidate_terminal_ledger.json"
 COMPACT_SCHEMA_VERSION = "operate-candidate-closure-compact-v1"
 READY_FOR_FULL_ADMISSION = "ready_for_full_admission"
 LEGACY_READY_FOR_FULL_ADMISSION = "core_ready"
@@ -456,6 +454,8 @@ def _replay_terminal_rows(
         stages = manifest.get("stages")
         if not isinstance(stages, list):
             raise ValueError("replay manifest stages must be a list")
+        from scripts.run_protocol21_core_pipeline import STAGE_ORDER  # noqa: PLC0415
+
         required_stage_names = list(
             STAGE_ORDER[: STAGE_ORDER.index("materialize_core") + 1]
         )

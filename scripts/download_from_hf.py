@@ -965,7 +965,13 @@ def validate_runtime_bundle_compatibility(
     byte-identical maintainer qualification manifest in Git.
     """
     if manifest.get("bundle_kind") == "public_runtime_companion":
-        require_canonical_release_manifest = False
+        if verify_manifest(data_dir) != manifest:
+            raise ValueError("runtime_bundle_manifest_argument_mismatch")
+        _validate_backend_runtime_closure_binding(data_dir, manifest)
+        _validate_backend_archive_file_bindings(data_dir, manifest)
+        _validate_backend_license_bindings(data_dir, manifest)
+        _validate_runtime_package_bindings(manifest, repo_root=repo_root)
+        return
     if verify_manifest(data_dir) != manifest:
         raise ValueError("runtime_bundle_manifest_argument_mismatch")
     if not (
@@ -1825,6 +1831,8 @@ def validate_bundle_distribution_contract(
     _validate_backend_runtime_closure_binding(data_dir, manifest)
     _validate_backend_archive_file_bindings(data_dir, manifest)
     _validate_backend_license_bindings(data_dir, manifest)
+    if manifest.get("bundle_kind") == "public_runtime_companion":
+        return
     formal_fields = {
         "formal_evidence_archive",
         "formal_evidence_files",

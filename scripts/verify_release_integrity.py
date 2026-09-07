@@ -3216,7 +3216,7 @@ def build_public_suite_integrity_report(
     sha_mismatch = []
     for row in rows:
         rel = str(row.get("path") or "")
-        if rel.startswith("scenarios/operate_v0_"):
+        if rel.startswith("scenarios/operate_v0_") or "/candidate_imports/" in rel:
             versioned_paths.append(rel)
         yaml_path, contained = _resolve_repo_artifact(rel, artifact_root=repo)
         if not contained or not yaml_path.is_file():
@@ -3229,6 +3229,13 @@ def build_public_suite_integrity_report(
     for path in (release / "manifest.json", core_path, lite_path):
         if path.is_file() and ".hl/" in path.read_text(encoding="utf-8"):
             leaked_hl.append(path.name)
+    leaked_locks = []
+    for row in rows:
+        yaml_path, contained = _resolve_repo_artifact(str(row.get("path") or ""), artifact_root=repo)
+        if contained and yaml_path.is_file():
+            text = yaml_path.read_text(encoding="utf-8")
+            if "sources/locks/operate_v0_" in text or "/candidate_imports/" in text:
+                leaked_locks.append(_scenario_id(row))
     core_ids = {_scenario_id(row) for row in rows}
     lite_ids = {_scenario_id(row) for row in lite_rows}
     issues = []
@@ -3240,6 +3247,8 @@ def build_public_suite_integrity_report(
         issues.append(f"yaml_sha256_mismatch:{len(sha_mismatch)}")
     if leaked_hl:
         issues.append("maintainer_workspace_paths")
+    if leaked_locks:
+        issues.append(f"versioned_source_lock_paths:{len(leaked_locks)}")
     if int(manifest.get("n_scenarios") or 0) != len(rows):
         issues.append("scenario_count_mismatch")
     if lite_ids - core_ids:
@@ -3250,6 +3259,7 @@ def build_public_suite_integrity_report(
         "scenario_paths_current": not versioned_paths,
         "yaml_sha256_valid": not sha_mismatch,
         "no_maintainer_workspace_paths": not leaked_hl,
+        "source_lock_paths_current": not leaked_locks,
         "lite_subset_of_core": not (lite_ids - core_ids),
     }
     return {

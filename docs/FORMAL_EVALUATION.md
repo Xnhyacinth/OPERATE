@@ -165,7 +165,7 @@ export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 : "${RPD_LIMIT:?set the applicable free-tier RPD limit}"
 
 PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
-  --output-dir batch_results/operate_v0_62_0/formal/logical_persistent/glm_5_2_free_w8 \
+  --output-dir batch_results/formal/logical_persistent/glm_5_2_free_w8 \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
   --models z-ai/glm-5.2:free \
   --api-key-env API_KEY --base-url-env BASE_URL \
@@ -199,7 +199,7 @@ export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
 PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
-  --output-dir batch_results/operate_v0_62_0/formal/logical_persistent/hy3_ioa_w16 \
+  --output-dir batch_results/formal/logical_persistent/hy3_ioa_w16 \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
   --models hy3-ioa \
   --api-key-env API_KEY --base-url-env BASE_URL \
@@ -228,7 +228,7 @@ export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
 PYTHONPATH=. .venv/bin/python run_lite.py \
-  --output-dir batch_results/operate_v0_62_0/lite/logical_persistent/glm_5_3_flash_ioa_w12 \
+  --output-dir batch_results/lite/logical_persistent/glm_5_3_flash_ioa_w12 \
   --lite-suite benchmark/lite_suite.json \
   --models glm-5.3-flash-ioa \
   --api-key-env API_KEY --base-url-env BASE_URL \
@@ -283,7 +283,7 @@ export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --suite "$OPERATE_FORMAL_READINESS" \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
-  --output-root batch_results/operate_v0_62_0/formal/realtime_persistent/glm_5_2_free_w8 \
+  --output-root batch_results/formal/realtime_persistent/glm_5_2_free_w8 \
   --model z-ai/glm-5.2:free --provider openai_compatible \
   --base-url https://openrouter.ai/api/v1 --api-key-env API_KEY \
   --api-mode chat_completions \
@@ -311,7 +311,7 @@ export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --suite "$OPERATE_FORMAL_READINESS" \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
-  --output-root batch_results/operate_v0_62_0/formal/realtime_persistent/hy3_ioa_w16 \
+  --output-root batch_results/formal/realtime_persistent/hy3_ioa_w16 \
   --model hy3-ioa --provider openai_compatible \
   --base-url https://copilot.tencent.com/v2 --api-key-env API_KEY \
   --api-mode chat_completions \
@@ -348,25 +348,10 @@ derived reports are finalized, provider and artifact audits pass, and there are 
 fatal, orphan, missing, duplicate, or treatment-mismatched rows. Domain/backend
 strata and evidence support accompany the primary aggregate.
 
-After one same single model has completed both formal treatments, prepare the
-exact candidate manifest outside the canonical release directory:
-
-```bash
-mkdir -p output/release_finalize
-PYTHONPATH=. .venv/bin/python scripts/finalize_operate_release.py \
-  --release-manifest benchmark/manifest.json \
-  --logical-batch-manifest '<logical-treatment>/RUN_MANIFEST.json' \
-  --realtime-batch-manifest '<realtime-treatment>/RUN_MANIFEST.json' \
-  --output-manifest output/release_finalize/candidate_manifest.json \
-  --prepare-distribution-candidate
-```
-
-Independent evaluation does not require uploading a distribution bundle. The
-public checkout does not include maintainer publication tools.
-
-The finalizer revalidates and content-addresses both result trees before it sets
-`public_release_ready` and `leaderboard_eligible`. This scientific readiness
-state is independent of the already-public source/runtime distribution.
+After one same single model has completed both formal treatments, merge
+compatible shards with `scripts/merge_formal_llm_shards.py`. Independent
+evaluation does not require uploading a distribution bundle. Leaderboard
+eligibility remains false until those provider shards are complete.
 
 See [`AGENTIC_INTERACTION.md`](AGENTIC_INTERACTION.md) for the event loop,
 memory, cancellation, supersession, safety-supervisor, and realtime scorecard

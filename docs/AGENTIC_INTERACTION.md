@@ -71,7 +71,7 @@ separate `realtime-diagnostics/1.6` scorecard. It is formal only within its own
 release-bound clock, supervisor, provider and concurrency stratum and is never
 merged with the thirteen-dimension logical primary leaderboard.
 
-The promoted `operate_v0_61_0` release binds the complete realtime artifact stack:
+The current Core binds the complete realtime artifact stack:
 `realtime-formal-batch/1.1`, `realtime-formal-scorecard/1.1`,
 `realtime-episode/1.1`, `realtime-treatment/1.1`,
 `realtime-provider-audit-contract/1.0`, diagnostics 1.6, and coordinator

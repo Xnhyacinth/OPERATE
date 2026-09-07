@@ -31,16 +31,14 @@ htmlcov/
 # Promoter/runtime lock files
 **/.run.lock
 
-# Runtime outputs are content-addressed and distributed separately.
+# Runtime outputs
 trajectories/
 batch_logs/
 batch_results/
+output/
 outputs/
 reports/
 results/
-# Formal provider evidence is content-addressed and shipped in the public
-# runtime companion, never through Git.
-release/*/formal_results/
 *.jsonl
 *.trajectory.json
 *.summary.json
@@ -61,18 +59,9 @@ data/*
 !data/*.json
 !sources/dynasched/**/events.jsonl
 
-# The active replay evidence is regenerated from the tracked source suite and
-# uploaded with the private release bundle; it is not stored in Git.
-release/operate_v0_58_0_candidate/
-
-# Local plans, notes, IDE agents, and one-off distribution helpers
+# Local plans, notes, IDE agents
 .planning/
-.hl/*
-!.hl/
-!.hl/policy.md
-!.hl/failed_directions.md
-!.hl/archive/superpowers/
-!.hl/archive/superpowers/*
+.hl/
 analysis/
 findings.md
 progress.md

@@ -18,9 +18,9 @@ from typing import Any, Mapping
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SOURCE_SUITE = REPO_ROOT / "release/operate_v0_62_0/protocol21_source_suite.json"
+DEFAULT_SOURCE_SUITE = REPO_ROOT / "benchmark/core_suite.json"
 DEFAULT_RUNTIME_SOURCE_LOCK = (
-    REPO_ROOT / "sources/locks/operate_v0_61_0/backend_runtime_sources.json"
+    REPO_ROOT / "sources/locks/backend_runtime_sources.json"
 )
 
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
@@ -911,7 +911,7 @@ def build_backend_runtime_closure(
         backend_links["DynaSchedBench"] = "dynasched"
 
     source_lock_path = runtime_source_lock_path or (
-        repo_root / "sources/locks/operate_v0_61_0/backend_runtime_sources.json"
+        repo_root / "sources/locks/backend_runtime_sources.json"
     )
     _load_archive_licenses(
         repo_root,

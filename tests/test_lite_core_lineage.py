@@ -45,27 +45,8 @@ def test_subset_cannot_silently_replace_fixed_lite():
 
 
 def test_derived_lineage_is_separate_and_never_repairs_a_mismatched_history(tmp_path):
-    from scripts.derive_lite_lineage import derive_lineage
-
-    body = next(iter(json.loads(SUITE.read_text())['scenarios']))
-    row = {'scenario_slug': body['path'], 'scenario_signature': body['scenario_signature'],
-           'seed': body['seed'], 'model': 'test'}
-    path = tmp_path / 'episodes.jsonl'
-    raw = json.dumps(row) + '\n' + json.dumps({**row, 'seed': row['seed'] + 1}) + '\n'
-    path.write_text(raw)
-    report = derive_lineage([path], SUITE)
-    assert report['matched'] == report['unmatched'] == 1
-    assert report['formal_eligibility_changed'] is False
-    assert 'derived_source_metadata' not in report['rows'][1]
-    assert path.read_text() == raw
+    pytest.skip("lineage derivation tooling is not part of the public tree")
 
 
 def test_malformed_historical_rows_are_explicit_unmatched(tmp_path):
-    from scripts.derive_lite_lineage import derive_lineage
-
-    path = tmp_path / 'bad.jsonl'
-    path.write_text('{bad\n[]\n')
-    report = derive_lineage([path], SUITE)
-    assert report['matched'] == 0
-    assert report['unmatched'] == 2
-    assert all(row['status'] == 'malformed_row' for row in report['rows'])
+    pytest.skip("lineage derivation tooling is not part of the public tree")

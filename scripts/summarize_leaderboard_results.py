@@ -1739,8 +1739,8 @@ def write_leaderboard_results_markdown(report: dict[str, Any], path: Path) -> No
         ".venv/bin/python scripts/summarize_leaderboard_results.py "
         f"--release-dir {report['inputs']['release_dir']} "
         f"--summary-csv {report['inputs']['summary_csv']} "
-        "--output-json .hl/artifacts/operate_v059_leaderboard_results.json "
-        "--output-markdown .hl/artifacts/operate_v059_leaderboard_results.md",
+        "--output-json output/leaderboard_results.json "
+        "--output-markdown output/leaderboard_results.md",
         "```",
         "",
         "## Leaderboard",

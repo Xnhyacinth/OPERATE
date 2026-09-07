@@ -1,36 +1,26 @@
 # Data provenance
 
-The parent v0.61 admission ledger records 2,476 terminal candidate decisions
-with zero unresolved. v0.62 introduces zero newly mined candidates; it preserves
-that historical lineage while qualifying corrected contracts for the same
-769-row, 502-source denominator. Historical admission evidence is not relabelled
-as newly executed evidence.
-
 OPERATE admits a scenario only when its initial state and exogenous series are
 bound to real public source material or an explicitly labelled deterministic
 stress overlay. An LLM never generates environment state.
 
-## Active closure
+The current public catalog is 769 Core rows over 502 physical sources and 193
+Lite rows over 122 sources.
 
-The current v0.62 source package preserves the parent v0.61 candidate closure:
+## Active catalog
 
 - `benchmark/core_suite.json` — current 769-row Core catalog
 - `benchmark/lite_suite.json` — current 193-row Lite catalog
 - `benchmark/manifest.json` — public counts, scoring version, and file hashes
-- `sources/locks/` — tracked CityLearn source locks;
-- `sources/alibaba/` — compact trace inputs used by released Datacenter rows;
-- `sources/dynasched/` — the released DynaSched instance and event bundle;
-- `sources/resco/` — the compact RESCO traffic source introduced in v0.61;
-- manifest-declared upstream assets under `works/` for native local replay.
-
-All 2,476 parent-admission candidates have terminal dispositions and none remain
-unresolved. That closure records selection decisions; it does not by itself
-promote the selected rows.
+- `sources/locks/` — tracked source locks
+- `sources/alibaba/` — compact trace inputs used by released Datacenter rows
+- `sources/dynasched/` — the released DynaSched instance and event bundle
+- `sources/resco/` — compact RESCO traffic sources
+- upstream assets under `works/` restored by the installer
 
 Every source row binds a scenario ID, scenario signature, seed, backend, source
 denominator, structural fingerprint, semantic fingerprint, and physical source
-graph. The preflight recomputes scenario signatures and exercises each native
-source adapter before behavioral replay.
+graph.
 
 ## Source consumption
 
@@ -63,11 +53,7 @@ resolved from their declared URL/revision/hash by the one-command installer
 instead of being relabelled or silently mirrored.
 
 The source suite is the bound replay and provenance input, not the formal
-denominator. The promoted
-`core_suite.json`, release `manifest.json`, and HF `MANIFEST.json` are the
-authoritative evaluation and distribution closure. A clean download must verify
-every file before installing runtime archives or beginning a formal provider
-run. The compact v0.62 companion must include `candidate_closure.json`. A full
-candidate-evidence archive of the 17 input ledgers is restored only when the
-bundle declares `candidate_evidence_archive`; the current compact companion
-omits that archive.
+denominator. `benchmark/core_suite.json`, `benchmark/manifest.json`, and HF
+`MANIFEST.json` are the authoritative evaluation and distribution catalogs. A
+clean download must verify every declared runtime file before installing
+archives or beginning a provider run.

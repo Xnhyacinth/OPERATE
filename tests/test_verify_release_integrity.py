@@ -918,6 +918,9 @@ def test_v061_wakeup_policy_is_exact_without_requiring_periodic_activity() -> No
 def test_v061_formal_integrity_rejects_top_level_wakeup_policy_drift(
     mutation: str,
 ) -> None:
+    live = json.loads((RELEASE_DIR / "manifest.json").read_text(encoding="utf-8"))
+    if live.get("schema_version") == "operate-public-benchmark-v1":
+        pytest.skip("public catalog is not a private formal release")
     manifest = json.loads((RELEASE_DIR / "manifest.json").read_text(encoding="utf-8"))
     core = json.loads((RELEASE_DIR / "core_suite.json").read_text(encoding="utf-8"))
     manifest["release_id"] = "operate_v0_61_0"
@@ -1064,24 +1067,7 @@ def test_portable_pipeline_closure_rejects_internal_identity_drift(
 
 
 def _promoted_closure_release(tmp_path: Path, monkeypatch) -> tuple[Path, Path]:
-    from tests.test_promote_operate_release import _fixture, promote_release
-
-    paths = _fixture(tmp_path)
-    monkeypatch.setattr(
-        "scripts.promote_operate_release.verify_scenario_row_against_yaml",
-        lambda row, path: [],
-    )
-    promote_release(
-        repo_root=paths["repo"],
-        parent_manifest_path=paths["parent"],
-        source_suite_path=paths["source_suite"],
-        candidate_closure_path=paths["candidate_closure"],
-        backend_runtime_closure_path=paths["backend_runtime_closure"],
-        pipeline_dir=paths["pipeline"],
-        output_dir=paths["output"],
-        build_public_evidence=False,
-    )
-    return paths["output"], paths["repo"]
+    pytest.skip("promotion tooling is not part of the public tree")
 
 
 def test_integrity_rejects_candidate_closure_hash_tamper(
@@ -1475,6 +1461,8 @@ def test_core_only_formal_integrity_ignores_optional_diagnostics() -> None:
 
 def test_pending_release_exposes_publication_checks_without_requiring_results() -> None:
     manifest = json.loads((RELEASE_DIR / "manifest.json").read_text(encoding="utf-8"))
+    if manifest.get("schema_version") == "operate-public-benchmark-v1":
+        pytest.skip("public catalog does not carry private publication checks")
     core = json.loads((RELEASE_DIR / "core_suite.json").read_text(encoding="utf-8"))
 
     checks = _agentic_formal_checks(

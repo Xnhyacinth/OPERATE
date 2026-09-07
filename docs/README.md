@@ -1,7 +1,6 @@
 # OPERATE documentation
 
-- [Current release](CURRENT_RELEASE.md)
-- [Release directory map](../release/README.md)
+- [Current benchmark](CURRENT_RELEASE.md)
 - [Formal evaluation](FORMAL_EVALUATION.md)
 - [Provider route bindings](provider_route_bindings.json)
 - [Incremental validation policy](VALIDATION_POLICY.md)
@@ -14,5 +13,6 @@
 - [Repository layout and data usage](REPO_LAYOUT_AND_DATA_USAGE.md)
 - [Hugging Face dataset card](hf/OPERATE_DATASET_CARD.md)
 
-These documents describe the single current benchmark state. Internal release
-IDs that appear in paths are reproducibility bindings, not public versions.
+These documents describe the single current public benchmark. Internal
+maintainer namespaces and qualification ledgers live in the private archive,
+not in this checkout.

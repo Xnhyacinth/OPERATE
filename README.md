@@ -81,20 +81,14 @@ horizon buckets, but it is not a substitute for the Full leaderboard denominator
 | Traffic | 19 | 19 | 10 | 10 |
 | **Total** | **769** | **193** | **502** | **122** |
 
-The parent v0.61 admission ledger records 2,476 terminal candidate decisions
-with zero unresolved. v0.62 introduces zero newly mined candidates; it preserves
-that historical lineage while qualifying corrected contracts for the same
-769-row, 502-source denominator. Historical admission evidence is not relabelled
-as newly executed evidence.
-
 Formal logical/realtime provider runs remain pending; public result release
 and leaderboard eligibility remain false.
 
-The promoted `core_suite.json` and `manifest.json` define the formal denominator.
-The source suite remains an auditable replay and provenance input. No
-trajectory produced under an earlier namespace, tree, prompt profile, or
-treatment hash may be resumed or merged.
-See [current release status](docs/CURRENT_RELEASE.md) and the
+`benchmark/core_suite.json` and `benchmark/manifest.json` define the public
+denominator. Clone this repository, install the Hugging Face runtime companion,
+and evaluate against the current catalog. Do not resume trajectories produced
+under a different code tree, prompt profile, or treatment hash.
+See [current benchmark status](docs/CURRENT_RELEASE.md) and the
 [formal evaluation runbook](docs/FORMAL_EVALUATION.md).
 
 ## Quick start

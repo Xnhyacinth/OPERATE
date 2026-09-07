@@ -25,14 +25,8 @@ def test_release_clis_start_from_external_cwd_without_install(
 ) -> None:
     dependency_path = sysconfig.get_paths()["purelib"]
     for script_name in (
-        "build_operate_candidate_source_metadata.py",
         "build_operate_bundle.py",
-        "build_works_candidate_inventory.py",
-        "finalize_operate_candidate_pool.py",
-        "promote_operate_release.py",
-        "refine_datacenter_archive_candidate_pool.py",
-        "refine_infrastructure_candidate_pool.py",
-        "refine_logistics_manufacturing_candidate_pool.py",
+        "download_from_hf.py",
         "summarize_leaderboard_results.py",
         "verify_release_integrity.py",
     ):
