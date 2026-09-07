@@ -20,7 +20,7 @@ from scripts.run_eval_campaign import (
 def job(name="hy3"):
     return {
         "id": name, "suite": "full", "model": "hy3-ioa",
-        "api_key_env": "T_KEY", "base_url": "https://copilot.tencent.com/v2",
+        "api_key_env": "API_KEY", "base_url": "https://copilot.tencent.com/v2",
         "context_window": 192000, "max_output": 64000,
         "reasoning_effort": "high", "reasoning_effort_format": "native",
         "thinking_type": "enabled", "rpm": 20, "rpd": 0,
@@ -149,8 +149,8 @@ def test_batch_lock_probe_does_not_initialize_a_new_namespace(tmp_path):
 
 def test_credentials_are_literal_and_never_execute(tmp_path):
     rc = tmp_path / "zshrc"
-    rc.write_text('export T_KEY="literal-value"\nexport BAD="$(touch leaked)"\n')
-    assert load_credentials(["T_KEY"], rc, {}) == {"T_KEY": "literal-value"}
+    rc.write_text('export API_KEY="literal-value"\nexport BAD="$(touch leaked)"\n')
+    assert load_credentials(["API_KEY"], rc, {}) == {"API_KEY": "literal-value"}
     with pytest.raises(ValueError, match="literal"):
         load_credentials(["BAD"], rc, {})
     assert not (tmp_path / "leaked").exists()
@@ -162,7 +162,7 @@ def setup_worker(tmp_path, monkeypatch, fake_run):
     path = tmp_path/"campaign.json"
     path.write_text(json.dumps(config))
     monkeypatch.setattr(campaign, "verify_bindings", lambda *args: None)
-    monkeypatch.setattr(campaign, "load_credentials", lambda *args: {"T_KEY": "test"})
+    monkeypatch.setattr(campaign, "load_credentials", lambda *args: {"API_KEY": "test"})
     monkeypatch.setattr(campaign.subprocess, "run", fake_run)
     return path, tmp_path/"queue/tencent/state.json"
 

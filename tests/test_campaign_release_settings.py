@@ -13,7 +13,7 @@ def job(**updates):
         id="model",
         suite="full",
         model="hy3-ioa",
-        api_key_env="T_KEY",
+        api_key_env="API_KEY",
         context_window=192000,
         max_output=64000,
         reasoning_effort="high",

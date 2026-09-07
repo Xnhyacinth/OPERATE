@@ -18,7 +18,7 @@ re-implemented the same handful of pieces verbatim or near-verbatim:
 This module knows nothing about Grid2Op, pandapower, SUMO, PyVRP, or RCRS —
 only the core ``ToolContext`` / ``EthicalDilemmaManager`` / ``EvidenceLogger``
 contracts — so it is safe to live in ``core`` per the ``core`` <-> ``domains``
-boundary (``.hl/policy.md`` Hard Red Line, ``CLAUDE.md``).
+boundary (core must not import a domain backend).
 
 Small, real per-domain behavior deltas are preserved via keyword flags
 (``verbose_errors``, ``events_key``, ``include_horizon_ticks``,

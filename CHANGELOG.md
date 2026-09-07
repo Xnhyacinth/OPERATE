@@ -2,8 +2,8 @@
 
 ## 2026-09-07
 
-- Record native per-route envelopes in `docs/provider_route_bindings.json`. Request `--max-tokens` equals advertised output: Hy3 192k/64k, Luna 272k/128k, GLM-5.3-Flash 1M/128k, DeepSeek Flash 1M/50k.
-- Request `--max-tokens` now equals each route's advertised maximum output instead of a shared 32,768-token pin. Formal Hy3 examples use a 192,000-token envelope and 64,000-token output; Luna's request envelope is 272,000 when that route is used.
+- Public runbook examples use `API_KEY` and `BASE_URL` only. Request `--max-tokens` equals advertised output: Hy3 192k/64k, Luna 272k/128k, GLM-5.3-Flash 1M/128k, DeepSeek Flash 1M/50k.
+- Record native per-route envelopes in `docs/provider_route_bindings.json`. Formal Hy3 examples use a 192,000-token envelope and 64,000-token output; Luna's request envelope is 272,000 when that route is used.
 
 ## 2026-09-05
 
