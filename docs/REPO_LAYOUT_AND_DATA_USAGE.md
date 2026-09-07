@@ -29,7 +29,7 @@ tests/         current runtime and release-contract tests
 docs/          current design and runbooks
 ```
 
-`works/`, `.audit-cache/`, `.hl/release_rebuild/`, provider
+`works/`, `.audit-cache/`, local rebuild caches, provider
 outputs, trajectories, and reports are local/generated and ignored by Git.
 Their required hashes and install locations are bound by the promoted manifest
 and public HF bundle. The local runtime-companion install root is

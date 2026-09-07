@@ -36,11 +36,16 @@ def test_provider_route_bindings_are_complete_and_append_only() -> None:
     assert changelog
     assert all("date" in item and "change" in item for item in changelog)
     public_env = payload["public_credential_env"]
-    assert public_env["tencent"] == "TENCENT_API_KEY"
+    assert public_env["api_key"] == "API_KEY"
+    assert public_env["base_url"] == "BASE_URL"
     omit = set(payload.get("public_omit_keys", ["maintainer_jobs"]))
     exported = {key: value for key, value in payload.items() if key not in omit}
     assert "maintainer_jobs" not in exported
-    assert "TENCENT_API_KEY" in json.dumps(public_env)
+    runbook = FORMAL_PATH.read_text(encoding="utf-8")
+    key_envs = set(re.findall(r"--api-key-env (\S+)", runbook))
+    base_envs = set(re.findall(r"--base-url-env (\S+)", runbook))
+    assert key_envs == {"API_KEY"}
+    assert base_envs == {"BASE_URL"}
 
 
 def test_formal_runbook_table_matches_provider_route_bindings() -> None:

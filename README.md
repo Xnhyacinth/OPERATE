@@ -197,8 +197,8 @@ OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1 \
 uv run python run_lite.py \
   --output-dir batch_results/lite/my_model \
   --models my-model \
-  --api-key-env MY_API_KEY \
-  --base-url-env MY_BASE_URL \
+  --api-key-env API_KEY \
+  --base-url-env BASE_URL \
   --api-mode chat_completions \
   --interaction-mode logical_persistent \
   --seed-mode scenario --prompt-mode strict \

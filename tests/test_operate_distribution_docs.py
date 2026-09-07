@@ -154,7 +154,7 @@ def test_formal_runbook_documents_release_finalizer_and_unknown_quota() -> None:
     assert "--output-manifest" in runbook
     assert "same single model" in runbook
     assert "private repository visibility" in runbook
-    assert "Tencent quota remains unknown" in runbook
+    assert "quota remains unknown" in runbook
     assert "OPERATE_TENCENT_HY3_RPM_LIMIT:?" not in runbook
     assert "OPERATE_TENCENT_HY3_RPD_LIMIT:?" not in runbook
 

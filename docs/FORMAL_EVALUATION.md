@@ -99,10 +99,10 @@ backend with a mock or emulated fallback in a formal shard.
 Start a provider shard only after the dataset/runtime integrity check passes.
 This reads and verifies existing artifacts; it does not execute calibration.
 
-The examples read your own OpenRouter credential from `O_KEY` and Tencent
-credential from `TENCENT_API_KEY`. Export the appropriate variable securely before
-executing a shard; no maintainer shell configuration is required. Never place
-the credential value in command arguments, config, trajectories, or logs. Request
+The examples read the credential from `API_KEY` and the OpenAI-compatible
+route from `BASE_URL`. Export both securely before executing a shard; no
+maintainer shell configuration is required. Never place the credential value
+in command arguments, config, trajectories, or logs. Request
 `--max-tokens` equals that route's advertised maximum output, with a separate
 8,192-token protocol-repair budget. Formal logical and realtime shards use
 `provider_failure_policy=abort` with a one-failure circuit threshold: a failed
@@ -143,19 +143,17 @@ rejects a text-only/non-executable decision. Reasoning effort is never inferred
 from the provider name; a shard either binds an advertised effort explicitly or
 omits the field.
 
-Declared provider quotas are part of the treatment. OpenRouter free-model shards using
-the same account must use the non-secret scope `openrouter-o-key-free-shared`
+Declared provider quotas are part of the treatment. Free-model shards using
+the same account must use a non-secret shared scope such as `provider-free-shared`
 and its shared 20 RPM limiter. Bind the account's applicable free-tier daily
 allowance explicitly: 50 RPD when the account has purchased fewer than 10
-credits, or 1,000 RPD once that threshold is met. Tencent uses the distinct
-scope `tencent-t-key-hy3-ioa` only when an account-level limit is known.
-Tencent quota remains unknown for the current account, so the formal commands
-below intentionally omit RPM, RPD, and quota scope instead of inventing a
-provider guarantee. The resulting `null` values are still treatment-bound;
-structured 429 responses and retry outcomes remain auditable. Scope names
-identify quota pools and never contain API-key bytes. When a limit is declared,
-the limiter state defaults to `~/.cache/operate/provider-rate-limits`; all
-processes reserve a slot under a file lock after request-budget preflight and
+credits, or 1,000 RPD once that threshold is met. When an account-level limit is
+unknown, the formal commands below omit RPM, RPD, and quota scope instead of
+inventing a provider guarantee. The resulting `null` values are still
+treatment-bound; structured 429 responses and retry outcomes remain auditable.
+Scope names identify quota pools and never contain API-key bytes. When a limit
+is declared, the limiter state defaults to `~/.cache/operate/provider-rate-limits`;
+all processes reserve a slot under a file lock after request-budget preflight and
 before provider transport.
 
 Provider result publication does not change the private repository visibility.
@@ -166,27 +164,26 @@ reset, and parks remaining cells instead of blocking workers for hours. Changing
 the RPM, RPD, or scope requires a fresh output directory because all three fields
 are treatment- and run-config-bound.
 
-The following commands describe separate Tencent and OpenRouter example shards;
-there is no required provider order or fixed model roster.
-Tencent uses `https://copilot.tencent.com/v2` with streamed
-`/chat/completions`; set that public route in `TENCENT_BASE_URL` at process
-launch and read the credential only from `TENCENT_API_KEY`. Never merge their
-limiter scopes, trajectories, or treatment hashes.
+The following commands describe separate example shards; there is no required
+provider order or fixed model roster. Put the public OpenAI-compatible endpoint
+in `BASE_URL` and read the credential only from `API_KEY`. Never merge limiter
+scopes, trajectories, or treatment hashes across accounts.
 
-Set the account-specific daily cap for the OpenRouter example; do not copy one of the documented
-allowance strata without checking which one applies to the account.
+Set the account-specific daily cap for a free-tier example; do not copy one of
+the documented allowance strata without checking which one applies to the
+account.
 
 ```bash
-export OPERATE_OPENROUTER_BASE_URL='https://openrouter.ai/api/v1'
+export BASE_URL='https://openrouter.ai/api/v1'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
-: "${OPERATE_OPENROUTER_FREE_RPD_LIMIT:?set the applicable OpenRouter free-tier RPD limit}"
+: "${RPD_LIMIT:?set the applicable free-tier RPD limit}"
 
 PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
-  --output-dir batch_results/operate_v0_62_0/formal/logical_persistent/openrouter_z_ai_glm_5_2_free_w8 \
+  --output-dir batch_results/operate_v0_62_0/formal/logical_persistent/glm_5_2_free_w8 \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
   --models z-ai/glm-5.2:free \
-  --api-key-env O_KEY --base-url-env OPERATE_OPENROUTER_BASE_URL \
+  --api-key-env API_KEY --base-url-env BASE_URL \
   --api-mode chat_completions --stream-chat-completions \
   --model-context-window-tokens 256000 \
   --model-max-output-tokens 230400 \
@@ -196,8 +193,8 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
   --max-tokens 230400 --protocol-repair-max-tokens 8192 \
   --provider-timeout-s 300 \
   --provider-rpm-limit 20 \
-  --provider-rpd-limit "$OPERATE_OPENROUTER_FREE_RPD_LIMIT" \
-  --provider-rate-limit-scope openrouter-o-key-free-shared \
+  --provider-rpd-limit "$RPD_LIMIT" \
+  --provider-rate-limit-scope provider-free-shared \
   --persistent-history-max-messages 64 \
   --persistent-context-max-chars 512000 \
   --persistent-memory-max-items 128 \
@@ -205,21 +202,22 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
   --save-trajectories --resume --formal-run --finalize --dry-run
 ```
 
-Tencent has a separate complete command. Concurrency is fixed at 16, while
-unknown account quotas remain omitted. If Tencent later publishes or returns an
-account-specific limit, start a new treatment namespace with all three quota
-arguments supplied together.
+A second route has a separate complete command. Concurrency is fixed at 16.
+Account quota remains unknown for that route, so the command omits RPM, RPD, and
+quota scope. If the account later publishes or returns an account-specific
+limit, start a new treatment namespace with all three quota arguments supplied
+together.
 
 ```bash
-export TENCENT_BASE_URL='https://copilot.tencent.com/v2'
+export BASE_URL='https://copilot.tencent.com/v2'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
 PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
-  --output-dir batch_results/operate_v0_62_0/formal/logical_persistent/tencent_hy3_ioa_w16 \
+  --output-dir batch_results/operate_v0_62_0/formal/logical_persistent/hy3_ioa_w16 \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
   --models hy3-ioa \
-  --api-key-env TENCENT_API_KEY --base-url-env TENCENT_BASE_URL \
+  --api-key-env API_KEY --base-url-env BASE_URL \
   --api-mode chat_completions --stream-chat-completions \
   --model-context-window-tokens 192000 \
   --model-max-output-tokens 64000 \
@@ -240,15 +238,15 @@ Lite is not a Full formal shard. The native GLM-5.3-Flash Lite command uses
 `run_lite.py`; do not add `--formal-run`.
 
 ```bash
-export TENCENT_BASE_URL='https://copilot.tencent.com/v2'
+export BASE_URL='https://copilot.tencent.com/v2'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
 PYTHONPATH=. .venv/bin/python run_lite.py \
-  --output-dir batch_results/operate_v0_62_0/lite/logical_persistent/tencent_glm_5_3_flash_ioa_w12 \
+  --output-dir batch_results/operate_v0_62_0/lite/logical_persistent/glm_5_3_flash_ioa_w12 \
   --lite-suite release/operate_v0_62_0/lite_suite.json \
   --models glm-5.3-flash-ioa \
-  --api-key-env TENCENT_API_KEY --base-url-env TENCENT_BASE_URL \
+  --api-key-env API_KEY --base-url-env BASE_URL \
   --api-mode chat_completions --stream-chat-completions \
   --model-context-window-tokens 1000000 \
   --model-max-output-tokens 128000 \
@@ -290,19 +288,19 @@ scenario list. Its dry-run validates the treatment and prints the derived hash
 directory without creating it; remove only `--dry-run` to execute and retain
 `--resume` for recovery.
 
-OpenRouter GLM:
+OpenAI-compatible GLM:
 
 ```bash
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
-: "${OPERATE_OPENROUTER_FREE_RPD_LIMIT:?set the applicable OpenRouter free-tier RPD limit}"
+: "${RPD_LIMIT:?set the applicable free-tier RPD limit}"
 
 PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --suite "$OPERATE_FORMAL_READINESS" \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
-  --output-root batch_results/operate_v0_62_0/formal/realtime_persistent/openrouter_z_ai_glm_5_2_free_w8 \
+  --output-root batch_results/operate_v0_62_0/formal/realtime_persistent/glm_5_2_free_w8 \
   --model z-ai/glm-5.2:free --provider openai_compatible \
-  --base-url https://openrouter.ai/api/v1 --api-key-env O_KEY \
+  --base-url https://openrouter.ai/api/v1 --api-key-env API_KEY \
   --api-mode chat_completions \
   --model-context-window-tokens 256000 \
   --model-max-output-tokens 230400 \
@@ -312,14 +310,14 @@ PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --persistent-memory-max-items 128 \
   --provider-timeout-s 300 \
   --provider-rpm-limit 20 \
-  --provider-rpd-limit "$OPERATE_OPENROUTER_FREE_RPD_LIMIT" \
-  --provider-rate-limit-scope openrouter-o-key-free-shared \
+  --provider-rpd-limit "$RPD_LIMIT" \
+  --provider-rate-limit-scope provider-free-shared \
   --tick-interval-s 5 --termination-grace-s 5 \
   --max-workers 8 --pass-k 1 --reasoning-effort high \
   --resume --dry-run
 ```
 
-Tencent hy3-ioa:
+hy3-ioa:
 
 ```bash
 export OPERATE_TRAFFIC_BACKEND_REAL=1
@@ -328,9 +326,9 @@ export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --suite "$OPERATE_FORMAL_READINESS" \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
-  --output-root batch_results/operate_v0_62_0/formal/realtime_persistent/tencent_hy3_ioa_w16 \
+  --output-root batch_results/operate_v0_62_0/formal/realtime_persistent/hy3_ioa_w16 \
   --model hy3-ioa --provider openai_compatible \
-  --base-url https://copilot.tencent.com/v2 --api-key-env TENCENT_API_KEY \
+  --base-url https://copilot.tencent.com/v2 --api-key-env API_KEY \
   --api-mode chat_completions \
   --model-context-window-tokens 192000 \
   --model-max-output-tokens 64000 \
@@ -369,46 +367,17 @@ After one same single model has completed both formal treatments, prepare the
 exact candidate manifest outside the canonical release directory:
 
 ```bash
-mkdir -p .hl/release_finalize/operate_v0_62_0
+mkdir -p output/release_finalize
 PYTHONPATH=. .venv/bin/python scripts/finalize_operate_release.py \
   --release-manifest release/operate_v0_62_0/manifest.json \
   --logical-batch-manifest '<logical-treatment>/RUN_MANIFEST.json' \
   --realtime-batch-manifest '<realtime-treatment>/RUN_MANIFEST.json' \
-  --output-manifest .hl/release_finalize/operate_v0_62_0/candidate_manifest.json \
+  --output-manifest output/release_finalize/candidate_manifest.json \
   --prepare-distribution-candidate
 ```
 
-Maintainers build the private CAS bundle from those exact candidate bytes:
-
-```bash
-export OPERATE_FINAL_BUNDLE_DIR='.hl/distribution/operate_v0_62_0/final_cas'
-test ! -e "$OPERATE_FINAL_BUNDLE_DIR"
-
-PYTHONPATH=. .venv/bin/python scripts/build_operate_bundle.py \
-  --release-dir release/operate_v0_62_0 \
-  --release-manifest .hl/release_finalize/operate_v0_62_0/candidate_manifest.json \
-  --output-dir "$OPERATE_FINAL_BUNDLE_DIR" --repo-id Xnhyacinth/OPERATE-Benchmark
-```
-
-Upload runs only from the private maintainer repository, using its private CAS
-publication tools. Those tools read back and verify the immutable HF snapshot
-before writing `release/operate_v0_62_0/formal_distribution_receipt.json`.
-The uploader is intentionally absent from the public checkout; this maintainer
-step is not required for independent evaluation.
-
-Phase B deterministically rebuilds the same candidate and refuses to replace
-the canonical manifest unless the bundle, receipt, candidate hash, and both
-formal result tree roots agree:
-
-```bash
-PYTHONPATH=. .venv/bin/python scripts/finalize_operate_release.py \
-  --release-manifest release/operate_v0_62_0/manifest.json \
-  --logical-batch-manifest '<logical-treatment>/RUN_MANIFEST.json' \
-  --realtime-batch-manifest '<realtime-treatment>/RUN_MANIFEST.json' \
-  --distribution-bundle-manifest "$OPERATE_FINAL_BUNDLE_DIR/MANIFEST.json" \
-  --distribution-receipt release/operate_v0_62_0/formal_distribution_receipt.json \
-  --output-manifest release/operate_v0_62_0/manifest.json
-```
+Independent evaluation does not require uploading a distribution bundle. The
+public checkout does not include maintainer publication tools.
 
 The finalizer revalidates and content-addresses both result trees before it sets
 `public_release_ready` and `leaderboard_eligible`. This scientific readiness

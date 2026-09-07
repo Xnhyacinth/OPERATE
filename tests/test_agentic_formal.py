@@ -197,7 +197,7 @@ def test_effective_llm_config_matches_v057_agentic_profile() -> None:
         reasoning_effort=None,
         stream_chat_completions=profile["stream_chat_completions"],
         api_mode="chat_completions",
-        api_key_env="T_KEY",
+        api_key_env="API_KEY",
         prompt_mode="strict",
     )
 
