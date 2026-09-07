@@ -3,6 +3,7 @@
 - [Current release](CURRENT_RELEASE.md)
 - [Release directory map](../release/README.md)
 - [Formal evaluation](FORMAL_EVALUATION.md)
+- [Provider route bindings](provider_route_bindings.json)
 - [Incremental validation policy](VALIDATION_POLICY.md)
 - [Agentic interaction and context](AGENTIC_INTERACTION.md)
 - [Benchmark design](BENCHMARK_DESIGN.md)
