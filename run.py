@@ -14,10 +14,10 @@ keeps resolving.
 
 Usage:
 
-    python run.py --scenario operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w216_287 \\
+    python run.py --scenario building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w216_287 \\
                   --agent wait_only --output results/wait.json
 
-    python run.py --scenario operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7392_7463 \\
+    python run.py --scenario building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7392_7463 \\
                   --agent llm_agent --provider openai --model gpt-4o-mini --output results/gpt.json
 """
 

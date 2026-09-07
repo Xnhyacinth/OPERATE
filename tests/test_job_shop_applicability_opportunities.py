@@ -35,7 +35,7 @@ def test_recovery_requires_native_mode_and_nonempty_response_window(dynamic, dur
     assert body["backend_config"]["dimension_applicability"]["adaptive_replanning"]["applicable"] is expected
 
 
-@pytest.mark.parametrize("directory", ["release/operate_v0_61_0", "scenarios/operate_v0_60_0", "release/future"])
+@pytest.mark.parametrize("directory", ["release/operate_v0_61_0", "scenarios", "release/future"])
 def test_candidate_output_protects_every_release_generation(directory):
     with pytest.raises(ValueError, match="release/Core"):
         _safe_output_root(Path(__file__).resolve().parents[1] / directory / "candidate")

@@ -13,7 +13,7 @@ from runner import batch
 @pytest.fixture(scope="module")
 def bound_case():
     repo = Path(__file__).resolve().parents[1]
-    lite = repo / "release/operate_v0_61_0/lite_suite.json"
+    lite = repo / "benchmark/lite_suite.json"
     rows = json.loads(lite.read_text())["scenarios"]
     bodies = {canonical_scenario_slug(row["path"]): load_scenario_yaml(
         canonical_scenario_slug(row["path"])

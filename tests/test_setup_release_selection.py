@@ -19,6 +19,8 @@ def test_setup_uses_installed_bundle_release_for_smoke_and_verification(tmp_path
     assert result.stdout.strip() == "operate_v0_62_0"
     assert 'core = json.loads((Path(sys.argv[1]) / "core_suite.json").read_text())' in source
     assert 'RELEASE_MANIFEST="$RELEASE_DIR/manifest.json"' in source
+    assert '[ -f "$REPO/release/manifest.json" ]' in source
+    assert 'operate_v\\d+_\\d+_\\d+' not in source
 
 
 def test_setup_rejects_bundle_release_path_traversal(tmp_path):

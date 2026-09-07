@@ -59,17 +59,16 @@ def _ok_row_cleanliness(row: dict[str, Any]) -> tuple[bool, str | None]:
         return False, "llm_failure_or_fallback_wait"
     return True, None
 
-DEFAULT_RELEASE = REPO_ROOT / "release" / "operate_v0_62_0"
+DEFAULT_RELEASE = REPO_ROOT / "benchmark"
 DEFAULT_SUMMARY_CSV = (
     REPO_ROOT
     / "batch_results"
-    / "operate_v0_61_0"
     / "formal"
     / "logical_persistent"
     / "summary.csv"
 )
-DEFAULT_OUTPUT_JSON = REPO_ROOT / ".hl/artifacts/operate_v061_leaderboard_results.json"
-DEFAULT_OUTPUT_MARKDOWN = REPO_ROOT / ".hl/artifacts/operate_v061_leaderboard_results.md"
+DEFAULT_OUTPUT_JSON = REPO_ROOT / "output/leaderboard_results.json"
+DEFAULT_OUTPUT_MARKDOWN = REPO_ROOT / "output/leaderboard_results.md"
 DEFAULT_BOOTSTRAP_SAMPLES = 2000
 DEFAULT_BOOTSTRAP_SEED = 1729
 DEFAULT_CONFIDENCE_LEVEL = 0.95

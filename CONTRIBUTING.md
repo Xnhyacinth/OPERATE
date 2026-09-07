@@ -2,8 +2,8 @@
 
 ## Current Core
 
-New evaluation work targets the promoted `operate_v0_61_0` Core: 769 source
-rows across 502 physical sources at scoring `0.14.0`. Historical release and
+New evaluation work targets the current Core: 769 source
+rows across 502 physical sources at scoring `0.15.0`. Historical release and
 provider artifacts are not current inputs.
 
 ## Test tiers

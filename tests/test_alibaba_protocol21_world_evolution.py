@@ -9,17 +9,17 @@ from domains.datacenter.adapter import DatacenterEnvironment
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BASIC_SCENARIO = (
-    "scenarios/operate_v0_58_0/"
+    "scenarios/"
     "datacenter/gpu_cluster_queue_control/time_pressure/basic/"
     "alibaba_gpu_w052_377_382_basic.yaml"
 )
 RESERVATION_SCENARIO = (
-    "scenarios/operate_v0_58_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/"
+    "scenarios/datacenter/gpu_cluster_sla_control/time_pressure/basic/"
     "datacenter__gpu_cluster_sla_control__time_pressure__medium__"
     "alibaba_gpu_w953_6918_6923_medium__c96f0427__relabel_v1.yaml"
 )
 ACTIVE_MEDIUM_SCENARIO = (
-    "scenarios/operate_v0_58_0/datacenter/gpu_cluster_queue_control/"
+    "scenarios/datacenter/gpu_cluster_queue_control/"
     "time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__"
     "medium__alibaba_gpu_w904_6531_6537_medium__6715e80d__relabel_v1__"
     "b38f3183__relabel_v1.yaml"

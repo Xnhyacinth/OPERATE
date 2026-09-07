@@ -26,17 +26,17 @@ from runner.episode import run_one  # noqa: E402
 
 CONTROL_AGENT_NAME = "domain_agency_positive_control"
 DEFAULT_POWER_SCENARIO = REPO_ROOT / (
-    "scenarios/operate_v0_58_0/power_grid/"
+    "scenarios/power_grid/"
     "opendss_fresh_feeders_solar_ramp/deep_planning/basic/"
     "opendss_ieee123_solar_ramp_s42.yaml"
 )
 DEFAULT_MICROGRID_SCENARIO = REPO_ROOT / (
-    "scenarios/operate_v0_58_0/microgrid/"
+    "scenarios/microgrid/"
     "microgrid_economic_dispatch_24h/deep_planning/high/"
     "native_state_loss_chicago_high_s61.yaml"
 )
 DEFAULT_OUTPUT = REPO_ROOT / (
-    "reports/operate_v0_58_0/agency/power_microgrid.json"
+    "reports/agency/power_microgrid.json"
 )
 
 

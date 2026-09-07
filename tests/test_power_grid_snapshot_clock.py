@@ -25,7 +25,7 @@ def test_snapshot_uses_adapter_clock_for_missing_or_stale_native_tick(native_tic
 def test_native_acopf_reset_and_followup_snapshot_use_causal_tick():
     pytest.importorskip("pandapower")
     path = Path(__file__).resolve().parents[1] / (
-        "scenarios/operate_v0_58_0/power_grid/acopf_dispatch_24h/deep_planning/extreme/"
+        "scenarios/power_grid/acopf_dispatch_24h/deep_planning/extreme/"
         "pglib_opf_case30_ieee_ordered_recovery_no_line_outage_v2_extreme_s42__physical_reserve_ordered_recovery_v1.yaml"
     )
     scenario = yaml.safe_load(path.read_text())

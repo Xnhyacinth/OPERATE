@@ -148,21 +148,32 @@ RUNTIME_BUNDLE_MANIFEST="$RUNTIME_DATA_DIR/MANIFEST.json"
 }
 RELEASE_ID="$("$PY" - "$RUNTIME_BUNDLE_MANIFEST" <<'RELEASE_SELECTION'
 import json
-import re
 import sys
 from pathlib import Path
 
 release_id = json.loads(Path(sys.argv[1]).read_text()).get("release_id")
-if not isinstance(release_id, str) or re.fullmatch(r"operate_v\d+_\d+_\d+", release_id) is None:
+if (
+    not isinstance(release_id, str)
+    or not release_id
+    or Path(release_id).is_absolute()
+    or "/" in release_id
+    or "\\" in release_id
+    or ".." in Path(release_id).parts
+):
     raise SystemExit("FATAL: invalid installed release identifier")
 print(release_id)
 RELEASE_SELECTION
 )"
-RELEASE_DIR="$REPO/release/$RELEASE_ID"
-[ -f "$RELEASE_DIR/manifest.json" ] || {
-	echo "FATAL: installed runtime has no matching code release: $RELEASE_ID"
+if [ -f "$REPO/benchmark/manifest.json" ]; then
+	RELEASE_DIR="$REPO/benchmark"
+elif [ -f "$REPO/release/manifest.json" ]; then
+	RELEASE_DIR="$REPO/release"
+elif [ -f "$REPO/release/$RELEASE_ID/manifest.json" ]; then
+	RELEASE_DIR="$REPO/release/$RELEASE_ID"
+else
+	echo "FATAL: no current benchmark catalog found"
 	exit 1
-}
+fi
 CANDIDATE_EVIDENCE_REQUIRED="$("$PY" - "$RUNTIME_BUNDLE_MANIFEST" <<'PY'
 import json
 import sys
@@ -173,7 +184,7 @@ print("1" if manifest.get("candidate_evidence_archive") else "0")
 PY
 )"
 if [ "$CANDIDATE_EVIDENCE_REQUIRED" -eq 1 ]; then
-	[ -d "$RUNTIME_DATA_DIR/candidate_evidence/.hl/artifacts" ] || {
+	[ -d "$RUNTIME_DATA_DIR/candidate_evidence" ] || {
 		echo "FATAL: candidate closure evidence was not restored from the bundle"
 		exit 1
 	}
@@ -197,7 +208,7 @@ for row in core["scenarios"]:
     by_backend.setdefault(row["backend_kind"], row)
 if not by_backend:
     raise SystemExit("FATAL: Core contains no runtime backends")
-output = Path(".hl/setup_smoke")
+output = Path("output/setup_smoke")
 output.mkdir(parents=True, exist_ok=True)
 slice_path = output / "slice.json"
 slice_path.write_text(json.dumps({"scenarios": list(by_backend.values())}))
@@ -218,21 +229,16 @@ import sys
 from pathlib import Path
 
 manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-closure = manifest.get("candidate_closure") or {}
+label = manifest.get("version") or manifest.get("release_id") or "current"
 print(
-    "  Release:           "
-    f"{manifest['release_id']} "
+    "  Benchmark:         "
+    f"{label} "
     f"({manifest['n_scenarios']} Core rows; "
-    f"{manifest['n_physical_sources']} physical sources; "
-    f"status={manifest['status']})."
-)
-print(
-    "  Candidate closure: "
-    f"{closure['n_unresolved_candidates']} unresolved."
+    f"{manifest.get('n_physical_sources', '?')} physical sources)."
 )
 PY
 else
 	warn "release manifest not found: $RELEASE_MANIFEST"
 fi
-echo "  Verify release:   .venv/bin/python scripts/verify_release_integrity.py release/$RELEASE_ID"
+echo "  Verify suite:      .venv/bin/python scripts/verify_release_integrity.py \"$RELEASE_DIR\""
 echo "  Formal commands:  docs/FORMAL_EVALUATION.md"

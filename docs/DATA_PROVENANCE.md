@@ -14,14 +14,9 @@ stress overlay. An LLM never generates environment state.
 
 The current v0.62 source package preserves the parent v0.61 candidate closure:
 
-- `release/operate_v0_62_0/candidate_closure.json` — current zero-new-candidate closure with parent 2,476 terminal candidate
-  dispositions with zero unresolved candidates;
-- `release/operate_v0_62_0/protocol21_source_suite.json` — the closed 769-row
-  replay and provenance suite spanning 502 physical sources;
-- 669 corrected contracts under `scenarios/operate_v0_62_0/`, 80 inherited
-  under `scenarios/operate_v0_58_0/`, 8 under `scenarios/operate_v0_59_0/`,
-  11 under `scenarios/operate_v0_60_0/`, and 1 under
-  `scenarios/operate_v0_61_0/`, exactly as selected by the v0.62 manifest;
+- `benchmark/core_suite.json` — current 769-row Core catalog
+- `benchmark/lite_suite.json` — current 193-row Lite catalog
+- `benchmark/manifest.json` — public counts, scoring version, and file hashes
 - `sources/locks/` — tracked CityLearn source locks;
 - `sources/alibaba/` — compact trace inputs used by released Datacenter rows;
 - `sources/dynasched/` — the released DynaSched instance and event bundle;

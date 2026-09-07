@@ -11,7 +11,7 @@ pyarrow = pytest.importorskip("pyarrow")
 parquet = pytest.importorskip("pyarrow.parquet")
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_DIR = REPO_ROOT / "release/operate_v0_61_0"
+RELEASE_DIR = REPO_ROOT / "benchmark"
 
 
 def _builder_module():

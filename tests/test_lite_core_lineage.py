@@ -8,7 +8,7 @@ from run import load_scenario_yaml
 import json
 
 ROOT = Path(__file__).resolve().parents[1]
-SUITE = ROOT / 'release/operate_v0_61_0/lite_suite.json'
+SUITE = ROOT / 'benchmark/lite_suite.json'
 
 
 def _bodies():

@@ -26,17 +26,17 @@ from runner.episode import run_one  # noqa: E402
 AGENT_NAME = "operational_agency_positive_control"
 SUMO_VERSION = "1.27.1"
 DEFAULT_TRAFFIC = (
-    REPO_ROOT / "scenarios/operate_v0_58_0/traffic/"
+    REPO_ROOT / "scenarios/traffic/"
     "signal_coordination/deep_planning/medium/"
     "resco_cologne1_demand_surge_medium_s9414.yaml"
 )
 DEFAULT_DATACENTER = (
-    REPO_ROOT / "scenarios/operate_v0_58_0/datacenter/"
+    REPO_ROOT / "scenarios/datacenter/"
     "gpu_cluster_queue_control/time_pressure/basic/"
     "alibaba_gpu_w052_377_382_basic.yaml"
 )
 DEFAULT_OUTPUT = (
-    REPO_ROOT / "reports/operate_v0_58_0/agency/traffic_datacenter.json"
+    REPO_ROOT / "reports/agency/traffic_datacenter.json"
 )
 
 

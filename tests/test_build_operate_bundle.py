@@ -2030,6 +2030,9 @@ def test_runtime_companion_archives_compact_formal_release(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    source_closure = Path(__file__).parents[1] / "release/operate_v0_61_0/candidate_closure.json"
+    if not source_closure.is_file():
+        pytest.skip("public catalog does not ship maintainer candidate_closure")
     monkeypatch.setattr(
         verify_release_integrity,
         "_formal_runtime_bundle_valid",
