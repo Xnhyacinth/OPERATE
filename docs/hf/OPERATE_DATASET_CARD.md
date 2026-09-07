@@ -28,12 +28,6 @@ configs:
 
 # OPERATE
 
-The parent v0.61 admission ledger records 2,476 terminal candidate decisions
-with zero unresolved. v0.62 introduces zero newly mined candidates; it preserves
-that historical lineage while qualifying corrected contracts for the same
-769-row, 502-source denominator. Historical admission evidence is not relabelled
-as newly executed evidence.
-
 **Benchmarking Persistent Operational Agency in Source-Grounded Executable
 Systems**
 
@@ -79,14 +73,11 @@ cancellation, supersession, action lifecycle, and safety takeover.
 | File | Purpose |
 | --- | --- |
 | `MANIFEST.json` | Exact file hashes and required runtime/source bindings |
-| `release_manifest.json` | Promoted Core and scientific readiness contract |
 | `backend_runtime_closure.json` | Runtime packages, archives, links, and external sources |
-| `candidate_closure.json` | Terminal disposition of the candidate inventory |
 | `full/test-00000-of-00001.parquet` | Self-contained Full scenario contracts and suite metadata |
 | `lite/test-00000-of-00001.parquet` | Self-contained Lite scenario contracts and suite metadata |
-| `parquet_manifest.json` | Full/Lite Parquet hashes, row counts, and source-suite bindings |
+| `parquet_manifest.json` | Full/Lite Parquet hashes, row counts, and catalog bindings |
 | `backends.tar.zst` | Redistributable native runtime assets |
-| `formal_evidence.tar.zst` | Compact qualification metadata with original identity |
 
 Scenario contracts, Full/Lite definitions, source locks, evaluation code, and
 install tooling live in GitHub. This companion restores the large redistributed
@@ -101,7 +92,7 @@ The 22 public columns omit redundant release IDs, track labels, and admission
 status fields. Full/Lite is identified by `subset`. Internal reference IDs remain
 inside the reversible JSON/YAML payloads and runtime manifests where required
 for exact reconstruction and cross-file checks; they are not selectable public
-tags. The private archive retains the full maintenance metadata and history.
+tags.
 
 Historical qualification does not have to match the code of a new independent
 evaluation. Each run records its actual implementation; data integrity,

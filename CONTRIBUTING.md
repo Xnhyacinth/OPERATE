@@ -2,9 +2,9 @@
 
 ## Current Core
 
-New evaluation work targets the current Core: 769 source
-rows across 502 physical sources at scoring `0.15.0`. Historical release and
-provider artifacts are not current inputs.
+New evaluation work targets the current Core: 769 source rows across 502
+physical sources at scoring `0.15.0`. Scenario contracts live under
+`scenarios/<domain>/...`. Catalogs live under `benchmark/`.
 
 ## Test tiers
 
@@ -16,9 +16,6 @@ uv run python -m pytest -q \
   tests/test_operational_agency.py tests/test_batch_llm_eval.py \
   tests/test_verify_release_integrity.py
 ```
-
-Run the focused runtime, persistent-agent, replay, and release-contract suites
-before a release or formal evaluation.
 
 ## Setup
 
@@ -39,17 +36,14 @@ See [`data/README.md`](data/README.md) and
 
 ## Invariants
 
-Changes to runtime, scoring, or release artifacts must preserve these project
-invariants:
-
 1. Simulators own state transitions. LLMs are agents under test.
-2. Every Core row is derived from a manifest-declared public source.
-3. Domain tools, entities, and stakeholders stay native. No emergency-schema leakage.
+2. Every Core row is derived from a catalog-declared public source.
+3. Domain tools, entities, and stakeholders stay native.
 4. Dimension scores need `evidence_ids` or an explicit `applicable=False` reason.
 5. Counterfactual replay is a real no-action rerun, or an explicit opt-out.
 6. Leaderboard-eligible prompts use `--prompt-mode strict`.
 7. All tools go through `core/tool_protocol.py`.
-8. Formal outputs stay bound to the exact treatment and release identity.
+8. Formal outputs stay bound to the exact treatment identity.
 
 ## Pull requests
 
@@ -57,7 +51,7 @@ invariants:
 - Runtime/scoring changes and data/corpus changes belong in separate commits.
 - Add or update a test for any contract you touch (`tests/test_*.py`).
 - Do not commit `works/`, `reports/`, `.audit-cache/`, `.venv/`, or API keys.
-- Do not describe `pglib_uc_synthetic` as a digital twin or as solving power flow.
+- Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Where to put new work
 
@@ -66,8 +60,6 @@ invariants:
 | Backend-agnostic contracts | `core/` |
 | Simulator adapters | `domains/<domain>/` |
 | Scorer / statistics | `evaluation/` |
-| Replay and release tools | `scripts/` |
-| New v0.61 scenario contracts | `scenarios/operate_v0_61_0/` |
-| Inherited active contracts | `scenarios/operate_v0_58_0/` (743 manifest-selected paths) |
-| Earlier active additions | `scenarios/operate_v0_59_0/` (8 paths), `scenarios/operate_v0_60_0/` (13 paths) |
-| Active release | `release/operate_v0_61_0/` |
+| Evaluation entrypoints | `scripts/` |
+| Current scenario contracts | `scenarios/<domain>/...` |
+| Current catalogs | `benchmark/` |

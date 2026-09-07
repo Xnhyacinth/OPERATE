@@ -128,18 +128,13 @@ def test_formal_runbook_uses_resumable_logical_and_realtime_commands() -> None:
     assert ".hl/release_rebuild/" not in runbook
 
 
-def test_formal_runbook_documents_release_finalizer_and_unknown_quota() -> None:
+def test_formal_runbook_documents_unknown_quota() -> None:
     runbook = (REPO_ROOT / "docs" / "FORMAL_EVALUATION.md").read_text(
         encoding="utf-8"
     )
 
-    assert "scripts/finalize_operate_release.py" in runbook
-    assert "--release-manifest" in runbook
-    assert "--logical-batch-manifest" in runbook
-    assert "--realtime-batch-manifest" in runbook
-    assert "--output-manifest" in runbook
+    assert "scripts/merge_formal_llm_shards.py" in runbook
     assert "same single model" in runbook
-    assert "private repository visibility" in runbook
     assert "quota remains unknown" in runbook
     assert "OPERATE_TENCENT_HY3_RPM_LIMIT:?" not in runbook
     assert "OPERATE_TENCENT_HY3_RPD_LIMIT:?" not in runbook

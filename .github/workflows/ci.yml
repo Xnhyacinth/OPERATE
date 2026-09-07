@@ -56,7 +56,6 @@ jobs:
         run: |
           uv run --no-sync python -m pytest -q \
             -k "not ieee13_visible_load_surge_has_typed_immediate_wakeup and not ieee13_hidden_load_surge_is_typed_without_wakeup and not ieee13_terminal_load_surge_has_no_response_window" \
-            tests/test_build_operate_bundle.py \
             tests/test_current_cli_entrypoints.py \
             tests/test_lite_suite.py \
             tests/test_public_entrypoint_guards.py \
@@ -70,7 +69,6 @@ jobs:
             tests/test_public_hf_download.py \
             tests/test_opendss_formal_evidence_paths.py \
             tests/test_operate_distribution_docs.py \
-            tests/test_promote_operate_release.py \
             tests/test_protocol21_evidence.py \
             tests/test_verify_release_integrity.py
           uv run --no-sync python scripts/verify_release_integrity.py \

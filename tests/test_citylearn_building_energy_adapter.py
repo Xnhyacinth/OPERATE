@@ -870,6 +870,9 @@ def test_citylearn_rejects_scalar_source_lock_hash_drift(tmp_path: Path) -> None
 def test_citylearn_accepts_locked_dataset_with_declared_optional_asset_absent(
     tmp_path: Path,
 ) -> None:
+    lock_script = Path("scripts/lock_citylearn_source.py")
+    if not lock_script.is_file():
+        pytest.skip("CityLearn lock builder is not part of the public tree")
     from scripts.lock_citylearn_source import build as build_source_lock
 
     source_root = Path("works/CityLearn/data/datasets/baeda_3dem")

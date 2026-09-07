@@ -15,7 +15,9 @@ jobs:
         run: |
           python -m pip install uv==0.12.5
           uv sync --frozen --python 3.14 --extra dev
-      - name: Full repository suite
+      - name: Public catalog and contract tests
+        run: uv run --no-sync python -m pytest -q tests/test_operate_distribution_docs.py tests/test_lite_suite.py tests/test_verify_release_integrity.py tests/test_current_cli_entrypoints.py
+      - name: Runtime suite
         run: uv run --no-sync python -m pytest -q tests/
       - name: Static checks
         run: uv run --no-sync python -m ruff check .

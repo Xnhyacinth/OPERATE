@@ -1,8 +1,8 @@
 # Evaluation contract
 
 OPERATE scores verified environment outcomes, not prose similarity or a gold
-tool sequence. The promoted `operate_v0_61_0` release binds
-`SCORING_VERSION = 0.14.0` to its release manifest and implementation identity.
+tool sequence. The current Core binds `SCORING_VERSION = 0.15.0` to the
+catalog and implementation identity.
 
 The 769-row, 502-physical-source Core is data/code ready for formal shards.
 Provider runs are still pending, so this readiness does not make the release
