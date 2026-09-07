@@ -1,5 +1,14 @@
 # Repository layout and data usage
 
+The historical `data_operate_v058/` compatibility path remains available for
+inherited runtime assets. It is not the active v0.62 release denominator.
+
+The parent v0.61 admission ledger records 2,476 terminal candidate decisions
+with zero unresolved. v0.62 introduces zero newly mined candidates; it preserves
+that historical lineage while qualifying corrected contracts for the same
+769-row, 502-source denominator. Historical admission evidence is not relabelled
+as newly executed evidence.
+
 The repository contains one active release line.
 
 ```text
@@ -8,12 +17,13 @@ domains/       native operational backends and tools
 runner/        logical and realtime coordinators
 baselines/     baseline and LLM agent implementations
 evaluation/    scoring, counterfactuals, and statistics
-scenarios/operate_v0_58_0/  743 inherited contracts selected by v0.61
+scenarios/operate_v0_58_0/  80 inherited contracts selected by v0.62
 scenarios/operate_v0_59_0/  8 inherited additions introduced by v0.59
-scenarios/operate_v0_60_0/  13 scenario additions introduced by v0.60
-scenarios/operate_v0_61_0/  5 scenario additions introduced by v0.61
+scenarios/operate_v0_60_0/  11 selected inherited contracts from v0.60
+scenarios/operate_v0_61_0/  1 selected inherited contract from v0.61
+scenarios/operate_v0_62_0/  669 corrected contracts selected by v0.62
 sources/       compact source assets and immutable locks
-release/operate_v0_61_0/    active source suite and promoted manifest
+release/operate_v0_62_0/    active source suite and promoted manifest
 scripts/       replay, audit, evaluation, merge, and distribution entrypoints
 tests/         current runtime and release-contract tests
 docs/          current design and runbooks
@@ -24,14 +34,14 @@ outputs, trajectories, and reports are local/generated and ignored by Git.
 Their required hashes and install locations are bound by the promoted manifest
 and public HF bundle. The local runtime-companion install root is
 `operate_data/`; `MANIFEST.json`
-binds the installed bytes to `operate_v0_61_0`. When a bundle declares
+binds the installed bytes to `operate_v0_62_0`. When a bundle declares
 `candidate_evidence_archive`, those inputs are restored under
-`candidate_evidence/.hl/artifacts/`. The compact v0.61 companion must ship
+`candidate_evidence/.hl/artifacts/`. The compact v0.62 companion must ship
 `candidate_closure.json` instead of that archive. Either form is evidence for
 the terminal 2,476-candidate partition, not additional evaluation rows.
 
 The frozen working set contains 769 rows across 502 physical sources;
-all 2,476 candidate decisions are terminal and none remain unresolved. These
+the parent admission ledger has 2,476 terminal decisions and none remain unresolved. These
 are candidate-closure facts, not a formal denominator. The matching promoted
 `core_suite.json` and `manifest.json` remain authoritative for evaluation.
 
@@ -54,7 +64,7 @@ closed instead of sharing checkpoints.
 ```bash
 python -m pip install uv==0.12.5
 bash scripts/setup_eval_env.sh
-.venv/bin/python scripts/verify_release_integrity.py release/operate_v0_61_0
+.venv/bin/python scripts/verify_release_integrity.py release/operate_v0_62_0
 ```
 
 The setup script restores bundle-delivered assets and clones CityLearn,

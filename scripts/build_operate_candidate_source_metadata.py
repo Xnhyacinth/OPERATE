@@ -25,7 +25,7 @@ if str(ROOT) not in sys.path:
 from core.source_asset_contract import canonical_physical_source_asset_key  # noqa: E402
 
 
-DEFAULT_SOURCE_SUITE = ROOT / "release/operate_v0_61_0/protocol21_source_suite.json"
+DEFAULT_SOURCE_SUITE = ROOT / "release/operate_v0_62_0/protocol21_source_suite.json"
 DEFAULT_INVENTORY = ROOT / ".hl/artifacts/operate_v058_candidate_inventory.json"
 DEFAULT_REALM = (
     ROOT / "works/REALM-Bench-direct-pilot/datasets/clean/JSSP/J2.json"

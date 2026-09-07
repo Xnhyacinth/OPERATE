@@ -48,7 +48,10 @@ from core import (
     safe_dataclass_to_dict,
 )
 from core.evidence import control_summary_from_evidence
-from core.world_evolution_contract import canonicalize_runtime_events
+from core.world_evolution_contract import (
+    canonicalize_runtime_events,
+    realized_event_evidence_tick,
+)
 from domains.registry import apply_supervisory_cadence
 
 from .backends.mock_sumo import MockSumoBackend
@@ -105,6 +108,14 @@ def _apply_typed_source_event_registry(
     resolved: list[dict[str, Any]] = []
     for raw in events:
         event = dict(raw)
+        if event.get("origin") != "agent_caused" and event.get("evidence_ids"):
+            # Simulator source handles identify native records, not entries in
+            # the authoritative EvidenceLogger created below by the adapter.
+            event["source_record_ids"] = list(dict.fromkeys([
+                *(event.get("source_record_ids") or []),
+                *event["evidence_ids"],
+            ]))
+            event["evidence_ids"] = []
         if str(event.get("origin") or "") != "source_schedule":
             resolved.append(event)
             continue
@@ -243,9 +254,10 @@ def _authoritative_source_event(
     if str(event.get("origin") or "") == "agent_caused":
         return
     event.setdefault("event_id", f"traffic-source-event:{evidence_id}")
-    evidence_ids = event.setdefault("evidence_ids", [])
+    evidence_ids = list(event.get("evidence_ids") or [])
     if evidence_id not in evidence_ids:
         evidence_ids.append(evidence_id)
+    event["evidence_ids"] = evidence_ids
     if event.get("hidden") is True:
         return
     if event.get("actionable") is not True or event.get("decision_required") is not True:
@@ -688,6 +700,7 @@ class TrafficEnvironment(POMDPEnvironment):
         assert self._belief is not None
 
         # 1) Execute tool calls (mutates backend via tool handlers).
+        step_evidence_start = len(self._evidence.items())
         ctx = ToolContext(
             tick=self._tick,
             seed=int(self._seed_obj.seed if self._seed_obj else 0),
@@ -775,7 +788,7 @@ class TrafficEnvironment(POMDPEnvironment):
         for ev in realized_events:
             evidence_id = self._evidence.log(
                 kind="realized_event",
-                tick=self._tick,
+                tick=realized_event_evidence_tick(ev, self._tick),
                 payload=dict(ev),
                 source="engine",
             )
@@ -831,8 +844,7 @@ class TrafficEnvironment(POMDPEnvironment):
             realized_events=realized_events,
             evidence_ids=[
                 i.evidence_id
-                for i in self._evidence.items()
-                if i.tick == self._tick - 1
+                for i in self._evidence.items()[step_evidence_start:]
             ],
             extra={
                 "dilemmas_triggered": [d.dilemma_id for d in triggered],

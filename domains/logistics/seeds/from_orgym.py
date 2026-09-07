@@ -85,7 +85,7 @@ _DIMENSION_APPLICABILITY = {
     },
     "foresight_score": {
         "applicable": False,
-        "reason": "baseline_oracle_does_not_emit_commit_to_plan_predictions",
+        "reason": "inventory_demand_magnitude_not_supported_by_event_occurrence_score",
     },
     "optimality_gap": {
         "applicable": False,

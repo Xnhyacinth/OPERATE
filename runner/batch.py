@@ -37,6 +37,7 @@ def _append_sanitized_failure_trace(
 ) -> None:
     """Append traceback frames without re-emitting an unredacted exception."""
 
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     handler = logging.FileHandler(log_path, mode="a", encoding="utf-8")
     handler.setFormatter(
         logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -163,10 +164,18 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
         scenario_slug, agent_name, seed, agent_kwargs, run_options = args
     else:
         scenario_slug, agent_name, seed, agent_kwargs = args  # type: ignore[misc]
+    log_path = run_options.get("episode_log_path")
     try:
         scenario = load_scenario_yaml(scenario_slug)
+        binding = run_options.get("scenario_contract_binding")
+        if binding is not None:
+            from core.lite_lineage import apply_lite_worker_binding
+
+            apply_lite_worker_binding(
+                scenario, binding, scenario_slug=scenario_slug,
+                seed=seed, repo_root=REPO_ROOT,
+            )
         traj_dir = run_options.get("trajectory_dir")
-        log_path = run_options.get("episode_log_path")
         if log_path is not None:
             with _episode_file_logging(Path(str(log_path))):
                 result = run_one(
@@ -209,7 +218,10 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
             result["episode_log_path"] = str(log_path)
         return result
     except Exception as exc:
-        from baselines.llm_agent import redact_provider_error  # noqa: PLC0415
+        from baselines.llm_agent import (  # noqa: PLC0415
+            provider_error_http_status,
+            redact_provider_error,
+        )
 
         public_error = redact_provider_error(exc)
         stack = "".join(traceback.format_list(traceback.extract_tb(exc.__traceback__)))
@@ -233,6 +245,14 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
                 "error_type": type(exc).__name__,
                 "error_stage": "episode",
             }
+        details = dict(details)
+        cause = exc.__cause__
+        if cause is not None:
+            details["error_cause_type"] = type(cause).__name__
+        provider_error = cause if cause is not None else exc
+        http_status = provider_error_http_status(provider_error)
+        if http_status is not None:
+            details["error_http_status"] = http_status
         result = {
             "status": "error",
             "scenario_slug": scenario_slug,

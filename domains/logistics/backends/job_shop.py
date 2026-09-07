@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 from collections.abc import Iterable
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -858,12 +859,13 @@ class JsplibJobShopBackend:
             effect["tool_name"] = name
             effect["call_id"] = call_id
             effect["evidence_ids"] = [evidence_id] if evidence_id else []
-            effect["requested_action"] = {
+            operation = {
                 "job_id": effect["job_id"],
                 "operation_index": effect["operation_index"],
             }
+            effect["requested_action"] = deepcopy(payload.get("requested_action", operation))
             effect["applied_action"] = {
-                **effect["requested_action"],
+                **operation,
                 "machine_id": effect["machine_id"],
             }
             effect["action_to_outcome_edge"] = {
@@ -1658,6 +1660,8 @@ def _h_dispatch_ready_operations(backend: JsplibJobShopBackend):
                 "results": item_results,
                 "makespan": backend.makespan,
             }
+
+        result["requested_action"] = deepcopy(args)
 
         evidence = ctx.extra.get("evidence")
         if isinstance(evidence, EvidenceLogger):

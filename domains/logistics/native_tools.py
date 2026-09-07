@@ -370,7 +370,7 @@ def register_logistics_tools(
 
 def _h_apply(backend: Any, env: LogisticsEnvironment, tool_name: str):
     def handler(args: dict[str, Any], ctx: ToolContext) -> dict[str, Any]:
-        result = backend.apply_tool_effect(tool_name, args)
+        result = backend.apply_tool_effect(tool_name, args, current_tick=ctx.tick)
         if result.get("_status") != "error" and env.evidence is not None:
             env.evidence.log(tool_name, ctx.tick, payload={**result}, source="tool")
         return result
@@ -433,7 +433,7 @@ def _h_hire_spot_carrier(backend: Any):
 
 def _h_drop_order(backend: Any, env: LogisticsEnvironment):
     def handler(args: dict[str, Any], ctx: ToolContext) -> dict[str, Any]:
-        result = backend.apply_tool_effect("drop_order", args)
+        result = backend.apply_tool_effect("drop_order", args, current_tick=ctx.tick)
         if result.get("_status") == "error":
             return result
         if env.evidence is not None:

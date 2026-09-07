@@ -59,7 +59,7 @@ def _ok_row_cleanliness(row: dict[str, Any]) -> tuple[bool, str | None]:
         return False, "llm_failure_or_fallback_wait"
     return True, None
 
-DEFAULT_RELEASE = REPO_ROOT / "release" / "operate_v0_61_0"
+DEFAULT_RELEASE = REPO_ROOT / "release" / "operate_v0_62_0"
 DEFAULT_SUMMARY_CSV = (
     REPO_ROOT
     / "batch_results"

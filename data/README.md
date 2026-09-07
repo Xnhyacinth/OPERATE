@@ -1,12 +1,12 @@
 # OPERATE data
 
-The promoted `operate_v0_61_0` source suite contains 769 rows over 502 physical
-sources. Its candidate ledger is terminal (2,476 independent candidates, 0
-unresolved). The manifest selects 743 inherited contracts under
-`scenarios/operate_v0_58_0/` and 8 additions under
-`scenarios/operate_v0_59_0/`, 13 additions under
-`scenarios/operate_v0_60_0/`, and 5 additions under
-`scenarios/operate_v0_61_0/`; all 769 are active v0.61 inputs. Compact
+The promoted `operate_v0_62_0` source suite contains 769 rows over 502 physical
+sources. Its parent candidate ledger is terminal (2,476 independent candidates,
+0 unresolved). The manifest selects 701 corrected contracts under
+`scenarios/operate_v0_62_0/`, 48 inherited contracts under
+`scenarios/operate_v0_58_0/`, 8 under `scenarios/operate_v0_59_0/`, 11 under
+`scenarios/operate_v0_60_0/`, and 1 under `scenarios/operate_v0_61_0/`.
+Compact
 redistributable source assets live under `sources/`. Only an atomically
 promoted `core_suite.json` plus its matching `manifest.json` defines the formal
 release denominator.
@@ -36,7 +36,8 @@ uv run python scripts/download_from_hf.py --download-only
 
 `operate_data/` is the stable local install root. The directory name is not the
 release ID; `MANIFEST.json` binds those bytes to
-`operate_v0_61_0` and rejects cross-release reuse.
+`operate_v0_62_0` and rejects cross-release reuse. The historical
+`data_operate_v058` compatibility path remains available for inherited assets.
 
 The downloader resolves the current public snapshot once and records its exact
 commit in the owner receipt. Pass `--revision <HF-COMMIT-SHA>` to reproduce a

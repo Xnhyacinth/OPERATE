@@ -68,6 +68,20 @@ def _finite(value: Any) -> float | None:
     return number if math.isfinite(number) else None
 
 
+def realized_event_evidence_tick(event: dict[str, Any], applied_tick: int) -> int:
+    """Use the completed native action boundary, leaving source clocks unchanged."""
+    if _origin(event) != "agent_caused" or "outcome_tick" not in event:
+        return applied_tick
+    outcome_tick = event["outcome_tick"]
+    if (
+        isinstance(outcome_tick, bool)
+        or not isinstance(outcome_tick, int)
+        or outcome_tick not in {applied_tick, applied_tick + 1}
+    ):
+        raise ValueError("native outcome_tick must be the current completed step boundary")
+    return outcome_tick
+
+
 def canonicalize_runtime_events(
     events: list[dict[str, Any]],
     *,

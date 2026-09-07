@@ -517,10 +517,10 @@ def main() -> int:
     parser.add_argument(
         "--core-suite",
         type=Path,
-        default=Path("release/operate_v0_61_0/core_suite.json"),
+        default=Path("release/operate_v0_62_0/core_suite.json"),
     )
     parser.add_argument(
-        "--output", type=Path, default=Path("release/operate_v0_61_0/lite_suite.json")
+        "--output", type=Path, default=Path("release/operate_v0_62_0/lite_suite.json")
     )
     args = parser.parse_args()
     payload = build_payload(args.core_suite)

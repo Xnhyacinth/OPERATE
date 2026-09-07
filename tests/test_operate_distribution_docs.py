@@ -8,10 +8,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_release_package_version_is_current_v061() -> None:
+def test_release_package_version_is_current_v062() -> None:
     project = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
-    assert project["project"]["version"] == "0.61.0"
+    assert project["project"]["version"] == "0.62.0"
 
 
 def test_documented_environment_and_formal_scope_are_current() -> None:
@@ -20,6 +20,8 @@ def test_documented_environment_and_formal_scope_are_current() -> None:
         REPO_ROOT / "docs" / "CURRENT_RELEASE.md",
         REPO_ROOT / "docs" / "FORMAL_EVALUATION.md",
     ]
+    if (REPO_ROOT / "AGENTS.md").is_file():
+        paths.append(REPO_ROOT / "AGENTS.md")
     contents = "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
     assert ".venv313" not in contents
@@ -27,11 +29,15 @@ def test_documented_environment_and_formal_scope_are_current() -> None:
     assert "core_suite.json" in contents
     assert "manifest.json" in contents
     assert "formal_evaluation_ready" in contents
-    assert "operate_v0_61_0" in contents
+    manifest = json.loads(
+        (REPO_ROOT / "release/operate_v0_62_0/manifest.json").read_text()
+    )
+    current_release = manifest["release_id"]
+    assert current_release in contents
     assert "769" in contents
     assert "502" in contents
     core = json.loads(
-        (REPO_ROOT / "release/operate_v0_61_0/core_suite.json").read_text()
+        (REPO_ROOT / "release/operate_v0_62_0/core_suite.json").read_text()
     )
     inherited = sum(
         row["path"].startswith("scenarios/operate_v0_58_0/")
@@ -53,7 +59,7 @@ def test_maintained_setup_uses_operate_runtime_bundle() -> None:
     assert "scripts/download_from_hf.py" in setup
     assert 'git -C "$WORKS/JSPLIB-Instances" check-ignore CHECKSUMS.txt' in setup
     assert "OPERATE_HF_REVISION" in setup
-    assert 'DOWNLOAD_ARGS+=(--revision "$OPERATE_HF_REVISION")' in setup
+    assert '--revision "$OPERATE_HF_REVISION"' in setup
     assert "NREL_API_KEY" not in setup
     assert "download_nrel_microgrid_sources.py" not in setup
 
@@ -106,21 +112,19 @@ def test_runtime_companion_is_not_documented_as_portable_core() -> None:
 
     assert "--portable" not in data_readme
     assert "runtime companion" in data_readme.lower()
-    assert "scripts/download_from_hf.py --download-only" in data_readme
+    assert "data_operate_v058" in data_readme
     assert "data_operate_v059" not in data_readme
-    assert "operate_data/" in data_readme
+    assert "compatibility path" in data_readme
     assert dataset_card.startswith("---\nlicense: other\n")
-    assert "does not relicense those assets under MIT" in " ".join(
-        dataset_card.split()
-    )
+    assert "relicensing upstream data under MIT" in dataset_card
     assert "portable bundle" not in downloader.lower()
     assert "--portable" not in downloader
-    assert "operate_data/" in layout
+    assert "data_operate_v058/" in layout
     assert "candidate_evidence_archive" in layout
     assert "candidate_evidence_archive" in provenance
     assert "operate_v0_61_0" in release_map
-    assert "operate_data/" in release_map
-    assert "lite_suite.json" in release_map
+    assert "data_operate_v058/" in release_map
+    assert "historical v0.58 package snapshot" in release_map
 
 
 def test_formal_runbook_uses_resumable_logical_and_realtime_commands() -> None:
@@ -149,7 +153,7 @@ def test_formal_runbook_documents_release_finalizer_and_unknown_quota() -> None:
     assert "--realtime-batch-manifest" in runbook
     assert "--output-manifest" in runbook
     assert "same single model" in runbook
-    assert "independent of the already-public source/runtime distribution" in runbook
+    assert "private repository visibility" in runbook
     assert "Tencent quota remains unknown" in runbook
     assert "OPERATE_TENCENT_HY3_RPM_LIMIT:?" not in runbook
     assert "OPERATE_TENCENT_HY3_RPD_LIMIT:?" not in runbook

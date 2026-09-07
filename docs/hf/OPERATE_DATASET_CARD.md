@@ -25,7 +25,14 @@ configs:
         path: lite/test-00000-of-00001.parquet
 ---
 
+
 # OPERATE
+
+The parent v0.61 admission ledger records 2,476 terminal candidate decisions
+with zero unresolved. v0.62 introduces zero newly mined candidates; it preserves
+that historical lineage while qualifying corrected contracts for the same
+769-row, 502-source denominator. Historical admission evidence is not relabelled
+as newly executed evidence.
 
 **Benchmarking Persistent Operational Agency in Source-Grounded Executable
 Systems**
@@ -182,7 +189,8 @@ infrastructure control.
 OPERATE-authored code and metadata are MIT-licensed. This companion is a
 mixed-license collection: every redistributed upstream asset retains its own
 terms, notices, and per-root manifest binding. The `other` metadata value does
-not relicense those assets under MIT. See the
+not relicense those assets under MIT; this avoids relicensing upstream data under MIT.
+See the
 [third-party license inventory](https://github.com/Xnhyacinth/OPERATE/blob/main/THIRD_PARTY_LICENSES.md)
 and [data provenance](https://github.com/Xnhyacinth/OPERATE/blob/main/docs/DATA_PROVENANCE.md).
 

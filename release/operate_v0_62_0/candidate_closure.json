@@ -1,0 +1,48 @@
+{
+  "candidate_only": true,
+  "candidates": [],
+  "identity_set_sha256": {
+    "abandoned_terminal": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "all_candidates": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "rejected_terminal": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_for_promotion": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "inputs": {
+    "historical_parent_closure": {
+      "path": "release/operate_v0_61_0/candidate_closure.json",
+      "sha256": "e4b3440f44c0c5bba217a5ecace500c6337a4596b6f973dc5e6a7af590b3e42e"
+    },
+    "migration": {
+      "path": ".hl/new_release_20260906/migration_ledger_v2.json",
+      "sha256": "79fddc416e33befd6dbc7f76b75e1f2dbb076e3aa346f5495a2db61d6485330d"
+    },
+    "parent_source_suite": {
+      "path": ".hl/new_release_20260906/source_suite.json",
+      "sha256": "8e1ed672ecee3a1b1c6c8c2d2e31ad8c4b7169ebf8216b8b89d25506196cbedf"
+    },
+    "source_suite": {
+      "path": ".hl/new_release_20260906/source_suite_v2.json",
+      "sha256": "859a04153c0b62a72d1a5c832017df098ef89f8a5e166af7408cbab648d80f7d"
+    },
+    "source_validation": {
+      "path": ".hl/new_release_20260906/microgrid_milestone_preparation_v2.json",
+      "sha256": "714241befef221d49303da1fe30c11def5056b7d2a1d88ec1c19c3c4f96bace5"
+    }
+  },
+  "release_admission": false,
+  "relocation_ledgers": [
+    {
+      "path": ".hl/new_release_20260906/empty_candidate_relocation.json",
+      "sha256": "9ba73a055487d3683e407f4143895890ee76650dee4fa47c52fc69f3c6204cac"
+    }
+  ],
+  "schema_version": "operate-candidate-closure-compact-v1",
+  "scope": "zero_new_candidate_imports_existing_core_refinement_only",
+  "status": "candidate_pool_exhausted_non_admitting",
+  "summary": {
+    "candidate_dispositions": {},
+    "n_independent_candidates": 0,
+    "n_terminal_candidates": 0,
+    "n_unresolved_candidates": 0
+  }
+}

@@ -1924,6 +1924,7 @@ class CityLearnBackend:
                 {
                     "event_id": f"citylearn-source-timestep:{tick}",
                     "type": "building_energy_source_timestep",
+                    "event_class": "telemetry",
                     "origin": "backend",
                     "tick": int(tick),
                     "source_consumed": runtime_opened,

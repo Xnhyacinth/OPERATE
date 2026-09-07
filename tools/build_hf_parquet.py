@@ -18,7 +18,7 @@ _PUBLIC_OMITTED_COLUMNS = {
     "core_disposition", "construct_contract",
     "suite_template_json",
 }
-DEFAULT_RELEASE_DIR = Path("release/operate_v0_61_0")
+DEFAULT_RELEASE_DIR = Path("release/operate_v0_62_0")
 PARQUET_NAME = "test-00000-of-00001.parquet"
 _SCENARIOS_SENTINEL = {"__operate_scenarios__": True}
 _ROW_FIELDS = (

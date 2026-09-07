@@ -28,6 +28,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import parse_qsl, urlsplit, urlunsplit
+from uuid import uuid4
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -47,6 +48,7 @@ from runner.realtime_episode import (  # noqa: E402
     is_expected_provider_stream_cancellation,
     is_model_caused_terminal_feedback,
     is_valid_zero_request_cancellation,
+    recovered_provider_retry_sequences,
 )
 from runner.native_supervision import (  # noqa: E402
     DOMAIN_NEUTRAL_HOLD_PROFILE,
@@ -368,6 +370,8 @@ def build_batch_treatment_identity(
     implementation_tree_sha256: str,
     formal_runtime_binding: dict[str, Any],
     reasoning_effort: str | None = None,
+    reasoning_effort_format: str = "auto",
+    thinking_type: str | None = None,
     provider_rpm_limit: int | None = None,
     provider_rpd_limit: int | None = None,
     provider_rate_limit_scope: str | None = None,
@@ -375,6 +379,10 @@ def build_batch_treatment_identity(
 ) -> dict[str, Any]:
     """Bind every batch-level choice that can change realtime behavior."""
 
+    if reasoning_effort_format not in {"auto", "native", "openrouter"}:
+        raise ValueError("unsupported reasoning_effort_format")
+    if thinking_type not in {None, "enabled", "disabled"}:
+        raise ValueError("unsupported thinking_type")
     if not model.strip():
         raise ValueError("model must be non-empty")
     if pass_k < 1:
@@ -441,6 +449,11 @@ def build_batch_treatment_identity(
             if provider == "azure" and model.lower().startswith("gpt-5.2-")
             else "chat_completions"
         )
+    if (reasoning_effort_format != "auto" or thinking_type is not None) and (
+        provider not in {"openai", "openai_compatible", "azure"}
+        or resolved_api_mode != "chat_completions"
+    ):
+        raise ValueError("reasoning format and thinking controls require Chat Completions")
     established_stream_cancel_supported = bool(
         provider in {"openai", "openai_compatible", "azure"}
         and resolved_api_mode == "chat_completions"
@@ -495,6 +508,8 @@ def build_batch_treatment_identity(
             "prompt_mode": "strict",
             "tool_choice": "auto",
             "reasoning_effort": reasoning_effort,
+            "reasoning_effort_format": reasoning_effort_format,
+            "thinking_type": thinking_type,
             "max_tokens": int(max_tokens),
             "protocol_repair_max_tokens": int(protocol_repair_max_tokens),
             "provider_timeout_s": float(provider_timeout_s),
@@ -1053,6 +1068,7 @@ def _provider_evidence_reasons(
         requests = list(row.get("provider_requests") or [])
         responses = list(row.get("provider_responses") or [])
         identities = list(row.get("provider_model_identities") or [])
+        recovered_sequences = recovered_provider_retry_sequences(row)
         if row.get("provider_turn_settled") is not True:
             reasons.append("provider_turn_unsettled")
         if row.get("provider_audit_status") == "canceled_before_provider_call":
@@ -1152,7 +1168,7 @@ def _provider_evidence_reasons(
                         payload,
                         identity_matches[0],
                     )
-                ):
+                ) and sequence not in recovered_sequences:
                     reasons.append("provider_response_failed")
             matching_identities = identities_by_sequence.get(sequence, [])
             if len(matching_identities) != 1:
@@ -1180,7 +1196,7 @@ def _provider_evidence_reasons(
                         if len(response_matches) == 1
                         else None
                     )
-                    if not is_expected_provider_stream_cancellation(
+                    if sequence not in recovered_sequences and not is_expected_provider_stream_cancellation(
                         row, response_payload, identity
                     ):
                         reasons.append("provider_response_failed")
@@ -1323,6 +1339,8 @@ def _episode_treatment_reasons(
         "provider_rpd_limit": model_shard.get("provider_rpd_limit") or 0,
         "provider_rate_limit_scope": model_shard.get("provider_rate_limit_scope"),
         "reasoning_effort": model_shard.get("reasoning_effort"),
+        "reasoning_effort_format": model_shard.get("reasoning_effort_format", "auto"),
+        "thinking_type": model_shard.get("thinking_type"),
     }
     if any(
         provider.get(key) != value for key, value in required_provider_fields.items()
@@ -1574,6 +1592,7 @@ def terminal_row_from_artifact(
         "episode_treatment_sha256": artifact.get("treatment_sha256"),
         "recovered_from_artifact": bool(recovered),
         "diagnostics": deepcopy(artifact.get("diagnostics") or {}),
+        "retryable_infrastructure": _unrecovered_transport_failure(artifact),
         "turn_deadlines": {
             "opportunities": sum(
                 turn.get("deadline_met") is not None
@@ -1590,8 +1609,25 @@ def terminal_row_from_artifact(
     return row
 
 
+def _unrecovered_transport_failure(artifact: dict[str, Any]) -> bool:
+    failed_turns = {
+        turn.get("turn_id") for turn in artifact.get("turns") or []
+        if turn.get("status") == "failed"
+    }
+    for audit in artifact.get("provider_audit") or []:
+        responses = audit.get("provider_responses") or []
+        if audit.get("turn_id") not in failed_turns or not responses:
+            continue
+        response = responses[-1].get("response") or {}
+        if response.get("status") == "failed" and response.get("error_reason") in {
+            "provider_rate_limit", "provider_server_error", "provider_transport_error",
+        }:
+            return True
+    return False
+
+
 def _job_row_identity(job: dict[str, Any]) -> dict[str, Any]:
-    return {
+    identity = {
         key: job.get(key)
         for key in (
             "job_key",
@@ -1607,6 +1643,10 @@ def _job_row_identity(job: dict[str, Any]) -> dict[str, Any]:
             "batch_treatment_sha256",
         )
     }
+    identity.update({key: deepcopy(job[key]) for key in (
+        "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
+    ) if key in job})
+    return identity
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -2108,6 +2148,17 @@ def _formal_runtime_binding_reasons(
         "readiness_path": str(resolved_readiness),
     }:
         reasons.append("formal_runtime_locator_changed")
+    selection = identity.get("selection_contract") or {}
+    if selection.get("kind") == "lite":
+        try:
+            formal = load_formal_contract(resolved_manifest)
+            _, current_selection = _select_suite(
+                REPO_ROOT / selection["suite_locator"], "lite", formal, resolved_manifest,
+            )
+            if current_selection != selection:
+                reasons.append("lite_selection_binding_changed")
+        except (OSError, ValueError, KeyError):
+            reasons.append("lite_selection_revalidation_failed")
     return sorted(set(reasons))
 
 
@@ -2230,7 +2281,11 @@ def finalize_run(
     leaderboard = {
         "schema_version": SCORECARD_SCHEMA_VERSION,
         "track": "realtime_supervision",
-        "leaderboard_kind": "formal_multi_column_scorecard",
+        "leaderboard_kind": (
+            "diagnostic_lite_scorecard"
+            if (identity.get("selection_contract") or {}).get("kind") == "lite"
+            else "formal_multi_column_scorecard"
+        ),
         "rows": [scorecard],
         "merge_with_logical_primary": False,
     }
@@ -2285,7 +2340,10 @@ def finalize_run(
         "implementation_tree_sha256": current_tree,
         "suite_manifest_sha256": identity.get("suite_sha256"),
         "model": run_config["model"],
-        "leaderboard_eligible": not blockers,
+        "leaderboard_eligible": not blockers and (identity.get("selection_contract") or {}).get("kind") != "lite",
+        "evaluation_complete": not blockers,
+        "suite_kind": (identity.get("selection_contract") or {}).get("kind", "core"),
+        "formal_full_leaderboard_eligible": False,
         "blockers": blockers,
         "coverage": scorecard["coverage"],
         "scorecard_schema_version": SCORECARD_SCHEMA_VERSION,
@@ -2312,6 +2370,7 @@ def _safe_component(value: str) -> str:
 
 
 def _load_suite(path: Path) -> list[dict[str, Any]]:
+    from core.suite_identity import canonical_scenario_slug
     payload = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, list):
         raw_rows = payload
@@ -2346,7 +2405,7 @@ def _load_suite(path: Path) -> list[dict[str, Any]]:
             raise ValueError("suite row requires positive integer horizon_ticks")
         rows.append(
             {
-                "scenario_slug": str(slug),
+                "scenario_slug": canonical_scenario_slug(str(slug)),
                 "scenario_id": str(scenario_id),
                 "scenario_signature": str(signature),
                 "seed": int(raw.get("seed", 42)),
@@ -2358,6 +2417,45 @@ def _load_suite(path: Path) -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+def _select_suite(path: Path, kind: str, formal: dict[str, Any], manifest: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Bind Full or an exact released Core-derived Lite subset before transport."""
+    if kind == "core":
+        if path.resolve() != Path(formal["selection_path"]):
+            raise ValueError("realtime suite path is not manifest bound")
+        if file_sha256(path) != formal["selection_sha256"]:
+            raise ValueError("realtime suite artifact hash mismatch")
+        payload = json.loads(path.read_text())
+        suite_hash = str(formal["realtime_contract"].get("suite_manifest_sha256") or "")
+        if not suite_hash or isinstance(payload, dict) and payload.get("suite_manifest_sha256") != suite_hash:
+            raise ValueError("realtime suite manifest hash mismatch")
+        return _load_suite(path), {"kind": "core", "suite_sha256": suite_hash}
+    if kind != "lite" or path.resolve() != (manifest.resolve().parent / "lite_suite.json"):
+        raise ValueError("realtime Lite must use the bound release lite_suite.json")
+    from core.lite_lineage import bind_lite_core_lineage
+    from core.suite_identity import canonical_scenario_slug
+    from run import load_scenario_yaml
+
+    payload = json.loads(path.read_text())
+    bodies = {
+        canonical_scenario_slug(row["path"]): load_scenario_yaml(canonical_scenario_slug(row["path"]))
+        for row in payload.get("scenarios") or []
+    }
+    binding = bind_lite_core_lineage(bodies, lite_suite=path, repo_root=REPO_ROOT)
+    if binding["parent_release_id"] != formal["formal_runtime_binding"]["release_id"]:
+        raise ValueError("realtime Lite parent release mismatch")
+    rows = _load_suite(path)
+    for row in rows:
+        body = bodies[canonical_scenario_slug(row["scenario_slug"])]
+        row.update({key: body[key] for key in (
+            "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
+        )})
+    return rows, {
+        "kind": "lite", "suite_sha256": binding["lite_suite_sha256"],
+        "suite_locator": path.resolve().relative_to(REPO_ROOT).as_posix(),
+        "lineage": binding, "formal_full_leaderboard_eligible": False,
+    }
 
 
 def validate_safety_profile_suite(
@@ -2509,6 +2607,11 @@ def _command_for_job(
         "--trajectory-dir",
         str(job["trajectory_dir"]),
     ]
+    if job.get("lite_core_lineage"):
+        binding = {key: job[key] for key in (
+            "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
+        )}
+        command.extend(["--scenario-contract-binding", json.dumps(binding, sort_keys=True)])
     if getattr(args, "base_url", None):
         command.extend(["--base-url", str(args.base_url)])
     if model.get("api_version"):
@@ -2517,6 +2620,9 @@ def _command_for_job(
         command.extend(["--responses-base-url", str(args.responses_base_url)])
     if model.get("reasoning_effort"):
         command.extend(["--reasoning-effort", str(model["reasoning_effort"])])
+    command.extend(["--reasoning-effort-format", str(model.get("reasoning_effort_format", "auto"))])
+    if model.get("thinking_type") is not None:
+        command.extend(["--thinking-type", str(model["thinking_type"])])
     if model.get("provider_rpm_limit") is not None:
         command.extend(
             ["--provider-rpm-limit", str(model["provider_rpm_limit"])]
@@ -2582,9 +2688,26 @@ def _provider_quota_parked_row(
 def _execute_job(
     job: dict[str, Any], run_config: dict[str, Any], args: Any
 ) -> dict[str, Any]:
+    attempt = {}
+    if job.get("invocation_started_at_utc"):
+        attempt = {
+            "execution_attempt_id": str(uuid4()),
+            "invocation_started_at_utc": job["invocation_started_at_utc"],
+            "execution_started": True,
+        }
+        _append_jsonl(
+            _resolve_run_config_path(run_config["output_dir"]) / "worker_starts.jsonl",
+            {**_campaign_job_identity(job, run_config), **attempt,
+             "schema_version": "realtime_worker_execution_start_v1",
+             "worker_started_at_utc": datetime.now(UTC).isoformat()},
+        )
     outcome = run_subprocess_with_watchdog(
         _command_for_job(job, run_config, args),
-        log_path=Path(str(job["log_path"])),
+        log_path=(
+            Path(str(job["log_path"])).with_name(
+                f"{Path(str(job['log_path'])).stem}-{attempt['execution_attempt_id']}.log"
+            ) if attempt else Path(str(job["log_path"]))
+        ),
         hard_timeout_s=float(job["process_hard_timeout_s"]),
         termination_grace_s=float(
             run_config["batch_treatment_identity"]["clock"]["termination_grace_s"]
@@ -2598,6 +2721,7 @@ def _execute_job(
                 run_config,
                 field="subprocess log_path",
             ),
+            "log_sha256": file_sha256(Path(str(outcome["log_path"]))),
         }
     artifact_path = _find_artifact(job)
     if artifact_path is None:
@@ -2607,12 +2731,15 @@ def _execute_job(
         elif outcome["timed_out"]:
             error = "process_hard_timeout"
         return {
-            **_job_row_identity(job),
+            **_campaign_job_identity(job, run_config),
+            **attempt,
             "status": "infrastructure_error",
             "error": error,
             "subprocess": outcome,
         }
     row = terminal_row_from_artifact(job, artifact_path, run_config)
+    row.update(_campaign_job_identity(job, run_config))
+    row.update(attempt)
     row["subprocess"] = outcome
     if row.get("status") == "provider_quota_exhausted":
         return row
@@ -2627,6 +2754,89 @@ def _execute_job(
         )
         row["status"] = "ineligible"
     return row
+
+
+def _realtime_retryable(row: dict[str, Any]) -> bool:
+    """A failed task or invalid model response is terminal, never success-search."""
+    return row.get("status") in {
+        "in_flight", "infrastructure_error", "provider_quota_exhausted", "parked",
+    } or row.get("retryable_infrastructure") is True
+
+
+def _campaign_job_identity(job: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
+    return {**_job_row_identity(job), "model": config["model"],
+            "implementation_tree_sha256": config["batch_treatment_identity"]["implementation_tree_sha256"]}
+
+
+def _campaign_pending_jobs(jobs: list[dict], rows: list[dict], config: dict) -> list[dict]:
+    expected = {job["job_key"]: job for job in jobs}
+    latest = {}
+    for row in rows:
+        key = row.get("job_key")
+        if key not in expected or row.get("batch_treatment_sha256") != config["batch_treatment_sha256"]:
+            raise ValueError("resume artifact integrity: journal treatment or job mismatch")
+        if any(row.get(field) != expected[key].get(field) for field in _job_row_identity(expected[key])):
+            raise ValueError("resume artifact integrity: journal job identity mismatch")
+        subprocess_record = row.get("subprocess") or {}
+        if subprocess_record.get("log_sha256"):
+            log = _resolve_output_path(subprocess_record.get("log_path"), config, field="log_path")
+            if not log.is_file() or file_sha256(log) != subprocess_record["log_sha256"]:
+                raise ValueError("resume artifact integrity: subprocess log changed")
+        raw_path = row.get("artifact_path")
+        if raw_path:
+            path = _resolve_output_path(raw_path, config, field="artifact_path")
+            root = Path(str(expected[key].get("trajectory_root") or expected[key].get("trajectory_dir") or (
+                _resolve_run_config_path(config["output_dir"]) / "trajectories"
+            )))
+            if not path.resolve().is_relative_to(root.resolve()) or not path.is_file() or file_sha256(path) != row.get("artifact_sha256"):
+                raise ValueError("resume artifact integrity: missing, damaged or out-of-scope artifact")
+            artifact = json.loads(path.read_text())
+            if _episode_treatment_reasons(artifact, expected[key], config) or any(
+                artifact.get(field) != expected[key].get(field)
+                for field in ("scenario_id", "scenario_signature", "seed")
+            ):
+                raise ValueError("resume artifact integrity: episode identity mismatch")
+            refreshed = terminal_row_from_artifact(expected[key], path, config)
+            if "artifact_path_treatment_mismatch" in refreshed.get("eligibility_reasons", []):
+                raise ValueError("resume artifact integrity: artifact path treatment mismatch")
+            if row.get("status") == "ok" and refreshed.get("status") != "ok":
+                raise ValueError("resume artifact integrity: prior accepted episode no longer validates")
+            if refreshed.get("status") == "ineligible" and not _realtime_retryable(refreshed):
+                raise ValueError(
+                    "resume artifact integrity: episode collection or contract requires attention: "
+                    + ",".join(refreshed.get("eligibility_reasons") or [])
+                )
+            row = {**row, "retryable_infrastructure": _realtime_retryable(refreshed)}
+        elif row.get("status") in {"ok", "ineligible"}:
+            raise ValueError("resume artifact integrity: terminal artifact missing")
+        if row.get("status") != "in_flight":
+            latest[key] = row
+    return [job for key, job in expected.items() if key not in latest or _realtime_retryable(latest[key])]
+
+
+def _campaign_invocation_summary(jobs, dispatched, rows, config, *, started, status, pending_before):
+    pending = _campaign_pending_jobs(jobs, rows, config)
+    latest = {row["job_key"]: row for row in rows if row.get("status") != "in_flight"}
+    results = []
+    for job in dispatched:
+        row = latest.get(job["job_key"], {}) if status == "completed" else {}
+        signal = row.get("provider_quota_signal") or {}
+        results.append({**_campaign_job_identity(job, config),
+                        "status": row.get("status", "pending"),
+                        "execution_started": row.get("execution_started", False),
+                        "retryable_infrastructure": _realtime_retryable(row),
+                        "quota_parked": row.get("status") in {"parked", "provider_quota_exhausted"},
+                        "quota_reset_at": signal.get("reset_at_utc"),
+                        "error_http_status": row.get("error_http_status")})
+    return {"schema_version": "batch_invocation_v1", "status": status,
+            "worker_start_contract": "realtime_worker_execution_start_v1",
+            "started_at_utc": started, "updated_at_utc": datetime.now(UTC).isoformat(),
+            "resume_policy": "retry-infrastructure", "total_scope_jobs": len(jobs),
+            "pending_before": pending_before, "pending_after": len(pending),
+            "dispatched": len(dispatched), "resume_terminal": len(jobs)-len(pending),
+            "terminal_errors": sum(row.get("status") != "ok" for row in latest.values()),
+            "scope_attempts_closed": not pending, "formal_completion_claimed": False,
+            "dispatched_results": results}
 
 
 def _run_pending_jobs(
@@ -2958,6 +3168,7 @@ def _bound_cli_value(supplied: Any, expected: Any, *, flag: str) -> Any:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument("--suite-kind", choices=["core", "lite"], default="core")
     parser.add_argument("--formal-manifest", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--model", required=True)
@@ -2967,6 +3178,7 @@ def main(argv: list[str] | None = None) -> int:
         choices=["openai", "azure", "openai_compatible", "anthropic", "google"],
     )
     parser.add_argument("--base-url", default=None)
+    parser.add_argument("--base-url-env", default=None)
     parser.add_argument("--api-version", default=None)
     parser.add_argument("--responses-base-url", default=None)
     parser.add_argument("--api-key-env", default="OPENAI_API_KEY")
@@ -2997,13 +3209,27 @@ def main(argv: list[str] | None = None) -> int:
         choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
         default=None,
     )
+    parser.add_argument("--reasoning-effort-format", choices=["auto", "native", "openrouter"], default="auto")
+    parser.add_argument("--thinking-type", choices=["enabled", "disabled"], default=None)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--resume-policy", choices=["retry-infrastructure"], default="retry-infrastructure")
+    parser.add_argument("--max-jobs", type=int, default=None)
+    parser.add_argument("--no-finalize", action="store_true")
     parser.add_argument("--finalize-only", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
     run_lock_handle: Any | None = None
+    started_at: str | None = None
     try:
+        if args.max_jobs is not None and args.max_jobs < 1:
+            raise ValueError("--max-jobs must be positive")
+        if args.no_finalize and args.finalize_only:
+            raise ValueError("--no-finalize and --finalize-only are mutually exclusive")
+        if args.base_url_env:
+            if args.base_url or not os.getenv(args.base_url_env):
+                raise ValueError("base URL environment missing or conflicts with --base-url")
+            args.base_url = os.environ[args.base_url_env]
         if args.dry_run and args.finalize_only:
             raise ValueError("--dry-run and --finalize-only are mutually exclusive")
         if not args.finalize_only:
@@ -3032,8 +3258,9 @@ def main(argv: list[str] | None = None) -> int:
         agentic_profile = formal["agentic_profile"]
         realtime_contract = formal["realtime_contract"]
         clock_profile = realtime_contract["clock_profile"]
-        max_tokens = _bound_cli_value(
-            args.max_tokens, agentic_profile["max_tokens"], flag="--max-tokens"
+        max_tokens = (
+            args.max_tokens if args.suite_kind == "lite" and args.max_tokens is not None
+            else _bound_cli_value(args.max_tokens, agentic_profile["max_tokens"], flag="--max-tokens")
         )
         protocol_repair_max_tokens = _bound_cli_value(
             args.protocol_repair_max_tokens,
@@ -3045,11 +3272,16 @@ def main(argv: list[str] | None = None) -> int:
             agentic_profile["persistent_history_max_messages"],
             flag="--persistent-history-max-messages",
         )
-        context_chars = _bound_cli_value(
-            args.persistent_context_max_chars,
-            agentic_profile["persistent_context_max_chars"],
-            flag="--persistent-context-max-chars",
+        context_chars = (
+            args.persistent_context_max_chars
+            if args.suite_kind == "lite" and args.persistent_context_max_chars is not None
+            else _bound_cli_value(
+                args.persistent_context_max_chars, agentic_profile["persistent_context_max_chars"],
+                flag="--persistent-context-max-chars",
+            )
         )
+        if context_chars < 500:
+            raise ValueError("--persistent-context-max-chars must be at least 500")
         memory_items = _bound_cli_value(
             args.persistent_memory_max_items,
             agentic_profile["persistent_memory_max_items"],
@@ -3078,20 +3310,10 @@ def main(argv: list[str] | None = None) -> int:
             clock_profile["termination_grace_s"],
             flag="--termination-grace-s",
         )
-        if args.suite.resolve() != Path(formal["selection_path"]):
-            raise ValueError("realtime suite path is not manifest bound")
-        if file_sha256(args.suite) != formal["selection_sha256"]:
-            raise ValueError("realtime suite artifact hash mismatch")
-        suite_rows = _load_suite(args.suite)
-        suite_payload = json.loads(args.suite.read_text(encoding="utf-8"))
-        suite_sha = str(realtime_contract.get("suite_manifest_sha256") or "")
-        if not suite_sha:
-            raise ValueError("formal realtime contract is missing suite hash")
-        if (
-            isinstance(suite_payload, dict)
-            and suite_payload.get("suite_manifest_sha256") != suite_sha
-        ):
-            raise ValueError("realtime suite manifest hash mismatch")
+        suite_rows, selection_contract = _select_suite(
+            args.suite, args.suite_kind, formal, args.formal_manifest,
+        )
+        suite_sha = selection_contract["suite_sha256"]
         formal_safety_profile = str(
             (realtime_contract.get("safety_profile") or {}).get(
                 "supervisor", DOMAIN_NEUTRAL_HOLD_PROFILE
@@ -3141,12 +3363,16 @@ def main(argv: list[str] | None = None) -> int:
             formal_manifest_sha256=formal["manifest_sha256"],
             implementation_tree_sha256=tree_sha,
             reasoning_effort=reasoning_effort,
+            reasoning_effort_format=args.reasoning_effort_format,
+            thinking_type=args.thinking_type,
             formal_runtime_binding=formal["formal_runtime_binding"],
             provider_rpm_limit=args.provider_rpm_limit,
             provider_rpd_limit=args.provider_rpd_limit,
             provider_rate_limit_scope=args.provider_rate_limit_scope,
             safety_profile=formal_safety_profile,
         )
+        if args.suite_kind == "lite":
+            identity["selection_contract"] = selection_contract
         out_dir, run_config = resolve_run_directory(
             args.output_root,
             identity,
@@ -3174,7 +3400,19 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         episodes_path = out_dir / "episodes.jsonl"
         rows = _open_formal_run_journal(out_dir, run_config)
-        completed = completed_job_keys(rows, run_config) if args.resume else set()
+        started_at = datetime.now(UTC).isoformat()
+        try:
+            pending = _campaign_pending_jobs(jobs, rows, run_config)
+        except ValueError as exc:
+            _atomic_write_json(out_dir / "invocation_summary.json", {
+                "schema_version": "batch_invocation_v1", "status": "needs_attention",
+                "started_at_utc": started_at, "reason": "resume_artifact_integrity_failed",
+                "integrity_failures": [str(exc)],
+            })
+            raise
+        if rows and not args.resume and not args.finalize_only:
+            raise ValueError("existing realtime journal requires --resume")
+        completed = {job["job_key"] for job in jobs} - {job["job_key"] for job in pending}
 
         for job in jobs:
             if str(job["job_key"]) in completed:
@@ -3210,16 +3448,38 @@ def main(argv: list[str] | None = None) -> int:
                         job=job,
                     )
                 job["trajectory_dir"] = str(_next_retry_trajectory_dir(job))
+                if not _realtime_retryable(recovered):
+                    completed.add(str(job["job_key"]))
 
+        pending = [job for job in jobs if str(job["job_key"]) not in completed]
+        dispatched = [] if args.finalize_only else pending[:args.max_jobs]
+        for job in dispatched:
+            job["invocation_started_at_utc"] = started_at
+        _atomic_write_json(out_dir / "invocation_summary.json", _campaign_invocation_summary(
+            jobs, dispatched, rows, run_config, started=started_at, status="running", pending_before=len(pending),
+        ))
         if not args.finalize_only:
-            pending = [job for job in jobs if str(job["job_key"]) not in completed]
             _run_pending_jobs(
-                pending,
+                dispatched,
                 episodes_path=episodes_path,
                 rows=rows,
                 run_config=run_config,
                 args=args,
             )
+        try:
+            summary = _campaign_invocation_summary(
+                jobs, dispatched, rows, run_config, started=started_at, status="completed", pending_before=len(pending),
+            )
+        except ValueError as exc:
+            _atomic_write_json(out_dir / "invocation_summary.json", {
+                "schema_version": "batch_invocation_v1", "status": "needs_attention",
+                "started_at_utc": started_at, "reason": "resume_artifact_integrity_failed",
+                "integrity_failures": [str(exc)],
+            })
+            raise
+        _atomic_write_json(out_dir / "invocation_summary.json", summary)
+        if args.no_finalize:
+            return 0
         manifest = finalize_run(
             out_dir,
             jobs=jobs,
@@ -3230,13 +3490,19 @@ def main(argv: list[str] | None = None) -> int:
             ],
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
+        if started_at is not None and run_lock_handle is not None:
+            _atomic_write_json(out_dir / "invocation_summary.json", {
+                "schema_version": "batch_invocation_v1", "status": "needs_attention",
+                "started_at_utc": started_at, "reason": "resume_artifact_integrity_failed",
+                "integrity_failures": [str(exc)],
+            })
         print(f"[FATAL] {exc}", file=sys.stderr)
         return 1
     finally:
         if run_lock_handle is not None:
             run_lock_handle.close()
     print(json.dumps({"output_dir": str(out_dir), **manifest}, ensure_ascii=False))
-    return 0 if manifest["leaderboard_eligible"] else 2
+    return 0 if manifest.get("evaluation_complete", manifest["leaderboard_eligible"]) else 2
 
 
 if __name__ == "__main__":

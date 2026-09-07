@@ -209,7 +209,11 @@ from core.difficulty_levels import canonical_difficulty_level
 # longer receive tool-efficiency credit without a proven backend effect, while
 # a successful wait/noop remains a valid protocol operation; intervention
 # correctness is scored by outcome/agency dimensions rather than guessed here.
-SCORING_VERSION = "0.14.0"
+# v0.15.0 normalizes only scenario-declared structural N/A groups and
+# gates reference efficiency on native feasibility. Unusable counterfactual
+# replays no longer contribute economic credit. Frozen artifacts retain their
+# original identity; these semantics require newly identified evaluations.
+SCORING_VERSION = "0.15.0"
 
 TASK_COMPLETION_INPUT_UNIT = "fraction_0_1"
 TASK_COMPLETION_SCORE_UNIT = "points_0_100"
@@ -836,6 +840,20 @@ def score_adaptive_replanning(
     )
 
 
+def _completed_successful_tool_payload(payload: dict[str, Any]) -> bool:
+    result = payload.get("payload")
+    result = result if isinstance(result, dict) else {}
+    blocked = {
+        "pending", "error", "failed", "rejected", "canceled", "cancelled",
+        "expired", "superseded",
+    }
+    return payload.get("ok") is True and not any(
+        str(mapping.get(key) or "").lower() in blocked
+        for mapping in (payload, result)
+        for key in ("_status", "status")
+    )
+
+
 def score_information_efficiency(
     evidence_logger: EvidenceLogger | None,
     *,
@@ -916,7 +934,7 @@ def score_information_efficiency(
     for item in consumers:
         payload = item.payload or {}
         if (
-            payload.get("ok") is True
+            _completed_successful_tool_payload(payload)
             and payload.get("state_changing") is True
         ):
             tick = int(item.tick)
@@ -925,7 +943,7 @@ def score_information_efficiency(
             )
     for item in consumers:
         payload = item.payload or {}
-        if payload.get("ok") is not True:
+        if not _completed_successful_tool_payload(payload):
             continue
         consumed_raw = payload.get("consumes_evidence_ids")
         consumed = (
@@ -960,6 +978,7 @@ def score_information_efficiency(
         ):
             inferred = same_tick_information
             matched.update(inferred)
+        matched = {eid for eid in matched if evidence_order[eid] < consumer_order}
         if matched:
             consumed_information_ids.update(matched)
             consumer_evidence_ids.append(item.evidence_id)
@@ -1113,6 +1132,7 @@ def score_optimality_gap(
     *,
     objective_component: str | None,
     evidence_ids: list[str],
+    feasibility: dict[str, Any] | None = None,
 ) -> DimensionScore:
     """Compare an explicitly contracted realized objective to its optimum.
 
@@ -1139,6 +1159,35 @@ def score_optimality_gap(
             evidence_ids=list(evidence_ids),
             weight=1.0,
         )
+    for label, value in (
+        ("actual objective", actual_objective_cost),
+        ("reference objective", lp_optimum),
+    ):
+        if value is not None and (not math.isfinite(value) or value < 0):
+            raise ValueError(f"{label} must be finite and non-negative")
+    if feasibility is not None:
+        # Comparability is a backend/reference contract, never an agent outcome.
+        if feasibility.get("comparable") is False:
+            return DimensionScore(
+                name="optimality_gap",
+                applicable=False,
+                evidence_ids=list(evidence_ids),
+                reason=f"reference_not_comparable: {feasibility.get('reason', '')}",
+                weight=1.0,
+            )
+        if not isinstance(feasibility.get("feasible"), bool):
+            raise ValueError("optimality feasibility must declare a boolean feasible")
+        if feasibility["feasible"] is False:
+            return DimensionScore(
+                name="optimality_gap",
+                raw_score=0.0,
+                calibrated_score=0.0,
+                applicable=True,
+                support_count=1,
+                evidence_ids=list(evidence_ids),
+                reason=f"infeasible realized objective: {feasibility.get('reason', '')}",
+                weight=1.0,
+            )
     if lp_optimum is None or lp_optimum <= 0:
         # P1-5b (Task 6, red line #4): the N/A early-return MUST carry
         # ``evidence_ids`` so state-changing evidence already folded into
@@ -1532,14 +1581,24 @@ def score_tool_use_efficiency(
         for call_id, effect_ids in (proven_effect_evidence_by_call_id or {}).items()
         if isinstance(effect_ids, list)
     }
+    evidence_order = {
+        item.evidence_id: index
+        for index, item in enumerate(evidence_logger.items())
+    }
     all_consumed_evidence_ids: set[str] = set()
     for item in tool_calls:
         payload = item.payload or {}
-        if payload.get("ok") is False:
+        if not _completed_successful_tool_payload(payload):
+            continue
+        consumed = payload.get("consumes_evidence_ids")
+        if not isinstance(consumed, list):
             continue
         all_consumed_evidence_ids.update(
-            str(evidence_id)
-            for evidence_id in (payload.get("consumes_evidence_ids") or [])
+            evidence_id
+            for evidence_id in consumed
+            if isinstance(evidence_id, str)
+            and evidence_id in evidence_order
+            and evidence_order[evidence_id] < evidence_order[item.evidence_id]
         )
     total = len(logical_calls)
     effective = 0
@@ -1559,8 +1618,7 @@ def score_tool_use_efficiency(
         if terminal is None:
             continue
         payload = terminal.payload or {}
-        ok = payload.get("ok", False)
-        if ok is True:
+        if _completed_successful_tool_payload(payload):
             state_changing = payload.get("state_changing") is True
             record_evidence_ids = {item.evidence_id for item in records}
             if state_changing:
@@ -1687,6 +1745,7 @@ class ScoringInputs:
     # Missing or mismatched contracts fail closed instead of reading a
     # backend-irrelevant zero default.
     optimality_objective_component: str | None = None
+    optimality_feasibility: dict[str, Any] | None = None
     difficulty_level: str = "basic"
     scenario_signature: str = ""
     stale_observation_records: list[dict[str, Any]] = field(default_factory=list)
@@ -1709,6 +1768,7 @@ class EpisodeScore:
     dimensions: list[DimensionScore] = field(default_factory=list)
     score_views: dict[str, dict[str, Any]] = field(default_factory=dict)
     scoring_version: str = SCORING_VERSION
+    dimension_applicability: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -1717,6 +1777,7 @@ class EpisodeScore:
             "total_score": round(self.total_score, 2),
             "raw_total": round(self.raw_total, 2),
             "scoring_version": self.scoring_version,
+            "dimension_applicability": self.dimension_applicability,
             "score_views": _rounded_score_views(self.score_views),
             "dimensions": [d.to_dict() for d in self.dimensions],
         }
@@ -1799,15 +1860,19 @@ def discriminative_core_total(
     *,
     task_completion: float,
     difficulty_level: str = "basic",
+    dimension_applicability: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build the v0.11.0 five-group formal headline.
+    """Build the scenario-applicable five-group formal headline.
 
     A diagnostic dimension contributes only when it is applicable and has
     evidence. Missing an entire non-completion group makes the formal score
     ineligible and contributes zero for that group. Within a group that has
     at least one supported member, the group score is the mean of those
-    members only — unsupported members are dropped from that group's
-    denominator. Group *weights* are never renormalized.
+    members, with explicitly applicable but unsupported members counted as zero
+    and flagged as ineligible. Undeclared unsupported members retain the
+    historical diagnostic exclusion. Group weights renormalize only when every member is explicitly
+    false in the pre-bound scenario contract supplied by the caller. Missing
+    agent evidence or runtime applicability can never remove a group.
     """
     task_completion_score = task_completion_points(task_completion)
     emitted = {
@@ -1822,13 +1887,33 @@ def discriminative_core_total(
     }
     group_support: dict[str, list[str]] = {"task_completion": ["task_completion"]}
     missing_groups: list[str] = []
+    excluded_groups: list[str] = []
+    missing_declared_dimensions: list[str] = []
     for group_name, contract in HEADLINE_SCORE_GROUPS.items():
         if group_name == "task_completion":
             continue
+        if all(
+            _declared_dimension_applicable(dimension_applicability or {}, name)
+            is False
+            for name in contract["dimensions"]
+        ):
+            excluded_groups.append(group_name)
+            group_scores[group_name] = 0.0
+            group_support[group_name] = []
+            continue
         supported: list[tuple[str, float]] = []
+        missing_members = 0
         for name in contract["dimensions"]:
+            declared = _declared_dimension_applicable(
+                dimension_applicability or {}, name
+            )
+            if declared is False:
+                continue
             dimension = emitted.get(name)
             if not dimension or dimension.get("applicable") is not True:
+                if declared is True:
+                    missing_declared_dimensions.append(name)
+                    missing_members += 1
                 continue
             evidence_ids = dimension.get("evidence_ids") or []
             if evidence_ids and (
@@ -1842,6 +1927,9 @@ def discriminative_core_total(
                     f"{name} evidence_ids must be a list of non-empty strings"
                 )
             if not evidence_ids:
+                if declared is True:
+                    missing_declared_dimensions.append(name)
+                    missing_members += 1
                 continue
             score = float(dimension.get("calibrated_score", 0.0))
             if not math.isfinite(score):
@@ -1849,15 +1937,17 @@ def discriminative_core_total(
             supported.append((name, max(0.0, min(100.0, score))))
         group_support[group_name] = [name for name, _ in supported]
         if supported:
-            group_scores[group_name] = sum(score for _, score in supported) / len(
-                supported
+            group_scores[group_name] = sum(score for _, score in supported) / (
+                len(supported) + missing_members
             )
         else:
             group_scores[group_name] = 0.0
             missing_groups.append(group_name)
 
     denominator = sum(
-        float(contract["weight"]) for contract in HEADLINE_SCORE_GROUPS.values()
+        float(contract["weight"])
+        for name, contract in HEADLINE_SCORE_GROUPS.items()
+        if name not in excluded_groups
     )
     numerator = sum(
         float(contract["weight"]) * group_scores[group_name]
@@ -1865,7 +1955,21 @@ def discriminative_core_total(
     )
     raw_total = numerator / denominator
     return {
-        "aggregation": "five_group_evidence_linked_v1",
+        "aggregation": "scenario_applicable_five_group_v2",
+        "applicable_groups": [
+            name for name in HEADLINE_SCORE_GROUPS if name not in excluded_groups
+        ],
+        "excluded_groups": excluded_groups,
+        "effective_group_weights": {
+            name: (
+                0.0 if name in excluded_groups
+                else float(contract["weight"]) / denominator
+            )
+            for name, contract in HEADLINE_SCORE_GROUPS.items()
+        },
+        "fixed_five_group_total": numerator / sum(
+            float(contract["weight"]) for contract in HEADLINE_SCORE_GROUPS.values()
+        ),
         "raw_total": raw_total,
         "total_score": _calibrate(raw_total, difficulty_level),
         "weight_denominator": denominator,
@@ -1876,7 +1980,8 @@ def discriminative_core_total(
         },
         "group_support": group_support,
         "missing_groups": missing_groups,
-        "formal_score_eligible": not missing_groups,
+        "missing_declared_dimensions": missing_declared_dimensions,
+        "formal_score_eligible": not missing_groups and not missing_declared_dimensions,
         "task_completion": float(task_completion),
         "task_completion_raw": float(task_completion),
         "task_completion_score": task_completion_score,
@@ -2133,6 +2238,7 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
     cf_cost = (
         float(inputs.counterfactual_report.get("counterfactual_cost", 0.0))
         if inputs.counterfactual_report
+        and inputs.counterfactual_report.get("applicable", True) is True
         else None
     )
 
@@ -2175,15 +2281,8 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
             applicability_contract=inputs.dimension_applicability,
         ),
         score_foresight(inputs.foresight_summary, evidence_ids=plan_evs),
-        # v0.2.1 fix (per code-review): optimality_gap compares ONLY
-        # production_cost against the LP optimum. The earlier
-        # production+balance variant double-counted safety failures
-        # (already in `safety_violation`) and produced 30× gaps that
-        # obscured actual dispatch efficiency. Wait_only now scores
-        # near 100 because its production_cost is low — and that is
-        # correct: the agent didn't dispatch anything, but it ALSO
-        # didn't dispatch INEFFICIENTLY. Inefficiency / inactivity is
-        # captured by `system_survival` and `counterfactual_prevention`.
+        # Compare the declared objective only after native feasibility is checked.
+        # Lower expenditure from leaving demand unserved is not efficiency.
         score_optimality_gap(
             inputs.lp_optimum,
             (
@@ -2194,6 +2293,7 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
             ),
             objective_component=inputs.optimality_objective_component,
             evidence_ids=lp_evs,
+            feasibility=inputs.optimality_feasibility,
         ),
         score_counterfactual_prevention(
             inputs.counterfactual_report, evidence_ids=cf_evs
@@ -2248,6 +2348,9 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
         raw_total=raw_total,
         dimensions=dims,
         score_views=views,
+        dimension_applicability=(
+            dict(inputs.dimension_applicability) if applicability_evs else {}
+        ),
     )
 
 

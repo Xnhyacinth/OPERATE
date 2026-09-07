@@ -225,11 +225,20 @@ def validate_report_scope(
     *,
     implementation_tree_sha256: str,
     complexity_agents: tuple[str, ...] | None = None,
+    repo_root: Path | None = None,
 ) -> list[str]:
     expected = list(expected_identities)
     expected_set = set(expected)
     grouped = group_rows_by_identity(report)
     errors: list[str] = []
+    if "artifact_role" in report or "qualification_union" in report:
+        from core.protocol21_native_qualification_view import (
+            validate_native_qualification_view,
+        )
+
+        errors.extend(
+            validate_native_qualification_view(report, repo_root=repo_root or REPO_ROOT)
+        )
     if extract_semantics(report) != required_semantics():
         errors.append("artifact_semantics_stale")
     if report.get("status") != "complete" and report.get("complete") is not True:

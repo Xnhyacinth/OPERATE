@@ -39,7 +39,7 @@ from scripts.mine_sumo365_native_traffic import (  # noqa: E402
     parse_route_departures,
 )
 
-DEFAULT_SUITE = ROOT / "release/operate_v0_61_0/protocol21_source_suite.json"
+DEFAULT_SUITE = ROOT / "release/operate_v0_62_0/protocol21_source_suite.json"
 DEFAULT_OUTPUT = (
     ROOT / ".hl/artifacts/operate_v058_infrastructure_candidate_refinement.json"
 )

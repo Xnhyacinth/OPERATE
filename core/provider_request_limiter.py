@@ -157,9 +157,7 @@ class ProviderRequestLimiter:
                 ) from cleanup_error
 
         wait_seconds = max(0.0, scheduled_at - now_epoch)
-        if wait_seconds:
-            self.sleep(wait_seconds)
-        return _audit_payload(
+        audit = _audit_payload(
             status="acquired",
             scope=scope,
             scope_sha256=scope_sha256,
@@ -170,6 +168,23 @@ class ProviderRequestLimiter:
             reserved_at=scheduled_at,
             reset_at=None,
         )
+        if wait_seconds:
+            wait_started = time.monotonic()
+            try:
+                self.sleep(wait_seconds)
+            except Exception as exc:
+                # The slot was durably reserved before releasing the lock.
+                # Cancellation cannot refund it without racing other callers.
+                exc.provider_rate_limit_audit = {  # type: ignore[attr-defined]
+                    **audit,
+                    "status": "wait_interrupted",
+                    "scheduled_wait_seconds": round(wait_seconds, 6),
+                    "wait_seconds": round(
+                        max(0.0, time.monotonic() - wait_started), 6
+                    ),
+                }
+                raise
+        return audit
 
 
 def _default_state_dir() -> Path:

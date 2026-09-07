@@ -28,7 +28,7 @@ from evaluation.dimension_applicability import (  # noqa: E402
 )
 from runner import EVALUATION_IMPLEMENTATION_FINGERPRINT  # noqa: E402
 
-DEFAULT_RELEASE = REPO_ROOT / "release" / "operate_v0_61_0"
+DEFAULT_RELEASE = REPO_ROOT / "release" / "operate_v0_62_0"
 
 JsonDict = dict[str, Any]
 
@@ -2425,24 +2425,11 @@ def _agentic_formal_checks(
         and stage_bindings_ok
         and pipeline.get("status") == "formal_evaluation_ready"
     )
-    public_evidence_closure_ok = _portable_evidence_closure_valid(
-        release, manifest, rows
-    )
-    public_evidence_fallback = bool(
-        runtime_bundle_required
-        and runtime_bundle_ok
-        and public_evidence_closure_ok
-        and not pipeline_manifest_path.is_file()
-    )
     portable_closure_ok = (
-        public_evidence_closure_ok
-        if portable or public_evidence_fallback
-        else True
+        _portable_evidence_closure_valid(release, manifest, rows) if portable else True
     )
     if portable:
-        pipeline_ok = public_evidence_closure_ok
-    elif public_evidence_fallback:
-        pipeline_ok = True
+        pipeline_ok = portable_closure_ok
     if runtime_bundle_required:
         pipeline_ok = bool(pipeline_ok and runtime_bundle_ok)
 
@@ -2458,15 +2445,8 @@ def _agentic_formal_checks(
     )
     if portable:
         release_pipeline_ok = bool(
-            public_evidence_closure_ok
+            portable_closure_ok
             and _valid_sha256(release_pipeline_sha256)
-            and pipeline_artifacts.get("core_release_pipeline_sha256")
-            == release_pipeline_sha256
-            and replay.get("core_release_pipeline_sha256") == release_pipeline_sha256
-        )
-    elif public_evidence_fallback:
-        release_pipeline_ok = bool(
-            _valid_sha256(release_pipeline_sha256)
             and pipeline_artifacts.get("core_release_pipeline_sha256")
             == release_pipeline_sha256
             and replay.get("core_release_pipeline_sha256") == release_pipeline_sha256
@@ -2480,13 +2460,6 @@ def _agentic_formal_checks(
         and pipeline.get("release_tooling_sha256") == release_tooling_sha256
     )
     if portable:
-        release_tooling_ok = bool(
-            _valid_sha256(release_tooling_sha256)
-            and pipeline_artifacts.get("release_tooling_sha256")
-            == release_tooling_sha256
-            and replay.get("release_tooling_sha256") == release_tooling_sha256
-        )
-    elif public_evidence_fallback:
         release_tooling_ok = bool(
             _valid_sha256(release_tooling_sha256)
             and pipeline_artifacts.get("release_tooling_sha256")
@@ -2509,14 +2482,8 @@ def _agentic_formal_checks(
     )
     if portable:
         tree_ok = bool(
-            public_evidence_closure_ok
+            portable_closure_ok
             and _valid_sha256(tree)
-            and core.get("implementation_tree_sha256") == tree
-            and replay.get("implementation_tree_sha256") == tree
-        )
-    elif public_evidence_fallback:
-        tree_ok = bool(
-            _valid_sha256(tree)
             and core.get("implementation_tree_sha256") == tree
             and replay.get("implementation_tree_sha256") == tree
         )

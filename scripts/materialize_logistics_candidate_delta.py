@@ -46,6 +46,7 @@ from domains.logistics.backends.job_shop import (  # noqa: E402
 )
 from domains.logistics.seeds.from_jsplib import (  # noqa: E402
     build_job_shop_dispatch_seed,
+    job_shop_opportunity_applicability,
 )
 from domains.logistics.seeds.from_m5_orgym import (  # noqa: E402
     M5_ROOT,
@@ -250,11 +251,11 @@ def _routing_dimension_applicability() -> dict[str, dict[str, Any]]:
         },
         "foresight_score": {
             "applicable": False,
-            "reason": "reference_agents_do_not_emit_commit_to_plan_predictions",
+            "reason": "routing_has_no_pre_event_forecast_information_contract",
         },
         "optimality_gap": {
-            "applicable": True,
-            "reason": "deterministic_offline_routing_reference_available",
+            "applicable": False,
+            "reason": "closed_integer_reference_vs_open_dynamic_cost",
         },
         "counterfactual_prevention": {
             "applicable": True,
@@ -321,7 +322,7 @@ def _complete_dimension_applicability(body: dict[str, Any]) -> None:
             },
             "foresight_score": {
                 "applicable": False,
-                "reason": "reference_agents_do_not_emit_commit_to_plan_predictions",
+                "reason": "dynasched_boundary_time_has_no_forecast_event_target_contract",
             },
             "stakeholder_equity": {
                 "applicable": False,
@@ -373,17 +374,9 @@ def _complete_dimension_applicability(body: dict[str, Any]) -> None:
                 "applicable": False,
                 "reason": "source_instance_has_no_stakeholder_trust_model",
             },
-            "adaptive_replanning": {
-                "applicable": True,
-                "reason": "source_native_machine_breakdown_requires_repair_and_rescheduling",
-            },
             "information_efficiency": {
                 "applicable": True,
                 "reason": "partial_shop_observation_and_inspection_tools_available",
-            },
-            "foresight_score": {
-                "applicable": False,
-                "reason": "reference_agents_do_not_emit_commit_to_plan_predictions",
             },
             "stakeholder_equity": {
                 "applicable": False,
@@ -409,17 +402,9 @@ def _complete_dimension_applicability(body: dict[str, Any]) -> None:
                 "applicable": True,
                 "reason": "makespan_cost_and_wait_counterfactual_available",
             },
-            "adaptive_replanning": {
-                "applicable": False,
-                "reason": "static_job_shop_has_no_exogenous_disruption_window",
-            },
             "information_efficiency": {
                 "applicable": True,
                 "reason": "partial_shop_observation_and_inspection_tools_available",
-            },
-            "foresight_score": {
-                "applicable": False,
-                "reason": "reference_agents_do_not_emit_commit_to_plan_predictions",
             },
             "stakeholder_equity": {
                 "applicable": False,
@@ -430,6 +415,8 @@ def _complete_dimension_applicability(body: dict[str, Any]) -> None:
                 "reason": "tool_protocol_call_outcome_and_budget_evidence_available",
             },
         }
+    if backend_kind == "jsplib_job_shop" and isinstance(applicability, dict):
+        applicability.update(job_shop_opportunity_applicability(body))
     applicability_issue = dimension_applicability_contract_issue(applicability)
     if applicability_issue is not None and applicability_issue[0] == "incomplete":
         raise MaterializationBlocked(
@@ -1336,8 +1323,8 @@ def _blocker(row: dict[str, Any], code: str, detail: str) -> dict[str, Any]:
 def _safe_output_root(output_root: Path) -> Path:
     resolved = output_root.resolve()
     protected = (
-        REPO_ROOT / "release/operate_v0_58_0",
-        REPO_ROOT / "scenarios/operate_v0_58_0",
+        REPO_ROOT / "release",
+        REPO_ROOT / "scenarios",
     )
     if any(
         resolved == path.resolve() or path.resolve() in resolved.parents

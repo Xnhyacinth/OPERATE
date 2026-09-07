@@ -71,6 +71,24 @@ FORECAST_EVENT_REGISTRY = MappingProxyType(
         ),
         "route_change": ForecastEventSchema(("logistics",), ("job_id",)),
         "due_date_change": ForecastEventSchema(("logistics",), ("job_id",)),
+        # Driving hazards can be anticipated from observed actor kinematics.
+        # Routine actor-state telemetry and agent-caused outcomes stay excluded.
+        "cut_in": ForecastEventSchema(("autonomous_driving",), ("actor_id",)),
+        "cut_in_gap_boundary": ForecastEventSchema(
+            ("autonomous_driving",), ("actor_id",)
+        ),
+        "lane_change_conflict": ForecastEventSchema(
+            ("autonomous_driving",), ("actor_id",)
+        ),
+        "lead_vehicle_braking": ForecastEventSchema(
+            ("autonomous_driving",), ("actor_id",)
+        ),
+        "short_time_headway_boundary": ForecastEventSchema(
+            ("autonomous_driving",), ("actor_id",)
+        ),
+        "stopped_vehicle": ForecastEventSchema(
+            ("autonomous_driving",), ("actor_id",)
+        ),
         # Microgrid
         "grid_outage": ForecastEventSchema(("microgrid",), ("asset_id", "bus_id")),
         "price_spike": ForecastEventSchema(("microgrid",), ("asset_id", "bus_id")),

@@ -29,6 +29,15 @@ history. There are no public release tags or selectable historical datasets.
 Internal release IDs and content hashes remain in manifests solely to bind
 code, data, prompts, treatments, and results reproducibly.
 
+## Current v0.62 qualification and provider status
+
+The promoted input namespace is `operate_v0_62_0`, with scoring `0.15.0`,
+769 Core rows across 502 physical sources and 193 Lite rows across 122 sources.
+Native qualification is bound to its recorded implementation identity. Later
+verified maintenance changes bind their actual new execution identity; resume
+and merge remain strict. Formal logical/realtime provider runs and leaderboard
+result publication remain pending.
+
 ## What is evaluated
 
 - persistent autonomy after one mission briefing;
@@ -72,13 +81,14 @@ horizon buckets, but it is not a substitute for the Full leaderboard denominator
 | Traffic | 19 | 19 | 10 | 10 |
 | **Total** | **769** | **193** | **502** | **122** |
 
-Candidate closure is complete: all 2,476 independent candidates have a terminal
-disposition and none remain unresolved. The manifest-bound twelve-stage replay
-promoted all 769 source rows and marks the release formal-evaluation ready.
-The public Hugging Face dataset exposes only the current snapshot. Formal runs
-record its resolved immutable commit in the local owner receipt. Formal provider
-results remain pending, so the published code/data are ready for independent
-evaluation while official leaderboard eligibility remains false.
+The parent v0.61 admission ledger records 2,476 terminal candidate decisions
+with zero unresolved. v0.62 introduces zero newly mined candidates; it preserves
+that historical lineage while qualifying corrected contracts for the same
+769-row, 502-source denominator. Historical admission evidence is not relabelled
+as newly executed evidence.
+
+Formal logical/realtime provider runs remain pending; public result release
+and leaderboard eligibility remain false.
 
 The promoted `core_suite.json` and `manifest.json` define the formal denominator.
 The source suite remains an auditable replay and provenance input. No
@@ -144,11 +154,11 @@ uv run python -m pytest -q \
 
 # Verify the promoted release
 uv run python scripts/verify_release_integrity.py \
-  release/operate_v0_61_0 --portable
+  release/operate_v0_62_0 --portable
 
 # One baseline episode selected by the current manifest
 uv run python run.py \
-  --scenario operate_v0_58_0/datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high \
+  --scenario operate_v0_62_0/datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high \
   --agent wait_only --seed 42
 ```
 
@@ -198,7 +208,7 @@ uv run python run_lite.py \
 ```
 
 The exact selection and generator are
-[`release/operate_v0_61_0/lite_suite.json`](release/operate_v0_61_0/lite_suite.json)
+[`release/operate_v0_62_0/lite_suite.json`](release/operate_v0_62_0/lite_suite.json)
 and [`tools/build_lite_suite.py`](tools/build_lite_suite.py).
 
 ## Formal persistent evaluation

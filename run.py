@@ -121,6 +121,7 @@ _recompute_signature_with_seed = recompute_signature_with_seed
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--scenario", required=True, help="Scenario slug or path")
+    p.add_argument("--scenario-contract-binding", default=None, help=argparse.SUPPRESS)
     p.add_argument("--agent", default="wait_only")
     p.add_argument(
         "--provider",
@@ -178,6 +179,8 @@ def main() -> int:
         choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
         default=None,
     )
+    p.add_argument("--reasoning-effort-format", choices=["auto", "native", "openrouter"], default="auto")
+    p.add_argument("--thinking-type", choices=["enabled", "disabled"], default=None)
     p.add_argument(
         "--prompt-mode",
         choices=["strict", "debug"],
@@ -358,6 +361,16 @@ def main() -> int:
         p.error("--realtime-episode-timeout-s must be finite and positive")
 
     scenario = load_scenario_yaml(args.scenario)
+    if args.scenario_contract_binding:
+        from core.lite_lineage import apply_lite_worker_binding
+        from core.suite_identity import canonical_scenario_slug
+
+        apply_lite_worker_binding(
+            scenario, json.loads(args.scenario_contract_binding),
+            scenario_slug=canonical_scenario_slug(args.scenario),
+            seed=args.seed if args.seed is not None else int(scenario.get("seed", 42)),
+            repo_root=REPO_ROOT,
+        )
     agent_kwargs: dict[str, Any] = {}
     if args.agent in {"llm_agent", "react_llm", "reflexion_llm"}:
         is_realtime = args.interaction_mode == "realtime_persistent"
@@ -469,6 +482,8 @@ def main() -> int:
                 else "auto"
             ),
             reasoning_effort=args.reasoning_effort,
+            reasoning_effort_format=args.reasoning_effort_format,
+            thinking_type=args.thinking_type,
             protocol_repair_max_tokens=(
                 effective_repair_tokens
             ),

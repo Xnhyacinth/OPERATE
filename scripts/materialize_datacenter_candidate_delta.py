@@ -30,6 +30,7 @@ from domains.datacenter.adapter import DatacenterEnvironment  # noqa: E402
 from domains.datacenter.source_native_candidates import (  # noqa: E402
     build_openb_candidate,
     datacenter_dimension_applicability,
+    stakeholder_equity_applicability,
 )
 from domains.registry import (  # noqa: E402
     get_backend_capability,
@@ -48,7 +49,7 @@ DEFAULT_REFINEMENT = (
 DEFAULT_SPOT_LEDGER = (
     ROOT / ".hl/artifacts/datacenter_spot_candidate_ledger_20260828.json"
 )
-DEFAULT_ACTIVE_SUITE = ROOT / "release/operate_v0_61_0/protocol21_source_suite.json"
+DEFAULT_ACTIVE_SUITE = ROOT / "release/operate_v0_62_0/protocol21_source_suite.json"
 DEFAULT_OUTPUT_ROOT = ROOT / ".hl/artifacts/operate_v058_datacenter_delta"
 ALIBABA_CLUSTERDATA_COMMIT = "0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71"
 ALIBABA_TRACE_LICENSE = "Apache-2.0 upstream repository; trace terms apply"
@@ -161,6 +162,7 @@ def _finalize_body(
     body.setdefault("perturbations", [])
     config = body.setdefault("backend_config", {})
     applicability = datacenter_dimension_applicability(backend_kind)
+    applicability["stakeholder_equity"] = stakeholder_equity_applicability(body)
     issue = dimension_applicability_contract_issue(applicability)
     if issue is not None:
         raise ValueError(f"dimension_applicability_invalid:{backend_kind}:{issue}")

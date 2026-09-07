@@ -636,10 +636,24 @@ PLOT_FILES = [
 FALLBACK_WAIT_RATIO_THRESHOLD = 0.5
 
 
-def _provider_failure_profile(*, formal_run: bool) -> dict[str, Any]:
+def _provider_failure_profile(
+    *, formal_run: bool,
+    provider_failure_policy: str | None = None,
+    max_consecutive_provider_failures: int | None = None,
+) -> dict[str, Any]:
+    policy = provider_failure_policy or ("abort" if formal_run else "compat_fallback")
+    threshold = (
+        max_consecutive_provider_failures
+        if max_consecutive_provider_failures is not None
+        else (1 if formal_run else 5)
+    )
+    if policy not in {"abort", "compat_fallback"} or threshold < 1:
+        raise ValueError("provider failure policy requires a positive failure threshold")
+    if formal_run and (policy != "abort" or threshold != 1):
+        raise ValueError("formal runs require provider failure policy abort and threshold 1")
     return {
-        "max_consecutive_provider_failures": 1 if formal_run else 5,
-        "provider_failure_policy": "abort" if formal_run else "compat_fallback",
+        "max_consecutive_provider_failures": threshold,
+        "provider_failure_policy": policy,
     }
 
 
@@ -716,6 +730,8 @@ def _llm_config_to_dict(cfg: LLMConfig) -> dict[str, Any]:
         "tool_choice": cfg.tool_choice,
         "tool_choice_supported": cfg.tool_choice_supported,
         "reasoning_effort": cfg.reasoning_effort,
+        "reasoning_effort_format": cfg.reasoning_effort_format,
+        "thinking_type": cfg.thinking_type,
         "protocol_repair_max_tokens": cfg.protocol_repair_max_tokens,
         "allow_insecure_http": cfg.allow_insecure_http,
         "extra_headers": dict(cfg.extra_headers or {}),
@@ -784,6 +800,8 @@ def _llm_config_from_dict(d: dict[str, Any]) -> LLMConfig:
             if d.get("reasoning_effort") is not None
             else None
         ),
+        reasoning_effort_format=str(d.get("reasoning_effort_format", "auto")),
+        thinking_type=d.get("thinking_type"),
         protocol_repair_max_tokens=int(d.get("protocol_repair_max_tokens", 512)),
         allow_insecure_http=bool(d.get("allow_insecure_http", False)),
         extra_headers=dict(d.get("extra_headers", {}) or {}),
@@ -1037,6 +1055,8 @@ def _apply_llm_job_metadata(job: dict[str, Any], r: dict[str, Any]) -> dict[str,
     r["backend_kind"] = job.get("backend_kind")
     r["source_denominator_key"] = job.get("source_denominator_key")
     r["case_ledger"] = job.get("case_ledger")
+    if job.get("lite_core_lineage") is not None:
+        r["lite_core_lineage"] = job["lite_core_lineage"]
     evaluation_protocol = r.get("evaluation_protocol")
     if not isinstance(evaluation_protocol, dict):
         evaluation_protocol = {}
@@ -1061,6 +1081,7 @@ def _quota_parked_result(
         "error": message,
         "quota_parked": True,
         "execution_started": False,
+        "implementation_tree_sha256": job.get("implementation_tree_sha256"),
     }
     if reset_at:
         r["quota_reset_at"] = reset_at
@@ -1185,6 +1206,9 @@ def _agent_treatment_identity(cfg: LLMConfig) -> dict[str, Any]:
         "tool_choice": cfg.tool_choice,
         "tool_choice_supported": cfg.tool_choice_supported,
         "reasoning_effort": cfg.reasoning_effort,
+        **({"reasoning_effort_format": cfg.reasoning_effort_format}
+           if cfg.reasoning_effort_format != "auto" else {}),
+        **({"thinking_type": cfg.thinking_type} if cfg.thinking_type is not None else {}),
         "protocol_repair_max_tokens": cfg.protocol_repair_max_tokens,
         "allow_insecure_http": cfg.allow_insecure_http,
         "extra_header_names": sorted(str(key) for key in (cfg.extra_headers or {})),
@@ -1255,7 +1279,11 @@ def _batch_llm_config(
             getattr(args, "provider_timeout_s", None) or (150.0 if persistent else 60.0)
         ),
         **_provider_failure_profile(
-            formal_run=bool(getattr(args, "formal_run", False))
+            formal_run=bool(getattr(args, "formal_run", False)),
+            provider_failure_policy=getattr(args, "provider_failure_policy", None),
+            max_consecutive_provider_failures=getattr(
+                args, "max_consecutive_provider_failures", None
+            ),
         ),
         prompt_mode=getattr(args, "prompt_mode", "strict") or "strict",
         interaction_mode=interaction_mode,
@@ -1281,6 +1309,8 @@ def _batch_llm_config(
         tool_choice="auto",
         tool_choice_supported=frozen_model_tool_choice_support(model),
         reasoning_effort=getattr(args, "reasoning_effort", None),
+        reasoning_effort_format=getattr(args, "reasoning_effort_format", "auto"),
+        thinking_type=getattr(args, "thinking_type", None),
         protocol_repair_max_tokens=int(
             getattr(args, "protocol_repair_max_tokens", None)
             or (4096 if persistent else 512)
@@ -1660,6 +1690,8 @@ def _run_config_treatment_compatibility_reasons(
         "provider_rate_limit_scope",
         "max_consecutive_provider_failures",
         "provider_failure_policy",
+        "reasoning_effort_format",
+        "thinking_type",
         "output_dir",
         "output_namespace_treatment_sha256",
         "prompt_mode",
@@ -1677,6 +1709,8 @@ def _run_config_treatment_compatibility_reasons(
         "api_mode",
         "stream_chat_completions",
         "save_trajectories",
+        "resume_policy",
+        "job_order",
         "native_runtime_binding",
         "agent_profile_schema_version",
         "agent_profile_identity_by_model",
@@ -3298,6 +3332,129 @@ def _persistent_session_eligibility_reasons(
     return reasons
 
 
+def _verified_terminal_model_failure(
+    row: dict[str, Any], *, batch_root: Path | None = None,
+) -> bool:
+    """Admit a measured invalid reply, never an unobserved terminal warning.
+
+    This exception always rechecks bound bytes, including during coverage/resume
+    checks. A collection_complete flag alone cannot change formal admission.
+    """
+    from baselines.llm_agent import INVALID_MODEL_DECISION_DOMINANTS
+    from runner.episode import (
+        _terminal_interrupt_reasons,
+        _terminal_response_window_reasons,
+    )
+
+    summary = row.get("trajectory_summary") or {}
+    terminal = summary.get("terminal_integrity") or {}
+    if not (
+        terminal.get("collection_complete") is True
+        and terminal.get("terminal_disposition")
+        == "observed_invalid_terminal_model_response"
+        and terminal.get("release_ready") is False
+        and terminal.get("unresolved_pending_actions") == {}
+        and terminal.get("unanswered_interrupt_reasons") == ["safety_warning"]
+        and isinstance(terminal.get("model_response_failure"), dict)
+        and not _llm_call_failure_eligibility_reasons(summary.get("llm") or {})
+    ):
+        return False
+    loaded: dict[str, list[dict[str, Any]]] = {}
+    for key, stem, schema in (
+        ("trajectory_artifact", "trajectory", "episode_trajectory_jsonl_v1"),
+        ("provider_audit_artifact", "provider_audit", "provider_interaction_audit_v1"),
+    ):
+        if _trajectory_sidecar_eligibility_reasons(
+            row, summary_key=key, stem=stem, schema_version=schema,
+            require_nonempty=True, require_byte_count=key == "trajectory_artifact",
+            batch_root=batch_root,
+        ):
+            return False
+        try:
+            loaded[key] = [json.loads(line) for line in resolve_batch_path(
+                summary[key]["path"], batch_root=batch_root,
+            ).read_text(encoding="utf-8").splitlines()]
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return False
+    try:
+        steps = loaded["trajectory_artifact"]
+        if len(steps) < 2:
+            return False
+        pending_calls: set[str] = set()
+        for step in steps:
+            if _terminal_response_window_reasons(
+                (step.get("info") or {}).get("realized_events") or []
+            ):
+                return False
+            for index, result in enumerate(step.get("tool_results") or []):
+                call_id = str(result.get("call_id") or f"anonymous-{index}")
+                if (result.get("payload") or {}).get("_status") == "pending":
+                    pending_calls.add(call_id)
+                else:
+                    pending_calls.discard(call_id)
+        if pending_calls:
+            return False
+        last = steps[-1]
+        info = last["info"]
+        envelope = info["decision_envelope"]
+        failure = terminal["model_response_failure"]
+        presented = envelope["presented_early_stop_warnings"]
+        warnings = info["early_stop_warnings"]
+        if not (
+            isinstance(presented, list) and presented
+            and all(isinstance(value, str) for value in presented)
+            and presented == steps[-2]["info"]["early_stop_warnings"]
+            and warnings == failure["terminal_warnings"]
+            and presented == failure["presented_warnings"]
+            and envelope["provider_status"] == failure["provider_status"] == "success"
+            and last["action"]["dominant_action"] == failure["dominant"]
+            and failure["dominant"] in INVALID_MODEL_DECISION_DOMINANTS
+            and envelope["simulator_tick"] == failure["simulator_tick"]
+            and envelope["model_decision_index"] == failure["model_decision_index"]
+            and envelope["pre_action_observation_sha256"]
+            == failure["pre_action_observation_sha256"]
+            == _canonical_json_sha256(envelope["pre_action_observation"])
+        ):
+            return False
+        events = info.get("realized_events") or []
+        observation = {
+            **last["observation"],
+            "__last_early_stop_warnings__": warnings,
+            "__last_realized_events__": [event for event in events if not event.get("hidden")],
+            "__last_forecast_updates__": info.get("forecast_updates") or {},
+        }
+        if _terminal_response_window_reasons(events) or _terminal_interrupt_reasons(
+            observation, answered_warnings=presented,
+        ):
+            return False
+        requests = envelope["provider_requests"]
+        responses = envelope["provider_responses"]
+        sequences = [request["sequence"] for request in requests]
+        if not (
+            sequences and sequences == failure["provider_request_sequences"]
+            and len(set(sequences)) == len(sequences)
+            and all(type(sequence) is int and sequence > 0 for sequence in sequences)
+            and responses and responses[-1]["response"]["status"] == "success"
+            and responses[-1]["response"].get("decision_valid") is False
+            and all(response["response"]["status"] == "success" for response in responses)
+            and [response["request_sequence"] for response in responses] == sequences
+        ):
+            return False
+        audit = loaded["provider_audit_artifact"]
+        for kind, records in (("provider_request", requests), ("provider_response", responses)):
+            for record in records:
+                matching = [item for item in audit
+                            if item.get("record_kind") == kind
+                            and item.get("sequence") == record["sequence"]]
+                if len(matching) != 1 or {
+                    key: value for key, value in matching[0].items() if key != "record_kind"
+                } != record:
+                    return False
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+    return True
+
+
 def _formal_row_eligibility(
     row: dict[str, Any],
     *,
@@ -3486,7 +3643,9 @@ def _formal_row_eligibility(
         )
         if not isinstance(terminal_integrity, dict):
             reasons.append("terminal_integrity_missing")
-        elif not bool(terminal_integrity.get("release_ready")):
+        elif not bool(terminal_integrity.get("release_ready")) and not (
+            _verified_terminal_model_failure(row, batch_root=batch_root)
+        ):
             reasons.append("terminal_integrity_failure")
         event_contract = (row.get("trajectory_summary") or {}).get("event_contract")
         if not isinstance(event_contract, dict):
@@ -3630,10 +3789,238 @@ def _row_is_clean_for_resume(
     return not (set(reasons) - tolerated)
 
 
+def _retryable_infrastructure_row(row: dict[str, Any]) -> bool:
+    """Retry interrupted/transient transport attempts, never search for a passing answer."""
+    if row.get("status") == "in_flight" or _row_is_quota_exhausted(row):
+        return True
+    transient_types = {
+        "APITimeoutError", "APIConnectionError", "TimeoutError", "ConnectTimeout",
+        "ReadTimeout", "ConnectTimeout", "WriteTimeout", "PoolTimeout", "ConnectError",
+        "ReadError", "WriteError", "CloseError", "RemoteProtocolError",
+        "ConnectionError", "RateLimitError", "InternalServerError",
+    }
+    if any(str(row.get(key) or "") in transient_types for key in ("error_type", "error_cause_type")):
+        return True
+    http_status = row.get("error_http_status")
+    if type(http_status) is int and (http_status == 429 or 500 <= http_status <= 599):
+        return True
+    llm = (row.get("trajectory_summary") or {}).get("llm") or {}
+    failures = llm.get("failed_tick_log") or []
+    return any(
+        isinstance(item, dict)
+        and (
+            item.get("reason") in {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
+            or item.get("exc_type") in transient_types
+        )
+        for item in failures
+    )
+
+
+def _terminal_attempt_key(row: dict[str, Any]) -> tuple[Any, ...] | None:
+    _, strong = _row_resume_keys(row)
+    tree = row.get("implementation_tree_sha256")
+    treatment = row.get("agent_treatment_sha256")
+    if strong is None or not tree or not treatment:
+        return None
+    return strong, tree, treatment
+
+
+class ResumeArtifactIntegrityError(ValueError):
+    """A prior attempt needs evidence repair, not another model sample."""
+
+    def __init__(self, failures: list[dict[str, Any]], batch_root: Path | None):
+        self.failures = failures
+        self.batch_root = batch_root
+        self.dry_run = False
+        super().__init__("resume_artifact_integrity_failed: prior attempt requires repair")
+
+
+def _resume_artifact_integrity_reasons(
+    row: dict[str, Any], job: dict[str, Any], *, batch_root: Path | None,
+) -> list[str]:
+    reasons: list[str] = []
+    summary = row.get("trajectory_summary") or {}
+    if not isinstance(summary, dict):
+        return ["trajectory_summary:invalid"]
+    bindings: dict[str, Any] = {}
+    for source in (row, summary):
+        for key, value in source.items():
+            if key.endswith("_artifact"):
+                if key in bindings and bindings[key] != value:
+                    reasons.append(f"{key}:conflicting_bindings")
+                bindings[key] = value
+    saved = bool(job.get("trajectory_dir") or job.get("formal_run"))
+    required: set[str] = set()
+    if saved and row.get("status") == "ok":
+        required.update({"trajectory_artifact", "evidence_ledger_artifact", "provider_audit_artifact"})
+    elif saved and row.get("error_stage") == "interaction_loop":
+        required.add("provider_audit_artifact")
+    if required and str((job.get("llm_config") or {}).get("interaction_mode") or row.get("interaction_mode")) == "logical_persistent":
+        required.add("semantic_ledger_artifact")
+    reasons.extend(f"{name}:binding_missing" for name in sorted(required - bindings.keys()))
+    suffixes = {"trajectory_artifact": "trajectory", "evidence_ledger_artifact": "evidence",
+                "provider_audit_artifact": "provider_audit", "semantic_ledger_artifact": "semantic_ledger"}
+    for name, binding in bindings.items():
+        if not isinstance(binding, dict) or not binding.get("path"):
+            reasons.append(f"{name}:binding_invalid")
+            continue
+        path = resolve_batch_path(binding["path"], batch_root=batch_root)
+        if batch_root is not None and not path.is_relative_to(batch_root.resolve()):
+            reasons.append(f"{name}:path_outside_batch")
+            continue
+        if job.get("trajectory_dir") and not path.is_relative_to(
+            resolve_batch_path(job["trajectory_dir"], batch_root=batch_root)
+        ):
+            reasons.append(f"{name}:path_outside_episode")
+            continue
+        if summary.get("trajectory_path") and name in suffixes:
+            expected = resolve_batch_path(
+                f"{summary['trajectory_path']}.{suffixes[name]}.jsonl", batch_root=batch_root,
+            )
+            if path != expected:
+                reasons.append(f"{name}:path_mismatch")
+                continue
+        try:
+            data = path.read_bytes()
+        except OSError:
+            reasons.append(f"{name}:unreadable")
+            continue
+        if hashlib.sha256(data).hexdigest() != binding.get("sha256"):
+            reasons.append(f"{name}:sha256_mismatch")
+        if name in suffixes or "event_count" in binding:
+            count = binding.get("event_count")
+            if type(count) is not int or count < 0 or count != len(data.splitlines()):
+                reasons.append(f"{name}:event_count_mismatch")
+        if "byte_count" in binding:
+            size = binding["byte_count"]
+            if type(size) is not int or size != len(data):
+                reasons.append(f"{name}:byte_count_mismatch")
+    return reasons
+
+
+def _archive_binding_path(row: dict[str, Any], batch_root: Path) -> Path:
+    return batch_root / ".attempt_archive_bindings" / f"{_canonical_json_sha256(row)}.json"
+
+
+def _archived_resume_projection(
+    row: dict[str, Any], job: dict[str, Any], batch_root: Path | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if batch_root is None or not job.get("trajectory_dir"):
+        return row, job
+    binding_path = _archive_binding_path(row, batch_root)
+    if not binding_path.exists():
+        return row, job
+    try:
+        binding = json.loads(binding_path.read_text(encoding="utf-8"))
+        original = Path(job["trajectory_dir"]).resolve()
+        archived = resolve_batch_path(binding["archived_trajectory_dir"], batch_root=batch_root)
+        if not (
+            binding.get("schema_version") == "attempt_archive_binding_v1"
+            and binding.get("prior_row_sha256") == _canonical_json_sha256(row)
+            and binding.get("terminal_attempt_key_sha256") == _canonical_json_sha256(_terminal_attempt_key(row))
+            and resolve_batch_path(binding["original_trajectory_dir"], batch_root=batch_root) == original
+            and archived.is_relative_to(batch_root.resolve())
+            and archived.parent == original.parent
+            and archived.name.startswith(original.name + ".stale-")
+        ):
+            raise ValueError("archive_identity_mismatch")
+        if not archived.exists():
+            # A prepared binding may precede the atomic directory rename.
+            return row, job
+        def archived_path(value: object) -> str:
+            relative = Path(binding["artifact_relative_paths"][str(value)])
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ValueError("archive_locator_invalid")
+            return str(archived / relative)
+
+        projected = deepcopy(row)
+        for source in (projected, projected.get("trajectory_summary") or {}):
+            for key, value in source.items():
+                if key.endswith("_artifact") and isinstance(value, dict) and value.get("path"):
+                    value["path"] = archived_path(value["path"])
+            if source.get("trajectory_path"):
+                source["trajectory_path"] = archived_path(source["trajectory_path"])
+        return projected, {**job, "trajectory_dir": str(archived)}
+    except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
+        raise ResumeArtifactIntegrityError([{
+            "scenario_slug": job.get("scenario_slug"),
+            "reasons": [f"attempt_archive_binding:{type(exc).__name__}"],
+        }], batch_root) from exc
+
+
+def _quarantine_retry_trajectory(job: dict[str, Any]) -> None:
+    original = Path(job["trajectory_dir"]).resolve()
+    prior = job.get("prior_attempt_for_archive")
+    root = Path(job["batch_output_dir"]).resolve() if job.get("batch_output_dir") else None
+    if not isinstance(prior, dict) or root is None or not original.exists():
+        _quarantine_trajectory_dir(original)
+        return
+    projected, projected_job = _archived_resume_projection(prior, job, root)
+    reasons = _resume_artifact_integrity_reasons(projected, projected_job, batch_root=root)
+    if reasons:
+        raise ResumeArtifactIntegrityError([{"scenario_slug": job.get("scenario_slug"),
+                                            "reasons": reasons}], root)
+    if projected_job["trajectory_dir"] != job["trajectory_dir"]:
+        # The preceding completed attempt is already archived. Quarantine only
+        # this interrupted replacement; never overwrite its original binding.
+        _quarantine_trajectory_dir(original)
+        return
+    locators: dict[str, str] = {}
+    for source in (prior, prior.get("trajectory_summary") or {}):
+        values = [value["path"] for key, value in source.items()
+                  if key.endswith("_artifact") and isinstance(value, dict) and value.get("path")]
+        if source.get("trajectory_path"):
+            values.append(source["trajectory_path"])
+        for value in values:
+            candidates = {Path(value).resolve(), (root / Path(value)).resolve()}
+            matches = [path for path in candidates if path.is_relative_to(original)]
+            if len(matches) != 1:
+                raise ResumeArtifactIntegrityError([{"reasons": ["archive_locator_ambiguous"]}], root)
+            locators[str(value)] = matches[0].relative_to(original).as_posix()
+    _quarantine_trajectory_dir(original, archive_binding=(
+        _archive_binding_path(prior, root), {
+            "schema_version": "attempt_archive_binding_v1",
+            "prior_row_sha256": _canonical_json_sha256(prior),
+            "terminal_attempt_key_sha256": _canonical_json_sha256(_terminal_attempt_key(prior)),
+            "original_trajectory_dir": str(original),
+            "artifact_relative_paths": locators,
+        },
+    ))
+
+
 def _filter_pending_jobs(
     jobs: list[dict[str, Any]], rows: list[dict[str, Any]],
     *, batch_root: Path | None = None,
+    resume_policy: str = "clean",
 ) -> list[dict[str, Any]]:
+    if resume_policy == "retry-infrastructure":
+        terminal = {
+            key: row
+            for row in rows
+            if row.get("status") in {"ok", "error"}
+            and (key := _terminal_attempt_key(row)) is not None
+        }
+        pending: list[dict[str, Any]] = []
+        integrity_failures: list[dict[str, Any]] = []
+        for job in jobs:
+            row = terminal.get(_terminal_attempt_key(job))
+            if row is not None:
+                projected, projected_job = _archived_resume_projection(row, job, batch_root)
+                reasons = _resume_artifact_integrity_reasons(projected, projected_job, batch_root=batch_root)
+                if reasons:
+                    integrity_failures.append({
+                        "scenario_slug": job.get("scenario_slug"),
+                        "model": job.get("model"), "reasons": reasons,
+                    })
+            if row is None or _retryable_infrastructure_row(row):
+                if row is not None and job.get("trajectory_dir"):
+                    job["prior_attempt_for_archive"] = deepcopy(row)
+                pending.append(job)
+        if integrity_failures:
+            raise ResumeArtifactIntegrityError(integrity_failures, batch_root)
+        return pending
+    if resume_policy != "clean":
+        raise ValueError(f"unknown resume policy: {resume_policy}")
     required_trees = {
         str(job.get("implementation_tree_sha256") or "") for job in jobs
     } - {""}
@@ -3658,6 +4045,54 @@ def _filter_pending_jobs(
     return pending
 
 
+def _invocation_summary(
+    scope_jobs: list[dict[str, Any]], dispatched_jobs: list[dict[str, Any]],
+    rows: list[dict[str, Any]], *, pending_before: int, resume_policy: str,
+    batch_root: Path, started_at_utc: str, status: str,
+) -> dict[str, Any]:
+    scope_keys = {_terminal_attempt_key(job) for job in scope_jobs}
+    terminal = {
+        key: row for row in rows
+        if row.get("status") in {"ok", "error"}
+        and (key := _terminal_attempt_key(row)) is not None and key in scope_keys
+    }
+    pending = _filter_pending_jobs(
+        scope_jobs, rows, batch_root=batch_root, resume_policy=resume_policy
+    )
+    results = []
+    for job in dispatched_jobs:
+        row = terminal.get(_terminal_attempt_key(job)) if status == "completed" else None
+        results.append({
+            "scenario_slug": job["scenario_slug"], "model": job["model"],
+            "seed": job["seed"], "pass_id": job.get("pass_id"),
+            **{key: job.get(key) for key in (
+                "scenario_signature", "suite_manifest_sha256", "suite_eligibility_sha256",
+                "agent_treatment_sha256", "implementation_tree_sha256", "run_semantics_fingerprint",
+            )},
+            "status": row.get("status") if row else "pending",
+            "error_type": row.get("error_type") if row else None,
+            "error_cause_type": row.get("error_cause_type") if row else None,
+            "error_http_status": row.get("error_http_status") if row else None,
+            "quota_parked": row.get("quota_parked", False) if row else None,
+            "quota_reset_at": row.get("quota_reset_at") if row else None,
+            "execution_started": row.get("execution_started") if row else None,
+            "retryable_infrastructure": _retryable_infrastructure_row(row) if row else None,
+        })
+    return {
+        "schema_version": "batch_invocation_v1", "status": status,
+        "worker_start_contract": "worker_execution_start_v1",
+        "started_at_utc": started_at_utc, "updated_at_utc": datetime.now(UTC).isoformat(),
+        "resume_policy": resume_policy, "total_scope_jobs": len(scope_jobs),
+        "pending_before": pending_before, "dispatched": len(dispatched_jobs),
+        "pending_after": len(pending), "resume_terminal": len(scope_jobs) - len(pending),
+        "infrastructure_failures": sum(_retryable_infrastructure_row(row) for row in terminal.values()),
+        "terminal_errors": sum(row.get("status") == "error" for row in terminal.values()),
+        "scope_attempts_closed": not pending,
+        "formal_completion_claimed": False,
+        "dispatched_results": results,
+    }
+
+
 def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     """Process-pool worker: one episode with optional trajectory + log file."""
     sentinel = _active_quota_sentinel(job)
@@ -3671,6 +4106,12 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     expected_tree = str(job.get("implementation_tree_sha256") or start_tree)
     kwargs = {"config": cfg}
     run_options: dict[str, Any] = {}
+    if job.get("lite_core_lineage") is not None:
+        run_options["scenario_contract_binding"] = {
+            key: job[key] for key in (
+                "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
+            )
+        }
     run_options.update(
         {
             "per_action_attribution": True,
@@ -3680,19 +4121,37 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
         }
     )
     if job.get("trajectory_dir"):
-        _quarantine_trajectory_dir(job["trajectory_dir"])
         run_options["trajectory_dir"] = job["trajectory_dir"]
     if job.get("episode_log_path"):
         run_options["episode_log_path"] = job["episode_log_path"]
     r: dict[str, Any]
+    execution_attempt_id: str | None = None
     if start_tree != expected_tree:
         r = {
             "status": "error",
             "error": "implementation_tree_changed_before_episode",
         }
     else:
+        if job.get("trajectory_dir"):
+            _quarantine_retry_trajectory(job)
+        if job.get("batch_output_dir"):
+            execution_attempt_id = uuid.uuid4().hex
+            _append_jsonl_atomic(Path(job["batch_output_dir"]) / "worker_starts.jsonl", {
+                "schema_version": "worker_execution_start_v1",
+                "execution_attempt_id": execution_attempt_id,
+                "invocation_started_at_utc": job.get("invocation_started_at_utc"),
+                "worker_started_at_utc": datetime.now(UTC).isoformat(),
+                **{key: job.get(key) for key in (
+                    "scenario_slug", "model", "seed", "pass_id", "scenario_signature",
+                    "agent_treatment_sha256", "implementation_tree_sha256",
+                    "run_semantics_fingerprint", "suite_manifest_sha256", "suite_eligibility_sha256",
+                )},
+            })
         r = _run_one_safe((slug, "llm_agent", seed, kwargs, run_options))
     r["execution_started"] = start_tree == expected_tree
+    if execution_attempt_id is not None:
+        r["execution_attempt_id"] = execution_attempt_id
+        r["invocation_started_at_utc"] = job.get("invocation_started_at_utc")
     _portabilize_formal_trajectory_json_sidecars(job)
     end_tree = implementation_identity(REPO_ROOT)["implementation_tree_sha256"]
     r["implementation_tree_sha256"] = expected_tree
@@ -3732,7 +4191,9 @@ def _portabilize_formal_trajectory_json_sidecars(job: dict[str, Any]) -> None:
         )
 
 
-def _quarantine_trajectory_dir(raw_path: str | Path) -> Path | None:
+def _quarantine_trajectory_dir(
+    raw_path: str | Path, *, archive_binding: tuple[Path, dict[str, Any]] | None = None,
+) -> Path | None:
     """Move an orphaned/partial episode directory aside before a clean rerun."""
     path = Path(raw_path)
     if not path.exists():
@@ -3743,6 +4204,11 @@ def _quarantine_trajectory_dir(raw_path: str | Path) -> Path | None:
     while stale.exists():
         stale = path.with_name(f"{path.name}.stale-{stamp}.{suffix}")
         suffix += 1
+    if archive_binding is not None:
+        binding_path, binding = archive_binding
+        _atomic_write_text(binding_path, json.dumps({
+            **binding, "archived_trajectory_dir": str(stale),
+        }, indent=2) + "\n")
     path.rename(stale)
     return stale
 
@@ -4008,6 +4474,7 @@ def _coverage_summary(
     n_scenarios: int,
     pass_k: int = 1,
     configured_pairs: list[list[Any]] | None = None,
+    batch_root: Path | None = None,
 ) -> dict[str, Any]:
     """Compute expected/realized coverage and the cross-model comparable pair set.
 
@@ -4077,7 +4544,7 @@ def _coverage_summary(
         pass_id = str(r.get("pass_id") or "pass-0").strip()
         if r.get("status") == "ok" and in_scope and pass_id in required_pass_id_set:
             per_model_execution_pass_units[m][base_pair].add(pass_id)
-        if not _formal_row_eligibility(r)[0]:
+        if not _formal_row_eligibility(r, batch_root=batch_root)[0]:
             continue
         m = _model_label(r)
         slug = str(r.get("scenario_slug") or "")
@@ -4439,6 +4906,7 @@ def _batch_state(
     log_audit_report: dict[str, Any] | None,
     required_suite_hash: str | None = None,
     required_interaction_mode: str | None = None,
+    batch_root: Path | None = None,
 ) -> dict[str, Any]:
     """Compute the formal partial/final state of a batch.
 
@@ -4501,6 +4969,7 @@ def _batch_state(
             r,
             required_suite_hash=required_suite_hash,
             required_interaction_mode=required_interaction_mode,
+            batch_root=batch_root,
         )
         if "provider_call_failure" in row_reasons:
             provider_contaminated_rows += 1
@@ -4512,6 +4981,7 @@ def _batch_state(
         int(
             int(llm.get("provider_output_truncation_count", 0) or 0) > 0
             or int(llm.get("tool_argument_parse_failures", 0) or 0) > 0
+            or int(llm.get("native_tool_protocol_invalid_responses", 0) or 0) > 0
         )
         for row in ok_rows
         for llm in [((row.get("trajectory_summary") or {}).get("llm") or {})]
@@ -4522,6 +4992,7 @@ def _batch_state(
             r,
             required_suite_hash=required_suite_hash,
             required_interaction_mode=required_interaction_mode,
+            batch_root=batch_root,
         )[1]
         for r in ok_rows
     )
@@ -4533,6 +5004,7 @@ def _batch_state(
             r,
             required_suite_hash=required_suite_hash,
             required_interaction_mode=required_interaction_mode,
+            batch_root=batch_root,
         )[0]
     ]
     n_configured_ineligible = len(configured_ineligible_rows)
@@ -5086,6 +5558,7 @@ def _score_for_leaderboard_view(row: dict[str, Any], view_name: str) -> float | 
             dimensions,
             task_completion=task_completion_for_row(row),
             difficulty_level=str(row.get("difficulty_level", "basic")),
+            dimension_applicability=score.get("dimension_applicability") or {},
         )
         return float(result["total_score"])
     score_views = score.get("score_views") or {}
@@ -5140,13 +5613,51 @@ def _strict_task_completion_for_row(row: dict[str, Any]) -> float:
     return task_completion_for_row(row)
 
 
+def _bound_score_applicability(
+    row: dict[str, Any], *, batch_root: Path | None = None,
+) -> dict[str, Any]:
+    """Verify the scorer's structural contract against engine ledger bytes."""
+    contract = (row.get("score") or {}).get("dimension_applicability")
+    if not contract:
+        return {}
+    if not isinstance(contract, dict):
+        raise PrimaryLeaderboardContractError("invalid score applicability contract")
+    reasons = _trajectory_sidecar_eligibility_reasons(
+        row, summary_key="evidence_ledger_artifact", stem="evidence_ledger",
+        path_stem="evidence", schema_version="evidence_ledger_jsonl_v1",
+        require_nonempty=True, require_byte_count=True, batch_root=batch_root,
+    )
+    if reasons:
+        raise PrimaryLeaderboardContractError(
+            "unbound score applicability: " + ", ".join(reasons)
+        )
+    artifact = row["trajectory_summary"]["evidence_ledger_artifact"]
+    try:
+        ledger = [json.loads(line) for line in resolve_batch_path(
+            artifact["path"], batch_root=batch_root,
+        ).read_text(encoding="utf-8").splitlines()]
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise PrimaryLeaderboardContractError("invalid applicability evidence ledger") from exc
+    if not any(
+        isinstance(item, dict)
+        and item.get("source") == "engine"
+        and item.get("kind") == "dimension_applicability_contract"
+        and item.get("payload") == {"dimensions": contract}
+        for item in ledger
+    ):
+        raise PrimaryLeaderboardContractError("score applicability evidence mismatch")
+    return contract
+
+
 def _primary_leaderboard_payload(
-    rows: list[dict[str, Any]],
+    rows: list[dict[str, Any]], *, batch_root: Path | None = None,
 ) -> dict[str, Any]:
     """Adapt episode rows once, then use the canonical primary helper."""
 
     prepared: list[dict[str, Any]] = []
+    group_contracts: list[dict[str, Any]] = []
     for row in rows:
+        applicability = _bound_score_applicability(row, batch_root=batch_root)
         if "discriminative_core_score" in row and "task_completion_raw" in row:
             protocol = row.get("evaluation_protocol") or {}
             if (
@@ -5166,10 +5677,13 @@ def _primary_leaderboard_payload(
                 (row.get("score") or {}).get("dimensions") or [],
                 task_completion=task_completion,
                 difficulty_level=str(row.get("difficulty_level", "basic")),
+                dimension_applicability=applicability,
             )
             if score_contract["formal_score_eligible"] is not True:
                 raise PrimaryLeaderboardContractError(
-                    "precomputed formal score is missing five-group evidence"
+                    "precomputed formal score is missing five-group evidence: "
+                    + ", ".join(score_contract["missing_groups"]
+                                + score_contract["missing_declared_dimensions"])
                 )
             try:
                 precomputed_score = float(row["discriminative_core_score"])
@@ -5192,6 +5706,8 @@ def _primary_leaderboard_payload(
                 raise PrimaryLeaderboardContractError(
                     "precomputed formal score mismatch"
                 )
+            group_contracts.append({"scenario_signature": row.get("scenario_signature"),
+                                    "model": row.get("model"), **score_contract})
             prepared.append(
                 {
                     **row,
@@ -5207,12 +5723,16 @@ def _primary_leaderboard_payload(
             (row.get("score") or {}).get("dimensions") or [],
             task_completion=task_completion,
             difficulty_level=str(row.get("difficulty_level", "basic")),
+            dimension_applicability=applicability,
         )
         if score_contract["formal_score_eligible"] is not True:
             raise PrimaryLeaderboardContractError(
                 "formal five-group evidence is incomplete: "
-                + ", ".join(score_contract["missing_groups"])
+                + ", ".join(score_contract["missing_groups"]
+                            + score_contract["missing_declared_dimensions"])
             )
+        group_contracts.append({"scenario_signature": row.get("scenario_signature"),
+                                "model": row.get("model"), **score_contract})
         prepared.append(
             {
                 "model": row.get("model", row.get("agent_name")),
@@ -5232,16 +5752,18 @@ def _primary_leaderboard_payload(
                 },
             }
         )
-    return infer_primary_leaderboard(prepared)
+    report = infer_primary_leaderboard(prepared)
+    report["score_group_contracts"] = group_contracts
+    return report
 
 
 def _leaderboard_from_rows(
-    rows: list[dict[str, Any]], view_name: str
+    rows: list[dict[str, Any]], view_name: str, *, batch_root: Path | None = None,
 ) -> list[dict[str, Any]]:
     per_model: dict[str, list[float]] = {}
     per_fatal: dict[str, list[bool]] = {}
     for row in rows:
-        if not _formal_row_eligibility(row)[0]:
+        if not _formal_row_eligibility(row, batch_root=batch_root)[0]:
             continue
         model = str(row.get("model", row.get("agent_name")))
         value = _score_for_leaderboard_view(row, view_name)
@@ -5259,13 +5781,14 @@ def _leaderboard_from_rows(
 
 
 def _leaderboard_for_view(
-    results: list[dict[str, Any]], view_name: str
+    results: list[dict[str, Any]], view_name: str, *, batch_root: Path | None = None,
 ) -> list[dict[str, Any]]:
-    return _leaderboard_from_rows(results, view_name)
+    return _leaderboard_from_rows(results, view_name, batch_root=batch_root)
 
 
 def _leaderboard_by_domain(
-    results: list[dict[str, Any]], view_name: str = "fixed_all_dimensions"
+    results: list[dict[str, Any]], view_name: str = "fixed_all_dimensions",
+    *, batch_root: Path | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Per-domain leaderboards so a heavily-populated domain (e.g. logistics)
     does not dilute cross-agent gaps in the aggregate headline view."""
@@ -5274,14 +5797,14 @@ def _leaderboard_by_domain(
         grouped.setdefault(_domain_for_result(row), []).append(row)
     out: dict[str, list[dict[str, Any]]] = {}
     for domain in sorted(grouped):
-        board = _leaderboard_from_rows(grouped[domain], view_name)
+        board = _leaderboard_from_rows(grouped[domain], view_name, batch_root=batch_root)
         if board:
             out[domain] = board
     return out
 
 
 def _scenario_aligned_scores_by_model(
-    rows: list[dict[str, Any]], *, view_name: str
+    rows: list[dict[str, Any]], *, view_name: str, batch_root: Path | None = None,
 ) -> dict[str, list[float]]:
     """Per-model score lists, aligned by ``scenario_signature`` so position i
     means "the same scenario run" for every model.
@@ -5295,7 +5818,7 @@ def _scenario_aligned_scores_by_model(
     already encodes scenario + seed, see ``_scenario_signature_for_run``)
     and restricting to the intersection every model shares fixes this.
     """
-    by_model_signature = _scenario_score_repeats_by_model(rows, view_name=view_name)
+    by_model_signature = _scenario_score_repeats_by_model(rows, view_name=view_name, batch_root=batch_root)
     means_by_model_signature = {
         model: {
             signature: sum(values) / len(values)
@@ -5322,22 +5845,22 @@ def _scenario_aligned_scores_by_model(
 
 
 def _scenario_score_repeats_by_model(
-    rows: list[dict[str, Any]], *, view_name: str
+    rows: list[dict[str, Any]], *, view_name: str, batch_root: Path | None = None,
 ) -> dict[str, dict[str, list[float]]]:
     """Collect one score per repeat identity for each model/scenario cell."""
     grouped, _ = _scenario_score_repeats_and_duplicates_by_model(
-        rows, view_name=view_name
+        rows, view_name=view_name, batch_root=batch_root
     )
     return grouped
 
 
 def _scenario_score_repeats_and_duplicates_by_model(
-    rows: list[dict[str, Any]], *, view_name: str
+    rows: list[dict[str, Any]], *, view_name: str, batch_root: Path | None = None,
 ) -> tuple[dict[str, dict[str, list[float]]], dict[str, int]]:
     by_model_signature_pass: dict[str, dict[str, dict[str, float]]] = {}
     duplicates_by_model: dict[str, int] = {}
     for r in rows:
-        if not _formal_row_eligibility(r)[0]:
+        if not _formal_row_eligibility(r, batch_root=batch_root)[0]:
             continue
         m = str(r.get("model", r.get("agent_name")))
         sig = str(r.get("scenario_signature") or "")
@@ -5370,11 +5893,11 @@ def _scenario_score_repeats_and_duplicates_by_model(
 
 
 def _scenario_repeat_diagnostics_by_model(
-    rows: list[dict[str, Any]], *, view_name: str
+    rows: list[dict[str, Any]], *, view_name: str, batch_root: Path | None = None,
 ) -> dict[str, dict[str, int | float]]:
     """Describe repeat coverage/noise without treating repeats as cells."""
     grouped, duplicates_by_model = _scenario_score_repeats_and_duplicates_by_model(
-        rows, view_name=view_name
+        rows, view_name=view_name, batch_root=batch_root
     )
     diagnostics: dict[str, dict[str, int | float]] = {}
     for model, signatures in sorted(grouped.items()):
@@ -5412,23 +5935,23 @@ def _write_leaderboard_json(
     batch_root: Path | None = None,
 ) -> list[dict[str, Any]]:
     leaderboard_views = {
-        "fixed_all_dimensions": _leaderboard_for_view(results, "fixed_all_dimensions"),
+        "fixed_all_dimensions": _leaderboard_for_view(results, "fixed_all_dimensions", batch_root=batch_root),
     }
-    adaptive_leaderboard = _leaderboard_for_view(results, "adaptive_applicable")
+    adaptive_leaderboard = _leaderboard_for_view(results, "adaptive_applicable", batch_root=batch_root)
     if adaptive_leaderboard:
         leaderboard_views["adaptive_applicable"] = adaptive_leaderboard
     # discriminative_core: exclude diagnostic + wait-dominated cells, and
     # score under the curated DISCRIMINATIVE_CORE_DIMENSIONS weighting
     # (drops redundant trust dims, folds in objective task_completion).
     disc_results = [r for r in results if _is_discriminative(r)]
-    disc_board = _leaderboard_for_view(disc_results, "discriminative_core")
+    disc_board = _leaderboard_for_view(disc_results, "discriminative_core", batch_root=batch_root)
     if disc_board:
         leaderboard_views["discriminative_core"] = disc_board
     # Holm pairwise over the discriminative set.
     from evaluation.statistical import holm_pairwise_ci
 
     disc_per_model = _scenario_aligned_scores_by_model(
-        disc_results, view_name="discriminative_core"
+        disc_results, view_name="discriminative_core", batch_root=batch_root
     )
     holm = holm_pairwise_ci(disc_per_model, seed=0) if len(disc_per_model) >= 2 else []
     # Provenance: how many episodes excluded, by reason. Each excluded row is
@@ -5472,11 +5995,11 @@ def _write_leaderboard_json(
         "diagnostic_flat_holm_pairwise": holm,
         "diagnostic_flat_holm_pairwise_repeat_diagnostics": (
             _scenario_repeat_diagnostics_by_model(
-                disc_results, view_name="discriminative_core"
+                disc_results, view_name="discriminative_core", batch_root=batch_root
             )
         ),
     }
-    leaderboard_by_domain = _leaderboard_by_domain(results, "fixed_all_dimensions")
+    leaderboard_by_domain = _leaderboard_by_domain(results, "fixed_all_dimensions", batch_root=batch_root)
     if leaderboard_by_domain:
         payload["diagnostic_leaderboard_by_domain"] = leaderboard_by_domain
     primary_leaderboard: list[dict[str, Any]] = []
@@ -5563,7 +6086,10 @@ def _write_leaderboard_json(
                 payload["formal_configured_episode_failures"] = configured_failures
             else:
                 try:
-                    primary = _primary_leaderboard_payload(formal_rows)
+                    primary = _primary_leaderboard_payload(
+                        formal_rows,
+                        **({"batch_root": batch_root} if batch_root is not None else {}),
+                    )
                 except PrimaryLeaderboardContractError as exc:
                     # Incomplete five-group evidence (and other primary
                     # contract failures) must not abort leaderboard.json
@@ -5589,6 +6115,7 @@ def _write_leaderboard_json(
                                 "primary_inference_n_physical_clusters"
                             ),
                             "primary_pairwise": primary.get("primary_pairwise", []),
+                            "score_group_contracts": primary.get("score_group_contracts", []),
                         }
                     )
     if coverage is not None:
@@ -5675,6 +6202,8 @@ def _formal_leaderboard_eligibility(
         "persistent_context_max_chars": meta.get("persistent_context_max_chars"),
         "persistent_memory_max_items": meta.get("persistent_memory_max_items"),
         "provider_timeout_s": meta.get("provider_timeout_s"),
+        "provider_failure_policy": meta.get("provider_failure_policy"),
+        "max_consecutive_provider_failures": meta.get("max_consecutive_provider_failures"),
         "provider_rpm_limit": meta.get("provider_rpm_limit"),
         "provider_rpd_limit": meta.get("provider_rpd_limit"),
         "provider_rate_limit_scope": meta.get("provider_rate_limit_scope"),
@@ -6205,6 +6734,7 @@ def _finalize_outputs(
         n_scenarios=n_scenarios,
         pass_k=int(meta.get("pass_k", 1) or 1),
         configured_pairs=configured_pairs,
+        batch_root=out_dir,
     )
     intersection_leaderboard = _intersection_leaderboard(results, coverage)
     pass_k_success = _pass_k_success_summary(
@@ -6246,6 +6776,7 @@ def _finalize_outputs(
         coverage=coverage,
         results=results,
         log_audit_report=log_audit_report,
+        batch_root=out_dir,
         required_suite_hash=str(meta.get("suite_manifest_sha256") or "") or None,
         required_interaction_mode=(
             str(meta.get("interaction_mode") or "")
@@ -6593,6 +7124,7 @@ def _build_jobs(
                             else None
                         ),
                         "case_ledger": scenario.get("case_ledger"),
+                        "lite_core_lineage": scenario.get("lite_core_lineage"),
                         "estimated_horizon_ticks": estimated_horizon,
                         "llm_config": _llm_config_to_dict(cfg),
                         "operational_agency_attribution": {
@@ -6627,7 +7159,10 @@ def _build_jobs(
                         )
                     )
                     jobs.append(job)
-    jobs.sort(key=lambda job: -int(job.get("estimated_horizon_ticks", 0) or 0))
+    jobs.sort(
+        key=lambda job: int(job.get("estimated_horizon_ticks", 0) or 0),
+        reverse=getattr(args, "job_order", "longest-first") == "longest-first",
+    )
     if path_mapping and not bool(getattr(args, "dry_run", False)):
         if bool(getattr(args, "formal_run", False)):
             path_mapping = canonicalize_repo_owned_paths(
@@ -6649,7 +7184,7 @@ def _build_jobs(
     return jobs
 
 
-def main() -> int:
+def _run_batch_main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--output-dir", required=True)
     p.add_argument(
@@ -6662,6 +7197,7 @@ def main() -> int:
         ),
     )
     p.add_argument("--scenarios", nargs="*", help="Used when --scenario-slice=custom")
+    p.add_argument("--lite-lineage-suite", type=Path, help="Verify fixed Lite membership and bind its exact Core source ledger.")
     p.add_argument("--seeds", nargs="+", type=int, default=[42])
     p.add_argument(
         "--seed-mode",
@@ -6716,6 +7252,11 @@ def main() -> int:
     )
     p.add_argument("--provider-timeout-s", type=float, default=None)
     p.add_argument(
+        "--provider-failure-policy", choices=["abort", "compat_fallback"], default=None,
+        help="Abort on provider failure instead of substituting wait; formal runs require abort.",
+    )
+    p.add_argument("--max-consecutive-provider-failures", type=int, default=None)
+    p.add_argument(
         "--provider-rpm-limit",
         type=int,
         default=None,
@@ -6741,6 +7282,11 @@ def main() -> int:
         choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
         default=None,
     )
+    p.add_argument(
+        "--reasoning-effort-format", choices=["auto", "native", "openrouter"],
+        default="auto", help="Chat Completions provider encoding for reasoning effort.",
+    )
+    p.add_argument("--thinking-type", choices=["enabled", "disabled"], default=None)
     p.add_argument(
         "--prompt-mode",
         choices=["strict", "debug"],
@@ -6783,6 +7329,14 @@ def main() -> int:
         ),
     )
     p.add_argument(
+        "--max-jobs", type=int, default=None,
+        help="Dispatch at most N pending episodes this invocation; keep the full suite scope.",
+    )
+    p.add_argument(
+        "--job-order", choices=["longest-first", "shortest-first"], default="longest-first",
+        help="Episode dispatch order, fixed for the output namespace.",
+    )
+    p.add_argument(
         "--save-trajectories",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -6811,6 +7365,13 @@ def main() -> int:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Skip episodes already present as status=ok in episodes.jsonl",
+    )
+    p.add_argument(
+        "--resume-policy", choices=["clean", "retry-infrastructure"], default="clean",
+        help=(
+            "retry-infrastructure retains completed task/protocol/native failures "
+            "and retries only interruptions or known transient provider errors."
+        ),
     )
     p.add_argument(
         "--finalize",
@@ -6863,6 +7424,18 @@ def main() -> int:
         ),
     )
     args = p.parse_args()
+    if args.max_jobs is not None and args.max_jobs < 1:
+        print("[FATAL] --max-jobs must be positive", file=sys.stderr)
+        return 1
+    try:
+        provider_failure_profile = _provider_failure_profile(
+            formal_run=args.formal_run,
+            provider_failure_policy=args.provider_failure_policy,
+            max_consecutive_provider_failures=args.max_consecutive_provider_failures,
+        )
+    except ValueError as exc:
+        print(f"[FATAL] {exc}", file=sys.stderr)
+        return 1
     persistent_treatment = args.interaction_mode == "logical_persistent"
     if args.temperature is None:
         args.temperature = 0.0 if persistent_treatment else 1.0
@@ -7009,10 +7582,29 @@ def main() -> int:
                 _bind_scenario_contracts_for_slice(
                     args.scenario_slice, scenarios, scenario_bodies
                 )
+            if args.lite_lineage_suite is not None:
+                from core.lite_lineage import bind_lite_core_lineage
+
+                if args.formal_run or args.seed_mode != "scenario":
+                    raise ValueError("Lite lineage requires diagnostic scenario-seed execution")
+                bind_lite_core_lineage(
+                    scenario_bodies, lite_suite=args.lite_lineage_suite, repo_root=REPO_ROOT,
+                )
             suite_manifest_sha256 = _suite_manifest_sha256_for_slice(
                 args.scenario_slice, scenarios, scenario_bodies
             )
         suite_eligibility = _suite_eligibility_binding(args.scenario_slice)
+        if args.lite_lineage_suite is not None:
+            if args.finalize_only:
+                raise ValueError("Lite lineage cannot be retrofitted through finalize-only")
+            lineage = scenario_bodies[scenarios[0]]["lite_core_lineage"]
+            suite_eligibility["reason"] = {"code": "lite_efficiency_track_not_formal_full"}
+            suite_eligibility["lite_core_lineage"] = {
+                key: lineage[key] for key in (
+                    "schema_version", "lite_suite_sha256", "core_suite_sha256",
+                    "source_suite_sha256", "parent_release_id", "formal_full_leaderboard_eligible",
+                )
+            }
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"[FATAL] {exc}", file=sys.stderr)
         return 1
@@ -7059,12 +7651,19 @@ def main() -> int:
                 "provider_rate_limit_scope": args.provider_rate_limit_scope,
                 "tool_choice": "auto",
                 "stream_chat_completions": args.stream_chat_completions,
-                **_provider_failure_profile(formal_run=True),
+                **provider_failure_profile,
             },
             suite_eligibility,
             suite_manifest_sha256=suite_manifest_sha256,
             scenario_bodies=scenario_bodies,
         )
+        if args.max_jobs is not None and not args.finalize:
+            # Bounded invocations may defer reports until all cells close.
+            # The publication gate still uses the unfiltered validator.
+            formal_reasons = [
+                reason for reason in formal_reasons
+                if reason != "formal_finalization_required"
+            ]
         if args.dry_run:
             # Inspect the actual working bytes without authorizing execution.
             # Git metadata and every semantic/input check remain mandatory.
@@ -7528,7 +8127,10 @@ def main() -> int:
         "protocol_repair_max_tokens": args.protocol_repair_max_tokens,
         "tool_choice": "auto",
         "reasoning_effort": args.reasoning_effort,
-        **_provider_failure_profile(formal_run=args.formal_run),
+        **({"reasoning_effort_format": args.reasoning_effort_format}
+           if args.reasoning_effort_format != "auto" else {}),
+        **({"thinking_type": args.thinking_type} if args.thinking_type is not None else {}),
+        **provider_failure_profile,
         "agent_profile_schema_version": "agent_treatment_v1",
         "agent_profile_identity_by_model": agent_profile_identity_by_model,
         "agent_profile_sha256_by_model": agent_profile_sha256_by_model,
@@ -7671,6 +8273,10 @@ def main() -> int:
             }
         )
     meta = _portable_formal_run_config(meta)
+    if args.resume_policy != "clean" and not args.finalize_only:
+        meta["resume_policy"] = args.resume_policy
+    if args.job_order != "longest-first" and not args.finalize_only:
+        meta["job_order"] = args.job_order
     namespace_error = _formal_output_namespace_binding_error(meta, out_dir)
     if namespace_error is not None:
         print(f"[FATAL] {namespace_error}", file=sys.stderr)
@@ -7728,6 +8334,7 @@ def main() -> int:
         )
 
     jobs: list[dict[str, Any]] = []
+    scope_jobs: list[dict[str, Any]] = []
     retry_payload: dict[str, Any] | None = None
     if not args.finalize_only:
         jobs = _build_jobs(
@@ -7748,6 +8355,7 @@ def main() -> int:
         )
         for job in jobs:
             job["implementation_tree_sha256"] = expected_run_tree
+        scope_jobs = list(jobs)
         if args.retry_cells:
             retry_path = Path(args.retry_cells)
             if not retry_path.is_absolute():
@@ -7779,7 +8387,13 @@ def main() -> int:
     )
     if args.resume and jobs:
         before = len(jobs)
-        jobs = _filter_pending_jobs(jobs, prior_rows, batch_root=out_dir)
+        try:
+            jobs = _filter_pending_jobs(
+                jobs, prior_rows, batch_root=out_dir, resume_policy=args.resume_policy
+            )
+        except ResumeArtifactIntegrityError as exc:
+            exc.dry_run = args.dry_run
+            raise
         skipped = before - len(jobs)
         if skipped:
             LOGGER.info(
@@ -7787,6 +8401,9 @@ def main() -> int:
                 skipped,
                 len(jobs),
             )
+    pending_before = len(jobs)
+    if args.max_jobs is not None:
+        jobs = jobs[:args.max_jobs]
 
     LOGGER.info(
         "Scheduled %d episodes (%d scenarios × %d models × %s seed mode × pass_k=%d); max_workers=%d",
@@ -7818,6 +8435,8 @@ def main() -> int:
                 {
                     "dry_run": True,
                     "n_jobs": len(jobs),
+                    "total_scope_jobs": len(scope_jobs),
+                    "pending_before": pending_before,
                     "scheduler_mode": args.scheduler_mode,
                     "preview": preview,
                 },
@@ -7829,6 +8448,22 @@ def main() -> int:
 
     import concurrent.futures as futures
 
+    invocation_started_at = datetime.now(UTC).isoformat()
+    for job in jobs:
+        job["invocation_started_at_utc"] = invocation_started_at
+    if not args.finalize_only:
+        starts_path = out_dir / "worker_starts.jsonl"
+        if not starts_path.exists():
+            _atomic_write_text(starts_path, "")
+    if not args.finalize_only:
+        _atomic_write_text(
+            out_dir / "invocation_summary.json",
+            json.dumps(_invocation_summary(
+                scope_jobs, jobs, prior_rows, pending_before=pending_before,
+                resume_policy=args.resume_policy, batch_root=out_dir,
+                started_at_utc=invocation_started_at, status="running",
+            ), indent=2) + "\n",
+        )
     write_mode = "a" if args.resume and episodes_path.exists() else "w"
     if jobs:
         if args.scheduler_mode == "per_model":
@@ -7939,6 +8574,15 @@ def main() -> int:
         )
 
     _print_batch_leaderboard(out_dir)
+    if not args.finalize_only:
+        _atomic_write_text(
+            out_dir / "invocation_summary.json",
+            json.dumps(_invocation_summary(
+                scope_jobs, jobs, results, pending_before=pending_before,
+                resume_policy=args.resume_policy, batch_root=out_dir,
+                started_at_utc=invocation_started_at, status="completed",
+            ), indent=2) + "\n",
+        )
     if bool(meta.get("formal_run")) and not bool(
         (manifest or {}).get("leaderboard_eligible")
     ):
@@ -7968,6 +8612,29 @@ def _print_batch_leaderboard(out_dir: Path) -> None:
             )
         else:
             print(f"  {row['agent_id']}: mean={row['mean']:.2f} n={row['n_episodes']}")
+
+
+def main() -> int:
+    invocation_started_at = datetime.now(UTC).isoformat()
+    try:
+        return _run_batch_main()
+    except ResumeArtifactIntegrityError as exc:
+        if exc.batch_root is not None and not exc.dry_run:
+            _atomic_write_text(
+                exc.batch_root / "invocation_summary.json",
+                json.dumps({
+                    "schema_version": "batch_invocation_v1",
+                    "status": "needs_attention",
+                    "reason": "resume_artifact_integrity_failed",
+                    "started_at_utc": invocation_started_at,
+                    "updated_at_utc": datetime.now(UTC).isoformat(),
+                    "scope_attempts_closed": False,
+                    "formal_completion_claimed": False,
+                    "integrity_failures": exc.failures,
+                }, indent=2) + "\n",
+            )
+        print(f"[FATAL] {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
