@@ -340,6 +340,8 @@ def test_bounded_main_resume_never_repeats_completed_scope(tmp_path, monkeypatch
         "192000",
         "--model-max-output-tokens",
         "65536",
+        "--max-tokens",
+        "65536",
         "--max-workers",
         "4",
         "--max-jobs",

@@ -46,6 +46,7 @@ STAGES = (
 )
 
 LEGACY_FORMAL_RUN_CONTRACT = deepcopy(FORMAL_RUN_CONTRACT)
+LEGACY_FORMAL_RUN_CONTRACT.setdefault("agentic_profile", {})["max_tokens"] = 32_768
 LEGACY_FORMAL_RUN_CONTRACT.pop("wakeup_policy", None)
 LEGACY_FORMAL_RUN_CONTRACT["realtime_formal_contract"] = {
     **LEGACY_FORMAL_RUN_CONTRACT["realtime_formal_contract"],

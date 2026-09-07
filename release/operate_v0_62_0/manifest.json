@@ -374,7 +374,6 @@
   "formal_batch_contract": {
     "agentic_profile": {
       "max_consecutive_provider_failures": 1,
-      "max_tokens": 32768,
       "persistent_context_max_chars": 512000,
       "persistent_history_max_messages": 64,
       "persistent_memory_max_items": 128,
@@ -472,7 +471,6 @@
   "formal_run_contract": {
     "agentic_profile": {
       "max_consecutive_provider_failures": 1,
-      "max_tokens": 32768,
       "persistent_context_max_chars": 512000,
       "persistent_history_max_messages": 64,
       "persistent_memory_max_items": 128,
@@ -550,8 +548,8 @@
     "ordered_scenario_identity_sha256": "f5c7d02e08dfe979edaec4319c1e2ab2e8f56e1bf066f4ce313bac99c74c47eb",
     "path": "formal_runtime_bundle.json",
     "schema_version": "operate-formal-runtime-bundle-v1",
-    "sha256": "9f6fa48743c5e8427e32f62d8d808917291d409e275b6447a53823ee1cfd6de2",
-    "size_bytes": 2734710
+    "sha256": "11b87e5c35e99e270efcab2d1580659fafc34da3100b4ca28d02a215d07f0dbb",
+    "size_bytes": 2734683
   },
   "git_head": "ed9e64073fb471b9093fe3c53e9d29c01a5943ce",
   "implementation_tree_sha256": "225ccd6104e2d1271b4f1eaed5a8a03231fe1f69ed4be2f36f5782664f0684cb",

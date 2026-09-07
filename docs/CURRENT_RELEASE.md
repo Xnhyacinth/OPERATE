@@ -90,7 +90,8 @@ alarms, obligations, facts, commitments, forecasts, and numeric trends. The
 default formal profile uses:
 
 - temperature `0`
-- main output budget `32768` tokens
+- per-route native context envelope and request output; `hy3-ioa` is 192,000 /
+  64,000 and `gpt-5.6-luna` is 272,000 / 128,000
 - protocol-repair budget `8192` tokens
 - provider timeout `300` seconds
 - projected history `64` messages
@@ -99,7 +100,8 @@ default formal profile uses:
 - strict prompt mode, streaming, `tool_choice=auto`, action-required protocol
   validation, and global scheduling
 
-Advertised provider context/output caps remain model-specific treatment fields.
+Advertised provider context/output caps are the request budgets for that
+route. Do not copy one model's envelope onto another.
 No hidden summarizer rewrites the authoritative history.
 
 ## Distribution

@@ -102,9 +102,9 @@ This reads and verifies existing artifacts; it does not execute calibration.
 The examples read your own OpenRouter credential from `O_KEY` and Tencent
 credential from `T_KEY`. Export the appropriate variable securely before
 executing a shard; no maintainer shell configuration is required. Never place
-the credential value in command arguments, config, trajectories, or logs. The
-per-turn benchmark budget is 32,768 tokens, with a separate 8,192-token
-protocol-repair budget. Formal logical and realtime shards use
+the credential value in command arguments, config, trajectories, or logs. Request
+`--max-tokens` equals that route's advertised maximum output, with a separate
+8,192-token protocol-repair budget. Formal logical and realtime shards use
 `provider_failure_policy=abort` with a one-failure circuit threshold: a failed
 provider/tool-calling decision terminates the episode and is never converted to
 an environment-advancing `wait`. Before that circuit policy applies, the harness
@@ -117,7 +117,7 @@ and model-identity failures are not transient retries.
 | Provider   | Model                 | Context | Maximum output | Formal Core workers | Reasoning effort |
 | ---------- | --------------------- | ------: | -------------: | ------------------: | ---------------- |
 | OpenRouter | `z-ai/glm-5.2:free`   | 256,000 |        230,400 |                   8 | `high`           |
-| Tencent    | `hy3-ioa`             | 192,000 |         64,000 |                  16 | omitted          |
+| Tencent    | `hy3-ioa`             | 192,000 |         64,000 |                  16 | `native` / `high`, thinking `enabled` |
 
 These are explicit example bindings, not auto-detected provider guarantees.
 Verify your exact route's advertised limits and account quota before execution;
@@ -186,7 +186,7 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
   --interaction-mode logical_persistent \
   --pass-k 1 --seed-mode scenario --prompt-mode strict \
   --temperature 0 --reasoning-effort high \
-  --max-tokens 32768 --protocol-repair-max-tokens 8192 \
+  --max-tokens 230400 --protocol-repair-max-tokens 8192 \
   --provider-timeout-s 300 \
   --provider-rpm-limit 20 \
   --provider-rpd-limit "$OPERATE_OPENROUTER_FREE_RPD_LIMIT" \
@@ -218,8 +218,9 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
   --model-max-output-tokens 64000 \
   --interaction-mode logical_persistent \
   --pass-k 1 --seed-mode scenario --prompt-mode strict \
-  --temperature 0 \
-  --max-tokens 32768 --protocol-repair-max-tokens 8192 \
+  --temperature 0 --reasoning-effort high \
+  --reasoning-effort-format native --thinking-type enabled \
+  --max-tokens 64000 --protocol-repair-max-tokens 8192 \
   --provider-timeout-s 300 \
   --persistent-history-max-messages 64 \
   --persistent-context-max-chars 512000 \
@@ -269,7 +270,7 @@ PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --api-mode chat_completions \
   --model-context-window-tokens 256000 \
   --model-max-output-tokens 230400 \
-  --max-tokens 32768 --protocol-repair-max-tokens 8192 \
+  --max-tokens 230400 --protocol-repair-max-tokens 8192 \
   --persistent-history-max-messages 64 \
   --persistent-context-max-chars 512000 \
   --persistent-memory-max-items 128 \
@@ -297,7 +298,8 @@ PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --api-mode chat_completions \
   --model-context-window-tokens 192000 \
   --model-max-output-tokens 64000 \
-  --max-tokens 32768 --protocol-repair-max-tokens 8192 \
+  --max-tokens 64000 --protocol-repair-max-tokens 8192 \
+  --reasoning-effort high --reasoning-effort-format native --thinking-type enabled \
   --persistent-history-max-messages 64 \
   --persistent-context-max-chars 512000 \
   --persistent-memory-max-items 128 \

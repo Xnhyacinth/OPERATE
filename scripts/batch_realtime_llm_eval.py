@@ -74,7 +74,6 @@ PROVIDER_QUOTA_SIGNAL_SCHEMA_VERSION = "provider-quota-exhausted-signal-v1"
 PROVIDER_QUOTA_SENTINEL_SCHEMA_VERSION = "realtime-provider-quota-sentinel-v1"
 UNKNOWN_QUOTA_REPROBE_SECONDS = 300
 CANONICAL_AGENTIC_PROFILE = {
-    "max_tokens": 32_768,
     "protocol_repair_max_tokens": 8_192,
     "persistent_history_max_messages": 64,
     "persistent_context_max_chars": 512_000,
@@ -3258,10 +3257,12 @@ def main(argv: list[str] | None = None) -> int:
         agentic_profile = formal["agentic_profile"]
         realtime_contract = formal["realtime_contract"]
         clock_profile = realtime_contract["clock_profile"]
+        advertised_output = int(args.model_max_output_tokens)
         max_tokens = (
-            args.max_tokens if args.suite_kind == "lite" and args.max_tokens is not None
-            else _bound_cli_value(args.max_tokens, agentic_profile["max_tokens"], flag="--max-tokens")
+            int(args.max_tokens) if args.max_tokens is not None else advertised_output
         )
+        if max_tokens != advertised_output:
+            raise ValueError("--max-tokens must equal --model-max-output-tokens")
         protocol_repair_max_tokens = _bound_cli_value(
             args.protocol_repair_max_tokens,
             agentic_profile["protocol_repair_max_tokens"],

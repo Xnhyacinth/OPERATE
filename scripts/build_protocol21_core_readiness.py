@@ -69,7 +69,6 @@ FORMAL_RUN_CONTRACT = {
     "required_temperature": 0.0,
     "requires_explicit_model_capabilities": True,
     "agentic_profile": {
-        "max_tokens": 32_768,
         "protocol_repair_max_tokens": 8_192,
         "persistent_history_max_messages": 64,
         "persistent_context_max_chars": 512_000,

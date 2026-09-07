@@ -242,7 +242,7 @@ investigation are removed from the next request; state-changing tools and
 explicit `wait` remain. This prevents repeated investigation loops and avoids
 resending irrelevant schemas.
 
-The current formal profile fixes temperature 0, 32,768 output tokens, an 8,192-
+The current formal profile fixes temperature 0, an 8,192-
 token protocol-repair budget, 64 visible history messages, a 512,000-character
 context projection, 128 items per structured-memory bucket, a 300-second provider timeout,
 `tool_choice=auto`, streamed Chat Completions, and fail-closed provider handling
@@ -253,7 +253,9 @@ Those retries use deterministic bounded backoff, re-enter the shared limiter,
 and remain cancelable while waiting; they do not advance the simulator or append
 a duplicate semantic event. Action-required
 epochs still fail closed unless the model emits an executable native tool call.
-These values are budgets, not targets: a model is not rewarded for consuming them. Non-formal
+These values are shared budgets, not targets: request output equals each
+route's advertised maximum rather than a shared 32,768-token pin. A model is
+not rewarded for consuming them. Non-formal
 persistent invocations retain their lighter local defaults and form a different
 treatment. Reasoning effort is sent only when the model shard explicitly
 declares a supported value. Reasoning settings and effective wire
@@ -353,6 +355,35 @@ records a pass but does not claim domain-native shielding; domain-specific
 cells must inject their native shield. There is no anonymous empty-action
 fallback: every tick without a valid model command carries a typed
 `SafetyDecision`, supervisor identity, mode, and reason.
+
+The provider response deadline and the accepted action's effect lifetime are
+separate. Under `realtime-action-validity/1.0`, a generic harness response
+window allows a timely command its registered ToolProtocol delay plus one
+effect boundary, capped by the episode horizon. For example, a command
+submitted at tick 0 with a one-tick deferred handler can materialize during
+the tick-1 transition ending at tick 2. Explicit native deadlines and tool
+`expires_at_tick` values still cap that lifetime. The treatment binds the
+resolved tool delays; each turn records its response deadline, action expiry
+and delay. Cancellation, supersession and the actor's expiry fences remain
+in force. Handler-managed native delays receive no inferred extension.
+
+At termination, identical safety-state warning markers already answered by a
+valid decision in the preceding interval remain task-outcome evidence. They
+do not become a fresh missing response window. The realtime ledger joins
+such residual warnings to the completed timely turn; the logical terminal
+report retains the answered markers. New or changed warnings, new native
+events, explicit missing response windows and unresolved actions remain
+subject to their ordinary completeness checks. Residual warning state is not
+credited as a quiet interval or as successful hazard recovery.
+
+A final invalid model response to an already presented warning remains
+unanswered. In the logical track, `collection_complete` separately records
+that this model failure was fully observed when transport succeeded and no
+new event, missing native response window or pending effect remains. Admission
+must verify the final decision, warning exposure and provider audit against
+the trajectory bytes; the summary flag alone is insufficient. This keeps a
+recorded protocol failure in the evaluation denominator without crediting it
+as a valid warning response.
 
 An alarm arriving during a provider turn is delivered using native steer when
 available, otherwise cancel-and-resume, otherwise supersession. A late response

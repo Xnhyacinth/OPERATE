@@ -33,7 +33,7 @@ def _identity(
     responses_base_url: str | None = None,
     model_context_window_tokens: int = 192_000,
     model_max_output_tokens: int = 65_536,
-    max_tokens: int = 32_768,
+    max_tokens: int = 65_536,
     protocol_repair_max_tokens: int = 8_192,
     max_workers: int = 4,
     formal_runtime_binding: dict | None = None,
@@ -339,7 +339,7 @@ def _episode_identity() -> dict:
             "prompt_mode": "strict",
             "interaction_mode": "logical_persistent",
             "temperature": 0.0,
-            "max_tokens": 32_768,
+            "max_tokens": 65_536,
             "protocol_repair_max_tokens": 8_192,
             "model_context_window_tokens": 192_000,
             "model_max_output_tokens": 65_536,
@@ -756,7 +756,7 @@ def test_formal_manifest_supplies_canonical_agentic_and_clock_profiles(
         "release_tooling_sha256": "1" * 64,
     }
     assert loaded["formal_release_id"] == "operate_v0_61_0"
-    assert loaded["agentic_profile"]["max_tokens"] == 32_768
+    assert "max_tokens" not in loaded["agentic_profile"]
     assert loaded["agentic_profile"]["persistent_context_max_chars"] == 512_000
     assert loaded["realtime_contract"]["clock_profile"] == contract["clock_profile"]
     assert batch._bound_cli_value(None, 32_768, flag="--max-tokens") == 32_768

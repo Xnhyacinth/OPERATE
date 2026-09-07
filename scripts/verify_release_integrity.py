@@ -52,6 +52,11 @@ AGENTIC_PROFILE_V1: JsonDict = {
     "tool_choice": "auto",
     "stream_chat_completions": True,
 }
+AGENTIC_PROFILE_V3: JsonDict = {
+    key: value
+    for key, value in AGENTIC_PROFILE_V1.items()
+    if key != "max_tokens"
+}
 
 REALTIME_FORMAL_CONTRACT_BASE_V1: JsonDict = {
     "contract_version": "realtime_persistent.v1",
@@ -132,6 +137,10 @@ AGENTIC_FORMAL_RUN_CONTRACT_V2: JsonDict = {
     **AGENTIC_FORMAL_RUN_CONTRACT_V1,
     "wakeup_policy": FORMAL_WAKEUP_POLICY_V2,
     "realtime_formal_contract": REALTIME_FORMAL_CONTRACT_V2,
+}
+AGENTIC_FORMAL_RUN_CONTRACT_V3: JsonDict = {
+    **AGENTIC_FORMAL_RUN_CONTRACT_V2,
+    "agentic_profile": AGENTIC_PROFILE_V3,
 }
 _V058_REALTIME_FORMAL_CONTRACT_V1: JsonDict = {
     **REALTIME_FORMAL_CONTRACT_V1,
@@ -379,6 +388,8 @@ def _formal_contracts_for_release(manifest: JsonDict) -> tuple[JsonDict, JsonDic
             _V058_AGENTIC_FORMAL_RUN_CONTRACT_V1,
             _V058_REALTIME_FORMAL_CONTRACT_V1,
         )
+    if _release_version(manifest) >= (0, 62, 0):
+        return AGENTIC_FORMAL_RUN_CONTRACT_V3, REALTIME_FORMAL_CONTRACT_V2
     if _release_version(manifest) >= (0, 61, 0):
         return AGENTIC_FORMAL_RUN_CONTRACT_V2, REALTIME_FORMAL_CONTRACT_V2
     return AGENTIC_FORMAL_RUN_CONTRACT_V1, REALTIME_FORMAL_CONTRACT_V1
@@ -2277,6 +2288,9 @@ def _agentic_formal_checks(
     }
     expected_run_contract, expected_realtime_contract_base = (
         _formal_contracts_for_release(manifest)
+    )
+    expected_logical_contract["agentic_profile"] = deepcopy(
+        expected_run_contract["agentic_profile"]
     )
     if expected_realtime_contract_base.get("wakeup_policy") is not None:
         expected_logical_contract["wakeup_policy"] = deepcopy(

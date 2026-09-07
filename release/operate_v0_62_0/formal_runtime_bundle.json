@@ -23,14 +23,13 @@
     "path": "core_suite.json",
     "sha256": "10455de0f1c08886b97377eba74e480c24e5f1e93e6cee797ea5dbe7cb4ff041"
   },
-  "formal_batch_contract_sha256": "9a501650204d4632de4c5f38c1d938ca3b7124fa7cb6e8e4a2d00dda64361bb0",
+  "formal_batch_contract_sha256": "57e51aa527908e7b9130c94845422ff796363bff3d033f815b0b46c2052ae2b2",
   "formal_evaluation_ready": true,
   "formal_realtime_batch_contract_sha256": "aa2e819554bbc090dd6ece37d725f0f53cc95ba8bcfa5a1bc3cea65138527687",
   "formal_run_blockers": [],
   "formal_run_contract": {
     "agentic_profile": {
       "max_consecutive_provider_failures": 1,
-      "max_tokens": 32768,
       "persistent_context_max_chars": 512000,
       "persistent_history_max_messages": 64,
       "persistent_memory_max_items": 128,

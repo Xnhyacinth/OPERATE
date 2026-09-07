@@ -2739,11 +2739,13 @@ def _validate_protocol21_formal_run(
         )
         if config.get("interaction_mode") != required_mode:
             reasons.append("formal_interaction_mode_must_be_logical_persistent")
+        context_caps = config.get("model_context_window_tokens_by_model")
+        output_caps = config.get("model_max_output_tokens_by_model")
+        scalar_context = config.get("model_context_window_tokens")
+        scalar_output = config.get("model_max_output_tokens")
+        explicit_scalar = False
+        explicit_maps = False
         if formal_contract.get("requires_explicit_model_capabilities") is True:
-            context_caps = config.get("model_context_window_tokens_by_model")
-            output_caps = config.get("model_max_output_tokens_by_model")
-            scalar_context = config.get("model_context_window_tokens")
-            scalar_output = config.get("model_max_output_tokens")
             explicit_scalar = (
                 isinstance(scalar_context, int)
                 and not isinstance(scalar_context, bool)
@@ -2773,6 +2775,38 @@ def _validate_protocol21_formal_run(
         for field, expected in agentic_profile.items():
             if config.get(field) != expected:
                 reasons.append(f"formal_agentic_profile_{field}_mismatch")
+        output_cap = scalar_output if explicit_scalar else None
+        context_cap = scalar_context if explicit_scalar else None
+        if explicit_maps and models:
+            output_cap = output_caps[models[0]]
+            context_cap = context_caps[models[0]]
+        max_tokens = config.get("max_tokens")
+        if (
+            not isinstance(max_tokens, int)
+            or isinstance(max_tokens, bool)
+            or max_tokens <= 0
+            or not isinstance(output_cap, int)
+            or isinstance(output_cap, bool)
+            or max_tokens != output_cap
+        ):
+            reasons.append("formal_max_tokens_must_equal_model_max_output")
+        if (
+            isinstance(context_cap, int)
+            and not isinstance(context_cap, bool)
+            and isinstance(max_tokens, int)
+            and not isinstance(max_tokens, bool)
+            and context_cap < max_tokens
+        ):
+            reasons.append("formal_context_window_must_cover_output_reserve")
+        repair = config.get("protocol_repair_max_tokens")
+        if (
+            isinstance(max_tokens, int)
+            and not isinstance(max_tokens, bool)
+            and isinstance(repair, int)
+            and not isinstance(repair, bool)
+            and repair > max_tokens
+        ):
+            reasons.append("formal_protocol_repair_exceeds_max_tokens")
     if config.get("prompt_mode") != "strict":
         reasons.append("formal_prompt_mode_must_be_strict")
     if config.get("seed_mode") != "scenario":

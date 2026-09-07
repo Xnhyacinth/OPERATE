@@ -189,6 +189,7 @@ All 17 backends, 22 task families, four difficulty levels and six horizon bucket
 remain covered. The suite records inclusion, exclusion and coverage reasons;
 it is neither a statistical sample nor a mathematical minimum. Full retains
 the complete admitted source/window variation. Lite scores are not Full scores.
+Request `--max-tokens` must equal `--model-max-output-tokens` for that route.
 
 ```bash
 OPERATE_TRAFFIC_BACKEND_REAL=1 \

@@ -17,6 +17,7 @@ from evaluation.scorer import DISCRIMINATIVE_CORE_DIMENSIONS
 from evaluation.realtime_diagnostics import SCHEMA_VERSION as REALTIME_DIAGNOSTIC_SCHEMA
 from scripts.verify_release_integrity import (
     AGENTIC_PROFILE_V1,
+    AGENTIC_PROFILE_V3,
     PIPELINE_STAGE_FILES,
     PIPELINE_STAGE_HASH_FIELDS,
     REALTIME_FORMAL_CONTRACT_V1,
@@ -1451,7 +1452,7 @@ def test_core_only_formal_integrity_ignores_optional_diagnostics() -> None:
     logical_contract = manifest["formal_batch_contract"]
     logical_contract.pop("diagnostic_readiness", None)
     logical_contract.pop("agency_readiness_bundle", None)
-    logical_contract["agentic_profile"] = deepcopy(AGENTIC_PROFILE_V1)
+    logical_contract["agentic_profile"] = deepcopy(AGENTIC_PROFILE_V3)
     manifest["formal_evidence"]["diagnostic_readiness"] = "missing/diagnostic.json"
     manifest["formal_evidence"]["agency_readiness_bundle"] = "missing/agency.json"
     manifest["pipeline_artifacts"]["diagnostic_readiness_sha256"] = "0" * 64
