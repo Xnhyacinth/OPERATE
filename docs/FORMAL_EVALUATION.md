@@ -100,7 +100,7 @@ Start a provider shard only after the dataset/runtime integrity check passes.
 This reads and verifies existing artifacts; it does not execute calibration.
 
 The examples read your own OpenRouter credential from `O_KEY` and Tencent
-credential from `T_KEY`. Export the appropriate variable securely before
+credential from `TENCENT_API_KEY`. Export the appropriate variable securely before
 executing a shard; no maintainer shell configuration is required. Never place
 the credential value in command arguments, config, trajectories, or logs. Request
 `--max-tokens` equals that route's advertised maximum output, with a separate
@@ -114,10 +114,17 @@ provider `Retry-After` value. Every attempt independently reserves quota and has
 one request/response audit record. Content, protocol, context-budget, hard-quota,
 and model-identity failures are not transient retries.
 
-| Provider   | Model                 | Context | Maximum output | Formal Core workers | Reasoning effort |
-| ---------- | --------------------- | ------: | -------------: | ------------------: | ---------------- |
-| OpenRouter | `z-ai/glm-5.2:free`   | 256,000 |        230,400 |                   8 | `high`           |
-| Tencent    | `hy3-ioa`             | 192,000 |         64,000 |                  16 | `native` / `high`, thinking `enabled` |
+| Model | Route context / max output | Request output | Workers | Effort / thinking |
+| --- | ---: | ---: | ---: | --- |
+| `hy3-ioa` | 192,000 / 64,000 | 64,000 | 16 Full | `native` / `high`, thinking `enabled` |
+| `gpt-5.6-luna` | 272,000 / 128,000 | 128,000 | 12 Lite | `native` / `high`, thinking omitted |
+| `deepseek-v4-flash-ioa` | 1,000,000 / 50,000 | 50,000 | 12 Lite | `native` / `high`, thinking `enabled` |
+| `glm-5.3-flash-ioa` | 1,000,000 / 128,000 | 128,000 | 12 Lite | `native` / `high`, thinking `enabled` |
+
+Keep this table in sync with `docs/provider_route_bindings.json`. That file is
+the append-only record of each route's envelope, request `--max-tokens`,
+thinking controls, and worker counts. The OpenRouter example below remains
+`z-ai/glm-5.2:free` at 256,000 / 230,400 with 8 Full workers.
 
 These are explicit example bindings, not auto-detected provider guarantees.
 Verify your exact route's advertised limits and account quota before execution;
@@ -162,9 +169,9 @@ are treatment- and run-config-bound.
 The following commands describe separate Tencent and OpenRouter example shards;
 there is no required provider order or fixed model roster.
 Tencent uses `https://copilot.tencent.com/v2` with streamed
-`/chat/completions`; set that public route in `T_BASE_URL` at process launch and
-read the credential only from `T_KEY`. Never merge their limiter scopes,
-trajectories, or treatment hashes.
+`/chat/completions`; set that public route in `TENCENT_BASE_URL` at process
+launch and read the credential only from `TENCENT_API_KEY`. Never merge their
+limiter scopes, trajectories, or treatment hashes.
 
 Set the account-specific daily cap for the OpenRouter example; do not copy one of the documented
 allowance strata without checking which one applies to the account.
@@ -204,7 +211,7 @@ account-specific limit, start a new treatment namespace with all three quota
 arguments supplied together.
 
 ```bash
-export T_BASE_URL='https://copilot.tencent.com/v2'
+export TENCENT_BASE_URL='https://copilot.tencent.com/v2'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
@@ -212,7 +219,7 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
   --output-dir batch_results/operate_v0_62_0/formal/logical_persistent/tencent_hy3_ioa_w16 \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
   --models hy3-ioa \
-  --api-key-env T_KEY --base-url-env T_BASE_URL \
+  --api-key-env TENCENT_API_KEY --base-url-env TENCENT_BASE_URL \
   --api-mode chat_completions --stream-chat-completions \
   --model-context-window-tokens 192000 \
   --model-max-output-tokens 64000 \
@@ -227,6 +234,35 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
   --persistent-memory-max-items 128 \
   --scheduler-mode global --max-workers 16 \
   --save-trajectories --resume --formal-run --finalize --dry-run
+```
+
+Lite is not a Full formal shard. The native GLM-5.3-Flash Lite command uses
+`run_lite.py`; do not add `--formal-run`.
+
+```bash
+export TENCENT_BASE_URL='https://copilot.tencent.com/v2'
+export OPERATE_TRAFFIC_BACKEND_REAL=1
+export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
+
+PYTHONPATH=. .venv/bin/python run_lite.py \
+  --output-dir batch_results/operate_v0_62_0/lite/logical_persistent/tencent_glm_5_3_flash_ioa_w12 \
+  --lite-suite release/operate_v0_62_0/lite_suite.json \
+  --models glm-5.3-flash-ioa \
+  --api-key-env TENCENT_API_KEY --base-url-env TENCENT_BASE_URL \
+  --api-mode chat_completions --stream-chat-completions \
+  --model-context-window-tokens 1000000 \
+  --model-max-output-tokens 128000 \
+  --interaction-mode logical_persistent \
+  --pass-k 1 --seed-mode scenario --prompt-mode strict \
+  --temperature 0 --reasoning-effort high \
+  --reasoning-effort-format native --thinking-type enabled \
+  --max-tokens 128000 --protocol-repair-max-tokens 8192 \
+  --provider-timeout-s 300 \
+  --persistent-history-max-messages 64 \
+  --persistent-context-max-chars 512000 \
+  --persistent-memory-max-items 128 \
+  --scheduler-mode global --max-workers 12 \
+  --save-trajectories --resume --finalize --dry-run
 ```
 
 The logical dry-run is not filesystem-empty: it writes `run_config.json`,
@@ -294,7 +330,7 @@ PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
   --output-root batch_results/operate_v0_62_0/formal/realtime_persistent/tencent_hy3_ioa_w16 \
   --model hy3-ioa --provider openai_compatible \
-  --base-url https://copilot.tencent.com/v2 --api-key-env T_KEY \
+  --base-url https://copilot.tencent.com/v2 --api-key-env TENCENT_API_KEY \
   --api-mode chat_completions \
   --model-context-window-tokens 192000 \
   --model-max-output-tokens 64000 \

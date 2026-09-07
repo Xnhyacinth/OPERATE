@@ -1,0 +1,114 @@
+{
+  "schema_version": "operate-provider-route-bindings-v1",
+  "updated_at": "2026-09-07",
+  "public_omit_keys": [
+    "maintainer_jobs"
+  ],
+  "shared_profile": {
+    "temperature": 0.0,
+    "protocol_repair_max_tokens": 8192,
+    "persistent_history_max_messages": 64,
+    "persistent_context_max_chars": 512000,
+    "persistent_memory_max_items": 128,
+    "provider_timeout_s": 300.0,
+    "tool_choice": "auto",
+    "stream_chat_completions": true,
+    "prompt_mode": "strict",
+    "seed_mode": "scenario",
+    "interaction_mode": "logical_persistent"
+  },
+  "public_credential_env": {
+    "tencent": "TENCENT_API_KEY",
+    "tencent_base_url": "TENCENT_BASE_URL",
+    "openrouter": "OPENROUTER_API_KEY"
+  },
+  "routes": [
+    {
+      "model": "hy3-ioa",
+      "provider": "tencent",
+      "base_url": "https://copilot.tencent.com/v2",
+      "context_window_tokens": 192000,
+      "max_output_tokens": 64000,
+      "request_max_tokens": 64000,
+      "reasoning_effort": "high",
+      "reasoning_effort_format": "native",
+      "thinking_type": "enabled",
+      "workers_full": 16,
+      "workers_lite": 12,
+      "source": "tencent-ai/agent-sdk@0.3.254 product.ioa.json",
+      "notes": "192k is the combined envelope; input plus 64k output must fit 192k."
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "provider": "tencent",
+      "base_url": "https://copilot.tencent.com/v2",
+      "context_window_tokens": 272000,
+      "max_output_tokens": 128000,
+      "request_max_tokens": 128000,
+      "reasoning_effort": "high",
+      "reasoning_effort_format": "native",
+      "thinking_type": null,
+      "workers_full": 16,
+      "workers_lite": 12,
+      "source": "campaign envelope; SDK card is 1M and is not this request binding",
+      "notes": "Thinking omitted on this route."
+    },
+    {
+      "model": "glm-5.3-flash-ioa",
+      "provider": "tencent",
+      "base_url": "https://copilot.tencent.com/v2",
+      "context_window_tokens": 1000000,
+      "max_output_tokens": 128000,
+      "request_max_tokens": 128000,
+      "reasoning_effort": "high",
+      "reasoning_effort_format": "native",
+      "thinking_type": "enabled",
+      "workers_full": 16,
+      "workers_lite": 12,
+      "source": "live Tencent route accepted a 128000 output reserve; absent from pinned iOA inventory",
+      "notes": "Neighbor glm-5.2-ioa is 1M/48k and is not this identity."
+    },
+    {
+      "model": "deepseek-v4-flash-ioa",
+      "provider": "tencent",
+      "base_url": "https://copilot.tencent.com/v2",
+      "context_window_tokens": 1000000,
+      "max_output_tokens": 50000,
+      "request_max_tokens": 50000,
+      "reasoning_effort": "high",
+      "reasoning_effort_format": "native",
+      "thinking_type": "enabled",
+      "workers_full": 16,
+      "workers_lite": 12,
+      "source": "tencent-ai/agent-sdk@0.3.254 product.ioa.json",
+      "notes": "Tencent output cap is 50k, not upstream 384k."
+    },
+    {
+      "model": "z-ai/glm-5.2:free",
+      "provider": "openrouter",
+      "base_url": "https://openrouter.ai/api/v1",
+      "context_window_tokens": 256000,
+      "max_output_tokens": 230400,
+      "request_max_tokens": 230400,
+      "reasoning_effort": "high",
+      "reasoning_effort_format": null,
+      "thinking_type": null,
+      "workers_full": 8,
+      "workers_lite": 8,
+      "source": "OpenRouter advertised limits",
+      "notes": "Free-tier RPM/RPD are account-specific and must be declared when used."
+    }
+  ],
+  "changelog": [
+    {
+      "date": "2026-09-07",
+      "routes": [
+        "hy3-ioa",
+        "gpt-5.6-luna",
+        "glm-5.3-flash-ioa",
+        "deepseek-v4-flash-ioa"
+      ],
+      "change": "Record native per-route envelopes. Request max_tokens equals advertised output. Luna 272k; GLM-5.3-Flash 1M/128k after the live route accepted a 128k reserve."
+    }
+  ]
+}
