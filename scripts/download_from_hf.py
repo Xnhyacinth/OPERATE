@@ -1288,6 +1288,10 @@ def _validate_bundle_source_asset_bindings(
     _source_asset_file_rows(manifest)
     if not manifest.get("backend_archive"):
         return
+    if manifest.get("bundle_kind") == "public_runtime_companion":
+        # Public Git owns the current catalog; do not require a deleted
+        # maintainer source-suite path to exist in the checkout.
+        return
     replay = local_release.get("protocol21_replay")
     if not isinstance(replay, dict):
         raise ValueError("dynasched_source_suite_binding_invalid")
