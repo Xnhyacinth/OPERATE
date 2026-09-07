@@ -42,7 +42,10 @@ from core import (
 )
 from core.difficulty_levels import canonical_difficulty_level
 from core.evidence import control_summary_from_evidence
-from core.world_evolution_contract import canonicalize_runtime_events
+from core.world_evolution_contract import (
+    canonicalize_runtime_events,
+    realized_event_evidence_tick,
+)
 from domains.registry import apply_supervisory_cadence
 
 from .backends.ems_sim import EmsSimulator
@@ -346,6 +349,7 @@ class MicrogridEnvironment(POMDPEnvironment):
         assert self._fog is not None and self._evidence is not None
         assert self._dilemmas is not None and self._belief is not None
 
+        step_evidence_start = len(self._evidence.items())
         ctx = ToolContext(
             tick=self._tick,
             seed=int(self._seed_obj.seed if self._seed_obj else 0),
@@ -493,7 +497,7 @@ class MicrogridEnvironment(POMDPEnvironment):
         for index, ev in enumerate(realized_events):
             evidence_id = self._evidence.log(
                 kind="realized_event",
-                tick=self._tick,
+                tick=realized_event_evidence_tick(ev, self._tick),
                 payload=dict(ev),
                 source="engine",
             )
@@ -560,8 +564,7 @@ class MicrogridEnvironment(POMDPEnvironment):
             realized_events=realized_events,
             evidence_ids=[
                 i.evidence_id
-                for i in self._evidence.items()
-                if i.tick == self._tick - 1
+                for i in self._evidence.items()[step_evidence_start:]
             ],
             extra={
                 "dilemmas_triggered": [d.dilemma_id for d in triggered],

@@ -18,7 +18,7 @@ from typing import Any, Mapping
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SOURCE_SUITE = REPO_ROOT / "release/operate_v0_61_0/protocol21_source_suite.json"
+DEFAULT_SOURCE_SUITE = REPO_ROOT / "release/operate_v0_62_0/protocol21_source_suite.json"
 DEFAULT_RUNTIME_SOURCE_LOCK = (
     REPO_ROOT / "sources/locks/operate_v0_61_0/backend_runtime_sources.json"
 )

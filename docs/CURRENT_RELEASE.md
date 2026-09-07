@@ -1,7 +1,15 @@
 # Current release
 
+The promoted input namespace is `operate_v0_62_0`, with scoring `0.15.0`,
+769 Core rows across 502 physical sources and 193 Lite rows across 122 sources.
+Native qualification is bound to its recorded implementation identity. Later
+verified maintenance changes bind their actual new execution identity; resume
+and merge remain strict. Formal logical/realtime provider runs and leaderboard
+result publication remain pending.
+
+
 The public distribution exposes one current benchmark state. Its internal
-reproducibility namespace is `operate_v0_61_0`. This document describes the
+reproducibility namespace is `operate_v0_62_0`. This document describes the
 current promoted Core; historical releases, tags, and provider trajectories are
 not valid inputs to a current formal run.
 
@@ -11,24 +19,25 @@ not valid inputs to a current formal run.
 - seven domains: Autonomous Driving, Building Energy, Datacenter, Logistics,
   Microgrid, Power Grid, and Traffic
 - tracked source locks and compact Alibaba/DynaSched assets under `sources/`
-- 743 inherited scenario contracts under `scenarios/operate_v0_58_0/`, 8
-  additions under `scenarios/operate_v0_59_0/`, and 13
-  additions under `scenarios/operate_v0_60_0/`, plus 5 under
-  `scenarios/operate_v0_61_0/`, exactly as selected by the manifest
-- Core suite at `release/operate_v0_61_0/core_suite.json`
-- matching formal manifest at `release/operate_v0_61_0/manifest.json`
-- replay and provenance suite at `release/operate_v0_61_0/protocol21_source_suite.json`
-- current-tree scoring version `0.14.0`
+- 701 corrected contracts under `scenarios/operate_v0_62_0/`, 48 inherited
+  under `scenarios/operate_v0_58_0/`, 8 under `scenarios/operate_v0_59_0/`,
+  11 under `scenarios/operate_v0_60_0/`, and 1 under
+  `scenarios/operate_v0_61_0/`, exactly as selected by the v0.62 manifest
+- Core suite at `release/operate_v0_62_0/core_suite.json`
+- matching formal manifest at `release/operate_v0_62_0/manifest.json`
+- replay and provenance suite at `release/operate_v0_62_0/protocol21_source_suite.json`
+- current-tree scoring version `0.15.0`
 
 The domain distribution is 7 Autonomous Driving, 18 Building Energy,
 142 Datacenter, 527 Logistics, 37 Microgrid, 19 Power Grid, and 19 Traffic
 rows. The primary hierarchical aggregation prevents row count alone from
 determining domain weight.
 
-The exhaustive candidate ledger is closed: 2,476 independent candidates have
-terminal dispositions and zero remain unresolved. The final replay selected all
-769 source rows, with no secondary, rejected, held-repair, or retired rows in the
-release partition.
+The parent v0.61 admission ledger records 2,476 terminal candidate decisions
+with zero unresolved. v0.62 introduces zero newly mined candidates; it preserves
+that historical lineage while qualifying corrected contracts for the same
+769-row, 502-source denominator. Historical admission evidence is not relabelled
+as newly executed evidence.
 
 `core_suite.json` together with its matching `manifest.json` defines the formal
 denominator. `protocol21_source_suite.json` remains the bound replay input and
@@ -37,7 +46,7 @@ provenance ledger.
 ## Release status
 
 - the dataset's admission replay and atomic promotion are complete;
-- `formal_evaluation_ready=true`;
+- v0.62 native qualification: `formal_evaluation_ready=true`;
 - `formal_logical_persistent_evaluation_pending`;
 - `formal_realtime_persistent_evaluation_pending`;
 - `formal_runtime_evidence_distribution_pending`;

@@ -50,7 +50,10 @@ from core import (
 )
 from core.difficulty_levels import canonical_difficulty_level
 from core.evidence import control_summary_from_evidence
-from core.world_evolution_contract import canonicalize_runtime_events
+from core.world_evolution_contract import (
+    canonicalize_runtime_events,
+    realized_event_evidence_tick,
+)
 from domains.registry import apply_supervisory_cadence
 
 from .backends.pglib_uc_synthetic import PglibUcSyntheticBackend
@@ -943,6 +946,7 @@ class PowerGridEnvironment(POMDPEnvironment):
         )
         first_stage = self._staged_control is None
         if first_stage:
+            step_evidence_start = len(self._evidence.items())
             before_control_state = self._backend.snapshot()
             investigation_stage_open = self._consume_within_tick_budget_state()
             tool_results = self._tools.execute_action(
@@ -951,6 +955,7 @@ class PowerGridEnvironment(POMDPEnvironment):
                 begin_tick=not investigation_stage_open,
             )
             self._staged_control = {
+                "evidence_start": step_evidence_start,
                 "before_control_state": before_control_state,
                 "tool_results": [],
                 "calls_by_id": dict(self._pending_native_control_calls),
@@ -1165,7 +1170,7 @@ class PowerGridEnvironment(POMDPEnvironment):
         for index, ev in enumerate(realized_events):
             evidence_id = self._evidence.log(
                 kind="realized_event",
-                tick=self._tick,
+                tick=realized_event_evidence_tick(ev, self._tick),
                 payload=dict(ev),
                 source="engine",
             )
@@ -1267,8 +1272,7 @@ class PowerGridEnvironment(POMDPEnvironment):
             realized_events=realized_events,
             evidence_ids=[
                 i.evidence_id
-                for i in self._evidence.items()
-                if i.tick == self._tick - 1
+                for i in self._evidence.items()[staged_control["evidence_start"]:]
             ],
             extra={
                 "dilemmas_triggered": [d.dilemma_id for d in triggered],
@@ -1411,6 +1415,7 @@ class PowerGridEnvironment(POMDPEnvironment):
                 for d in self._dilemmas.record.dilemmas_triggered
                 if d.dilemma_id not in self._dilemmas.record.choices
             ]
+        raw["tick"] = self._tick
         return raw
 
     def ground_truth(self) -> dict[str, Any]:

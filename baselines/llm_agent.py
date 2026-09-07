@@ -62,7 +62,7 @@ _PROVIDER_TRANSIENT_MAX_RETRIES = 4
 _PROVIDER_TRANSIENT_BACKOFF_BASE_S = 5.0
 _PROVIDER_TRANSIENT_BACKOFF_MAX_S = 60.0
 _PROVIDER_TRANSIENT_RETRY_REASONS = frozenset(
-    {"provider_rate_limit", "provider_server_error"}
+    {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
 )
 _RETRY_AFTER_RE = re.compile(
     r"(?:retry[-_ ]after(?:_seconds(?:_raw)?)?)[\"']?\s*[:=]\s*[\"']?"
@@ -122,6 +122,7 @@ _PROVIDER_CIRCUIT_REASONS = frozenset(
         "provider_rate_limit",
         "provider_server_error",
         "provider_other_error",
+        "provider_transport_error",
         "provider_tool_call_failure",
     }
 )
@@ -498,23 +499,95 @@ def parse_tencent_quota_reset(text: object) -> str | None:
     return f"{match.group(1)} UTC+8"
 
 
+def provider_error_http_status(error: object) -> int | None:
+    """Resolve an explicit error status, including errors inside HTTP-200 streams."""
+    def status(value: object) -> int | None:
+        if isinstance(value, str) and re.fullmatch(r"\d{3}", value):
+            value = int(value)
+        return value if type(value) is int and 400 <= value <= 599 else None
+
+    for value in (
+        getattr(error, "status_code", None),
+        getattr(getattr(error, "response", None), "status_code", None),
+        getattr(error, "code", None),
+    ):
+        if (resolved := status(value)) is not None:
+            return resolved
+    body = getattr(error, "body", None)
+    if isinstance(body, dict):
+        nested = body.get("error")
+        for payload in (body, nested):
+            if isinstance(payload, dict):
+                for field in ("status_code", "code", "status"):
+                    if (resolved := status(payload.get(field))) is not None:
+                        return resolved
+    return None
+
+
 def classify_provider_error(text: object) -> str:
     """Classify provider/API errors for batch telemetry without exposing secrets."""
     if isinstance(text, RequestBudgetPreflightError):
         return "request_budget_preflight_rejected"
+    if isinstance(text, RealtimeTurnCanceledError):
+        return "realtime_turn_canceled"
     original = str(text)
     raw = original.lower()
+    body = getattr(text, "body", None)
+    quota_codes = [getattr(text, "code", None)]
+    if isinstance(body, dict):
+        quota_codes.append(body.get("code"))
+        if isinstance(body.get("error"), dict):
+            quota_codes.append(body["error"].get("code"))
     if "max_chars" in raw and "action-critical" in raw:
         return "prompt_budget_exceeded"
-    if "6004" in raw or "超出频率限制" in original:
+    if (
+        isinstance(text, ProviderQuotaExhaustedError)
+        or any(code in (6004, "6004") for code in quota_codes)
+        or re.search(r"\bcode[\"']?\s*[:=]\s*[\"']?6004\b", raw)
+        or "超出频率限制" in original
+    ):
         return "provider_quota_exhausted"
+    status = provider_error_http_status(text)
+    if status == 429:
+        return "provider_rate_limit"
+    if status is not None and status >= 500:
+        return "provider_server_error"
+    if status is not None and status != 400:
+        return "provider_other_error"
+    if isinstance(text, (ConnectionError, TimeoutError)):
+        return "provider_transport_error"
+    try:
+        from openai import APIConnectionError
+    except ImportError:
+        pass
+    else:
+        if isinstance(text, APIConnectionError):
+            return "provider_transport_error"
+    try:
+        from httpx import NetworkError, RemoteProtocolError, TimeoutException
+    except ImportError:
+        pass
+    else:
+        if isinstance(text, (NetworkError, RemoteProtocolError, TimeoutException)):
+            return "provider_transport_error"
     if any(marker in raw for marker in _TOOL_CALL_FAILURE_MARKERS):
         return "provider_tool_call_failure"
-    if "429" in raw or "rate limit" in raw or "too many requests" in raw:
+    if status is not None:
+        return "provider_other_error"
+    # Unstructured SDK messages may carry a status, but token counts and
+    # entity IDs containing these digits are not transport failures.
+    wire_status = re.search(
+        r"(?:http(?:/\d(?:\.\d)?)?\s+|error\s+code\s*:\s*|\[)([45]\d{2})\b",
+        raw,
+    )
+    if (wire_status and wire_status[1] == "429") or "rate limit" in raw or "too many requests" in raw:
         return "provider_rate_limit"
-    if any(
+    if (wire_status and wire_status[1].startswith("5")) or any(
         marker in raw
-        for marker in ("500", "502", "503", "504", "server error", "bad gateway")
+        for marker in (
+            "server error", "bad gateway",
+            "service temporarily overloaded",
+        )
     ):
         return "provider_server_error"
     return "provider_other_error"
@@ -535,8 +608,8 @@ def _prompt_safe_entity(entity: dict[str, Any]) -> dict[str, Any]:
 def _prompt_safe_tool_results(
     results: object,
     *,
-    max_items: int = 4,
-    max_payload_chars: int = 400,
+    max_items: int | None = 4,
+    max_payload_chars: int | None = 400,
     include_cost_units: bool = False,
 ) -> list[dict[str, Any]]:
     """Keep tool-result *identity* in the prompt; drop bulky simulator payloads."""
@@ -553,8 +626,8 @@ def _prompt_safe_tool_results(
         payload = result.get("payload")
         if payload is not None:
             encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-            if len(encoded) <= max_payload_chars:
-                safe["payload"] = payload
+            if max_payload_chars is None or len(encoded) <= max_payload_chars:
+                safe["payload"] = deepcopy(payload)
             elif isinstance(payload, dict):
                 safe["payload"] = {
                     "_compacted": True,
@@ -1123,6 +1196,9 @@ class LLMConfig:
     tool_choice: str = "auto"  # auto | required
     tool_choice_supported: bool | None = None
     reasoning_effort: str | None = None
+    # Chat Completions dialect; auto retains the historical provider mapping.
+    reasoning_effort_format: str = "auto"  # auto | native | openrouter
+    thinking_type: str | None = None  # enabled | disabled; omitted by default
     protocol_repair_max_tokens: int = 512
     allow_insecure_http: bool = False
 
@@ -1275,6 +1351,23 @@ class LLMAgent(BaselineAgent):
                 "reasoning_effort is currently compiled only for OpenAI-compatible "
                 "providers"
             )
+        if self.config.reasoning_effort_format not in {"auto", "native", "openrouter"}:
+            raise ValueError(
+                f"Invalid reasoning_effort_format: {self.config.reasoning_effort_format!r}"
+            )
+        if self.config.thinking_type not in {None, "enabled", "disabled"}:
+            raise ValueError(f"Invalid thinking_type: {self.config.thinking_type!r}")
+        if (
+            self.config.reasoning_effort_format != "auto"
+            or self.config.thinking_type is not None
+        ) and (
+            self.config.provider not in {"openai", "openai_compatible", "azure"}
+            or self._resolved_api_mode() != "chat_completions"
+        ):
+            raise ValueError(
+                "reasoning_effort_format and thinking_type require "
+                "OpenAI-compatible Chat Completions"
+            )
         temperature = float(self.config.temperature)
         if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
             raise ValueError("temperature must be finite and within [0, 2]")
@@ -1382,11 +1475,13 @@ class LLMAgent(BaselineAgent):
         self._stats["interaction_mode"] = interaction_mode
         api_key = os.getenv(self.config.api_key_env)
         if not api_key:
+            self._has_api_key = False
+            if self.config.provider_failure_policy == "abort":
+                raise ValueError(f"provider credential missing: {self.config.api_key_env}")
             warnings.warn(
                 f"{self.config.api_key_env} not set — LLMAgent will fall back to wait_only.",
                 stacklevel=2,
             )
-            self._has_api_key = False
             return
         self._has_api_key = True
         self._client = self._azure_client_for_mode(
@@ -1872,6 +1967,12 @@ class LLMAgent(BaselineAgent):
         with self._realtime_cancel_lock:
             return turn_id in self._canceled_realtime_turns
 
+    def _check_realtime_cancellation(self) -> None:
+        with self._realtime_cancel_lock:
+            turn_id = self._active_realtime_turn_id
+        if self._stream_turn_is_canceled(turn_id):
+            raise RealtimeTurnCanceledError(f"realtime provider turn canceled: {turn_id}")
+
     def ingest_realtime_observation(self, observation: dict[str, Any]) -> None:
         """Update memory from a visible non-waking realtime transition.
 
@@ -2246,6 +2347,7 @@ class LLMAgent(BaselineAgent):
         root_sequence: int | None = None
         retry_index = 0
         while True:
+            self._check_realtime_cancellation()
             started_ns = time.monotonic_ns()
             try:
                 request_sequence = self._record_provider_request(
@@ -2262,6 +2364,7 @@ class LLMAgent(BaselineAgent):
                 )
                 if root_sequence is None:
                     root_sequence = request_sequence
+                self._check_realtime_cancellation()
                 action = invoke()
                 # Provider-specific compatibility fallbacks may have opened a
                 # second, explicitly recorded request inside the invocation.
@@ -4095,6 +4198,7 @@ class LLMAgent(BaselineAgent):
         preflight_error: RequestBudgetPreflightError | None = None
         quota_error: ProviderQuotaExhaustedError | None = None
         limiter_state_error: ProviderLimiterStateError | None = None
+        cancellation_error: RealtimeTurnCanceledError | None = None
         rate_limit_audit: dict[str, Any] | None = None
         try:
             budget_audit = self._request_budget_audit(
@@ -4118,7 +4222,11 @@ class LLMAgent(BaselineAgent):
                     rpm_limit=int(self.config.provider_rpm_limit),
                     rpd_limit=int(self.config.provider_rpd_limit),
                     scope=self.config.provider_rate_limit_scope,
+                    sleep=self._sleep_before_provider_retry,
                 ).acquire()
+            except RealtimeTurnCanceledError as exc:
+                cancellation_error = exc
+                rate_limit_audit = getattr(exc, "provider_rate_limit_audit", None)
             except ProviderDailyQuotaExhausted as exc:
                 rate_limit_audit = dict(exc.audit)
                 quota_error = ProviderQuotaExhaustedError(
@@ -4207,6 +4315,8 @@ class LLMAgent(BaselineAgent):
                 "retry_reasons": sorted(_PROVIDER_TRANSIENT_RETRY_REASONS),
             },
             "reasoning_effort": self.config.reasoning_effort,
+            "reasoning_effort_format": self.config.reasoning_effort_format,
+            "thinking_type": self.config.thinking_type,
             # Backward-compatible alias; new readers should use the explicit
             # configured/effective fields below.
             "stream_chat_completions": self.config.stream_chat_completions,
@@ -4267,6 +4377,9 @@ class LLMAgent(BaselineAgent):
         if limiter_state_error is not None:
             limiter_state_error.request_sequence = sequence  # type: ignore[attr-defined]
             raise limiter_state_error
+        if cancellation_error is not None:
+            cancellation_error.request_sequence = sequence
+            raise cancellation_error
         return sequence
 
     def _resolved_tool_choice_capability(self) -> tuple[bool | None, str]:
@@ -4701,6 +4814,8 @@ class LLMAgent(BaselineAgent):
             args = dict(call.args)
             plan = {
                 "plan_id": str(args.get("plan_id") or ""),
+                "call_id": call.call_id,
+                "idempotency_key": call.idempotency_key,
                 "proposed_tick": proposed_tick,
                 "horizon_ticks": args.get("horizon_ticks"),
                 "rationale": str(args.get("rationale") or ""),
@@ -4714,6 +4829,9 @@ class LLMAgent(BaselineAgent):
                 )[:8],
                 "status": "pending",
             }
+            for field_name in ("wake_if", "plan_expires_at_tick", "trigger_evidence_ids"):
+                if field_name in args:
+                    plan[field_name] = deepcopy(args[field_name])
             aliases = {
                 str(value)
                 for value in (call.call_id, call.idempotency_key)
@@ -4739,6 +4857,9 @@ class LLMAgent(BaselineAgent):
             for raw in group:
                 if not isinstance(raw, dict) or raw.get("name") != "commit_to_plan":
                     continue
+                payload = raw.get("payload") or {}
+                if bool(raw.get("ok")) and str(payload.get("_status") or "").lower() == "pending":
+                    continue
                 signature = (
                     str(raw.get("call_id") or ""),
                     str(raw.get("idempotency_key") or ""),
@@ -4752,21 +4873,21 @@ class LLMAgent(BaselineAgent):
                     if alias and alias in self._pending_plan_calls:
                         plan = self._pending_plan_calls[alias]
                         break
-                if plan is None and signature[2]:
-                    plan = next(
-                        (
-                            candidate
-                            for candidate in self._pending_plan_calls.values()
-                            if str(candidate.get("plan_id") or "") == signature[2]
-                        ),
-                        None,
-                    )
+                if plan is None and not any(signature[:2]) and signature[2]:
+                    candidates = {
+                        id(candidate): candidate
+                        for candidate in self._pending_plan_calls.values()
+                        if str(candidate.get("plan_id") or "") == signature[2]
+                    }
+                    if len(candidates) == 1:
+                        plan = next(iter(candidates.values()))
                 if plan is None:
                     continue
-                payload = raw.get("payload") or {}
-                if (
-                    bool(raw.get("ok"))
-                    and str(payload.get("_status") or "").lower() == "pending"
+                if any(
+                    provided and provided != str(plan.get(field_name) or "")
+                    for provided, field_name in zip(
+                        signature, ("call_id", "idempotency_key", "plan_id"), strict=True,
+                    )
                 ):
                     continue
                 for alias, candidate in list(self._pending_plan_calls.items()):
@@ -4980,6 +5101,9 @@ class LLMAgent(BaselineAgent):
         control_receipts = observation.get("__control_receipts__") or []
         control_calls = observation.get("__control_calls__") or []
         realtime_event = observation.get("__realtime_event__")
+        persistent = self._uses_persistent_session()
+        result_limit = None if persistent else 4
+        payload_limit = None if persistent else 400
         return {
             "tick": observation.get("tick"),
             "horizon": observation.get("horizon"),
@@ -4991,20 +5115,26 @@ class LLMAgent(BaselineAgent):
             "n_renewables": len(renew),
             "stakeholder_trust": observation.get("stakeholder_trust", {}),
             "active_dilemmas": observation.get("active_dilemmas", []),
-            # Reserved per-tick feedback keys (run.py sets these). Truncate
-            # tool results to a short head so the prompt stays compact.
+            # Budget the full current results before compacting. A fixed 400
+            # character stub made paid investigations unreadable even when
+            # the persistent context had ample room for the returned data.
             "last_tool_results": _prompt_safe_tool_results(
                 last_results,
-                include_cost_units=self._uses_persistent_session(),
+                max_items=result_limit,
+                max_payload_chars=payload_limit,
+                include_cost_units=persistent,
             ),
             "within_tick_tool_results": _prompt_safe_tool_results(
                 within_tick_results,
-                include_cost_units=self._uses_persistent_session(),
+                max_items=result_limit,
+                max_payload_chars=payload_limit,
+                include_cost_units=persistent,
             ),
             "control_receipts": _prompt_safe_tool_results(
                 control_receipts,
                 max_items=max(1, self._max_tools),
-                include_cost_units=self._uses_persistent_session(),
+                max_payload_chars=payload_limit,
+                include_cost_units=persistent,
             ),
             "control_calls": deepcopy(
                 list(control_calls)[: max(1, self._max_tools)]
@@ -5070,17 +5200,16 @@ class LLMAgent(BaselineAgent):
                 },
                 "last_tool_results": {
                     "available": len(last_results),
-                    "included": min(len(last_results), 4),
+                    "included": len(last_results[:result_limit]),
                 },
                 "within_tick_tool_results": {
                     "available": len(within_tick_results)
                     if isinstance(within_tick_results, list)
                     else 0,
-                    "included": min(
-                        len(within_tick_results)
+                    "included": (
+                        len(within_tick_results[:result_limit])
                         if isinstance(within_tick_results, list)
-                        else 0,
-                        4,
+                        else 0
                     ),
                 },
                 "last_realized_events": {
@@ -5163,12 +5292,14 @@ class LLMAgent(BaselineAgent):
         if compact.get("last_tool_results"):
             compact["last_tool_results"] = _prompt_safe_tool_results(
                 compact.get("last_tool_results"),
+                max_items=None,
                 include_cost_units=include_cost_units,
             )
             omitted.append("last_tool_results.payloads")
         if compact.get("within_tick_tool_results"):
             compact["within_tick_tool_results"] = _prompt_safe_tool_results(
                 compact.get("within_tick_tool_results"),
+                max_items=None,
                 include_cost_units=include_cost_units,
             )
             omitted.append("within_tick_tool_results.payloads")
@@ -5247,15 +5378,22 @@ class LLMAgent(BaselineAgent):
         return any(marker in text for marker in _TOOL_CALL_FAILURE_MARKERS)
 
     def _openai_chat_reasoning_fields(self) -> dict[str, Any]:
-        if self.config.reasoning_effort is None:
-            return {}
-        if self.config.provider == "openai_compatible":
-            return {
-                "extra_body": {
-                    "reasoning": {"effort": self.config.reasoning_effort}
-                }
-            }
-        return {"reasoning_effort": self.config.reasoning_effort}
+        fields: dict[str, Any] = {}
+        extra_body: dict[str, Any] = {}
+        if self.config.reasoning_effort is not None:
+            use_openrouter = self.config.reasoning_effort_format == "openrouter" or (
+                self.config.reasoning_effort_format == "auto"
+                and self.config.provider == "openai_compatible"
+            )
+            if use_openrouter:
+                extra_body["reasoning"] = {"effort": self.config.reasoning_effort}
+            else:
+                fields["reasoning_effort"] = self.config.reasoning_effort
+        if self.config.thinking_type is not None:
+            extra_body["thinking"] = {"type": self.config.thinking_type}
+        if extra_body:
+            fields["extra_body"] = extra_body
+        return fields
 
     @staticmethod
     def _anthropic_tools_from_specs(
@@ -5474,13 +5612,7 @@ class LLMAgent(BaselineAgent):
         )
         if effective_tool_choice is not None:
             kwargs["tool_choice"] = effective_tool_choice
-        if self.config.reasoning_effort is not None:
-            if self.config.provider == "openai_compatible":
-                kwargs["extra_body"] = {
-                    "reasoning": {"effort": self.config.reasoning_effort}
-                }
-            else:
-                kwargs["reasoning_effort"] = self.config.reasoning_effort
+        kwargs.update(self._openai_chat_reasoning_fields())
         if self.config.stream_chat_completions:
             kwargs["stream"] = True
         rsp = create(**kwargs)
@@ -5690,9 +5822,17 @@ class LLMAgent(BaselineAgent):
                 ) from exc
             raise
         finally:
+            close = getattr(stream, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception as exc:
+                    LOGGER.warning("Provider stream cleanup failed: %s", redact_provider_error(exc))
             if turn_id is not None:
                 with self._realtime_cancel_lock:
                     self._active_provider_streams.pop(turn_id, None)
+        if finish_reason is None and self.config.provider_failure_policy == "abort":
+            raise ConnectionError("provider stream ended without a terminal finish_reason")
         calls: list[ToolCall] = []
         if finish_reason == "length":
             self._bump_stat("provider_output_truncation_count")

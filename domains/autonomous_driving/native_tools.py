@@ -254,6 +254,19 @@ def register_autonomous_driving_tools(
                     "rationale": {"type": "string"},
                     "replaces_plan_id": {"type": "string"},
                     "revision_reason": {"type": "string"},
+                    "predicted_events": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "event_type": {"type": "string"},
+                                "target_id": {"type": "string"},
+                                "tick_offset": {"type": "integer", "minimum": 1},
+                                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                            },
+                            "required": ["event_type", "target_id", "tick_offset"],
+                        },
+                    },
                     **plan_properties,
                 },
                 "required": ["plan_id", "rationale"],

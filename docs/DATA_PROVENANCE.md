@@ -1,28 +1,34 @@
 # Data provenance
 
+The parent v0.61 admission ledger records 2,476 terminal candidate decisions
+with zero unresolved. v0.62 introduces zero newly mined candidates; it preserves
+that historical lineage while qualifying corrected contracts for the same
+769-row, 502-source denominator. Historical admission evidence is not relabelled
+as newly executed evidence.
+
 OPERATE admits a scenario only when its initial state and exogenous series are
 bound to real public source material or an explicitly labelled deterministic
 stress overlay. An LLM never generates environment state.
 
 ## Active closure
 
-The frozen `operate_v0_61_0` candidate closure consists of:
+The current v0.62 source package preserves the parent v0.61 candidate closure:
 
-- `release/operate_v0_61_0/candidate_closure.json` — 2,476 terminal candidate
+- `release/operate_v0_62_0/candidate_closure.json` — current zero-new-candidate closure with parent 2,476 terminal candidate
   dispositions with zero unresolved candidates;
-- `release/operate_v0_61_0/protocol21_source_suite.json` — the closed 769-row
+- `release/operate_v0_62_0/protocol21_source_suite.json` — the closed 769-row
   replay and provenance suite spanning 502 physical sources;
-- 743 inherited canonical contracts under `scenarios/operate_v0_58_0/`, 8
-  additions under `scenarios/operate_v0_59_0/`, and 13 additions under
-  `scenarios/operate_v0_60_0/`, plus 5 under
-  `scenarios/operate_v0_61_0/`, exactly as selected by the v0.61 manifest;
+- 669 corrected contracts under `scenarios/operate_v0_62_0/`, 80 inherited
+  under `scenarios/operate_v0_58_0/`, 8 under `scenarios/operate_v0_59_0/`,
+  11 under `scenarios/operate_v0_60_0/`, and 1 under
+  `scenarios/operate_v0_61_0/`, exactly as selected by the v0.62 manifest;
 - `sources/locks/` — tracked CityLearn source locks;
 - `sources/alibaba/` — compact trace inputs used by released Datacenter rows;
 - `sources/dynasched/` — the released DynaSched instance and event bundle;
 - `sources/resco/` — the compact RESCO traffic source introduced in v0.61;
 - manifest-declared upstream assets under `works/` for native local replay.
 
-All 2,476 independent candidates have terminal dispositions and none remain
+All 2,476 parent-admission candidates have terminal dispositions and none remain
 unresolved. That closure records selection decisions; it does not by itself
 promote the selected rows.
 
@@ -66,7 +72,7 @@ denominator. The promoted
 `core_suite.json`, release `manifest.json`, and HF `MANIFEST.json` are the
 authoritative evaluation and distribution closure. A clean download must verify
 every file before installing runtime archives or beginning a formal provider
-run. The compact v0.61 companion must include `candidate_closure.json`. A full
+run. The compact v0.62 companion must include `candidate_closure.json`. A full
 candidate-evidence archive of the 17 input ledgers is restored only when the
 bundle declares `candidate_evidence_archive`; the current compact companion
 omits that archive.

@@ -802,7 +802,13 @@ class RouteDemandSimulator:
 
     # ── Tool effects ────────────────────────────────────────────────────
 
-    def apply_tool_effect(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
+    def apply_tool_effect(
+        self, name: str, args: dict[str, Any], *, current_tick: int | None = None,
+    ) -> dict[str, Any]:
+        # ToolRegistry supplies the actual handler materialization coordinate;
+        # the previous backend tick may lag the adapter's decision clock.
+        if current_tick is not None:
+            self._tick = int(current_tick)
         before = self._state_digest()
         if name == "assign_stop":
             result = self._assign_stop(args)

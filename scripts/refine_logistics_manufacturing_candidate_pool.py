@@ -34,7 +34,7 @@ from domains.logistics.seeds.from_jsplib import (  # noqa: E402
 )
 
 
-DEFAULT_SOURCE_SUITE = ROOT / "release/operate_v0_61_0/protocol21_source_suite.json"
+DEFAULT_SOURCE_SUITE = ROOT / "release/operate_v0_62_0/protocol21_source_suite.json"
 DEFAULT_JSPLIB = ROOT / "works/JSPLIB-Instances"
 DEFAULT_REALM = ROOT / "works/REALM-Bench-direct-pilot/datasets/clean/JSSP/J2.json"
 DEFAULT_DYNASCHED = ROOT / "works/DynaSchedBench/data"

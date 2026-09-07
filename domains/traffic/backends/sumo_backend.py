@@ -566,6 +566,7 @@ class SumoBackend:
             0,
             {
                 "type": "sumo_live_snapshot",
+                "event_class": "telemetry",
                 "tick": self._tick,
                 "actionable": False,
                 "decision_required": False,

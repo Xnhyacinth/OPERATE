@@ -104,7 +104,7 @@ ALIBABA_TRACE_DIMENSION_APPLICABILITY: dict[str, dict[str, Any]] = {
     },
     "foresight_score": {
         "applicable": False,
-        "reason": "baseline_oracle_does_not_emit_commit_to_plan_predictions",
+        "reason": "aggregate_arrival_forecast_has_no_individual_event_target_contract",
     },
     "optimality_gap": {
         "applicable": False,
@@ -159,7 +159,7 @@ ALIBABA_OPENB_DIMENSION_APPLICABILITY: dict[str, dict[str, Any]] = {
     },
     "foresight_score": {
         "applicable": False,
-        "reason": "baseline_oracle_does_not_emit_commit_to_plan_predictions",
+        "reason": "aggregate_arrival_forecast_has_no_individual_event_target_contract",
     },
     "optimality_gap": {
         "applicable": False,
@@ -178,6 +178,32 @@ ALIBABA_OPENB_DIMENSION_APPLICABILITY: dict[str, dict[str, Any]] = {
         "reason": "tool_protocol_call_outcome_and_budget_evidence_available",
     },
 }
+
+
+def stakeholder_equity_applicability(body: dict[str, Any]) -> dict[str, Any]:
+    """Determine cross-tenant support from source users, never trajectory success."""
+    config = body.get("backend_config") or {}
+    if body.get("backend_kind") == "alibaba_trace_sim" and not config.get("source_transform"):
+        users = {str(job.get("user") or "unknown") for job in config.get("jobs") or []}
+    else:
+        from .adapter import _rebuild_seed_from_dict
+        from .backends.alibaba_trace_backend import AlibabaTraceBackend
+
+        seed = _rebuild_seed_from_dict(body, override_seed=int(body.get("seed", 42)))
+        backend = (
+            AlibabaOpenBBackend()
+            if body.get("backend_kind") == "alibaba_openb_gpu_placement"
+            else AlibabaTraceBackend()
+        )
+        backend.reset(seed)
+        users = set(backend.tenant_ids())
+    return {
+        "applicable": len(users) >= 2,
+        "reason": (
+            "cross_tenant_outcome_balance_available_for_multiple_source_users"
+            if len(users) >= 2 else "source_has_fewer_than_two_native_stakeholder_groups"
+        ),
+    }
 
 
 def datacenter_dimension_applicability(

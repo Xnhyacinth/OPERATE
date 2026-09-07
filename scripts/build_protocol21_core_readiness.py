@@ -325,6 +325,24 @@ def build_readiness(
     evidence_names = SCIENTIFIC_EVIDENCE_NAMES + DIAGNOSTIC_ARTIFACT_NAMES
     for name in evidence_names:
         report = payloads[name]
+        if (
+            report.get("artifact_role") == "derived_qualification_assessment"
+            and report.get("native_evidence_role")
+        ):
+            from core.protocol21_native_qualification_view import (
+                validate_native_qualification_view,
+            )
+
+            for issue in validate_native_qualification_view(
+                report,
+                repo_root=repo_root,
+            ):
+                _record_evidence_issue(
+                    name,
+                    f"native_qualification_view:{issue}",
+                    blockers=blockers,
+                    diagnostics=diagnostic_artifact_issues,
+                )
         if _semantics(report) != REQUIRED_SEMANTICS:
             _record_evidence_issue(
                 name,

@@ -455,6 +455,9 @@ def build_dynamic_job_shop_recovery_seed(
             "deterministic_no_action_replay_over_the_same_dynamic_recovery_events"
         ),
     }
+    base.backend_config["dimension_applicability"].update(
+        job_shop_opportunity_applicability(base.to_dict())
+    )
     base.provenance.notes += (
         " Dynamic recovery staging uses only deterministic procedural overlays "
         "whose target IDs are validated against the consumed JSPLIB instance; "
@@ -463,12 +466,49 @@ def build_dynamic_job_shop_recovery_seed(
     return base
 
 
+def job_shop_opportunity_applicability(
+    body: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Declare opportunities from the native task, never from an agent's success.
+
+    A repair needs a decision tick before the outage or episode expires.
+    This is a structural opportunity, not evidence of positive masked benefit.
+    Current shop observations have no pre-event forecast information stream.
+    """
+    config = body.get("backend_config") or {}
+    dynamic = (config.get("dynamic_job_shop") or {}).get("enabled") is True
+    horizon = int(body.get("horizon_ticks") or 0)
+    recovery = dynamic and any(
+        event.get("kind") == "machine_breakdown"
+        and int(event.get("duration_ticks") or 0) > 1
+        and 0 <= int(event.get("trigger_tick", -1)) < horizon - 1
+        for event in body.get("perturbations") or []
+        if isinstance(event, dict)
+    )
+    return {
+        "adaptive_replanning": {
+            "applicable": recovery,
+            "reason": (
+                "native_machine_breakdown_has_repair_and_rescheduling_window"
+                if recovery else "job_shop_has_no_native_recovery_response_window"
+            ),
+        },
+        "foresight_score": {
+            "applicable": False,
+            "reason": "job_shop_has_no_pre_event_forecast_information_contract",
+        },
+    }
+
+
 def job_shop_dimension_applicability(
     seed: LogisticsScenarioSeed,
 ) -> dict[str, dict[str, Any]]:
     """Dimension applicability for candidate JSPLIB rows."""
     reference = seed.backend_config.get("reference") or {}
-    return _dimension_applicability_for_reference(reference)
+    return {
+        **_dimension_applicability_for_reference(reference),
+        **job_shop_opportunity_applicability(seed.to_dict()),
+    }
 
 
 def job_shop_complexity_metrics(seed: LogisticsScenarioSeed) -> dict[str, Any]:

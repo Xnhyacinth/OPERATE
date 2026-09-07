@@ -20,7 +20,11 @@ from pathlib import Path
 from typing import Any
 
 from baselines import make_agent
-from baselines.llm_agent import public_provider_url, redact_provider_error
+from baselines.llm_agent import (
+    INVALID_MODEL_DECISION_DOMINANTS,
+    public_provider_url,
+    redact_provider_error,
+)
 from core import Action, EvidenceLogger, ToolCall
 from core.event_protocol import (
     EVENT_DECISION_CONTRACT_VERSION,
@@ -56,7 +60,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LOGGER = logging.getLogger(__name__)
 EVALUATION_PROTOCOL_VERSION = "2.1"
 EVALUATION_IMPLEMENTATION_FINGERPRINT = (
-    "protocol-2.1-v21-quality-maximal-five-group-v14"
+    "protocol-2.1-v21-opportunity-aware-five-group-v15"
 )
 MAX_WITHIN_TICK_INVESTIGATION_CALLS = 2
 WITHIN_TICK_COMMIT_CALL_RESERVE = 1
@@ -843,6 +847,29 @@ def _terminal_response_window_reasons(
     )
 
 
+def _terminal_interrupt_reasons(
+    observation: dict[str, Any],
+    *,
+    answered_warnings: list[str],
+    include_tool_feedback: bool = False,
+) -> list[str]:
+    """Separate residual safety state from new unanswered terminal alarms.
+
+    Only identical warning markers presented to a successful decision on the
+    immediately preceding transition qualify. Native events, changed warnings
+    and explicit response-window failures keep their ordinary semantics.
+    """
+    terminal_observation = dict(observation)
+    terminal_observation["__last_early_stop_warnings__"] = [
+        warning
+        for warning in observation.get("__last_early_stop_warnings__") or []
+        if warning not in answered_warnings
+    ]
+    return _autonomy_interrupt_reasons(
+        terminal_observation, include_tool_feedback=include_tool_feedback
+    )
+
+
 def _native_decision_opportunity(
     observation: dict[str, Any],
     *,
@@ -967,7 +994,9 @@ def _materialized_autonomy_window(
             )
             if anonymous_key is not None:
                 pending_key = anonymous_key
-        if call is None and len(current_plan_calls) == 1:
+        if call is None and len(current_plan_calls) == 1 and (
+            call_id is None or current_plan_calls[0].call_id is None
+        ):
             call = current_plan_calls[0]
             if id(call) not in matched_call_ids:
                 pending_key = str(call.call_id or "") or None
@@ -1190,6 +1219,8 @@ def _run_episode_loop(
     agent_visible_evidence_ids: set[str] = set()
     pending_plan_requests: dict[str, ToolCall] = {}
     terminal_unanswered_interrupt_reasons: list[str] = []
+    answered_warnings: list[str] = []
+    final_model_response_failure: dict[str, Any] | None = None
     terminal_response_window_reasons_seen: list[str] = []
     terminal_response_window_extended_reasons: set[str] = set()
     response_window_extensions = 0
@@ -1703,6 +1734,9 @@ def _run_episode_loop(
                     canonical_tool_specs
                 ),
                 "pre_action_observation": canonical_observation,
+                "presented_early_stop_warnings": list(
+                    obs.get("__last_early_stop_warnings__") or []
+                ),
                 "available_tool_schema": canonical_tool_specs,
                 "requested_review_tick": requested_review_tick,
                 "backend_review_deadline_tick": None,
@@ -1760,6 +1794,36 @@ def _run_episode_loop(
                 decision_envelope["provider_status"] = "failed"
         elif decision_envelope is not None:
             decision_envelope["provider_status"] = provider_status
+        answered_warnings = (
+            list(obs.get("__last_early_stop_warnings__") or [])
+            if decision_envelope is not None
+            and provider_status in {"success", "not_applicable"}
+            and action.dominant not in INVALID_MODEL_DECISION_DOMINANTS
+            else []
+        )
+        final_model_response_failure = (
+            {
+                "model_decision_index": model_decision_ticks,
+                "simulator_tick": current_tick,
+                "dominant": action.dominant,
+                "provider_status": provider_status,
+                "presented_warnings": list(
+                    decision_envelope["presented_early_stop_warnings"]
+                ),
+                "pre_action_observation_sha256": decision_envelope[
+                    "pre_action_observation_sha256"
+                ],
+                "provider_request_sequences": [
+                    request["sequence"]
+                    for request in decision_envelope.get("provider_requests") or []
+                    if "sequence" in request
+                ],
+            }
+            if decision_envelope is not None
+            and provider_status == "success"
+            and action.dominant in INVALID_MODEL_DECISION_DOMINANTS
+            else None
+        )
         actions.append(action)
         reconcile_control_receipts = getattr(
             agent,
@@ -2082,7 +2146,10 @@ def _run_episode_loop(
                 }
             )
         if ret.done:
-            response_reasons = _autonomy_interrupt_reasons(obs)
+            response_reasons = _terminal_interrupt_reasons(
+                obs, answered_warnings=answered_warnings,
+                include_tool_feedback=True,
+            )
             response_reasons.extend(terminal_response_window_reasons_seen)
             if provider_retry_tick is not None:
                 response_reasons.append("provider_retry")
@@ -2131,9 +2198,9 @@ def _run_episode_loop(
     # Whether the backend returned ``done`` or the configured horizon was
     # exhausted, the final observation has no subsequent agent response
     # window. Preserve any newly visible interrupt as a release blocker.
-    terminal_unanswered_interrupt_reasons = _autonomy_interrupt_reasons(
+    terminal_unanswered_interrupt_reasons = _terminal_interrupt_reasons(
         obs,
-        include_tool_feedback=False,
+        answered_warnings=answered_warnings,
     )
     terminal_unanswered_interrupt_reasons.extend(
         terminal_response_window_reasons_seen
@@ -2144,6 +2211,25 @@ def _run_episode_loop(
         set(terminal_unanswered_interrupt_reasons)
     )
     terminal_feedback_reasons = _tool_feedback_interrupt_reasons(obs)
+    observed_invalid_terminal_response = bool(
+        final_model_response_failure
+        and terminal_unanswered_interrupt_reasons == ["safety_warning"]
+        and not pending_action_deadlines
+        and not terminal_response_window_reasons_seen
+        and provider_retry_tick is None
+        and provider_failure_count == 0
+        and not _terminal_interrupt_reasons(
+            obs,
+            answered_warnings=final_model_response_failure["presented_warnings"],
+        )
+    )
+    if observed_invalid_terminal_response:
+        final_model_response_failure["terminal_warnings"] = list(
+            obs.get("__last_early_stop_warnings__") or []
+        )
+    terminal_release_ready = not (
+        pending_action_deadlines or terminal_unanswered_interrupt_reasons
+    )
 
     # v0.2.1: per-episode reflection hook for Reflexion-style agents.
     # v0.2.2 F-03: pass the accumulated episode return (not the last tick).
@@ -2203,9 +2289,17 @@ def _run_episode_loop(
             "violations": event_contract_violations,
         },
         "terminal_integrity": {
-            "release_ready": not (
-                pending_action_deadlines
-                or terminal_unanswered_interrupt_reasons
+            "release_ready": terminal_release_ready,
+            "collection_complete": (
+                terminal_release_ready or observed_invalid_terminal_response
+            ),
+            "terminal_disposition": (
+                "observed_invalid_terminal_model_response"
+                if observed_invalid_terminal_response
+                else "complete" if terminal_release_ready else "incomplete_collection"
+            ),
+            "model_response_failure": (
+                final_model_response_failure if observed_invalid_terminal_response else None
             ),
             "unresolved_pending_actions": dict(
                 sorted(pending_action_deadlines.items())
@@ -2214,6 +2308,11 @@ def _run_episode_loop(
                 terminal_unanswered_interrupt_reasons
             ),
             "terminal_feedback_reasons": terminal_feedback_reasons,
+            "answered_persistent_warnings": [
+                warning
+                for warning in obs.get("__last_early_stop_warnings__") or []
+                if warning in answered_warnings
+            ],
             "response_window_extensions": response_window_extensions,
         },
         "event_adaptive_autonomy": {
@@ -2618,6 +2717,7 @@ def _run_one_with_environment(
                 payload={
                     "lp_optimum_cost": float(lp_optimum),
                     "objective_component": objective_component,
+                    "optimality_feasibility": gt.get("optimality_feasibility"),
                     "actual_objective_cost": (
                         float(gt["cost_components"][objective_component])
                         if objective_component
@@ -2680,6 +2780,7 @@ def _run_one_with_environment(
         foresight_summary=foresight,
         lp_optimum=lp_optimum,
         optimality_objective_component=optimality_objective_component,
+        optimality_feasibility=gt.get("optimality_feasibility"),
         difficulty_level=str(scenario.get("difficulty_level", "basic")),
         scenario_signature=recompute_signature_with_seed(scenario, seed, spec),
         stale_observation_records=stale_observation_records,

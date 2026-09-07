@@ -41,6 +41,8 @@ def _identity(
     provider_rpd_limit: int | None = None,
     provider_rate_limit_scope: str | None = None,
     safety_profile: str = "domain_neutral_hold",
+    reasoning_effort_format: str = "auto",
+    thinking_type: str | None = None,
 ) -> dict:
     optional: dict = {
         "formal_runtime_binding": formal_runtime_binding
@@ -86,6 +88,8 @@ def _identity(
         formal_manifest_sha256="b" * 64,
         implementation_tree_sha256="c" * 64,
         safety_profile=safety_profile,
+        reasoning_effort_format=reasoning_effort_format,
+        thinking_type=thinking_type,
         **optional,
     )
 
@@ -349,6 +353,8 @@ def _episode_identity() -> dict:
             "provider_rpd_limit": 0,
             "provider_rate_limit_scope": None,
             "reasoning_effort": None,
+            "reasoning_effort_format": "auto",
+            "thinking_type": None,
         },
         "interrupt_contract": {
             "behavioral_state_transactional": True,
@@ -2344,6 +2350,8 @@ def test_formal_episode_row_uses_relative_subprocess_log_path(
         out_dir,
         config,
     )
+    Path(job["log_path"]).parent.mkdir(parents=True, exist_ok=True)
+    Path(job["log_path"]).write_text("stub subprocess failed\n")
     monkeypatch.setattr(
         batch,
         "run_subprocess_with_watchdog",
@@ -2594,3 +2602,26 @@ def test_finalize_invalidates_old_manifest_before_derived_artifacts(
     assert observed["blockers"] == ["finalization_in_progress"]
     persisted = json.loads((out_dir / "RUN_MANIFEST.json").read_text())
     assert persisted == observed
+
+
+def test_native_thinking_controls_bind_namespace_runner_and_resume(tmp_path):
+    identity = _identity(reasoning_effort_format="native", thinking_type="enabled")
+    out_dir, config = batch.initialize_run_directory(tmp_path, identity)
+    job = _job(config["batch_treatment_sha256"])
+    job["trajectory_dir"] = str(out_dir / "episode")
+    command = batch._command_for_job(job, config, SimpleNamespace(api_key_env="T_KEY", base_url=None, responses_base_url=None))
+    assert command[command.index("--reasoning-effort-format") + 1] == "native"
+    assert command[command.index("--thinking-type") + 1] == "enabled"
+    changed = _identity(reasoning_effort_format="openrouter", thinking_type="enabled")
+    changed_dir, _ = batch.resolve_run_directory(tmp_path, changed, create=False)
+    assert changed_dir != out_dir
+    assert not changed_dir.exists()
+    config["batch_treatment_identity"]["model_shard"]["thinking_type"] = "disabled"
+    (out_dir / "run_config.json").write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="incompatible"):
+        batch.resolve_run_directory(tmp_path, identity, create=False)
+
+
+def test_explicit_thinking_rejects_unsupported_transport_before_launch():
+    with pytest.raises(ValueError, match="Chat Completions"):
+        _identity(api_mode="responses", reasoning_effort_format="native", thinking_type="enabled")

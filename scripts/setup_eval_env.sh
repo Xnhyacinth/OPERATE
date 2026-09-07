@@ -146,6 +146,23 @@ RUNTIME_BUNDLE_MANIFEST="$RUNTIME_DATA_DIR/MANIFEST.json"
 	echo "FATAL: runtime companion manifest was not installed"
 	exit 1
 }
+RELEASE_ID="$("$PY" - "$RUNTIME_BUNDLE_MANIFEST" <<'RELEASE_SELECTION'
+import json
+import re
+import sys
+from pathlib import Path
+
+release_id = json.loads(Path(sys.argv[1]).read_text()).get("release_id")
+if not isinstance(release_id, str) or re.fullmatch(r"operate_v\d+_\d+_\d+", release_id) is None:
+    raise SystemExit("FATAL: invalid installed release identifier")
+print(release_id)
+RELEASE_SELECTION
+)"
+RELEASE_DIR="$REPO/release/$RELEASE_ID"
+[ -f "$RELEASE_DIR/manifest.json" ] || {
+	echo "FATAL: installed runtime has no matching code release: $RELEASE_ID"
+	exit 1
+}
 CANDIDATE_EVIDENCE_REQUIRED="$("$PY" - "$RUNTIME_BUNDLE_MANIFEST" <<'PY'
 import json
 import sys
@@ -168,13 +185,13 @@ fi
 # ── 5. Optional per-backend smoke ────────────────────────────────────
 if [ "$SMOKE" -eq 1 ]; then
 	log "per-backend smoke (one wait_only episode each)"
-	OPERATE_TRAFFIC_BACKEND_REAL=1 OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1 "$PY" - <<'PY'
+	OPERATE_TRAFFIC_BACKEND_REAL=1 OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1 "$PY" - "$RELEASE_DIR" <<'PY'
 import json
 import subprocess
 import sys
 from pathlib import Path
 
-core = json.loads(Path("release/operate_v0_61_0/core_suite.json").read_text())
+core = json.loads((Path(sys.argv[1]) / "core_suite.json").read_text())
 by_backend = {}
 for row in core["scenarios"]:
     by_backend.setdefault(row["backend_kind"], row)
@@ -193,7 +210,7 @@ PY
 fi
 
 log "setup complete"
-RELEASE_MANIFEST="$REPO/release/operate_v0_61_0/manifest.json"
+RELEASE_MANIFEST="$RELEASE_DIR/manifest.json"
 if [ -f "$RELEASE_MANIFEST" ]; then
 	"$PY" - "$RELEASE_MANIFEST" <<'PY'
 import json
@@ -217,5 +234,5 @@ PY
 else
 	warn "release manifest not found: $RELEASE_MANIFEST"
 fi
-echo "  Verify release:   .venv/bin/python scripts/verify_release_integrity.py release/operate_v0_61_0"
+echo "  Verify release:   .venv/bin/python scripts/verify_release_integrity.py release/$RELEASE_ID"
 echo "  Formal commands:  docs/FORMAL_EVALUATION.md"

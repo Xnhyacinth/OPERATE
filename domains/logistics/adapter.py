@@ -33,12 +33,17 @@ from core import (
     TickBudget,
     ToolContext,
     ToolRegistry,
+    ToolSpec,
     arm_dilemmas,
     safe_dataclass_to_dict,
 )
+from core.common_tools import commit_to_plan_handler, plan_autonomy_properties
 from core.difficulty_levels import canonical_difficulty_level
 from core.evidence import control_summary_from_evidence
-from core.world_evolution_contract import canonicalize_runtime_events
+from core.world_evolution_contract import (
+    canonicalize_runtime_events,
+    realized_event_evidence_tick,
+)
 from domains.registry import apply_supervisory_cadence
 
 from .backends.pyvrp_cvrp import PyvrpCvrpBackend
@@ -192,6 +197,7 @@ class LogisticsEnvironment(POMDPEnvironment):
         assert self._fog is not None and self._evidence is not None
         assert self._dilemmas is not None and self._belief is not None
 
+        step_evidence_start = len(self._evidence.items())
         ctx = ToolContext(
             tick=self._tick,
             seed=int(self._seed_obj.seed if self._seed_obj else 0),
@@ -343,7 +349,7 @@ class LogisticsEnvironment(POMDPEnvironment):
             ev["evidence_ids"] = event_evidence_ids
             evidence_id = self._evidence.log(
                 kind="realized_event",
-                tick=self._tick,
+                tick=realized_event_evidence_tick(ev, self._tick),
                 payload=dict(ev),
                 source="engine",
             )
@@ -432,8 +438,7 @@ class LogisticsEnvironment(POMDPEnvironment):
             ),
             evidence_ids=[
                 i.evidence_id
-                for i in self._evidence.items()
-                if i.tick == self._tick - 1
+                for i in self._evidence.items()[step_evidence_start:]
             ],
             extra={
                 "dilemmas_triggered": [d.dilemma_id for d in triggered],
@@ -481,6 +486,8 @@ class LogisticsEnvironment(POMDPEnvironment):
                 for d in self._dilemmas.record.dilemmas_triggered
                 if d.dilemma_id not in self._dilemmas.record.choices
             ]
+        # Adapter ticks are decision coordinates, independent of native time.
+        raw["tick"] = self._tick
         return raw
 
     def ground_truth(self) -> dict[str, Any]:
@@ -488,6 +495,35 @@ class LogisticsEnvironment(POMDPEnvironment):
         gt = self._backend.snapshot()
         gt["per_customer_unmet_units"] = self._backend.per_customer_unmet_units()
         gt["cost_components"] = self._backend.ground_truth_costs()
+        if self._seed_obj.backend_kind in {
+            "pyvrp_cvrp", "pyvrp_vrptw", "pyvrp_lastmile",
+        }:
+            customers = [
+                entity for entity in gt.get("entities", {}).values()
+                if entity.get("kind") == "customer"
+            ]
+            unserved = sum(entity.get("served") is not True for entity in customers)
+            records = self._backend.scoring_records()
+            capacity_violations = sum(int(row.get("n_overloads", 0)) for row in records)
+            window_violations = sum(
+                int(row.get("n_voltage_violations", 0)) for row in records
+            )
+            gt["optimality_feasibility"] = {
+                "contract": "routing_reference_comparability_v1",
+                "feasible": (
+                    bool(customers) and unserved == 0
+                    and capacity_violations == 0 and window_violations == 0
+                ),
+                "unserved_customers": unserved,
+                "capacity_violations": capacity_violations,
+                "time_window_violations": window_violations,
+                # The cached heuristic uses integer distances and closed depot
+                # tours; live costs use open continuous routes, traffic premiums,
+                # and dynamic demand. Neither service success nor a low cost
+                # repairs that objective mismatch. All policies get the same N/A.
+                "comparable": False,
+                "reason": "closed_integer_reference_vs_open_dynamic_cost",
+            }
         if self._seed_obj.backend_config.get("task_requirements") and self._evidence:
             gt["control_summary"] = control_summary_from_evidence(
                 self._evidence
@@ -692,6 +728,34 @@ def _register_native_tools(
         from .backends.orgym_invmgmt import register_orgym_inventory_tools
 
         register_orgym_inventory_tools(reg, backend)
+        reg.register(
+            ToolSpec(
+                name="commit_to_plan",
+                description="Record or revise an inventory replenishment plan and demand predictions.",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "plan_id": {"type": "string"},
+                        "rationale": {"type": "string"},
+                        "replaces_plan_id": {"type": "string"},
+                        "revision_reason": {"type": "string"},
+                        "trigger_evidence_ids": {
+                            "type": "array", "items": {"type": "string"},
+                        },
+                        **plan_autonomy_properties(),
+                        "predicted_events": {
+                            "type": "array", "items": {"type": "object"},
+                        },
+                    },
+                    "required": ["plan_id"],
+                },
+                handler=commit_to_plan_handler(env, include_horizon_ticks=False),
+                state_changing=False,
+                semantic_role="planning",
+                native_target_kind="standing_plan",
+                cost_units=0.0,
+            )
+        )
         return
     from .native_tools import register_logistics_tools
 
