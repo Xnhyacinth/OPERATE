@@ -6,6 +6,7 @@
   <p>
     <a href="https://github.com/Xnhyacinth/OPERATE/actions/workflows/ci.yml"><img src="https://github.com/Xnhyacinth/OPERATE/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
     <a href="https://huggingface.co/datasets/Xnhyacinth/OPERATE"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-Full%20%7C%20Lite-FFD21E" alt="Hugging Face dataset: Full and Lite" /></a>
+    <a href="https://huggingface.co/collections/Xnhyacinth/operate-6a9ed166a0c8cd671910ca1a"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Collection-OPERATE-FFD21E" alt="Hugging Face collection: OPERATE" /></a>
     <img src="https://img.shields.io/badge/Full-769%20scenarios-0F766E" alt="Full: 769 scenarios" />
     <img src="https://img.shields.io/badge/Lite-193%20scenarios-0EA5A4" alt="Lite: 193 scenarios" />
     <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white" alt="Python 3.10 through 3.14" /></a>
@@ -20,6 +21,7 @@ the environment or the judge.
 
 [Documentation](docs/README.md) ·
 [Hugging Face data](https://huggingface.co/datasets/Xnhyacinth/OPERATE) ·
+[Hugging Face collection](https://huggingface.co/collections/Xnhyacinth/operate-6a9ed166a0c8cd671910ca1a) ·
 [Evaluation protocol](docs/FORMAL_EVALUATION.md) ·
 [Data provenance](docs/DATA_PROVENANCE.md)
 
@@ -153,6 +155,29 @@ uv run python scripts/verify_release_integrity.py benchmark
 uv run python run.py \
   --scenario datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high \
   --agent wait_only --seed 42
+```
+
+## Run Full / Core
+
+The official Full track is the 769-row catalog in `benchmark/core_suite.json`.
+Use `run_full.py`; it expands that suite and does not read a private
+qualification manifest.
+
+```bash
+OPERATE_TRAFFIC_BACKEND_REAL=1 \
+OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1 \
+uv run python run_full.py \
+  --output-dir batch_results/full/my_model \
+  --models my-model \
+  --api-key-env API_KEY \
+  --base-url-env BASE_URL \
+  --api-mode chat_completions \
+  --interaction-mode logical_persistent \
+  --seed-mode scenario --prompt-mode strict \
+  --model-context-window-tokens 131072 \
+  --model-max-output-tokens 32768 \
+  --temperature 0 --max-tokens 32768 \
+  --save-trajectories --finalize
 ```
 
 ## Run OPERATE-Lite

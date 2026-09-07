@@ -31,10 +31,7 @@ DEFAULT_SCENARIO = REPO_ROOT / (
     "microgrid_economic_dispatch_24h/deep_planning/high/"
     "native_state_loss_chicago_high_s61.yaml"
 )
-DEFAULT_CORE_SELECTION = REPO_ROOT / (
-    "release/operate_v0_58_0_candidate/operate_v058_formal/"
-    "refined_core_selection_protocol2_v21.json"
-)
+DEFAULT_CORE_SELECTION = REPO_ROOT / "benchmark" / "core_suite.json"
 DEFAULT_OUTPUT = REPO_ROOT / (
     "reports/agency/microgrid_natural.json"
 )

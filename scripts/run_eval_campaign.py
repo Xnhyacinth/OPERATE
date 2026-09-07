@@ -117,7 +117,8 @@ def build_command(root: Path, out: Path, job: dict, *, finalize=False) -> list[s
     output_tokens = int(job.get("output_tokens", 32000))
     if not 0 < output_tokens <= int(job["max_output"]):
         raise ValueError("output reserve exceeds route capability")
-    manifest = root / job.get("formal_manifest", "release/operate_v0_61_0/manifest.json")
+    manifest_rel = job.get("formal_manifest", "benchmark/manifest.json")
+    manifest = root / manifest_rel
     if setting == "realtime_persistent":
         if not job.get("suite_path"):
             raise ValueError("realtime campaign requires an explicit suite_path")

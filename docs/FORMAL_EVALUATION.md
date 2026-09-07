@@ -14,7 +14,7 @@ This runbook applies to the current 769-row public Core. The
   natural-language prompt. After the mission briefing, the model is called
   only for typed wakeups, actionable feedback, scheduled reviews, or required
   receipt reconciliation.
-- Every run is bound to the exact release manifest, model/provider route,
+- Every run is bound to the current catalog, model/provider route,
   harness, prompt and context profile, generation limits and implementation
   tree through the agent treatment hash. Concurrency is separately immutable
   in the run scope and output namespace.
@@ -84,6 +84,11 @@ backend with a mock or emulated fallback in a formal shard.
 Start a provider shard only after the dataset/runtime integrity check passes.
 This reads and verifies existing artifacts; it does not execute calibration.
 
+Public logical Full and Lite shards use `run_full.py` and `run_lite.py` against
+`benchmark/`. They do not take a private qualification manifest. The realtime
+CLI still requires `--formal-manifest`; that file is not shipped in this
+repository, so public users should use the logical runners.
+
 The examples read the credential from `API_KEY` and the OpenAI-compatible
 route from `BASE_URL`. Export both securely before executing a shard; no
 maintainer shell configuration is required. Never place the credential value
@@ -115,10 +120,10 @@ These are explicit example bindings, not auto-detected provider guarantees.
 Verify your exact route's advertised limits and account quota before execution;
 different bindings require a new treatment and output namespace.
 
-The promoted v0.62 Core contains no Grid2Op-backed row, so the manifest-required
+The current Core contains no Grid2Op-backed row, so the catalog-required
 global scheduler may use the provider-specific worker counts above. If a later
 Core contains any Grid2Op row, formal startup fails closed for more than one
-worker; that release must use a new output namespace with `max-workers=1`.
+worker; that run must use a new output namespace with `max-workers=1`.
 A different worker count is always a different run scope and is not a
 compatible formal checkpoint.
 
@@ -164,9 +169,8 @@ export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 : "${RPD_LIMIT:?set the applicable free-tier RPD limit}"
 
-PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
-  --output-dir batch_results/formal/logical_persistent/glm_5_2_free_w8 \
-  --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
+PYTHONPATH=. .venv/bin/python run_full.py \
+  --output-dir batch_results/full/logical_persistent/glm_5_2_free_w8 \
   --models z-ai/glm-5.2:free \
   --api-key-env API_KEY --base-url-env BASE_URL \
   --api-mode chat_completions --stream-chat-completions \
@@ -184,7 +188,7 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
   --persistent-context-max-chars 512000 \
   --persistent-memory-max-items 128 \
   --scheduler-mode global --max-workers 8 \
-  --save-trajectories --resume --formal-run --finalize --dry-run
+  --save-trajectories --resume --finalize --dry-run
 ```
 
 A second route has a separate complete command. Concurrency is fixed at 16.
@@ -198,9 +202,8 @@ export BASE_URL='https://copilot.tencent.com/v2'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
-PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
-  --output-dir batch_results/formal/logical_persistent/hy3_ioa_w16 \
-  --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
+PYTHONPATH=. .venv/bin/python run_full.py \
+  --output-dir batch_results/full/logical_persistent/hy3_ioa_w16 \
   --models hy3-ioa \
   --api-key-env API_KEY --base-url-env BASE_URL \
   --api-mode chat_completions --stream-chat-completions \
@@ -216,7 +219,7 @@ PYTHONPATH=. .venv/bin/python scripts/batch_llm_eval.py \
   --persistent-context-max-chars 512000 \
   --persistent-memory-max-items 128 \
   --scheduler-mode global --max-workers 16 \
-  --save-trajectories --resume --formal-run --finalize --dry-run
+  --save-trajectories --resume --finalize --dry-run
 ```
 
 Lite is not a Full formal shard. The native GLM-5.3-Flash Lite command uses
@@ -266,12 +269,12 @@ drift are recorded as failures; the runner does not silently convert them to
 
 ## Realtime supervision shards
 
-Realtime uses the same 769 manifest-selected rows but writes a separate
-supervision scorecard. The suite argument is the manifest-bound readiness
-artifact restored by the runtime companion, not an independently selected
-scenario list. Its dry-run validates the treatment and prints the derived hash
-directory without creating it; remove only `--dry-run` to execute and retain
-`--resume` for recovery.
+Realtime uses the same 769 Core rows but writes a separate supervision
+scorecard. The suite is `benchmark/core_suite.json`. The realtime CLI also
+requires `--formal-manifest`, which is a private qualification binding and is
+not present in the public tree. Public evaluation uses `run_full.py` /
+`run_lite.py`. The commands below document the realtime flags and provider
+bindings for maintainers who have that private manifest.
 
 OpenAI-compatible GLM:
 

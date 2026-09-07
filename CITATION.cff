@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 title: "OPERATE: Benchmarking Persistent Operational Agency in Source-Grounded Executable Systems"
-message: If you use this benchmark, cite the repository and the exact release manifest evaluated.
+message: If you use this benchmark, cite the GitHub repository, Git commit, and Hugging Face dataset revision.
 type: software
 authors:
   - name: Xnhyacinth

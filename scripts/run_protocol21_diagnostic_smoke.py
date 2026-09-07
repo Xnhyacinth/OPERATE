@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Run a strict baseline smoke over the non-release 40-row diagnostic slice.
+"""Run a baseline smoke over an explicit scenario slice.
 
-This runner intentionally calls the same single-episode path as formal
-evaluation, but writes only a diagnostic report.  It never updates a Core,
-manifest, leaderboard, or release artifact.
+This runner calls the same single-episode path as evaluation, but writes only
+a diagnostic report. It never updates a Core, catalog, or leaderboard.
 """
 
 from __future__ import annotations
@@ -36,13 +35,7 @@ from core.protocol21_evidence import (  # noqa: E402
 from core.scenario_validator import validate_scenario_yaml  # noqa: E402
 from runner.episode import run_one  # noqa: E402
 
-DEFAULT_SLICE = REPO_ROOT / (
-    "release/operate_v0_58_0_candidate/operate_v058_formal/diagnostic/"
-    "diagnostic_slice.json"
-)
-DEFAULT_OUTPUT = REPO_ROOT / (
-    "release/operate_v0_58_0_candidate/operate_v058_formal/diagnostic/smoke"
-)
+DEFAULT_OUTPUT = REPO_ROOT / "output" / "diagnostic_smoke"
 DEFAULT_AGENTS = ("wait_only", "random", "greedy_heuristic", "oracle_offline")
 REQUIRED_RESULT_KEYS = (
     "scenario_id",
@@ -615,7 +608,7 @@ def build_report(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--slice", type=Path, default=DEFAULT_SLICE)
+    parser.add_argument("--slice", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--agents", nargs="+", default=list(DEFAULT_AGENTS))
     parser.add_argument("--check-profile", choices=["strict", "runtime_installation"], default="strict")
