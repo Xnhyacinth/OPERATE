@@ -38,8 +38,9 @@ are linked to recorded evidence.
 
 This public dataset is the runtime companion to the single current state of the
 [OPERATE code repository](https://github.com/Xnhyacinth/OPERATE). It is public,
-ungated, and intentionally has no selectable public version series. For a
-formal run, record the exact 40-character HF commit SHA shown by the Hub.
+ungated, and intentionally has no selectable public version series. It belongs
+to the [OPERATE collection](https://huggingface.co/collections/Xnhyacinth/operate-6a9ed166a0c8cd671910ca1a).
+For a formal run, record the exact 40-character HF commit SHA shown by the Hub.
 
 Updates accumulate as commits; the current tree contains only the latest Full,
 Lite and runtime artifacts. See the repository
@@ -186,6 +187,6 @@ See the
 and [data provenance](https://github.com/Xnhyacinth/OPERATE/blob/main/docs/DATA_PROVENANCE.md).
 
 When reporting results, cite the repository plus the exact Git commit, HF
-revision, release manifest, treatment hash, and model/provider binding. Citation
+revision, treatment hash, and model/provider binding. Citation
 metadata is provided in
 [`CITATION.cff`](https://github.com/Xnhyacinth/OPERATE/blob/main/CITATION.cff).

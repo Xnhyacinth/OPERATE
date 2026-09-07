@@ -23,6 +23,14 @@ def job(**updates):
     )
 
 
+def test_campaign_defaults_to_public_catalog():
+    command = build_command(Path("/runtime"), Path("/out"), job())
+    assert (
+        command[command.index("--formal-manifest") + 1]
+        == "/runtime/benchmark/manifest.json"
+    )
+
+
 def test_campaign_uses_explicit_new_manifest():
     command = build_command(
         Path("/runtime"),

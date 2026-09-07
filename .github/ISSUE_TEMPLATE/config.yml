@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Hugging Face dataset
+    url: https://huggingface.co/datasets/Xnhyacinth/OPERATE
+    about: Public runtime companion and Full/Lite Parquet catalogs
+  - name: OPERATE collection
+    url: https://huggingface.co/collections/Xnhyacinth/operate-6a9ed166a0c8cd671910ca1a
+    about: Public OPERATE Hub collection

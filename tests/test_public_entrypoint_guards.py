@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import run_full
 import run_lite
 
 
@@ -44,6 +45,24 @@ def test_lite_does_not_append_user_positionals_to_fixed_scenarios(monkeypatch):
     monkeypatch.setattr(run_lite.batch_llm_eval, "main", parse_scope)
     with pytest.raises(SystemExit):
         run_lite.main()
+
+
+@pytest.mark.parametrize("option", [
+    "--scenarios=other", "--scenario-slice=full", "--formal-r",
+    "--formal-manifest=full.json", "--finalize-only", "--finalize-o",
+    "--retry-cells=other.json",
+])
+def test_full_rejects_scope_overrides(monkeypatch, option):
+    monkeypatch.setattr(sys, "argv", ["run_full.py", option])
+    monkeypatch.setattr(run_full.batch_llm_eval, "main", lambda: 0)
+    with pytest.raises(SystemExit, match="benchmark/core_suite.json"):
+        run_full.main()
+
+
+def test_full_allows_exact_finalize_option(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["run_full.py", "--finalize"])
+    monkeypatch.setattr(run_full.batch_llm_eval, "main", lambda: 0)
+    assert run_full.main() == 0
 
 
 def test_setup_backend_import_failure_is_fatal():

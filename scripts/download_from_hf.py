@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Download and verify the public OPERATE runtime companion.
 
-The default bundle complements a source-bound GitHub checkout with hash-bound
-admission evidence and native runtime assets. It is not a portable Core and
-requires the exact local release manifest, source assets, and package locks.
-Compact admission evidence keeps its historical implementation identity;
-current evaluation runs record their own implementation identity separately.
+The default bundle complements a GitHub checkout with hash-bound native
+runtime assets. Public companions restore backends and bundled sources; they
+do not require a private qualification manifest under ``release/``.
+Current evaluation runs record their own implementation identity.
 
 Authentication is optional for the public dataset. If present, ``HF_TOKEN`` or
 the token returned by ``huggingface_hub.get_token()`` is passed through.
@@ -1648,25 +1647,31 @@ def _validate_backend_runtime_closure_binding(
         and closure.get("backend_links") == links
         and closure.get("external_sources") == (manifest.get("external_sources") or {})
         and closure.get("runtime_packages") == (manifest.get("runtime_packages") or {})
-        and isinstance(release_manifest, dict)
-        and release_manifest.get("release_id") == release_id
-        and isinstance(replay, dict)
-        and closure.get("source_suite_sha256") == replay.get("source_suite_sha256")
-        and isinstance(release_binding, dict)
         and set(binding) == binding_fields
-        and set(release_binding) == binding_fields
-        and release_binding.get("path") == relative_text
-        and binding
-        == {
-            **release_binding,
-            "path": relative_text,
-        }
         and binding["sha256"] == expected
         and binding["schema_version"] == closure["schema_version"]
         and binding["identity_sha256"] == identity
         and all(
             binding[field] == summary[field]
             for field in summary_fields & binding_fields
+        )
+        and (
+            manifest.get("bundle_kind") == "public_runtime_companion"
+            or (
+                isinstance(release_manifest, dict)
+                and release_manifest.get("release_id") == release_id
+                and isinstance(replay, dict)
+                and closure.get("source_suite_sha256")
+                == replay.get("source_suite_sha256")
+                and isinstance(release_binding, dict)
+                and set(release_binding) == binding_fields
+                and release_binding.get("path") == relative_text
+                and binding
+                == {
+                    **release_binding,
+                    "path": relative_text,
+                }
+            )
         )
     ):
         raise ValueError("bundle_backend_runtime_closure_binding_invalid")

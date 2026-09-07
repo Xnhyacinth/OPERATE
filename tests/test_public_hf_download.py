@@ -98,6 +98,15 @@ def test_setup_uses_canonical_versionless_downloader() -> None:
     assert "TUM-VT/sumo_ingolstadt.git sumo_ingolstadt_upstream" in setup
 
 
+def test_public_companion_skips_bundled_release_manifest() -> None:
+    source = (REPO_ROOT / "scripts" / "download_from_hf.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'manifest.get("bundle_kind") == "public_runtime_companion"' in source
+    assert "or (" in source
+    assert 'release_manifest.get("release_id") == release_id' in source
+
+
 def test_public_distribution_binding_is_exact() -> None:
     download_from_hf._validate_bundle_distribution_binding(
         {
