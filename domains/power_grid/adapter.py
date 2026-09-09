@@ -1010,14 +1010,7 @@ class PowerGridEnvironment(POMDPEnvironment):
                 },
                 source="tool",
             )
-            bind_tool_result = getattr(self._backend, "bind_tool_result", None)
-            if r.ok and callable(bind_tool_result):
-                bind_tool_result(
-                    name=r.name,
-                    call_id=r.call_id,
-                    evidence_id=r.evidence_id,
-                    payload=r.payload,
-                )
+            self._bind_tool_result(action, r)
             call_id = str(r.call_id or "")
             if not call_id:
                 continue

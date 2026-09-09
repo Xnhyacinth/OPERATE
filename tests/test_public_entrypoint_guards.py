@@ -86,3 +86,11 @@ def test_setup_smoke_uses_existing_runner_and_propagates_failures():
         text=True, capture_output=True,
     )
     assert result.returncode != 0
+
+
+@pytest.mark.parametrize('module', [run_full, run_lite])
+def test_public_defaults_to_code_provenance_not_a_commit_gate(monkeypatch, module):
+    monkeypatch.setattr(sys,'argv',[module.__file__])
+    monkeypatch.setattr(module.batch_llm_eval,'main',lambda:0)
+    assert module.main()==0
+    assert sys.argv[sys.argv.index('--implementation-policy')+1]=='provenance'

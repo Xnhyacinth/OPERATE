@@ -209,10 +209,8 @@ class POMDPEnvironment(ABC):
         results.extend(
             result for result in allowed_results if id(result) not in used_result_ids
         )
-        calls_by_id = {call.call_id: call for call in action.tool_calls if call.call_id}
         if evidence is not None:
             for result in results:
-                call = calls_by_id.get(result.call_id)
                 linked_result_evidence_id = result.evidence_id
                 payload = {
                     "name": result.name,
@@ -222,12 +220,7 @@ class POMDPEnvironment(ABC):
                     "call_id": result.call_id,
                     "state_changing": result.state_changing,
                     "payload": result.payload,
-                    "consumes_evidence_ids": (
-                        call.consumes_evidence_ids if call is not None else None
-                    ),
-                    "depends_on_call_ids": (
-                        call.depends_on_call_ids if call is not None else None
-                    ),
+                    **self.tool_dependency_payload(action, result),
                     "interaction_stage": "investigation",
                 }
                 if linked_result_evidence_id:
@@ -238,12 +231,31 @@ class POMDPEnvironment(ABC):
                     payload=payload,
                     source="tool",
                 )
+        for result in results:
+            self._bind_tool_result(action, result)
         self._within_tick_budget_open = True
         observation = self.snapshot()
         budget_status = getattr(registry, "budget_status", None)
         if callable(budget_status):
             observation["__tool_budget__"] = budget_status()
         return observation, results
+
+    def _bind_tool_result(self, action: Action, result: ToolResult) -> None:
+        """Reconcile a receipt in either investigation or control stage.
+
+        Read-only requests can materialize previously queued controls. Bind
+        their native effects before advancing, just as for immediate controls.
+        Domain adapters override this hook when their backend needs extra
+        provenance or a different receipt signature.
+        """
+        bind = getattr(getattr(self, "_backend", None), "bind_tool_result", None)
+        if result.ok and callable(bind):
+            bind(
+                name=result.name,
+                call_id=result.call_id,
+                evidence_id=result.evidence_id,
+                payload=result.payload,
+            )
 
     def supports_control_reconciliation(self) -> bool:
         """Whether the environment exposes a two-phase control boundary.

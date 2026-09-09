@@ -11,10 +11,26 @@ def row_is_quota_exhausted(row: dict[str, Any]) -> bool:
     )
 
 
+def row_needs_repair(row: dict[str, Any]) -> bool:
+    """Keep explicit and legacy native contract failures out of model outcomes."""
+    if row.get("status") != "error":
+        return False
+    if row.get("termination_category"):
+        return row["termination_category"] == "harness_error"
+    return bool(row.get("needs_repair")) or row.get("error_type") in {
+        "ValueError", "TypeError", "AssertionError", "KeyError", "IndexError",
+        "AttributeError", "CheckpointIntegrityError",
+    }
+
+
 def execution_status_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
     """Count execution outcomes; provider availability is not task performance."""
     unavailable = [row for row in rows if row_is_quota_exhausted(row)]
     return {
+        "n_episodes_harness_error": sum(
+            row_needs_repair(row)
+            for row in rows
+        ),
         "n_episodes_ok": sum(row.get("status") == "ok" for row in rows),
         "n_episodes_error": sum(
             row.get("status") not in {"ok", "in_flight"}

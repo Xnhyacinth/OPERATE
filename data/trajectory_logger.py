@@ -336,6 +336,25 @@ class TrajectoryLogger:
         _atomic_write_bytes(path, payload)
         return path
 
+    def write_snapshot(self, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Save one immutable post-interaction input before fallible scoring."""
+        from evaluation.scoring_snapshot import encode_json
+
+        if kind not in {"completed_runtime", "scoring_inputs"}:
+            raise ValueError("unknown episode snapshot kind")
+        if self.output_dir is None:
+            raise ValueError("output_dir is required to persist a snapshot")
+        self._claim_output()
+        path = self.output_dir / f"{self.episode_id}.{kind}.json"
+        if path.exists():
+            raise FileExistsError(path)
+        encoded = json.dumps({"schema_version": "episode_scoring_snapshot_v1",
+                              "kind": kind, "payload": encode_json(payload)},
+                             sort_keys=True, ensure_ascii=False, allow_nan=False).encode("utf-8")
+        _atomic_write_bytes(path, encoded)
+        return {"path": str(path), "sha256": hashlib.sha256(encoded).hexdigest(),
+                "schema_version": "episode_scoring_snapshot_v1", "byte_count": len(encoded)}
+
     def write_semantic_ledger(
         self,
         items: list[dict[str, Any]],

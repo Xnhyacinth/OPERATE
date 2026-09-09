@@ -17,6 +17,7 @@ import os
 import re
 import sys
 import uuid
+from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -185,6 +186,25 @@ def _profile(manifest: dict[str, Any]) -> dict[str, Any]:
     ):
         raise FormalShardMergeError("profile.provider_timeout_s must be positive")
     profile["provider_timeout_s"] = float(timeout)
+    recovery_fields = (
+        "episode_checkpoint", "provider_retry_max_attempts", "provider_retry_max_elapsed_s",
+    )
+    # Preserve historical family bytes when none of the new contract exists.
+    # New shards must bind the complete recovery policy, never implicit defaults.
+    if any(field in manifest for field in recovery_fields):
+        if not all(field in manifest for field in recovery_fields):
+            raise FormalShardMergeError("recovery profile is incomplete")
+        if type(manifest["episode_checkpoint"]) is not bool:
+            raise FormalShardMergeError("profile.episode_checkpoint must be boolean")
+        _positive_int(manifest["provider_retry_max_attempts"], label="profile.provider_retry_max_attempts")
+        elapsed = manifest["provider_retry_max_elapsed_s"]
+        if (
+            type(elapsed) not in (int, float)
+            or not math.isfinite(elapsed) or elapsed <= 0
+        ):
+            raise FormalShardMergeError("profile.provider_retry_max_elapsed_s must be positive")
+        profile.update({field: manifest[field] for field in recovery_fields})
+        profile["provider_retry_max_elapsed_s"] = float(elapsed)
     return profile
 
 
@@ -434,6 +454,41 @@ def _validate_leaderboard(
     return row
 
 
+def _shard_bound_episode_paths(row: dict[str, Any], shard_dir: Path) -> dict[str, Any]:
+    """Resolve only formal artifact locators for cross-shard in-memory checks."""
+    normalized = deepcopy(row)
+    root = shard_dir.resolve()
+
+    def resolve(raw: Any) -> str:
+        if not isinstance(raw, str) or not raw:
+            raise FormalShardMergeError("source artifact path is invalid")
+        path = Path(raw)
+        path = (path if path.is_absolute() else root / path).resolve()
+        if not path.is_relative_to(root):
+            raise FormalShardMergeError("source artifact path escapes shard")
+        return str(path)
+
+    for container in (normalized, normalized.get("trajectory_summary")):
+        if not isinstance(container, dict):
+            continue
+        for field in ("trajectory_path", "evidence_path", "episode_log_path"):
+            if container.get(field) is not None:
+                container[field] = resolve(container[field])
+        progress = container.get("checkpoint_progress")
+        if isinstance(progress, dict) and "path" in progress:
+            progress["path"] = resolve(progress["path"])
+        for name, binding in container.items():
+            if name.endswith("_artifact") and isinstance(binding, dict) and "path" in binding:
+                binding["path"] = resolve(binding["path"])
+        recovery = container.get("recovery_audit")
+        if isinstance(recovery, dict) and isinstance(recovery.get("attempts"), list):
+            for attempt in recovery["attempts"]:
+                binding = attempt.get("provider_audit_artifact") if isinstance(attempt, dict) else None
+                if isinstance(binding, dict) and "path" in binding:
+                    binding["path"] = resolve(binding["path"])
+    return normalized
+
+
 def _load_episode_rows(
     shard_dir: Path,
     *,
@@ -471,6 +526,7 @@ def _load_episode_rows(
     selected = batch._select_rows_for_treatment(rows, manifest)
     if len(selected) != len(rows):
         raise FormalShardMergeError("source contains rows outside its treatment")
+    selected = [_shard_bound_episode_paths(row, shard_dir) for row in selected]
 
     pass_k = int(manifest["pass_k"])
     expected_grid = {
@@ -498,6 +554,7 @@ def _load_episode_rows(
             ),
             required_interaction_mode=FORMAL_INTERACTION_MODE,
             verify_artifact_bytes=True,
+            batch_root=shard_dir,
         )
         if not eligible:
             raise FormalShardMergeError(

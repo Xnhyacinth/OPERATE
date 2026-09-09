@@ -36,7 +36,7 @@ jobs:
       - name: Sync locked environment
         run: |
           python -m pip install uv==0.12.5
-          uv sync --frozen --python 3.14 --extra dev
+          uv sync --frozen --python 3.14 --extra dev --extra llm
       - name: Runtime and persistent-agent contracts
         run: |
           uv run --no-sync python -m pytest -q \
@@ -52,6 +52,15 @@ jobs:
             tests/test_event_response_canonical_records.py \
             tests/test_score_effect_evidence_audit.py \
             tests/test_batch_report_paths.py
+      - name: Recovery and public compatibility
+        run: |
+          uv run --no-sync python -m pytest -q \
+            -k "not real_logistics_and_llm_state_match_with_checkpoint_and_recovery" \
+            tests/test_public_code_provenance.py tests/test_campaign_cooldown_extension.py \
+            tests/test_citylearn_completed_observation.py tests/test_provider_transport_closure.py \
+            tests/test_provider_wire_recovery.py tests/test_episode_checkpoint.py \
+            tests/test_recovery_audit.py tests/test_recovery_audit_batch.py \
+            tests/test_scoring_snapshot.py
       - name: Current release contracts
         run: |
           uv run --no-sync python -m pytest -q \

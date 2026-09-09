@@ -305,7 +305,8 @@ def recovered_provider_retry_sequences(row: dict[str, Any]) -> set[int]:
     identity drift and incomplete retry chains remain ordinary audit failures.
     """
     transient = {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
-    variable_fields = {"provider_retry_index", "retry_of_request_sequence", "provider_rate_limit"}
+    variable_fields = {"provider_retry_index", "retry_of_request_sequence", "provider_rate_limit",
+                       "provider_retry_budget", "effective_timeout_s"}
     try:
         requests = row["provider_requests"]
         responses = row["provider_responses"]
@@ -328,21 +329,51 @@ def recovered_provider_retry_sequences(row: dict[str, Any]) -> set[int]:
                 continue
             chain = [root] + [sequence for sequence, request in request_map.items()
                               if request["envelope"].get("retry_of_request_sequence") == root]
-            if not 2 <= len(chain) <= 5 or chain != list(range(root, root + len(chain))):
+            root_budget = root_envelope.get("provider_retry_budget")
+            max_attempts = root_budget.get("max_attempts") if isinstance(root_budget, dict) else 5
+            if (type(max_attempts) is not int or not 2 <= len(chain) <= max_attempts
+                    or chain != list(range(root, root + len(chain)))):
                 continue
             expected = {key: value for key, value in root_envelope.items() if key not in variable_fields}
             failed: set[int] = set()
             valid = True
+            previous_elapsed = 0.0
             for index, sequence in enumerate(chain):
                 request, response, identity = request_map[sequence], response_map[sequence], identity_map[sequence]
                 envelope, payload = request["envelope"], response["response"]
                 policy = envelope.get("provider_transient_retry_policy") or {}
                 comparison = {key: value for key, value in envelope.items() if key not in variable_fields}
+                budget = envelope.get("provider_retry_budget")
+                if isinstance(root_budget, dict):
+                    if not isinstance(budget, dict):
+                        valid = False
+                        break
+                    maximum = budget.get("max_elapsed_s")
+                    elapsed = budget.get("elapsed_s")
+                    remaining = budget.get("remaining_s")
+                    timeout = envelope.get("effective_timeout_s")
+                    configured_timeout = envelope.get("timeout_s")
+                    if not (
+                        all(type(value) in (int, float) and math.isfinite(value)
+                            for value in (maximum, elapsed, remaining, timeout, configured_timeout))
+                        and maximum == root_budget.get("max_elapsed_s") == policy.get("max_elapsed_s")
+                        and budget.get("max_attempts") == max_attempts
+                        and type(budget.get("attempt")) is int and budget["attempt"] == index + 1
+                        and 0 <= previous_elapsed <= elapsed < maximum
+                        and math.isclose(remaining, maximum - elapsed, rel_tol=1e-9, abs_tol=1e-6)
+                        and 0 < timeout <= min(configured_timeout, remaining) + 1e-6
+                    ):
+                        valid = False
+                        break
+                    previous_elapsed = elapsed
+                elif budget is not None:
+                    valid = False
+                    break
                 if not (
                     comparison == expected
                     and type(envelope.get("provider_retry_index")) is int
                     and envelope["provider_retry_index"] == index
-                    and policy.get("max_retries") == 4
+                    and policy.get("max_retries") == max_attempts - 1
                     and set(policy.get("retry_reasons") or []) == transient
                     and (envelope.get("request_budget") or {}).get("status") == "within_budget"
                     and (envelope.get("provider_rate_limit") or {}).get("status") in {"acquired", "disabled"}

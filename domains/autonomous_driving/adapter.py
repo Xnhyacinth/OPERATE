@@ -20,6 +20,7 @@ from core import (
     TickBudget,
     ToolContext,
     ToolRegistry,
+    ToolResult,
 )
 from core.difficulty_levels import canonical_difficulty_level
 from domains.registry import apply_supervisory_cadence
@@ -180,12 +181,7 @@ class AutonomousDrivingEnvironment(POMDPEnvironment):
                 },
                 source="tool",
             )
-            if result.ok and result.state_changing:
-                self._backend.bind_tool_result(
-                    call_id=result.call_id,
-                    evidence_id=result.evidence_id,
-                    payload=result.payload,
-                )
+            self._bind_tool_result(action, result)
 
         record = self._backend.tick(self._tick)
         backend_evidence_id = self._evidence.log(
@@ -270,6 +266,15 @@ class AutonomousDrivingEnvironment(POMDPEnvironment):
             done=record.done,
             info=info,
         )
+
+    def _bind_tool_result(self, action: Action, result: ToolResult) -> None:
+        if result.ok and result.state_changing:
+            assert self._backend is not None
+            self._backend.bind_tool_result(
+                call_id=result.call_id,
+                evidence_id=result.evidence_id,
+                payload=result.payload,
+            )
 
     def snapshot(self) -> dict[str, Any]:
         if self._backend is None:

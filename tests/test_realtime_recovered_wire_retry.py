@@ -207,3 +207,35 @@ def test_strict_cancellation_closes_prior_retry_failures():
     assert runtime._provider_turn_audit_violations(row) == set()
     row["cancel_acknowledged"] = False
     assert runtime.recovered_provider_retry_sequences(row) == set()
+
+
+def test_explicit_retry_budget_accepts_longer_chain_but_rejects_budget_drift():
+    base = retry_row()
+    row = {**base, "provider_requests": [], "provider_responses": [], "provider_model_identities": []}
+    for index in range(6):
+        seq = index + 1
+        terminal = index == 5
+        request = deepcopy(base["provider_requests"][0])
+        response = deepcopy(base["provider_responses"][int(terminal)])
+        identity = deepcopy(base["provider_model_identities"][int(terminal)])
+        request["sequence"] = seq
+        envelope = request["envelope"]
+        envelope.update(provider_retry_index=index, retry_of_request_sequence=1 if index else None,
+                        timeout_s=300, effective_timeout_s=300,
+                        provider_retry_budget={"max_attempts": 6, "max_elapsed_s": 1800.0,
+                                               "attempt": seq, "elapsed_s": index * 10.0,
+                                               "remaining_s": 1800.0 - index * 10.0})
+        envelope["provider_transient_retry_policy"].update(max_retries=5, max_elapsed_s=1800.0)
+        identity["request_sequence"] = seq
+        response.update(sequence=seq, request_sequence=seq)
+        response["response"]["model_identity_closure"] = identity
+        request["sha256"] = digest(envelope)
+        response["sha256"] = digest(response["response"])
+        row["provider_requests"].append(request)
+        row["provider_responses"].append(response)
+        row["provider_model_identities"].append(identity)
+    assert runtime.recovered_provider_retry_sequences(row) == set(range(1, 6))
+    request = row["provider_requests"][-1]
+    request["envelope"]["provider_retry_budget"]["max_attempts"] = 7
+    request["sha256"] = digest(request["envelope"])
+    assert runtime.recovered_provider_retry_sequences(row) == set()

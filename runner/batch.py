@@ -176,11 +176,18 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
                 seed=seed, repo_root=REPO_ROOT,
             )
         traj_dir = run_options.get("trajectory_dir")
+        checkpoint_options = {}
+        if run_options.get("checkpoint_path"):
+            checkpoint_options = {
+                "checkpoint_path": Path(str(run_options["checkpoint_path"])),
+                "checkpoint_identity": run_options.get("checkpoint_identity"),
+            }
         if log_path is not None:
             with _episode_file_logging(Path(str(log_path))):
                 result = run_one(
                     scenario=scenario,
                     agent_name=agent_name,
+                    **checkpoint_options,
                     agent_kwargs=agent_kwargs,
                     seed_override=seed,
                     trajectory_dir=Path(str(traj_dir)) if traj_dir else None,
@@ -199,6 +206,7 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
             result = run_one(
                 scenario=scenario,
                 agent_name=agent_name,
+                **checkpoint_options,
                 agent_kwargs=agent_kwargs,
                 seed_override=seed,
                 trajectory_dir=Path(str(traj_dir)) if traj_dir else None,
@@ -219,6 +227,7 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
         return result
     except Exception as exc:
         from baselines.llm_agent import (  # noqa: PLC0415
+            classify_provider_error,
             provider_error_http_status,
             redact_provider_error,
         )
@@ -261,6 +270,23 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
             "error": f"{type(exc).__name__}: {public_error}",
             **details,
         }
+        reason = classify_provider_error(provider_error)
+        if type(exc).__name__ == "ProviderQuotaExhaustedError":
+            category = "quota_deferred"
+        elif reason in {"provider_transport_error", "provider_rate_limit", "provider_server_error"}:
+            category = "provider_transient_error"
+        elif type(exc).__name__ in {"ProviderCircuitOpenError", "ProviderModelIdentityError"} or (
+            http_status is not None and 400 <= http_status < 500
+        ):
+            category = "provider_configuration_error"
+        else:
+            category = "harness_error"
+        for field in ("retry_at", "budget_reason", "root_sequence", "attempts"):
+            value = getattr(exc, field, None)
+            if value is not None:
+                result[field] = value
+        result["termination_category"] = category
+        result["needs_repair"] = category == "harness_error"
         if log_path is not None:
             result["episode_log_path"] = str(log_path)
         return result

@@ -800,6 +800,7 @@ class CityLearnBackend:
         self._pending_control_evidence: dict[str, dict[str, Any]] = {}
         self._records: list[CityLearnTickRecord] = []
         self._last_reward = 0.0
+        self._last_completed_source_tick: int | None = None
 
     def reset(self, seed_obj: BuildingEnergyScenarioSeed) -> None:
         source_root = _resolve_repo_path(seed_obj.source_root, default=DEFAULT_SOURCE_ROOT)
@@ -864,6 +865,7 @@ class CityLearnBackend:
         self._pending_control_evidence = {}
         self._records = []
         self._last_reward = 0.0
+        self._last_completed_source_tick = None
 
     def _verify_native_event_contracts(self) -> None:
         """Reject source events that are not exact locked native transitions."""
@@ -1756,7 +1758,7 @@ class CityLearnBackend:
     def inspect_building_state(self, building_id: str | None = None) -> dict[str, Any]:
         if building_id is not None and building_id not in self._buildings:
             return {"_status": "error", "error_code": "DOMAIN_REJECTED", "reason": "unknown_building"}
-        index = max(0, self.current_time_step)
+        index = self._observation_source_tick()
         selected = [building_id] if building_id else self._buildings
         rows = {
             name: self._building_snapshot(self._env.buildings[self._buildings.index(name)], index)
@@ -1775,6 +1777,7 @@ class CityLearnBackend:
         ]
         observation, reward, terminated, truncated, _ = self._env.step([action])
         del observation
+        self._last_completed_source_tick = source_tick
         after_balance = [
             _current_value(building.electrical_storage, "energy_balance", source_tick)
             for building in self._env.buildings
@@ -1944,6 +1947,14 @@ class CityLearnBackend:
         self._pending_control_evidence = {}
         return record
 
+    def _observation_source_tick(self) -> int:
+        # Native step writes outputs at its input index, then advances the
+        # decision clock. The new index is an unfilled output slot. Preserve
+        # the explicit completed index, including native terminal boundaries.
+        if self._last_completed_source_tick is not None:
+            return self._last_completed_source_tick
+        return max(0, self.current_time_step)
+
     def _building_snapshot(self, building: Any, index: int) -> dict[str, Any]:
         return {
             "kind": "building",
@@ -1992,7 +2003,7 @@ class CityLearnBackend:
     def snapshot(self) -> dict[str, Any]:
         if self._env is None:
             raise RuntimeError("CityLearn backend is not reset")
-        index = max(0, self.current_time_step)
+        index = self._observation_source_tick()
         return {
             "domain": "building_energy",
             "backend_kind": self.backend_kind,

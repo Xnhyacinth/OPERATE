@@ -15,18 +15,18 @@ This runbook applies to the current 769-row public Core. The
   only for typed wakeups, actionable feedback, scheduled reviews, or required
   receipt reconciliation.
 - Every run is bound to the current catalog, model/provider route,
-  harness, prompt and context profile, generation limits and implementation
-  tree through the agent treatment hash. Concurrency is separately immutable
+  harness, prompt and context profile, generation limits. Public code identity is recorded as provenance,
+  not a commit or clean-tree admission requirement. Concurrency is separately immutable
   in the run scope and output namespace.
 - The canonical `agent_scheduled_v1` wakeup policy gives review scheduling to
   the agent, disables harness-periodic scans, delivers typed actionable events,
   and treats unknown events as non-actionable.
 
-Formal startup verifies dataset/source integrity, compatible scoring contracts,
-backend assets, provider settings and the run namespace. Historical qualification
-proof is checked against its original snapshot, not required to match the code
-of a new independent run. That run binds its actual current implementation;
-resume and merge still reject incompatible execution identities. A maintenance
+Public startup verifies dataset/source integrity, compatible scoring contracts,
+backend assets and provider settings. It does not require Git or an approved
+commit/code-tree hash. Full/Lite use `--implementation-policy provenance`;
+ordinary resume skips completed cells across code updates while preserving
+original provenance. Dataset/model/protocol changes remain separate runs. A maintenance
 fix does not require repeating the full native qualification pipeline.
 See [Validation policy](VALIDATION_POLICY.md) for affected-scope tests.
 
@@ -359,3 +359,13 @@ eligibility remains false until those provider shards are complete.
 See [`AGENTIC_INTERACTION.md`](AGENTIC_INTERACTION.md) for the event loop,
 memory, cancellation, supersession, safety-supervisor, and realtime scorecard
 contracts.
+
+## Recovery and code updates
+
+See [Framework recovery](FRAMEWORK_RECOVERY.md). Public Full/Lite default to
+code-provenance mode. Opt-in episode checkpoints require `--implementation-policy strict`
+for exact within-episode replay; this is a checkpoint safety check, not a public
+release restriction. After a behavior-changing repair, report results by their
+recorded implementation and rerun only affected invalid measurements in a new
+result namespace. Never overwrite old scores or claim repaired observations were
+presented to historical model calls.

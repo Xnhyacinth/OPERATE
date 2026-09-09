@@ -191,6 +191,14 @@ def build_command(root: Path, out: Path, job: dict, *, finalize=False) -> list[s
         cmd += ["--provider-rpd-limit", str(job["rpd"])]
     if job.get("rpm", 0) or job.get("rpd", 0):
         cmd += ["--provider-rate-limit-scope", job["quota_scope"]]
+    for field, flag in (("provider_retry_max_attempts", "--provider-retry-max-attempts"),
+                        ("provider_retry_max_elapsed_s", "--provider-retry-max-elapsed-s")):
+        if job.get(field) is not None:
+            cmd += [flag, str(job[field])]
+    if job.get("episode_checkpoint"):
+        cmd += ["--episode-checkpoint"]
+    if job.get("held_cells_path") and not finalize:
+        cmd += ["--held-cells", str(job["held_cells_path"])]
     return cmd
 
 
@@ -200,6 +208,7 @@ def choose_job(jobs: list[dict], state: dict, now: float) -> dict | None:
     ready = []
     for index, job in enumerate(jobs):
         row = state["jobs"].get(job["id"], {})
+        refresh_cell_cooldowns(row, now)
         if not job.get("enabled", True) or row.get("status") in {
             "needs_attention", "attempts_closed", "reports_ready", "reports_need_attention"
         }:
@@ -227,6 +236,152 @@ def attempt_key(result: dict) -> str:
     return json.dumps([result.get(k) for k in ["scenario_slug", "model", "seed", "pass_id"]])
 
 
+def restore_attempt_ledger(path: Path, state: dict) -> None:
+    """Rebuild lifetime budgets from durable events, never a resettable counter."""
+    if not path.exists():
+        return
+    for row in state["jobs"].values():
+        row.update(attempt_failures={}, charged_attempt_ids=[], attempt_extensions={}, legacy_unattributed_budget={})
+    for line in path.read_text().splitlines():
+        record = json.loads(line)
+        row = state["jobs"].setdefault(record["job_id"], {})
+        key = record["cell_key"]
+        if record["event"] == "attempt_charged":
+            charged = row.setdefault("charged_attempt_ids", [])
+            if record["attempt_id"] not in charged:
+                charged.append(record["attempt_id"])
+                counts = row.setdefault("attempt_failures", {})
+                counts[key] = counts.get(key, 0) + 1
+        elif record["event"] == "legacy_budget_unattributed":
+            row.setdefault("legacy_unattributed_budget", {})[key] = record["unattributed_count"]
+        elif record["event"] == "attempt_budget_extended":
+            extensions = row.setdefault("attempt_extensions", {})
+            extensions[key] = extensions.get(key, 0) + record["additional_attempts"]
+        else:
+            raise ValueError("unknown attempt ledger event")
+
+
+def charge_attempt(row: dict, job_id: str, key: str, attempt_id: str,
+                   ledger_path: Path | None) -> None:
+    charged = row.setdefault("charged_attempt_ids", [])
+    if attempt_id in charged:
+        return
+    if ledger_path is not None:
+        event(ledger_path, "attempt_charged", job_id=job_id, cell_key=key, attempt_id=attempt_id)
+    charged.append(attempt_id)
+    counts = row.setdefault("attempt_failures", {})
+    counts[key] = counts.get(key, 0) + 1
+
+
+def initialize_attempt_ledger(directory: Path, state: dict) -> Path:
+    path = directory / "attempts.jsonl"
+    if not path.exists():
+        # Import archived invocations once: manual resets must not erase history.
+        old_counts = {job_id: dict(row.get("attempt_failures", {}))
+                      for job_id, row in state["jobs"].items()}
+        atomic_json(directory / "attempt_state_before_ledger.json", state)
+        staged = directory / ".attempts.import.jsonl"
+        with staged.open("w") as handle:
+            os.chmod(staged, 0o600)
+            handle.flush()
+            os.fsync(handle.fileno())
+        for row in state["jobs"].values():
+            row.update(attempt_failures={}, charged_attempt_ids=[])
+        for archive in sorted(directory.glob("*.summary.json")):
+            payload = read_json(archive)
+            job_id = archive.name.rsplit("-", 1)[0]
+            if job_id not in state["jobs"]:
+                continue
+            row = state["jobs"][job_id]
+            for result in payload.get("dispatched_results", []):
+                if (result.get("retryable_infrastructure") and not result.get("quota_parked")
+                        and result.get("execution_started") is not False):
+                    key = attempt_key(result)
+                    identity = str(result.get("execution_attempt_id") or
+                                   f"{payload.get('started_at_utc', archive.name)}:{key}")
+                    charge_attempt(row, job_id, key, identity, staged)
+        for job_id, counts in old_counts.items():
+            row = state["jobs"][job_id]
+            for key, count in counts.items():
+                proven = row.get("attempt_failures", {}).get(key, 0)
+                if count > proven:
+                    # The old counter may include quota or interrupted work and
+                    # its manual-reset epoch is unknown. Preserve ambiguity;
+                    # never manufacture a transport attempt from this residual.
+                    event(staged, "legacy_budget_unattributed", job_id=job_id, cell_key=key,
+                          unattributed_count=count-proven, original_count=count,
+                          proven_attempt_count=proven)
+        os.replace(staged, path)
+        fd = os.open(directory, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    restore_attempt_ledger(path, state)
+    return path
+
+
+def extend_attempt_budget(path: Path, state: dict, job_id: str, key: str,
+                          additional: int, reason: str) -> None:
+    if additional <= 0 or not reason.strip():
+        raise ValueError("positive additional attempts and an audit reason are required")
+    row = state["jobs"][job_id]
+    if key not in row.get("attempt_failures", {}) and key not in row.get("legacy_unattributed_budget", {}):
+        raise ValueError("unknown attempted cell")
+    event(path, "attempt_budget_extended", job_id=job_id, cell_key=key,
+          additional_attempts=additional, reason=reason,
+          prior_charged_attempts=row.get("attempt_failures", {}).get(key, 0),
+          prior_unattributed_budget=row.get("legacy_unattributed_budget", {}).get(key, 0))
+    extensions = row.setdefault("attempt_extensions", {})
+    extensions[key] = extensions.get(key, 0) + additional
+    if row.get("held_cells", {}).get(key) in {"episode_retry_budget_exhausted", "legacy_attempts_unattributed"}:
+        if key in row.get("cell_not_before", {}):
+            row["held_cells"][key] = "provider_cooldown"
+        else:
+            row["held_cells"].pop(key)
+    if row.get("reason") in {"episode_retry_budget_exhausted", "cells_held"}:
+        row.update(status="ready", not_before=0)
+        row.pop("reason", None)
+
+
+def update_cell_holds(row: dict, max_attempts: int, *, realtime=False) -> None:
+    held = row.setdefault("held_cells", {})
+    known = row.get("attempt_failures", {})
+    unknown = row.get("legacy_unattributed_budget", {})
+    for key in known.keys() | unknown.keys():
+        if held.get(key) == "needs_repair":
+            continue
+        extension = row.get("attempt_extensions", {}).get(key, 0)
+        if unknown.get(key, 0) and not extension:
+            held[key] = "legacy_attempts_unattributed"
+        elif known.get(key, 0) + unknown.get(key, 0) >= max_attempts + extension:
+            held[key] = "episode_retry_budget_exhausted"
+    if row.get("reason") in {"provider_access_error", "provider_configuration_error"}:
+        return
+    cooldowns = row.get("cell_not_before", {})
+    if held and row.get("pending", 0) <= len(held) and any(
+        key in cooldowns and reason == "provider_cooldown" for key, reason in held.items()
+    ):
+        row.update(status="ready", not_before=min(
+            cooldowns[key] for key, reason in held.items() if reason == "provider_cooldown"
+        ))
+        return
+    if held and (realtime or row.get("pending", 0) <= len(held)):
+        row.update(status="needs_attention", reason=("episode_retry_budget_exhausted"
+                   if all(v == "episode_retry_budget_exhausted" for v in held.values()) else "cells_held"))
+    elif row.get("reason") in {"episode_retry_budget_exhausted", "cells_held"}:
+        row.update(status="ready")
+        row.pop("reason", None)
+
+
+def refresh_cell_cooldowns(row: dict, now: float) -> None:
+    for key, deadline in list(row.get("cell_not_before", {}).items()):
+        if deadline <= now:
+            row["cell_not_before"].pop(key)
+            if row.get("held_cells", {}).get(key) == "provider_cooldown":
+                row["held_cells"].pop(key)
+
+
 def batch_directory(root: Path) -> Path:
     """Formal batches resolve one treatment subdirectory below the lane output."""
     candidates = list(root.glob("invocation_summary.json")) + list(root.glob("treatment-*/invocation_summary.json"))
@@ -241,7 +396,8 @@ def batch_locked(root: Path) -> bool:
 
 
 def apply_invocation(state: dict, job: dict, summary: dict, *, now: float,
-                     cooldown: int, max_attempts: int, success_cooldown: int | None = None) -> None:
+                     cooldown: int, max_attempts: int, success_cooldown: int | None = None,
+                     ledger_path: Path | None = None) -> None:
     if summary.get("schema_version") != "batch_invocation_v1" or summary.get("status") != "completed":
         raise ValueError("batch did not write a completed invocation summary")
     row = state["jobs"].setdefault(job["id"], {})
@@ -249,18 +405,27 @@ def apply_invocation(state: dict, job: dict, summary: dict, *, now: float,
     row.update(status="ready", not_before=now+(cooldown if success_cooldown is None else success_cooldown),
                terminal=summary["resume_terminal"], total=summary["total_scope_jobs"],
                pending=summary["pending_after"], terminal_errors=summary["terminal_errors"])
-    for result in summary.get("dispatched_results", []):
+    for result in [*summary.get("dispatched_results", []), *summary.get("repair_cells", [])]:
         if result.get("error_http_status") in {401, 403, 404}:
             row.update(status="needs_attention", reason="provider_access_error")
+        if result.get("termination_category") == "provider_configuration_error":
+            row.update(status="needs_attention", reason="provider_configuration_error")
+        key = attempt_key(result)
+        if result.get("needs_repair") or result.get("termination_category") == "harness_error":
+            row.setdefault("held_cells", {})[key] = "needs_repair"
         if not result.get("retryable_infrastructure"):
             continue
-        key = attempt_key(result)
-        if result.get("execution_started") is not False:
-            failures[key] = failures.get(key, 0) + 1
-            if failures[key] >= max_attempts:
-                row.update(status="needs_attention", reason="episode_retry_budget_exhausted")
+        if result.get("execution_started") is not False and not result.get("quota_parked"):
+            attempt_id = str(result.get("execution_attempt_id") or
+                             f"{summary.get('started_at_utc', time.time_ns())}:{key}")
+            charge_attempt(row, job["id"], key, attempt_id, ledger_path)
         wait = min(3600, cooldown * 2 ** max(0, failures.get(key, 1)-1))
-        row["not_before"] = max(row["not_before"], now+wait)
+        retry_at = reset_epoch(result.get("retry_at"))
+        if retry_at and retry_at > now and job.get("setting") != "realtime_persistent":
+            row.setdefault("held_cells", {})[key] = "provider_cooldown"
+            row.setdefault("cell_not_before", {})[key] = max(now+wait, retry_at)
+        else:
+            row["not_before"] = max(row["not_before"], now+wait)
         if result.get("quota_parked"):
             reset = reset_epoch(result.get("quota_reset_at"))
             # Unknown quota resets get a conservative cooldown, never a spin loop.
@@ -268,7 +433,8 @@ def apply_invocation(state: dict, job: dict, summary: dict, *, now: float,
                 state["pools"].get(job["quota_scope"], 0),
                 (reset+30) if reset and reset > now else now+3600,
             )
-    if summary.get("scope_attempts_closed") and row["status"] != "needs_attention":
+    update_cell_holds(row, max_attempts, realtime=job.get("setting") == "realtime_persistent")
+    if summary.get("scope_attempts_closed") and not row.get("held_cells") and row["status"] != "needs_attention":
         row["status"] = "attempts_closed"
 
 
@@ -338,10 +504,20 @@ def interrupted_attempts(out: Path, active: dict, summary: dict) -> tuple[list[d
     charge = [
         {**marker, "execution_attempt_id": attempt_id}
         for attempt_id, marker in starts.items()
-        if attempt_id not in terminals or retryable(terminals[attempt_id])
+        if attempt_id not in terminals or (
+            retryable(terminals[attempt_id])
+            and not terminals[attempt_id].get("quota_parked")
+            and terminals[attempt_id].get("error_type") != "ProviderQuotaExhaustedError"
+            and terminals[attempt_id].get("status") != "provider_quota_exhausted"
+        )
     ]
-    access_error = any(row.get("error_http_status") in {401, 403, 404} for row in terminals.values())
-    return charge, access_error
+    provider_blocked = any(
+        row.get("error_http_status") in {401, 403, 404}
+        or row.get("termination_category") == "provider_configuration_error"
+        or row.get("error_type") == "ProviderModelIdentityError"
+        for row in terminals.values()
+    )
+    return charge, provider_blocked
 
 
 def verify_bindings(config: dict, root: Path) -> None:
@@ -402,6 +578,12 @@ def worker(config_path: Path, lane: str, *, once=False) -> int:
         }
         if state.get("config_sha256") != digest:
             raise ValueError("campaign config changed; create a new campaign namespace")
+        ledger = initialize_attempt_ledger(directory, state)
+        for job in jobs:
+            row = state["jobs"].setdefault(job["id"], {})
+            refresh_cell_cooldowns(row, time.time())
+            update_cell_holds(row, config.get("max_episode_attempts", 3),
+                              realtime=job.get("setting") == "realtime_persistent")
         state.update(pid=os.getpid(), worker_status="running")
         atomic_json(state_path, state)
         event(events, "worker_started", pid=os.getpid())
@@ -439,7 +621,8 @@ def worker(config_path: Path, lane: str, *, once=False) -> int:
                         apply_invocation(state, job, summary, now=time.time(),
                                          cooldown=lane_config["cooldown_s"],
                                          success_cooldown=lane_config.get("success_cooldown_s"),
-                                         max_attempts=config.get("max_episode_attempts", 3))
+                                         max_attempts=config.get("max_episode_attempts", 3),
+                                         ledger_path=ledger)
                         if state["jobs"][job["id"]]["status"] == "attempts_closed":
                             state["jobs"][job["id"]]["needs_finalize"] = True
                         state["not_before"] = time.time()+lane_config.get("between_invocations_s", 0)
@@ -473,24 +656,21 @@ def worker(config_path: Path, lane: str, *, once=False) -> int:
                                    reason="finalizer_interrupted")
                     elif recoverable and summary.get("dispatched_results"):
                         try:
-                            started, access_error = interrupted_attempts(batch_directory(out), active, summary)
+                            started, provider_blocked = interrupted_attempts(batch_directory(out), active, summary)
                         except (ValueError, OSError):
                             row.update(status="needs_attention", reason="interrupted_start_evidence_invalid")
                         else:
-                            failures = row.setdefault("attempt_failures", {})
-                            charged = set(row.get("charged_interrupted_attempt_ids") or [])
+                            row.setdefault("attempt_failures", {})
                             for result in started:
-                                if result["execution_attempt_id"] not in charged:
-                                    key = attempt_key(result)
-                                    failures[key] = failures.get(key, 0)+1
-                                    charged.add(result["execution_attempt_id"])
-                            row["charged_interrupted_attempt_ids"] = sorted(charged)
-                            exhausted = any(n >= config.get("max_episode_attempts", 3) for n in failures.values())
-                            reason = "provider_access_error" if access_error else (
-                                "episode_retry_budget_exhausted" if exhausted else "interrupted_invocation"
-                            )
-                            row.update(status="needs_attention" if exhausted or access_error else "ready",
-                                       reason=reason, not_before=time.time()+lane_config["cooldown_s"])
+                                charge_attempt(row, job["id"], attempt_key(result),
+                                               result["execution_attempt_id"], ledger)
+                            row.update(status="needs_attention" if provider_blocked else "ready",
+                                       reason="provider_configuration_error" if provider_blocked else "interrupted_invocation",
+                                       pending=summary.get("pending_after", len(summary["dispatched_results"])),
+                                       not_before=time.time()+lane_config["cooldown_s"])
+                            if not provider_blocked:
+                                update_cell_holds(row, config.get("max_episode_attempts", 3),
+                                                  realtime=job.get("setting") == "realtime_persistent")
                     else:
                         row.update(status="needs_attention", reason="missing_or_interrupted_batch_summary")
                     event(events, "invocation_interrupted", job_id=job["id"],
@@ -534,9 +714,17 @@ def worker(config_path: Path, lane: str, *, once=False) -> int:
                                "phase": "finalize" if finalize else "evaluate"}
             atomic_json(state_path, state)
             event(events, "invocation_started", job_id=job["id"], log=log.name)
+            command_job = dict(job)
+            if job.get("setting") != "realtime_persistent" and not finalize:
+                held_path = directory / f"{job['id']}.held_cells.json"
+                held = state["jobs"][job["id"]].get("held_cells", {})
+                atomic_json(held_path, {"cells": [dict(zip(
+                    ["scenario_slug", "model", "seed", "pass_id"], json.loads(key), strict=True
+                )) for key in held]})
+                command_job["held_cells_path"] = str(held_path)
             with log.open("w") as handle:
                 os.chmod(log, 0o600)
-                completed = subprocess.run(build_command(root, out, job, finalize=finalize), cwd=root, env=env,
+                completed = subprocess.run(build_command(root, out, command_job, finalize=finalize), cwd=root, env=env,
                                            stdout=handle, stderr=subprocess.STDOUT, check=False)
             state["active"]["exit_code"] = completed.returncode
             atomic_json(state_path, state)
@@ -556,6 +744,11 @@ def main() -> int:
     mode.add_argument("--once", action="store_true")
     mode.add_argument("--status", action="store_true")
     mode.add_argument("--stop", action="store_true", help="Pause after the current invocation")
+    mode.add_argument("--extend-attempts", type=int, metavar="N",
+                      help="Add retry budget for one cell without resetting lifetime counts")
+    p.add_argument("--job-id")
+    p.add_argument("--cell-key", help="JSON [scenario_slug, model, seed, pass_id]")
+    p.add_argument("--reason", help="Reason for a retry budget extension")
     args = p.parse_args()
     config_path = args.config.resolve()
     config = read_json(config_path)
@@ -563,6 +756,19 @@ def main() -> int:
         raise ValueError("unknown campaign lane")
     directory = config_path.parent/"queue"/args.lane
     directory.mkdir(parents=True, exist_ok=True)
+    if args.extend_attempts is not None:
+        with lane_lock(directory / "worker.lock"):
+            state_path = directory / "state.json"
+            state = read_json(state_path)
+            if args.job_id not in {job["id"] for job in config["lanes"][args.lane]["jobs"]}:
+                raise ValueError("unknown job id")
+            key = json.dumps(json.loads(args.cell_key or "null"))
+            ledger = initialize_attempt_ledger(directory, state)
+            extend_attempt_budget(ledger, state, args.job_id, key, args.extend_attempts, args.reason or "")
+            update_cell_holds(state["jobs"][args.job_id], config.get("max_episode_attempts", 3))
+            atomic_json(state_path, state)
+        print("Retry budget extended; lifetime counts preserved. Start the lane explicitly.")
+        return 0
     if args.status:
         status = read_json(directory/"state.json") if (directory/"state.json").exists() else {}
         print(json.dumps({"running": is_locked(directory/"worker.lock"),

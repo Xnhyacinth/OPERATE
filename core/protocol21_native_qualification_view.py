@@ -110,7 +110,10 @@ def _runtime(root: Path, spec: dict, dependencies: dict) -> tuple[str, dict[str,
     for name in sorted(files):
         _require(isinstance(name, str) and not PurePosixPath(name).is_absolute() and ".." not in PurePosixPath(name).parts, "native_code_path_invalid")
         raw = _read_binding(root, files[name], dependencies)
-        digest.update(name.encode()); digest.update(b"\0"); digest.update(raw); digest.update(b"\0")
+        digest.update(name.encode())
+        digest.update(b"\0")
+        digest.update(raw)
+        digest.update(b"\0")
         content[name] = raw
     tree = digest.hexdigest()
     _require(tree == spec.get("implementation_tree_sha256"), "native_code_tree_mismatch")
@@ -140,7 +143,8 @@ def _migration(old: dict, new: dict) -> None:
         for field in ("not_before_tick", "not_after_tick"):
             _require(type(left.get(field)) is int and type(right.get(field)) is int and right[field] == left[field] + 1, "migration_bounds_not_uniform_plus_one")
             right[field] -= 1
-    old.pop("scenario_signature", None); new.pop("scenario_signature", None)
+    old.pop("scenario_signature", None)
+    new.pop("scenario_signature", None)
     _require(old == new, "migration_changes_outside_clock_fields")
 
 
