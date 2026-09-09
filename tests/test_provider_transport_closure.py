@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import httpx
+import httpx2
 import pytest
 from openai import APIConnectionError, APITimeoutError
 
@@ -14,12 +15,16 @@ from baselines.llm_agent import LLMAgent, LLMConfig, classify_provider_error
     httpx.RemoteProtocolError("peer closed while streaming function_call"),
     httpx.ReadError("connection reset"),
     httpx.ReadTimeout("read timed out"),
+    httpx2.RemoteProtocolError("peer closed while streaming function_call"),
+    httpx2.ReadError("connection reset"),
+    httpx2.ReadTimeout("read timed out"),
 ])
 def test_network_errors_are_transport_failures(error):
     assert classify_provider_error(error) == "provider_transport_error"
 
 
-def test_streaming_disconnect_from_real_sdk_retries_identical_request(monkeypatch):
+@pytest.mark.parametrize("transport", [httpx, httpx2], ids=["httpx", "httpx2"])
+def test_streaming_disconnect_from_real_sdk_retries_identical_request(monkeypatch, transport):
     import json
     from openai import OpenAI
 
@@ -31,18 +36,18 @@ def test_streaming_disconnect_from_real_sdk_retries_identical_request(monkeypatc
         }]},
     }]}
 
-    class InterruptedStream(httpx.SyncByteStream):
+    class InterruptedStream(transport.SyncByteStream):
         def __iter__(self):
             yield ("data: " + json.dumps(partial) + "\n\n").encode()
-            raise httpx.RemoteProtocolError("peer closed connection")
+            raise transport.RemoteProtocolError("peer closed connection")
 
     def respond(request):
         requests.append(request.content)
         if len(requests) == 1:
-            return httpx.Response(200, stream=InterruptedStream(), headers={"content-type": "text/event-stream"})
+            return transport.Response(200, stream=InterruptedStream(), headers={"content-type": "text/event-stream"})
         complete = json.loads(json.dumps(partial))
         complete["choices"][0]["finish_reason"] = "tool_calls"
-        return httpx.Response(200, text="data: " + json.dumps(complete) + "\n\ndata: [DONE]\n\n",
+        return transport.Response(200, text="data: " + json.dumps(complete) + "\n\ndata: [DONE]\n\n",
                               headers={"content-type": "text/event-stream"})
 
     agent = LLMAgent(LLMConfig(
@@ -53,7 +58,7 @@ def test_streaming_disconnect_from_real_sdk_retries_identical_request(monkeypatc
     agent._system_prompt = "fixture"
     agent._tool_specs = [{"type": "function", "function": {"name": "wait", "parameters": {}}}]
     with OpenAI(api_key="fixture", base_url="https://example.test/v1", max_retries=0,
-                http_client=httpx.Client(transport=httpx.MockTransport(respond))) as client:
+                http_client=transport.Client(transport=transport.MockTransport(respond))) as client:
         agent._client = client
         monkeypatch.setattr(agent, "_sleep_before_provider_retry", lambda _: None)
         assert agent.act({"tick": 0}, agent._tool_specs).dominant == "wait"

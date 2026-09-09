@@ -1133,6 +1133,7 @@ def score_optimality_gap(
     objective_component: str | None,
     evidence_ids: list[str],
     feasibility: dict[str, Any] | None = None,
+    objective_value_domain: str = "nonnegative",
 ) -> DimensionScore:
     """Compare an explicitly contracted realized objective to its optimum.
 
@@ -1159,11 +1160,15 @@ def score_optimality_gap(
             evidence_ids=list(evidence_ids),
             weight=1.0,
         )
+    if objective_value_domain not in {"nonnegative", "signed"}:
+        raise ValueError("unknown optimality objective value domain")
     for label, value in (
         ("actual objective", actual_objective_cost),
         ("reference objective", lp_optimum),
     ):
-        if value is not None and (not math.isfinite(value) or value < 0):
+        if value is not None and (not math.isfinite(value) or (
+            objective_value_domain == "nonnegative" and value < 0
+        )):
             raise ValueError(f"{label} must be finite and non-negative")
     if feasibility is not None:
         # Comparability is a backend/reference contract, never an agent outcome.
@@ -1745,6 +1750,10 @@ class ScoringInputs:
     # Missing or mismatched contracts fail closed instead of reading a
     # backend-irrelevant zero default.
     optimality_objective_component: str | None = None
+    # Net energy purchase cost can be signed (CityLearn exports). Preserve its
+    # native value; the existing relative-gap normalization still needs a
+    # strictly positive reference. Other objectives retain nonnegative checks.
+    optimality_objective_value_domain: str = "nonnegative"
     optimality_feasibility: dict[str, Any] | None = None
     difficulty_level: str = "basic"
     scenario_signature: str = ""
@@ -2294,6 +2303,7 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
             objective_component=inputs.optimality_objective_component,
             evidence_ids=lp_evs,
             feasibility=inputs.optimality_feasibility,
+            objective_value_domain=inputs.optimality_objective_value_domain,
         ),
         score_counterfactual_prevention(
             inputs.counterfactual_report, evidence_ids=cf_evs

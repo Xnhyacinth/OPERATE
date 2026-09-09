@@ -38,7 +38,9 @@ import threading
 import time
 import warnings
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 from urllib.parse import urlparse, urlsplit, urlunsplit
 
@@ -73,6 +75,27 @@ _RETRY_AFTER_RE = re.compile(
 
 class ProviderCircuitOpenError(RuntimeError):
     """Abort an episode after sustained provider failures; resume can rerun it."""
+
+
+class ProviderModelIdentityError(RuntimeError):
+    """A formal request observed a different model; never retry that binding."""
+
+
+class ProviderRetryBudgetExhaustedError(ConnectionError):
+    """The pending request exhausted its bounded recovery window."""
+
+    def __init__(self, *, reason: str, retry_at: str, audit: dict[str, Any]) -> None:
+        super().__init__(
+            f"provider request recovery budget exhausted ({audit['budget_reason']}); "
+            f"reason={reason}; retry_at={retry_at}"
+        )
+        self.reason = reason
+        self.retry_at = retry_at
+        self.audit = dict(audit)
+        self.budget_reason = audit["budget_reason"]
+        self.request_sequence = audit.get("request_sequence")
+        self.root_sequence = audit.get("root_sequence")
+        self.attempts = audit["attempts"]
 
 
 class RealtimeTurnCanceledError(RuntimeError):
@@ -530,6 +553,10 @@ def classify_provider_error(text: object) -> str:
         return "request_budget_preflight_rejected"
     if isinstance(text, RealtimeTurnCanceledError):
         return "realtime_turn_canceled"
+    if isinstance(text, ProviderModelIdentityError):
+        return "provider_model_identity_mismatch"
+    if isinstance(text, ProviderRetryBudgetExhaustedError):
+        return text.reason
     original = str(text)
     raw = original.lower()
     body = getattr(text, "body", None)
@@ -565,6 +592,15 @@ def classify_provider_error(text: object) -> str:
             return "provider_transport_error"
     try:
         from httpx import NetworkError, RemoteProtocolError, TimeoutException
+    except ImportError:
+        pass
+    else:
+        if isinstance(text, (NetworkError, RemoteProtocolError, TimeoutException)):
+            return "provider_transport_error"
+    # OpenAI 3.x uses httpx2; stream iteration raises its native exceptions
+    # without wrapping them in APIConnectionError. Retain older SDK support.
+    try:
+        from httpx2 import NetworkError, RemoteProtocolError, TimeoutException
     except ImportError:
         pass
     else:
@@ -1171,6 +1207,8 @@ class LLMConfig:
     token_count_version: str = TOKEN_COUNT_VERSION_V1
     extra_headers: dict[str, str] = field(default_factory=dict)
     timeout_s: float = 60.0
+    provider_retry_max_attempts: int = _PROVIDER_TRANSIENT_MAX_RETRIES + 1
+    provider_retry_max_elapsed_s: float = 1800.0
     max_consecutive_provider_failures: int = 5
     provider_failure_policy: str = "compat_fallback"  # compat_fallback | abort
     provider_rpm_limit: int = 0
@@ -1239,6 +1277,7 @@ class LLMAgent(BaselineAgent):
         self._protocol_repair_budget_override: tuple[int, float] | None = None
         self._protocol_repair_available_call_ids: set[str] | None = None
         self._protocol_repair_unavailable_call_ids: set[str] | None = None
+        self._provider_retry_state: dict[str, Any] | None = None
         self._reset_idem_seq()
 
     def reset(
@@ -1409,6 +1448,14 @@ class LLMAgent(BaselineAgent):
         timeout_s = float(self.config.timeout_s)
         if not math.isfinite(timeout_s) or timeout_s <= 0.0:
             raise ValueError("timeout_s must be finite and positive")
+        if (
+            type(self.config.provider_retry_max_attempts) is not int
+            or self.config.provider_retry_max_attempts < 1
+        ):
+            raise ValueError("provider_retry_max_attempts must be a positive integer")
+        retry_elapsed_s = float(self.config.provider_retry_max_elapsed_s)
+        if not math.isfinite(retry_elapsed_s) or retry_elapsed_s <= 0.0:
+            raise ValueError("provider_retry_max_elapsed_s must be finite and positive")
         if int(self.config.persistent_history_max_messages) < 4:
             raise ValueError("persistent_history_max_messages must be at least 4")
         if int(self.config.persistent_context_max_chars) < 500:
@@ -1471,6 +1518,7 @@ class LLMAgent(BaselineAgent):
         self._protocol_repair_budget_override = None
         self._protocol_repair_available_call_ids = None
         self._protocol_repair_unavailable_call_ids = None
+        self._provider_retry_state = None
         self._stats = _empty_interaction_stats()
         self._stats["interaction_mode"] = interaction_mode
         api_key = os.getenv(self.config.api_key_env)
@@ -2049,6 +2097,103 @@ class LLMAgent(BaselineAgent):
         """Return the structured outcome of the latest attempted provider call."""
         return dict(self._last_provider_outcome)
 
+    def _check_resume_boundary(self) -> None:
+        if type(self) is not LLMAgent:
+            raise ValueError("resume state supports LLMAgent only")
+        if (
+            self._provider_retry_state is not None
+            or self._active_realtime_turn_id is not None
+            or self._active_provider_streams
+            or self._protocol_repair_budget_override is not None
+        ):
+            raise ValueError("resume state requires a settled logical method boundary")
+
+    def _resume_binding_sha256(self) -> str:
+        # Only the digest is persisted, never config header values or a client.
+        encoded = json.dumps({
+            "config": asdict(self.config),
+            "system_prompt": self._system_prompt,
+            "tools": self._tool_specs,
+            "readonly_tools": sorted(getattr(self, "_readonly_tools", set())),
+            "max_tools": self._max_tools,
+            "max_cost_units": self._max_cost_units,
+            "observation_budget_chars": self._observation_budget_chars,
+        }, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    def export_resume_state(self) -> dict[str, Any]:
+        """Export settled logical state for an identity-bound replay journal.
+
+        Environment restoration belongs to the journal's deterministic replay;
+        no SDK client, credentials, configuration, locks or backend is serialized.
+        """
+        self._check_resume_boundary()
+        behavioral = self.snapshot_behavioral_state()
+        pending = behavioral.pop("pending_plan_calls")
+        groups: dict[int, dict[str, Any]] = {}
+        for alias, plan in pending.items():
+            group = groups.setdefault(id(plan), {"aliases": [], "plan": plan})
+            group["aliases"].append(alias)
+        payload = {
+            "schema_version": "llm_agent_resume_state_v1",
+            "binding_sha256": self._resume_binding_sha256(),
+            "behavioral": behavioral,
+            "pending_plans": list(groups.values()),
+            "interaction_stats": deepcopy(self._stats),
+        }
+        return json.loads(json.dumps(payload, ensure_ascii=False, allow_nan=False))
+
+    def import_resume_state(self, state: dict[str, Any]) -> None:
+        """Restore a verified journal entry after reset, before another request."""
+        self._check_resume_boundary()
+        payload = json.loads(json.dumps(state, ensure_ascii=False, allow_nan=False))
+        if (
+            not isinstance(payload, dict)
+            or payload.get("schema_version") != "llm_agent_resume_state_v1"
+            or payload.get("binding_sha256") != self._resume_binding_sha256()
+        ):
+            raise ValueError("resume state schema or request binding differs")
+        behavioral = payload.get("behavioral")
+        stats = payload.get("interaction_stats")
+        groups = payload.get("pending_plans")
+        expected_keys = set(self.snapshot_behavioral_state()) - {"pending_plan_calls"}
+        if (
+            not isinstance(behavioral, dict) or set(behavioral) != expected_keys
+            or not isinstance(stats, dict) or not isinstance(groups, list)
+        ):
+            raise ValueError("incomplete resume state")
+        for key in ("tick", "idem_seq", "session_event_seq", "consecutive_provider_failures"):
+            if type(behavioral[key]) is not int or behavioral[key] < 0:
+                raise ValueError(f"invalid resume state {key}")
+        for key in ("session_messages", "session_ledger", "recent_actions", "plan_history"):
+            if not isinstance(behavioral[key], list):
+                raise ValueError(f"invalid resume state {key}")
+        for key in ("structured_memory", "last_provider_outcome", "last_provider_response_metadata"):
+            if not isinstance(behavioral[key], dict):
+                raise ValueError(f"invalid resume state {key}")
+        if behavioral["active_plan"] is not None and not isinstance(behavioral["active_plan"], dict):
+            raise ValueError("invalid resume state active_plan")
+        if not set(_empty_interaction_stats()).issubset(stats):
+            raise ValueError("incomplete resume interaction stats")
+        pending: dict[str, dict[str, Any]] = {}
+        for group in groups:
+            if (
+                not isinstance(group, dict)
+                or not isinstance(group.get("plan"), dict)
+                or not isinstance(group.get("aliases"), list)
+                or not group["aliases"]
+            ):
+                raise ValueError("invalid resume pending plan")
+            for alias in group["aliases"]:
+                if not isinstance(alias, str) or not alias or alias in pending:
+                    raise ValueError("invalid resume pending plan alias")
+                pending[alias] = group["plan"]
+        behavioral["pending_plan_calls"] = pending
+        # All validation precedes mutation. deepcopy preserves the shared plan
+        # objects behind call-id/idempotency aliases used by receipt cleanup.
+        self.restore_behavioral_state(behavioral)
+        self._stats = stats
+
     def _note_failed_llm_call(self, exc: BaseException) -> str:
         """Record a failed provider call and open the circuit when it is warranted."""
         reason = classify_provider_error(exc)
@@ -2075,6 +2220,10 @@ class LLMAgent(BaselineAgent):
                 "reason": reason,
             }
         )
+        if isinstance(exc, ProviderRetryBudgetExhaustedError):
+            # Keep retry_at and the original infrastructure reason available to
+            # the campaign; neither a circuit wrapper nor a wait can recover it.
+            raise exc
         threshold = max(0, int(self.config.max_consecutive_provider_failures))
         if (
             counts_toward_circuit
@@ -2193,6 +2342,16 @@ class LLMAgent(BaselineAgent):
             )
             for key, value in metadata.items()
         }
+        if (
+            self.config.provider_failure_policy == "abort"
+            and response_model not in (None, "")
+            and str(response_model) != self.config.model
+        ):
+            raise ProviderModelIdentityError(
+                "provider model identity mismatch: "
+                f"requested={self.config.model!r}, "
+                f"observed={redact_provider_error(response_model)!r}"
+            )
 
     def _parse_tool_arguments(
         self,
@@ -2283,6 +2442,12 @@ class LLMAgent(BaselineAgent):
                 seconds = float(value) if value is not None else None
             except (TypeError, ValueError):
                 seconds = None
+                try:
+                    retry_at = parsedate_to_datetime(str(value))
+                    if retry_at.tzinfo is not None:
+                        seconds = max(0.0, retry_at.timestamp() - time.time())
+                except (TypeError, ValueError, OverflowError):
+                    pass
             if seconds is not None and math.isfinite(seconds) and seconds >= 0.0:
                 return seconds
         match = _RETRY_AFTER_RE.search(str(exc))
@@ -2302,10 +2467,8 @@ class LLMAgent(BaselineAgent):
             _PROVIDER_TRANSIENT_BACKOFF_MAX_S,
         )
         provider_delay = self._provider_retry_after_seconds(exc) or 0.0
-        return min(
-            max(exponential, provider_delay),
-            _PROVIDER_TRANSIENT_BACKOFF_MAX_S,
-        )
+        # The local exponential cap cannot shorten a server's cooldown.
+        return max(exponential, provider_delay)
 
     def _sleep_before_provider_retry(self, delay_s: float) -> None:
         remaining = max(0.0, float(delay_s))
@@ -2316,9 +2479,40 @@ class LLMAgent(BaselineAgent):
                 raise RealtimeTurnCanceledError(
                     f"realtime provider retry canceled: {turn_id}"
                 )
+            self._check_provider_retry_deadline()
             interval = min(0.25, remaining)
             time.sleep(interval)
             remaining -= interval
+
+    def _provider_retry_budget_error(
+        self, budget_reason: str, *, delay_s: float = 0.0,
+    ) -> ProviderRetryBudgetExhaustedError:
+        state = self._provider_retry_state or {}
+        audit = {
+            "budget_reason": budget_reason,
+            "attempts": int(state.get("attempts", 0)),
+            "max_attempts": self.config.provider_retry_max_attempts,
+            "elapsed_s": max(0.0, time.monotonic() - state.get("started", time.monotonic())),
+            "max_elapsed_s": self.config.provider_retry_max_elapsed_s,
+            "request_sequence": state.get("request_sequence"),
+            "root_sequence": state.get("root_sequence"),
+        }
+        retry_at = datetime.fromtimestamp(
+            time.time() + max(0.0, delay_s), tz=UTC,
+        ).isoformat()
+        return ProviderRetryBudgetExhaustedError(
+            reason=state.get("last_reason", "provider_transport_error"),
+            retry_at=retry_at, audit=audit,
+        )
+
+    def _check_provider_retry_deadline(self) -> None:
+        state = self._provider_retry_state
+        if state is not None and time.monotonic() >= state["deadline"]:
+            raise self._provider_retry_budget_error("max_elapsed")
+
+    def _effective_provider_timeout_s(self) -> float:
+        state = self._provider_retry_state or {}
+        return float(state.get("wire_timeout_s", self.config.timeout_s))
 
     def _invoke_decision_provider(self, messages: list[dict[str, Any]]) -> Action:
         if self.config.provider in {"openai", "openai_compatible", "azure"}:
@@ -2344,67 +2538,84 @@ class LLMAgent(BaselineAgent):
         context_projection: dict[str, Any] | None = None,
         protocol_repair_trigger: str | None = None,
     ) -> tuple[Action, int, int]:
-        root_sequence: int | None = None
+        started = time.monotonic()
+        previous_state = self._provider_retry_state
+        state = {
+            "started": started,
+            "deadline": started + float(self.config.provider_retry_max_elapsed_s),
+            "attempts": 0,
+            "root_sequence": None,
+        }
+        self._provider_retry_state = state
         retry_index = 0
-        while True:
-            self._check_realtime_cancellation()
-            started_ns = time.monotonic_ns()
-            try:
-                request_sequence = self._record_provider_request(
-                    messages=messages,
-                    tools=tools,
-                    fallback_without_tools=fallback_without_tools,
-                    max_tokens=max_tokens,
-                    request_kind=request_kind,
-                    request_reason=request_reason,
-                    context_projection=context_projection,
-                    protocol_repair_trigger=protocol_repair_trigger,
-                    retry_of_request_sequence=root_sequence,
-                    provider_retry_index=retry_index,
-                )
-                if root_sequence is None:
-                    root_sequence = request_sequence
+        try:
+            while True:
                 self._check_realtime_cancellation()
-                action = invoke()
-                # Provider-specific compatibility fallbacks may have opened a
-                # second, explicitly recorded request inside the invocation.
-                request_sequence = len(
-                    self._stats.get("provider_request_records", []) or []
-                )
-                return action, started_ns, request_sequence
-            except Exception as exc:
-                request_sequence = int(
-                    getattr(exc, "request_sequence", None)
-                    or len(self._stats.get("provider_request_records", []) or [])
-                )
-                if request_sequence:
-                    self._record_provider_action_response(
-                        None,
-                        started_ns=started_ns,
-                        error=exc,
-                        request_sequence=request_sequence,
+                self._check_provider_retry_deadline()
+                started_ns = time.monotonic_ns()
+                try:
+                    request_sequence = self._record_provider_request(
+                        messages=messages,
+                        tools=tools,
+                        fallback_without_tools=fallback_without_tools,
+                        max_tokens=max_tokens,
+                        request_kind=request_kind,
+                        request_reason=request_reason,
+                        context_projection=context_projection,
+                        protocol_repair_trigger=protocol_repair_trigger,
+                        retry_of_request_sequence=state["root_sequence"],
+                        provider_retry_index=retry_index,
                     )
-                reason = self._record_provider_error(exc)
-                if (
-                    reason not in _PROVIDER_TRANSIENT_RETRY_REASONS
-                    or retry_index >= _PROVIDER_TRANSIENT_MAX_RETRIES
-                ):
-                    raise
-                retry_index += 1
-                delay_s = self._transient_provider_retry_delay(
-                    exc,
-                    retry_index=retry_index,
-                )
-                self._record_retry(reason, delay_s=delay_s)
-                LOGGER.warning(
-                    "Transient provider failure (%s); retrying wire request "
-                    "%d/%d after %.3fs.",
-                    reason,
-                    retry_index,
-                    _PROVIDER_TRANSIENT_MAX_RETRIES,
-                    delay_s,
-                )
-                self._sleep_before_provider_retry(delay_s)
+                    if state["root_sequence"] is None:
+                        state["root_sequence"] = request_sequence
+                    state["request_sequence"] = request_sequence
+                    self._check_realtime_cancellation()
+                    self._check_provider_retry_deadline()
+                    action = invoke()
+                    if not self._effective_wire_stream():
+                        self._check_provider_retry_deadline()
+                    # Compatibility fallbacks may open another audited request.
+                    request_sequence = len(self._stats.get("provider_request_records", []) or [])
+                    return action, started_ns, request_sequence
+                except Exception as exc:
+                    request_sequence = int(
+                        getattr(exc, "request_sequence", None)
+                        or len(self._stats.get("provider_request_records", []) or [])
+                    )
+                    responses = self._stats.get("provider_response_records") or []
+                    if request_sequence and (
+                        not responses or responses[-1]["request_sequence"] != request_sequence
+                    ):
+                        self._record_provider_action_response(
+                            None, started_ns=started_ns, error=exc,
+                            request_sequence=request_sequence,
+                        )
+                    reason = self._record_provider_error(exc)
+                    if (
+                        isinstance(exc, ProviderRetryBudgetExhaustedError)
+                        or reason not in _PROVIDER_TRANSIENT_RETRY_REASONS
+                    ):
+                        raise
+                    state["last_reason"] = reason
+                    state["request_sequence"] = request_sequence
+                    delay_s = self._transient_provider_retry_delay(
+                        exc, retry_index=retry_index + 1,
+                    )
+                    if state["attempts"] >= self.config.provider_retry_max_attempts:
+                        raise self._provider_retry_budget_error("max_attempts", delay_s=delay_s) from exc
+                    if time.monotonic() + delay_s >= state["deadline"]:
+                        raise self._provider_retry_budget_error("max_elapsed", delay_s=delay_s) from exc
+                    retry_index += 1
+                    self._record_retry(reason, delay_s=delay_s)
+                    LOGGER.warning(
+                        "Transient provider failure (%s); retrying wire request "
+                        "%d/%d after %.3fs.",
+                        reason, retry_index, self.config.provider_retry_max_attempts - 1,
+                        delay_s,
+                    )
+                    self._sleep_before_provider_retry(delay_s)
+        finally:
+            self._provider_retry_state = previous_state
 
     # ── Provider plumbing ───────────────────────────────────────────────
 
@@ -2576,7 +2787,7 @@ class LLMAgent(BaselineAgent):
             "input": input_items,
             "temperature": self.config.temperature,
             "max_output_tokens": self.config.max_tokens,
-            "timeout": self.config.timeout_s,
+            "timeout": self._effective_provider_timeout_s(),
             "store": False,
             "tools": self._responses_tools(),
         }
@@ -4180,6 +4391,12 @@ class LLMAgent(BaselineAgent):
         The executable implementation identity binds the provider compiler.
         Credentials and header values are deliberately excluded.
         """
+        retry_state = self._provider_retry_state
+        if retry_state is not None:
+            self._check_provider_retry_deadline()
+            if retry_state["attempts"] >= self.config.provider_retry_max_attempts:
+                raise self._provider_retry_budget_error("max_attempts")
+            retry_state["attempts"] += 1
         effective_tool_choice = self._effective_wire_tool_choice(
             request_kind=request_kind,
             tools=tools,
@@ -4199,6 +4416,7 @@ class LLMAgent(BaselineAgent):
         quota_error: ProviderQuotaExhaustedError | None = None
         limiter_state_error: ProviderLimiterStateError | None = None
         cancellation_error: RealtimeTurnCanceledError | None = None
+        recovery_error: ProviderRetryBudgetExhaustedError | None = None
         rate_limit_audit: dict[str, Any] | None = None
         try:
             budget_audit = self._request_budget_audit(
@@ -4226,6 +4444,9 @@ class LLMAgent(BaselineAgent):
                 ).acquire()
             except RealtimeTurnCanceledError as exc:
                 cancellation_error = exc
+                rate_limit_audit = getattr(exc, "provider_rate_limit_audit", None)
+            except ProviderRetryBudgetExhaustedError as exc:
+                recovery_error = exc
                 rate_limit_audit = getattr(exc, "provider_rate_limit_audit", None)
             except ProviderDailyQuotaExhausted as exc:
                 rate_limit_audit = dict(exc.audit)
@@ -4272,6 +4493,20 @@ class LLMAgent(BaselineAgent):
                         ),
                         wait_seconds,
                     )
+        recovery_budget = None
+        if retry_state is not None:
+            budget_now = time.monotonic()
+            remaining_s = max(0.0, retry_state["deadline"] - budget_now)
+            retry_state["wire_timeout_s"] = min(float(self.config.timeout_s), remaining_s)
+            recovery_budget = {
+                "max_attempts": self.config.provider_retry_max_attempts,
+                "max_elapsed_s": self.config.provider_retry_max_elapsed_s,
+                "attempt": retry_state["attempts"],
+                "elapsed_s": max(0.0, budget_now - retry_state["started"]),
+                "remaining_s": remaining_s,
+            }
+            if remaining_s <= 0 and recovery_error is None:
+                recovery_error = self._provider_retry_budget_error("max_elapsed")
         envelope = {
             "request_contract": "provider_neutral_precompile_v1",
             "provider": self.config.provider,
@@ -4296,6 +4531,7 @@ class LLMAgent(BaselineAgent):
             "configured_temperature": self.config.temperature,
             "max_tokens": requested_max_tokens,
             "timeout_s": self.config.timeout_s,
+            "effective_timeout_s": self._effective_provider_timeout_s(),
             "tool_choice": effective_tool_choice,
             "configured_tool_choice": self.config.tool_choice,
             "effective_tool_choice": effective_tool_choice,
@@ -4308,8 +4544,10 @@ class LLMAgent(BaselineAgent):
             "protocol_repair_trigger": protocol_repair_trigger,
             "provider_retry_index": int(provider_retry_index),
             "retry_of_request_sequence": retry_of_request_sequence,
+            "provider_retry_budget": recovery_budget,
             "provider_transient_retry_policy": {
-                "max_retries": _PROVIDER_TRANSIENT_MAX_RETRIES,
+                "max_retries": self.config.provider_retry_max_attempts - 1,
+                "max_elapsed_s": self.config.provider_retry_max_elapsed_s,
                 "backoff_base_s": _PROVIDER_TRANSIENT_BACKOFF_BASE_S,
                 "backoff_max_s": _PROVIDER_TRANSIENT_BACKOFF_MAX_S,
                 "retry_reasons": sorted(_PROVIDER_TRANSIENT_RETRY_REASONS),
@@ -4380,6 +4618,9 @@ class LLMAgent(BaselineAgent):
         if cancellation_error is not None:
             cancellation_error.request_sequence = sequence
             raise cancellation_error
+        if recovery_error is not None:
+            recovery_error.request_sequence = sequence
+            raise recovery_error
         return sequence
 
     def _resolved_tool_choice_capability(self) -> tuple[bool | None, str]:
@@ -4716,12 +4957,12 @@ class LLMAgent(BaselineAgent):
             if record.get("closure") == "open":
                 observed = list(record.get("observed_models") or [])
                 requested = str(record.get("requested_model") or "")
-                if request_failed:
+                if any(str(model) != requested for model in observed):
+                    closure = "mismatch"
+                elif request_failed:
                     closure = "request_failed"
                 elif not observed:
                     closure = "missing"
-                elif any(str(model) != requested for model in observed):
-                    closure = "mismatch"
                 else:
                     closure = "exact"
                 record["closure"] = closure
@@ -5460,7 +5701,7 @@ class LLMAgent(BaselineAgent):
             "tools": self._google_tools_from_specs(tools),
             "temperature": temperature,
             "max_output_tokens": int(max_tokens),
-            "http_options": {"timeout": int(self.config.timeout_s * 1000)},
+            "http_options": {"timeout": int(self._effective_provider_timeout_s() * 1000)},
         }
         if tool_choice == "required" and tools:
             config["tool_config"] = {
@@ -5476,7 +5717,7 @@ class LLMAgent(BaselineAgent):
             "messages": messages,
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
-            "timeout": self.config.timeout_s,
+            "timeout": self._effective_provider_timeout_s(),
         }
         if self.config.stream_chat_completions:
             kwargs["stream"] = True
@@ -5603,7 +5844,7 @@ class LLMAgent(BaselineAgent):
             "messages": messages,
             "temperature": 0.0,
             "max_tokens": self.config.protocol_repair_max_tokens,
-            "timeout": self.config.timeout_s,
+            "timeout": self._effective_provider_timeout_s(),
             "tools": tools,
         }
         effective_tool_choice = self._effective_wire_tool_choice(
@@ -5780,6 +6021,8 @@ class LLMAgent(BaselineAgent):
                     raise RealtimeTurnCanceledError(
                         f"realtime provider stream canceled: {turn_id}"
                     )
+                if finish_reason is None:
+                    self._check_provider_retry_deadline()
                 self._record_provider_response_identity(chunk)
                 choices = getattr(chunk, "choices", None) or []
                 if not choices:
@@ -5820,7 +6063,19 @@ class LLMAgent(BaselineAgent):
                 raise RealtimeTurnCanceledError(
                     f"realtime provider stream canceled: {turn_id}"
                 ) from exc
-            raise
+            if (
+                finish_reason is None
+                or classify_provider_error(exc) != "provider_transport_error"
+            ):
+                raise
+            # Generation is complete at its terminal choice. Losing the later
+            # usage/trailer frames must not regenerate an already complete
+            # decision. Parsing below still rejects malformed/truncated calls.
+            self._last_provider_response_metadata["stream_tail_error"] = {
+                "reason": "provider_transport_error",
+                "error_type": f"{type(exc).__module__}.{type(exc).__name__}",
+                "error_summary": redact_provider_error(exc),
+            }
         finally:
             close = getattr(stream, "close", None)
             if callable(close):
@@ -5901,7 +6156,7 @@ class LLMAgent(BaselineAgent):
             "tools": self._anthropic_tools_from_specs(self._tool_specs),
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
-            "timeout": self.config.timeout_s,
+            "timeout": self._effective_provider_timeout_s(),
         }
         if self.config.tool_choice == "required" and self._tool_specs:
             kwargs["tool_choice"] = {"type": "any"}

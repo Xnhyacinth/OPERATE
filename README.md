@@ -27,17 +27,18 @@ the environment or the judge.
 
 The public repository and Hugging Face dataset each expose one current
 benchmark state. Scenario contracts live under `scenarios/<domain>/...`.
-Manifests keep a release identifier and content hashes only to bind code, data,
-prompts, treatments, and results. There are no public release tags or
+Manifests verify dataset and evidence bytes. Public evaluation does not require
+a particular Git commit, a clean checkout, or the maintainer code-tree hash.
+Code versions are recorded as provenance, not used as a public execution gate. There are no public release tags or
 selectable historical datasets.
 
 ## Current qualification and provider status
 
 The current Core uses scoring `0.15.0`,
 769 Core rows across 502 physical sources and 193 Lite rows across 122 sources.
-Native qualification is bound to its recorded implementation identity. Later
-verified maintenance changes bind their actual new execution identity; resume
-and merge remain strict. Formal logical/realtime provider runs and leaderboard
+Qualification records describe the code used for their original checks. Public
+users can run their own checkout; ordinary resume preserves completed cells
+when only code changes, while recording each attempt's actual implementation. Formal logical/realtime provider runs and leaderboard
 result publication remain pending.
 
 ## What is evaluated
@@ -88,8 +89,9 @@ and leaderboard eligibility remain false.
 
 `benchmark/core_suite.json` and `benchmark/manifest.json` define the public
 denominator. Clone this repository, install the Hugging Face runtime companion,
-and evaluate against the current catalog. Do not resume trajectories produced
-under a different code tree, prompt profile, or treatment hash.
+and evaluate against the current catalog. Ordinary resume verifies the dataset,
+prompt, scoring protocol and model settings without pinning the code tree.
+A checkpoint inside an unfinished episode still requires compatible replay.
 See [current benchmark status](docs/CURRENT_RELEASE.md) and the
 [formal evaluation runbook](docs/FORMAL_EVALUATION.md).
 
@@ -234,7 +236,7 @@ and [`tools/build_lite_suite.py`](tools/build_lite_suite.py).
 
 Each exact model is a separate treatment-bound shard. Model ID, provider route,
 harness, prompt and context compiler, advertised limits, generation settings,
-and release tree are bound by the agent treatment hash. Requested/effective
+and dataset define the evaluation treatment. Code hashes are provenance. Requested/effective
 concurrency is an immutable run-scope field bound to the output directory and
 formal manifest. Incompatible resume attempts fail closed.
 
@@ -244,10 +246,14 @@ bindings. Provider failures, output truncation, route fallback, text-only
 pseudo-tools, or identity drift remain explicit failures; they are never
 converted to `wait`.
 
-Historical qualification records are checked against their original snapshot;
-new runs bind the code they actually execute. Maintenance changes use
-[affected-scope validation](docs/VALIDATION_POLICY.md), not automatic whole-suite
-calibration. Resume and merge remain strict about actual execution identities.
+Maintenance changes use [affected-scope validation](docs/VALIDATION_POLICY.md).
+Public `run_full.py` and `run_lite.py` default to `--implementation-policy provenance`:
+no Git checkout or code hash is required to start, continue or finish an ordinary
+evaluation. Completed results retain their original code records. Changed datasets,
+model settings or scoring protocols still require a separate run. For opt-in
+`--episode-checkpoint`, choose `--implementation-policy strict`; it verifies the
+exact replay state before continuing inside an unfinished episode.
+See [recovery and result validity](docs/FRAMEWORK_RECOVERY.md).
 
 ## Evidence and scoring
 

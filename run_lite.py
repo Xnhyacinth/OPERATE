@@ -17,6 +17,7 @@ LITE_SUITE = REPO_ROOT / "benchmark/lite_suite.json"
 
 def main() -> int:
     selector = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    selector.add_argument("--implementation-policy", choices=["provenance", "strict"], default="provenance")
     selector.add_argument("--lite-suite", type=Path, default=LITE_SUITE)
     selected, forwarded = selector.parse_known_args(sys.argv[1:])
     lite_suite = selected.lite_suite.resolve()
@@ -58,6 +59,7 @@ def main() -> int:
     sys.argv = [
         "scripts/batch_llm_eval.py",
         *forwarded,
+        "--implementation-policy", selected.implementation_policy,
         "--lite-lineage-suite",
         str(lite_suite),
         "--seed-mode",

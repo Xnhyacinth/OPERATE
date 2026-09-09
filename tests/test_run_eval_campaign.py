@@ -94,7 +94,7 @@ def test_round_robin_and_shared_pool_cooldown():
 
 def test_transport_backoff_and_bounded_episode_retries():
     s = state()
-    data = summary([result(status="error", retryable_infrastructure=True)])
+    data = summary([result(status="error", retryable_infrastructure=True)], pending=1)
     for attempt in range(3):
         apply_invocation(s, job(), data, now=100, cooldown=60, max_attempts=3)
         j = s["jobs"]["hy3"]
@@ -102,6 +102,104 @@ def test_transport_backoff_and_bounded_episode_retries():
             assert j["not_before"] >= 160
     assert j["status"] == "needs_attention"
     assert choose_job([job()], s, 10000) is None
+
+
+def test_started_quota_is_suspended_without_transport_charge():
+    s = state()
+    for _ in range(4):
+        apply_invocation(s, job(), summary([result(status="error", quota_parked=True,
+                         retryable_infrastructure=True, execution_started=True)]),
+                         now=100, cooldown=60, max_attempts=3)
+    assert s["jobs"]["hy3"]["attempt_failures"] == {}
+    assert s["jobs"]["hy3"]["status"] == "ready"
+
+
+def test_retry_at_holds_only_one_cell_until_server_deadline():
+    s = state()
+    apply_invocation(s, job(), summary([result(status="error", retryable_infrastructure=True,
+                     retry_at="1970-01-01T00:16:40+00:00")]),
+                     now=100, cooldown=60, success_cooldown=0, max_attempts=3)
+    row = s["jobs"]["hy3"]
+    assert choose_job([job()], s, 101) == job()
+    assert list(row["attempt_failures"].values()) == [1]
+    assert list(row["held_cells"].values()) == ["provider_cooldown"]
+    choose_job([job()], s, 1000)
+    assert row["held_cells"] == {}
+
+
+def test_exhausted_cell_and_repair_cell_leave_other_cells_runnable():
+    s = state()
+    for _ in range(3):
+        apply_invocation(s, job(), summary([result(status="error", retryable_infrastructure=True)]),
+                         now=100, cooldown=60, max_attempts=3)
+    apply_invocation(s, job(), summary([result(scenario_slug="case/b", status="error",
+                     needs_repair=True, termination_category="harness_error")]),
+                     now=200, cooldown=60, max_attempts=3)
+    row = s["jobs"]["hy3"]
+    assert row["status"] == "ready"
+    assert len(row["held_cells"]) == 2
+    assert choose_job([job()], s, 10000) == job()
+
+
+def test_attempt_ledger_restores_erased_state_and_extension_is_additive(tmp_path):
+    s = state()
+    ledger = tmp_path / "attempts.jsonl"
+    payload = summary([result(status="error", retryable_infrastructure=True,
+                             execution_attempt_id="attempt-one")])
+    for _ in range(2):
+        apply_invocation(s, job(), payload, now=100, cooldown=60, max_attempts=3,
+                         ledger_path=ledger)
+    key = campaign.attempt_key(payload["dispatched_results"][0])
+    assert s["jobs"]["hy3"]["attempt_failures"][key] == 1
+    s["jobs"]["hy3"]["attempt_failures"] = {}
+    campaign.restore_attempt_ledger(ledger, s)
+    assert s["jobs"]["hy3"]["attempt_failures"][key] == 1
+    campaign.extend_attempt_budget(ledger, s, "hy3", key, 2, "transport repaired")
+    campaign.restore_attempt_ledger(ledger, s)
+    assert s["jobs"]["hy3"]["attempt_failures"][key] == 1
+    assert s["jobs"]["hy3"]["attempt_extensions"][key] == 2
+    assert json.loads(ledger.read_text().splitlines()[-1])["event"] == "attempt_budget_extended"
+
+
+def test_attempt_ledger_imports_archives_even_after_counter_reset(tmp_path):
+    s = state()
+    s["jobs"]["hy3"] = {"attempt_failures": {}}
+    for index in range(4):
+        payload = summary([result(status="error", retryable_infrastructure=True,
+                                  execution_attempt_id=f"attempt-{index}")])
+        (tmp_path / f"hy3-{index}.summary.json").write_text(json.dumps(payload))
+    ledger = campaign.initialize_attempt_ledger(tmp_path, s)
+    assert list(s["jobs"]["hy3"]["attempt_failures"].values()) == [4]
+    s["jobs"]["hy3"]["attempt_failures"] = {}
+    campaign.initialize_attempt_ledger(tmp_path, s)
+    assert len(ledger.read_text().splitlines()) == 4
+    assert list(s["jobs"]["hy3"]["attempt_failures"].values()) == [4]
+
+
+def test_worker_passes_cell_holds_without_hiding_remaining_scope(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        out = campaign.Path(cmd[cmd.index("--output-dir") + 1])
+        holds = json.loads(campaign.Path(cmd[cmd.index("--held-cells") + 1]).read_text())
+        if len(calls) == 1:
+            assert holds == {"cells": []}
+            payload = summary([result(status="error", needs_repair=True)], pending=2)
+        else:
+            assert holds["cells"][0]["scenario_slug"] == "case/a"
+            payload = summary([result(scenario_slug="case/b")], pending=1)
+        payload["started_at_utc"] = datetime.now(UTC).isoformat()
+        (out / "invocation_summary.json").write_text(json.dumps(payload))
+        return SimpleNamespace(returncode=2)
+
+    config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
+    for _ in range(3):
+        campaign.worker(config, "tencent", once=True)
+    assert len(calls) == 2
+    saved = json.loads(state_path.read_text())["jobs"]["hy3"]
+    assert saved["status"] == "needs_attention"
+    assert saved["pending"] == 1
 
 
 def test_success_spacing_can_be_removed_without_removing_error_backoff():
@@ -198,7 +296,7 @@ def test_interruption_and_transport_share_case_attempt_budget(tmp_path, monkeypa
     def fake_run(cmd, **kwargs):
         calls.append(cmd)
         out = campaign.Path(cmd[cmd.index("--output-dir")+1])
-        payload = summary([result(status="error", retryable_infrastructure=True)])
+        payload = summary([result(status="error", retryable_infrastructure=True)], pending=1)
         payload["started_at_utc"] = datetime.now(UTC).isoformat()
         if len(calls) in {1, 3}:
             payload["status"] = "running"

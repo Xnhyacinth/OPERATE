@@ -17,6 +17,7 @@ CORE_SUITE = REPO_ROOT / "benchmark/core_suite.json"
 
 def main() -> int:
     selector = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    selector.add_argument("--implementation-policy", choices=["provenance", "strict"], default="provenance")
     selector.add_argument("--core-suite", type=Path, default=CORE_SUITE)
     selected, forwarded = selector.parse_known_args(sys.argv[1:])
     core_suite = selected.core_suite.resolve()
@@ -66,6 +67,7 @@ def main() -> int:
     sys.argv = [
         "scripts/batch_llm_eval.py",
         *forwarded,
+        "--implementation-policy", selected.implementation_policy,
         "--seed-mode",
         "scenario",
         "--scenario-slice",

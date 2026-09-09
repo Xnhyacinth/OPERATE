@@ -18,6 +18,7 @@ from core import (
     TickBudget,
     ToolContext,
     ToolRegistry,
+    ToolResult,
     safe_dataclass_to_dict,
 )
 from core.difficulty_levels import canonical_difficulty_level
@@ -67,6 +68,8 @@ def _visible_causal_parent_event_id(
     call_id: str | None,
     request_tick: int,
     visible_source_events_by_evidence_id: dict[str, dict[str, Any]],
+    *,
+    materialized_consumes_evidence_ids: list[str] | None = None,
 ) -> str | None:
     """Resolve an explicitly consumed, already-visible source event."""
 
@@ -74,9 +77,11 @@ def _visible_causal_parent_event_id(
         (candidate for candidate in action.tool_calls if candidate.call_id == call_id),
         None,
     )
-    if call is None:
-        return None
-    for evidence_id in call.consumes_evidence_ids or []:
+    consumed = (
+        call.consumes_evidence_ids if call is not None
+        else materialized_consumes_evidence_ids
+    )
+    for evidence_id in consumed or []:
         event = visible_source_events_by_evidence_id.get(str(evidence_id))
         if event is not None and int(event["visible_from_request_tick"]) <= int(
             request_tick
@@ -195,20 +200,7 @@ class DatacenterEnvironment(POMDPEnvironment):
             )
             if not linked:
                 result.evidence_id = evidence_id
-            if result.ok:
-                causal_parent_event_id = _visible_causal_parent_event_id(
-                    action,
-                    result.call_id,
-                    self._tick,
-                    self._visible_source_events_by_evidence_id,
-                )
-                self._backend.bind_tool_result(
-                    name=result.name,
-                    call_id=result.call_id,
-                    evidence_id=result.evidence_id,
-                    payload=result.payload,
-                    causal_parent_event_id=causal_parent_event_id,
-                )
+            self._bind_tool_result(action, result)
 
         record = self._backend.tick(self._tick)
         record_payload = safe_dataclass_to_dict(record)
@@ -307,6 +299,23 @@ class DatacenterEnvironment(POMDPEnvironment):
                 },
             ),
         )
+
+    def _bind_tool_result(self, action: Action, result: ToolResult) -> None:
+        if result.ok:
+            assert self._backend is not None
+            self._backend.bind_tool_result(
+                name=result.name,
+                call_id=result.call_id,
+                evidence_id=result.evidence_id,
+                payload=result.payload,
+                causal_parent_event_id=_visible_causal_parent_event_id(
+                    action,
+                    result.call_id,
+                    self._tick,
+                    self._visible_source_events_by_evidence_id,
+                    materialized_consumes_evidence_ids=result.consumes_evidence_ids,
+                ),
+            )
 
     def snapshot(self) -> dict[str, Any]:
         assert self._backend is not None

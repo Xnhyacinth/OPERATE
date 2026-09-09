@@ -132,6 +132,7 @@ def test_one_job_invocations_keep_full_scope_and_do_not_retry_model_failure(
                 "status": "ok" if len(dispatched) == 1 else "error",
                 "task_completion": {"completed": False},
                 "error_type": None if len(dispatched) == 1 else "ValueError",
+                "termination_category": None if len(dispatched) == 1 else "model_failure",
                 "implementation_tree_sha256": job["implementation_tree_sha256"],
             })
             batch._append_jsonl_atomic(path, _bind_saved_artifacts(job, row))
@@ -351,6 +352,7 @@ def test_formal_bounded_chunks_keep_manifest_scope_and_require_publication_audit
         "--api-key-env", "TEST_FULL_KEY", "--base-url-env", "TEST_FULL_BASE",
         "--api-version-env", "TEST_FULL_VERSION", "--responses-base-url-env", "TEST_FULL_RESPONSES",
         "--model-context-window-tokens", "192000", "--model-max-output-tokens", "64000",
+        "--max-tokens", "64000",
     ])
     assert batch.main() == 2
     leaf, = root.glob("treatment-*")

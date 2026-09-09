@@ -33,6 +33,7 @@ from core import (
     TickBudget,
     ToolContext,
     ToolRegistry,
+    ToolResult,
     ToolSpec,
     arm_dilemmas,
     safe_dataclass_to_dict,
@@ -236,28 +237,7 @@ class LogisticsEnvironment(POMDPEnvironment):
             )
             if not result_evidence_id:
                 r.evidence_id = tool_call_evidence_id
-            bind_tool_result = getattr(
-                self._backend, "bind_tool_result", None
-            )
-            if r.ok and callable(bind_tool_result):
-                kwargs = {
-                    "name": r.name,
-                    "call_id": r.call_id,
-                    "evidence_id": r.evidence_id,
-                    "payload": r.payload,
-                }
-                if getattr(self._backend, "backend_kind", "") == "orgym_invmgmt":
-                    kwargs["causal_parent_event_id"] = (
-                        _visible_causal_parent_event_id(
-                            action,
-                            r.call_id,
-                            self._visible_source_events_by_evidence_id,
-                            materialized_consumes_evidence_ids=list(
-                                r.consumes_evidence_ids or []
-                            ),
-                        )
-                    )
-                bind_tool_result(**kwargs)
+            self._bind_tool_result(action, r)
 
         if self._pending_cascade_perturbations and self._seed_obj is not None:
             for p in self._pending_cascade_perturbations:
@@ -453,6 +433,25 @@ class LogisticsEnvironment(POMDPEnvironment):
             done=done,
             info=info,
         )
+
+    def _bind_tool_result(self, action: Action, result: ToolResult) -> None:
+        if getattr(self._backend, "backend_kind", "") != "orgym_invmgmt":
+            return super()._bind_tool_result(action, result)
+        if result.ok:
+            self._backend.bind_tool_result(
+                name=result.name,
+                call_id=result.call_id,
+                evidence_id=result.evidence_id,
+                payload=result.payload,
+                causal_parent_event_id=_visible_causal_parent_event_id(
+                    action,
+                    result.call_id,
+                    self._visible_source_events_by_evidence_id,
+                    materialized_consumes_evidence_ids=list(
+                        result.consumes_evidence_ids or []
+                    ),
+                ),
+            )
 
     def snapshot(self) -> dict[str, Any]:
         assert self._backend is not None

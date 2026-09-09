@@ -55,6 +55,7 @@ from evaluation import (
     summarize_decision_impact,
 )
 from runner.resume import recompute_signature_with_seed
+from runner.checkpoint import CheckpointIntegrityError
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LOGGER = logging.getLogger(__name__)
@@ -1122,6 +1123,7 @@ def _finalize_failed_episode_audit(
     logger: TrajectoryLogger | None,
     error: BaseException,
     error_stage: str,
+    artifacts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Persist partial agent/provider state before an episode abort escapes."""
 
@@ -1129,7 +1131,11 @@ def _finalize_failed_episode_audit(
         "status": "error",
         "error_type": type(error).__name__,
         "error_stage": error_stage,
+        **(artifacts or {}),
     }
+    checkpoint_progress = getattr(agent, "progress", None)
+    if callable(checkpoint_progress):
+        details["checkpoint_progress"] = checkpoint_progress()
     request_sequence = getattr(error, "request_sequence", None)
     if request_sequence is not None:
         details["provider_request_sequence"] = int(request_sequence)
@@ -2078,6 +2084,8 @@ def _run_episode_loop(
                 observe_transition(obs)
                 transition_ingestion_completed += 1
             except Exception as exc:
+                if isinstance(exc, CheckpointIntegrityError):
+                    raise
                 failure = {
                     "applied_tick": applied_tick,
                     "error_type": type(exc).__name__,
@@ -2244,6 +2252,8 @@ def _run_episode_loop(
         except Exception as exc:
             import logging
 
+            if isinstance(exc, CheckpointIntegrityError):
+                raise
             logging.getLogger(__name__).warning(
                 "agent.on_episode_end raised %s: %s — ignoring",
                 type(exc).__name__,
@@ -2447,6 +2457,8 @@ def run_one(
     per_action_group_attribution: bool = False,
     per_action_group_cap: int | None = 20,
     within_tick_interaction: bool = True,
+    checkpoint_path: Path | None = None,
+    checkpoint_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run a single episode and return the result blob (no disk write here)."""
     seed = int(seed_override if seed_override is not None else scenario.get("seed", 42))
@@ -2472,6 +2484,8 @@ def run_one(
             per_action_group_attribution=per_action_group_attribution,
             per_action_group_cap=per_action_group_cap,
             within_tick_interaction=within_tick_interaction,
+            checkpoint_path=checkpoint_path,
+            checkpoint_identity=checkpoint_identity,
         )
     finally:
         env.close()
@@ -2503,7 +2517,16 @@ def _snapshot_and_close_completed_environment(
         env.close()
 
 
-def _run_one_with_environment(
+def _run_one_with_environment(*args, **kwargs) -> dict[str, Any]:
+    checkpoint_agents: list[Any] = []
+    try:
+        return _run_one_with_environment_impl(*args, checkpoint_agents=checkpoint_agents, **kwargs)
+    finally:
+        for agent in checkpoint_agents:
+            agent.close()
+
+
+def _run_one_with_environment_impl(
     scenario: dict[str, Any],
     agent_name: str,
     *,
@@ -2520,10 +2543,22 @@ def _run_one_with_environment(
     per_action_group_attribution: bool,
     per_action_group_cap: int | None,
     within_tick_interaction: bool,
+    checkpoint_agents: list[Any],
+    checkpoint_path: Path | None = None,
+    checkpoint_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     env.reset(scenario, seed=seed)
     agent = make_agent(agent_name, **(agent_kwargs or {}))
     agent.reset(env, scenario, seed=seed)
+    if checkpoint_path is not None:
+        from runner.checkpoint import JournaledAgent
+
+        config = (agent_kwargs or {}).get("config")
+        if (agent_name != "llm_agent" or multi_turn
+                or getattr(config, "interaction_mode", None) != "logical_persistent"):
+            raise ValueError("episode checkpoints require logical_persistent llm_agent without multi_turn")
+        agent = JournaledAgent(agent, env, checkpoint_path, checkpoint_identity)
+        checkpoint_agents.append(agent)
 
     # v0.2.2 (P1-3): capture Reflexion's lessons-file fingerprint *after*
     # `agent.reset(...)` (which loaded the lessons) but *before* the
@@ -2601,6 +2636,8 @@ def _run_one_with_environment(
                 min(baseline_intervals) if baseline_intervals else None
             ),
         )
+        if checkpoint_path is not None:
+            agent.assert_replay_complete()
     except Exception as exc:
         try:
             details = _finalize_failed_episode_audit(
@@ -2627,18 +2664,55 @@ def _run_one_with_environment(
     gt, foresight, backend_records, realized = (
         _snapshot_and_close_completed_environment(env)
     )
+    snapshot_identity = None
+    completed_runtime_artifact = None
+    if logger is not None:
+        from core.implementation_identity import implementation_identity
+        from evaluation.scoring_snapshot import snapshot_inputs
 
-    cf = domain_counterfactual_report(
-        env_factory=spec.env_factory(),
-        scenario_config=scenario,
-        seed=seed,
-        actual_actions=actions,
-        masking_policy=counterfactual_masking,
-        per_action=per_action_attribution,
-        per_action_cap=per_action_cap,
-        per_action_groups=per_action_group_attribution,
-        per_action_group_cap=per_action_group_cap,
-    )
+        memory, ledger_binding, provider_binding = _collect_agent_session_artifacts(agent=agent, logger=logger)
+        if env.evidence is not None:
+            logger.write_evidence(env.evidence.to_jsonable())
+        snapshot_identity = {
+            "scenario_signature": recompute_signature_with_seed(scenario, seed, spec),
+            "seed": seed, "agent_config": _public_agent_config(agent_kwargs),
+            "agent_name": agent_name, "implementation": implementation_identity(REPO_ROOT),
+            "checkpoint_identity": checkpoint_identity,
+        }
+        completed_runtime_artifact = logger.write_snapshot("completed_runtime", {
+            "identity": snapshot_identity, "scenario": scenario, "ground_truth": gt,
+            "backend_tick_records": backend_records, "realized_events": realized,
+            "foresight": foresight, "actions": [action.to_dict() for action in actions],
+            "analysis_steps": loop_result["analysis_steps"],
+            "stale_observation_records": stale_observation_records,
+            "manager_inputs": snapshot_inputs(ScoringInputs([], [], {}, {}, {}, env.evidence,
+                                                            env.stakeholders, env.dilemmas)),
+            "structured_memory": memory, "semantic_ledger_artifact": ledger_binding,
+            "provider_audit_artifact": provider_binding,
+            "counterfactual_settings": {"masking_policy": counterfactual_masking,
+                "per_action": per_action_attribution, "per_action_cap": per_action_cap,
+                "per_action_groups": per_action_group_attribution,
+                "per_action_group_cap": per_action_group_cap},
+        })
+        logger.finalize(final_score=None, trajectory_summary={
+            "status": "postprocessing_pending", "completed_runtime_artifact": completed_runtime_artifact})
+    try:
+        cf = domain_counterfactual_report(
+            env_factory=spec.env_factory(),
+            scenario_config=scenario,
+            seed=seed,
+            actual_actions=actions,
+            masking_policy=counterfactual_masking,
+            per_action=per_action_attribution,
+            per_action_cap=per_action_cap,
+            per_action_groups=per_action_group_attribution,
+            per_action_group_cap=per_action_group_cap,
+        )
+    except Exception as exc:
+        details = _finalize_failed_episode_audit(agent=agent, logger=logger, error=exc, error_stage="counterfactual",
+                                               artifacts={"completed_runtime_artifact": completed_runtime_artifact})
+        exc.episode_error_details = details
+        raise
 
     # T0: ``load_assignments`` is the cross-domain stakeholder-class field
     # name (kept identical across all 5 domains, see each seeds/schema.py),
@@ -2780,6 +2854,10 @@ def _run_one_with_environment(
         foresight_summary=foresight,
         lp_optimum=lp_optimum,
         optimality_objective_component=optimality_objective_component,
+        optimality_objective_value_domain=(
+            "signed" if scenario.get("backend_kind") == "citylearn"
+            and optimality_objective_component == "energy_cost" else "nonnegative"
+        ),
         optimality_feasibility=gt.get("optimality_feasibility"),
         difficulty_level=str(scenario.get("difficulty_level", "basic")),
         scenario_signature=recompute_signature_with_seed(scenario, seed, spec),
@@ -2800,11 +2878,23 @@ def _run_one_with_environment(
             )
         ),
     )
-    score = score_episode(inputs)
-
     evidence_path = None
     if logger is not None and env.evidence is not None:
         evidence_path = logger.write_evidence(env.evidence.to_jsonable())
+    scoring_inputs_artifact = None
+    if logger is not None:
+        scoring_inputs_artifact = logger.write_snapshot("scoring_inputs", {
+            "identity": snapshot_identity, "inputs": snapshot_inputs(inputs),
+            "completed_runtime_artifact": completed_runtime_artifact,
+        })
+    try:
+        score = score_episode(inputs)
+    except Exception as exc:
+        details = _finalize_failed_episode_audit(agent=agent, logger=logger, error=exc, error_stage="scoring",
+            artifacts={"completed_runtime_artifact": completed_runtime_artifact,
+                       "scoring_inputs_artifact": scoring_inputs_artifact})
+        exc.episode_error_details = details
+        raise
 
     llm_stats = (
         agent.get_interaction_stats()
@@ -2812,6 +2902,11 @@ def _run_one_with_environment(
         else None
     )
     trajectory_summary = _summarize_trajectory(actions, llm_stats)
+    if completed_runtime_artifact is not None:
+        trajectory_summary["completed_runtime_artifact"] = completed_runtime_artifact
+        trajectory_summary["scoring_inputs_artifact"] = scoring_inputs_artifact
+    if checkpoint_path is not None:
+        trajectory_summary["checkpoint_progress"] = agent.progress()
     trajectory_summary["complexity"] = analyze_trajectory_steps(
         loop_result["analysis_steps"],
         per_action_attribution=(

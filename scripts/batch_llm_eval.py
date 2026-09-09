@@ -94,6 +94,7 @@ from scripts.analyze_batch_results import analyze_output_dir  # noqa: E402
 from evaluation.batch_status import (  # noqa: E402
     execution_status_counts as _execution_status_counts,
     row_is_quota_exhausted as _row_is_quota_exhausted,
+    row_needs_repair as _row_needs_repair,
 )
 from scripts.analyze_decision_impact import (  # noqa: E402
     build_report as build_decision_impact_report,
@@ -712,6 +713,8 @@ def _llm_config_to_dict(cfg: LLMConfig) -> dict[str, Any]:
         "token_count_method": cfg.token_count_method,
         "token_count_version": cfg.token_count_version,
         "timeout_s": cfg.timeout_s,
+        "provider_retry_max_attempts": cfg.provider_retry_max_attempts,
+        "provider_retry_max_elapsed_s": cfg.provider_retry_max_elapsed_s,
         "max_consecutive_provider_failures": cfg.max_consecutive_provider_failures,
         "provider_failure_policy": cfg.provider_failure_policy,
         "provider_rpm_limit": cfg.provider_rpm_limit or None,
@@ -769,6 +772,8 @@ def _llm_config_from_dict(d: dict[str, Any]) -> LLMConfig:
         ),
         token_count_version=str(d.get("token_count_version", TOKEN_COUNT_VERSION_V1)),
         timeout_s=float(d.get("timeout_s", 60.0)),
+        provider_retry_max_attempts=int(d.get("provider_retry_max_attempts", 5)),
+        provider_retry_max_elapsed_s=float(d.get("provider_retry_max_elapsed_s", 1800.0)),
         max_consecutive_provider_failures=int(
             d.get("max_consecutive_provider_failures", 5)
         ),
@@ -1024,6 +1029,8 @@ def _write_quota_sentinel(job: dict[str, Any], row: dict[str, Any]) -> Path | No
 def _apply_llm_job_metadata(job: dict[str, Any], r: dict[str, Any]) -> dict[str, Any]:
     model = job["model"]
     r["model"] = model
+    if job.get("implementation_policy") is not None:
+        r["implementation_policy"] = job["implementation_policy"]
     r["scenario_slug"] = job["scenario_slug"]
     if r.get("seed") is None and job.get("seed") is not None:
         r["seed"] = int(job["seed"])
@@ -1189,6 +1196,8 @@ def _agent_treatment_identity(cfg: LLMConfig) -> dict[str, Any]:
             else {}
         ),
         "timeout_s": cfg.timeout_s,
+        "provider_retry_max_attempts": cfg.provider_retry_max_attempts,
+        "provider_retry_max_elapsed_s": cfg.provider_retry_max_elapsed_s,
         "max_consecutive_provider_failures": cfg.max_consecutive_provider_failures,
         "provider_failure_policy": cfg.provider_failure_policy,
         "provider_rpm_limit": cfg.provider_rpm_limit or None,
@@ -1278,6 +1287,8 @@ def _batch_llm_config(
         timeout_s=float(
             getattr(args, "provider_timeout_s", None) or (150.0 if persistent else 60.0)
         ),
+        provider_retry_max_attempts=int(getattr(args, "provider_retry_max_attempts", 5)),
+        provider_retry_max_elapsed_s=float(getattr(args, "provider_retry_max_elapsed_s", 1800.0)),
         **_provider_failure_profile(
             formal_run=bool(getattr(args, "formal_run", False)),
             provider_failure_policy=getattr(args, "provider_failure_policy", None),
@@ -1492,13 +1503,16 @@ def _run_semantics_fingerprint(
     prompt_mode: str,
     max_tokens: int | None = None,
     interaction_mode: str = "logical_stateless",
+    *,
+    episode_checkpoint: bool = False,
 ) -> str:
+    recovery = ":recovery-logical_episode_checkpoint_v1" if episode_checkpoint else ""
     output_budget = "" if max_tokens is None else f":max-tokens-{int(max_tokens)}"
     return (
         f"{EVALUATION_IMPLEMENTATION_FINGERPRINT}:"
         f"prompt-{str(prompt_mode or 'strict').lower()}"
         f":interaction-{str(interaction_mode or 'logical_stateless').lower()}"
-        f"{output_budget}"
+        f"{output_budget}{recovery}"
     )
 
 
@@ -1669,6 +1683,7 @@ def _run_config_treatment_compatibility_reasons(
         "suite_manifest_sha256",
         "suite_eligibility_sha256",
         "formal_run",
+        "implementation_policy",
         "implementation_tree_sha256",
         "models",
         "seeds",
@@ -1689,6 +1704,8 @@ def _run_config_treatment_compatibility_reasons(
         "provider_rpd_limit",
         "provider_rate_limit_scope",
         "max_consecutive_provider_failures",
+        "provider_retry_max_attempts",
+        "provider_retry_max_elapsed_s",
         "provider_failure_policy",
         "reasoning_effort_format",
         "thinking_type",
@@ -1710,6 +1727,7 @@ def _run_config_treatment_compatibility_reasons(
         "stream_chat_completions",
         "save_trajectories",
         "resume_policy",
+        "episode_checkpoint",
         "job_order",
         "native_runtime_binding",
         "agent_profile_schema_version",
@@ -1718,6 +1736,8 @@ def _run_config_treatment_compatibility_reasons(
         "agent_treatment_schema_version",
         *(meta_field for meta_field, _ in _FORMAL_RUNTIME_BINDING_FIELDS),
     )
+    if existing.get("implementation_policy") == requested.get("implementation_policy") == "provenance":
+        immutable_fields = tuple(field for field in immutable_fields if field != "implementation_tree_sha256")
     if any(
         existing.get(field) != requested.get(field)
         for field in immutable_fields
@@ -3507,6 +3527,18 @@ def _formal_row_eligibility(
     remains a model capability signal and is scored as a failed tool call.
     """
     reasons: list[str] = []
+    recovery = row.get("recovery_audit")
+    checkpoint = row.get("checkpoint_progress") or (row.get("trajectory_summary") or {}).get("checkpoint_progress")
+    if recovery is not None or (checkpoint or {}).get("replayed_boundaries", 0):
+        from runner.recovery_audit import validate_recovery_audit
+
+        trajectory = (row.get("trajectory_summary") or {}).get("trajectory_path")
+        directory = resolve_batch_path(trajectory, batch_root=batch_root).parent if trajectory else None
+        audit_reasons = validate_recovery_audit(row, batch_root, directory)
+        if audit_reasons or not isinstance(recovery, dict) or not recovery.get("closed"):
+            reasons.append("recovery_audit_unclosed")
+        elif recovery.get("eligible") is not True:
+            reasons.append("recovery_history_ineligible")
     if row.get("status") != "ok":
         reasons.append("episode_status_not_ok")
     if row.get("interaction_mode") not in {
@@ -3825,13 +3857,17 @@ def _row_is_clean_for_resume(
 
 def _retryable_infrastructure_row(row: dict[str, Any]) -> bool:
     """Retry interrupted/transient transport attempts, never search for a passing answer."""
+    if row.get("status") == "ok":
+        return False
     if row.get("status") == "in_flight" or _row_is_quota_exhausted(row):
         return True
+    if row.get("termination_category") in {"harness_error", "model_failure", "provider_configuration_error"}:
+        return False
     transient_types = {
         "APITimeoutError", "APIConnectionError", "TimeoutError", "ConnectTimeout",
         "ReadTimeout", "ConnectTimeout", "WriteTimeout", "PoolTimeout", "ConnectError",
         "ReadError", "WriteError", "CloseError", "RemoteProtocolError",
-        "ConnectionError", "RateLimitError", "InternalServerError",
+        "ConnectionError", "RateLimitError", "InternalServerError", "ProviderRetryBudgetExhaustedError",
     }
     if any(str(row.get(key) or "") in transient_types for key in ("error_type", "error_cause_type")):
         return True
@@ -3840,19 +3876,21 @@ def _retryable_infrastructure_row(row: dict[str, Any]) -> bool:
         return True
     llm = (row.get("trajectory_summary") or {}).get("llm") or {}
     failures = llm.get("failed_tick_log") or []
-    return any(
-        isinstance(item, dict)
-        and (
-            item.get("reason") in {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
-            or item.get("exc_type") in transient_types
-        )
-        for item in failures
+    # Legacy circuit rows lack an explicit cause. Only their final failure
+    # can explain termination; earlier recovered failures are not retry gates.
+    if row.get("error_type") != "ProviderCircuitOpenError" or row.get("error_cause_type"):
+        return False
+    last = failures[-1] if failures else None
+    return isinstance(last, dict) and (
+        last.get("reason") in {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
+        or last.get("exc_type") in transient_types
     )
 
 
 def _terminal_attempt_key(row: dict[str, Any]) -> tuple[Any, ...] | None:
     _, strong = _row_resume_keys(row)
-    tree = row.get("implementation_tree_sha256")
+    tree = ("provenance" if row.get("implementation_policy") == "provenance"
+            else row.get("implementation_tree_sha256"))
     treatment = row.get("agent_treatment_sha256")
     if strong is None or not tree or not treatment:
         return None
@@ -3929,6 +3967,12 @@ def _resume_artifact_integrity_reasons(
             size = binding["byte_count"]
             if type(size) is not int or size != len(data):
                 reasons.append(f"{name}:byte_count_mismatch")
+    if row.get("recovery_audit") is not None:
+        from runner.recovery_audit import validate_recovery_audit
+
+        reasons.extend(validate_recovery_audit(
+            row, batch_root, job.get("recovery_trajectory_dir") or job.get("trajectory_dir")
+        ))
     return reasons
 
 
@@ -3974,7 +4018,13 @@ def _archived_resume_projection(
                     value["path"] = archived_path(value["path"])
             if source.get("trajectory_path"):
                 source["trajectory_path"] = archived_path(source["trajectory_path"])
-        return projected, {**job, "trajectory_dir": str(archived)}
+        for attempt in (projected.get("recovery_audit") or {}).get("attempts", []):
+            artifact = attempt.get("provider_audit_artifact") or {}
+            value = artifact.get("path")
+            if value is not None and str(value) in binding["artifact_relative_paths"]:
+                artifact["path"] = archived_path(value)
+        return projected, {**job, "trajectory_dir": str(archived),
+                           "recovery_trajectory_dir": str(original)}
     except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
         raise ResumeArtifactIntegrityError([{
             "scenario_slug": job.get("scenario_slug"),
@@ -4026,6 +4076,7 @@ def _filter_pending_jobs(
     jobs: list[dict[str, Any]], rows: list[dict[str, Any]],
     *, batch_root: Path | None = None,
     resume_policy: str = "clean",
+    repair_failures: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     if resume_policy == "retry-infrastructure":
         terminal = {
@@ -4039,13 +4090,23 @@ def _filter_pending_jobs(
         for job in jobs:
             row = terminal.get(_terminal_attempt_key(job))
             if row is not None:
-                projected, projected_job = _archived_resume_projection(row, job, batch_root)
-                reasons = _resume_artifact_integrity_reasons(projected, projected_job, batch_root=batch_root)
+                try:
+                    projected, projected_job = _archived_resume_projection(row, job, batch_root)
+                    reasons = _resume_artifact_integrity_reasons(projected, projected_job, batch_root=batch_root)
+                except ResumeArtifactIntegrityError as exc:
+                    reasons = [reason for failure in exc.failures for reason in failure.get("reasons", [])]
                 if reasons:
-                    integrity_failures.append({
-                        "scenario_slug": job.get("scenario_slug"),
-                        "model": job.get("model"), "reasons": reasons,
-                    })
+                    failure = {
+                        **{key: job.get(key) for key in ("scenario_slug", "model", "seed", "pass_id")},
+                        "reasons": reasons, "needs_repair": True,
+                        "termination_category": "harness_error", "execution_started": False,
+                        "retryable_infrastructure": False,
+                    }
+                    if repair_failures is not None:
+                        repair_failures.append(failure)
+                        job["artifact_needs_repair"] = True
+                        continue
+                    integrity_failures.append(failure)
             if row is None or _retryable_infrastructure_row(row):
                 if row is not None and job.get("trajectory_dir"):
                     job["prior_attempt_for_archive"] = deepcopy(row)
@@ -4090,9 +4151,30 @@ def _invocation_summary(
         if row.get("status") in {"ok", "error"}
         and (key := _terminal_attempt_key(row)) is not None and key in scope_keys
     }
+    repair_failures: list[dict[str, Any]] = []
     pending = _filter_pending_jobs(
-        scope_jobs, rows, batch_root=batch_root, resume_policy=resume_policy
+        scope_jobs, rows, batch_root=batch_root, resume_policy=resume_policy,
+        repair_failures=repair_failures,
     )
+    repair_keys = {key for key, row in terminal.items() if _row_needs_repair(row)} | {
+        _terminal_attempt_key(job) for job in scope_jobs if job.get("artifact_needs_repair")
+    }
+    for key, row in terminal.items():
+        if _row_needs_repair(row) and not any(
+            all(failure.get(field) == row.get(field) for field in ("scenario_slug", "model", "seed", "pass_id"))
+            for failure in repair_failures
+        ):
+            repair_failures.append({
+                **{field: row.get(field) for field in ("scenario_slug", "model", "seed", "pass_id")},
+                "needs_repair": True, "termination_category": "harness_error",
+                "execution_started": False, "retryable_infrastructure": False,
+                "reasons": [str(row.get("error_type") or "harness_error")],
+            })
+    pending_keys = {_terminal_attempt_key(job) for job in pending} | repair_keys
+    held_keys = repair_keys | {
+        _terminal_attempt_key(job) for job in scope_jobs
+        if job.get("campaign_hold") and _terminal_attempt_key(job) in pending_keys
+    }
     results = []
     for job in dispatched_jobs:
         row = terminal.get(_terminal_attempt_key(job)) if status == "completed" else None
@@ -4109,7 +4191,12 @@ def _invocation_summary(
             "error_http_status": row.get("error_http_status") if row else None,
             "quota_parked": row.get("quota_parked", False) if row else None,
             "quota_reset_at": row.get("quota_reset_at") if row else None,
+            "retry_at": row.get("retry_at") if row else None,
+            "budget_reason": row.get("budget_reason") if row else None,
             "execution_started": row.get("execution_started") if row else None,
+            "execution_attempt_id": row.get("execution_attempt_id") if row else None,
+            "termination_category": row.get("termination_category") if row else None,
+            "needs_repair": _row_needs_repair(row) if row else None,
             "retryable_infrastructure": _retryable_infrastructure_row(row) if row else None,
         })
     return {
@@ -4118,10 +4205,14 @@ def _invocation_summary(
         "started_at_utc": started_at_utc, "updated_at_utc": datetime.now(UTC).isoformat(),
         "resume_policy": resume_policy, "total_scope_jobs": len(scope_jobs),
         "pending_before": pending_before, "dispatched": len(dispatched_jobs),
-        "pending_after": len(pending), "resume_terminal": len(scope_jobs) - len(pending),
+        "pending_after": len(pending_keys), "resume_terminal": len(scope_jobs) - len(pending_keys),
+        "held_count": len(held_keys),
+        "runnable_pending": len(pending_keys - held_keys),
+        "needs_repair_count": len(repair_keys),
+        "repair_cells": repair_failures,
         "infrastructure_failures": sum(_retryable_infrastructure_row(row) for row in terminal.values()),
         "terminal_errors": sum(row.get("status") == "error" for row in terminal.values()),
-        "scope_attempts_closed": not pending,
+        "scope_attempts_closed": not pending_keys,
         "formal_completion_claimed": False,
         "dispatched_results": results,
     }
@@ -4137,7 +4228,8 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     seed = int(job["seed"])
     cfg = _llm_config_from_dict(job["llm_config"])
     start_tree = implementation_identity(REPO_ROOT)["implementation_tree_sha256"]
-    expected_tree = str(job.get("implementation_tree_sha256") or start_tree)
+    provenance_only = job.get("implementation_policy") == "provenance"
+    expected_tree = start_tree if provenance_only else str(job.get("implementation_tree_sha256") or start_tree)
     kwargs = {"config": cfg}
     run_options: dict[str, Any] = {}
     if job.get("lite_core_lineage") is not None:
@@ -4158,6 +4250,17 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
         run_options["trajectory_dir"] = job["trajectory_dir"]
     if job.get("episode_log_path"):
         run_options["episode_log_path"] = job["episode_log_path"]
+    if job.get("episode_checkpoint"):
+        identity = {key: job.get(key) for key in (
+            "scenario_slug", "scenario_signature", "model", "seed", "pass_id",
+            "agent_treatment_sha256", "implementation_tree_sha256", "run_semantics_fingerprint",
+            "suite_manifest_sha256", "suite_eligibility_sha256",
+        )}
+        identity["schema_version"] = "logical_episode_replay_v1"
+        run_options["checkpoint_identity"] = identity
+        run_options["checkpoint_path"] = str(
+            Path(job["batch_output_dir"]) / ".episode_checkpoints" / f"{_canonical_json_sha256(identity)}.jsonl"
+        )
     r: dict[str, Any]
     execution_attempt_id: str | None = None
     if start_tree != expected_tree:
@@ -4191,11 +4294,33 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     r["implementation_tree_sha256"] = expected_tree
     r["implementation_tree_sha256_start"] = start_tree
     r["implementation_tree_sha256_end"] = end_tree
-    if start_tree != expected_tree or end_tree != expected_tree:
+    if not provenance_only and (start_tree != expected_tree or end_tree != expected_tree):
         r["status"] = "error"
         r["error"] = "implementation_tree_drift"
+        r["error_type"] = "ImplementationIdentityError"
+        r["termination_category"] = "harness_error"
+        r["needs_repair"] = True
     r = _apply_llm_job_metadata(job, r)
     r["temperature"] = float(job.get("temperature", cfg.temperature))
+    if job.get("episode_checkpoint") and r["execution_started"]:
+        from runner.recovery_audit import build_recovery_audit
+
+        root = Path(job["batch_output_dir"]).resolve()
+        prior = job.get("prior_attempt_for_archive")
+        if isinstance(prior, dict):
+            prior, _ = _archived_resume_projection(prior, job, root)
+        history = (prior.get("recovery_audit") or {}).get("attempts", []) if isinstance(prior, dict) else []
+        r["recovery_audit"] = build_recovery_audit(
+            history, prior, r, root, str(job["model"]),
+            expected_trajectory_dir=job.get("trajectory_dir"),
+        )
+        r["provider_request_accounting_scope"] = "retained_logical_trajectory"
+        for path in Path(job["trajectory_dir"]).glob("*.summary.json"):
+            summary = json.loads(path.read_text(encoding="utf-8"))
+            summary["recovery_audit"] = r["recovery_audit"]
+            summary["provider_request_accounting_scope"] = "retained_logical_trajectory"
+            _atomic_write_text(path, json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
+        _portabilize_formal_trajectory_json_sidecars(job)
     if _row_is_quota_exhausted(r):
         r["quota_parked"] = True
         reset_at = _quota_reset_text(r.get("error"))
@@ -4218,6 +4343,9 @@ def _portabilize_formal_trajectory_json_sidecars(job: dict[str, Any]) -> None:
         raise ValueError("formal trajectory directory escapes batch root") from exc
     for path in sorted(trajectory_dir.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
+        if payload.get("schema_version") == "episode_scoring_snapshot_v1":
+            # Snapshot bytes are immutable scorer inputs; only outer locators move.
+            continue
         portable = canonicalize_repo_owned_paths(payload, repo_root=batch_root)
         _atomic_write_text(
             path,
@@ -4985,8 +5113,14 @@ def _batch_state(
     is_partial = bool(coverage.get("is_partial_batch", False)) or bool(
         execution_counts["n_episodes_quota_unavailable"]
         or execution_counts["n_episodes_in_flight"]
+        or execution_counts["n_episodes_harness_error"]
     )
     n_errors = execution_counts["n_episodes_error"]
+    if execution_counts["n_episodes_harness_error"]:
+        reasons.append(
+            f"{execution_counts['n_episodes_harness_error']} harness-error episodes need repair; "
+            "no task outcome measured"
+        )
     if execution_counts["n_episodes_quota_unavailable"]:
         reasons.append(
             f"{execution_counts['n_episodes_quota_unavailable']} provider-quota-unavailable "
@@ -6236,6 +6370,8 @@ def _formal_leaderboard_eligibility(
         "persistent_context_max_chars": meta.get("persistent_context_max_chars"),
         "persistent_memory_max_items": meta.get("persistent_memory_max_items"),
         "provider_timeout_s": meta.get("provider_timeout_s"),
+        "provider_retry_max_attempts": meta.get("provider_retry_max_attempts", 5),
+        "provider_retry_max_elapsed_s": meta.get("provider_retry_max_elapsed_s", 1800.0),
         "provider_failure_policy": meta.get("provider_failure_policy"),
         "max_consecutive_provider_failures": meta.get("max_consecutive_provider_failures"),
         "provider_rpm_limit": meta.get("provider_rpm_limit"),
@@ -6675,6 +6811,19 @@ def _portable_formal_result_paths(
 
     portable = deepcopy(rows)
     for row in portable:
+        for source in (row, row.get("trajectory_summary") or {}):
+            if not isinstance(source, dict):
+                continue
+            for name, binding in source.items():
+                if name.endswith("_artifact") and isinstance(binding, dict) and binding.get("path"):
+                    binding["path"] = relative(binding["path"], label=name)
+            progress = source.get("checkpoint_progress")
+            if isinstance(progress, dict) and progress.get("path"):
+                progress["path"] = relative(progress["path"], label="checkpoint")
+            for attempt in (source.get("recovery_audit") or {}).get("attempts", []):
+                binding = attempt.get("provider_audit_artifact")
+                if isinstance(binding, dict) and binding.get("path"):
+                    binding["path"] = relative(binding["path"], label="recovery audit")
         if row.get("episode_log_path"):
             row["episode_log_path"] = relative(
                 row["episode_log_path"], label="episode log"
@@ -7133,6 +7282,7 @@ def _build_jobs(
                                 cfg.prompt_mode,
                                 cfg.max_tokens,
                                 cfg.interaction_mode,
+                                episode_checkpoint=bool(getattr(args, "episode_checkpoint", False)),
                             )
                             + f":agent-{agent_treatment_sha256}"
                         ),
@@ -7171,6 +7321,7 @@ def _build_jobs(
                     slug_safe = slug.replace("/", "_")
                     job["batch_output_dir"] = str(out_dir)
                     job["formal_run"] = bool(getattr(args, "formal_run", False))
+                    job["episode_checkpoint"] = bool(getattr(args, "episode_checkpoint", False))
                     if args.save_trajectories:
                         job["trajectory_dir"] = str(
                             _fit_fs_component(
@@ -7285,6 +7436,8 @@ def _run_batch_main() -> int:
         help="Structured persistent-memory item bound (default: 64).",
     )
     p.add_argument("--provider-timeout-s", type=float, default=None)
+    p.add_argument("--provider-retry-max-attempts", type=int, default=5)
+    p.add_argument("--provider-retry-max-elapsed-s", type=float, default=1800.0)
     p.add_argument(
         "--provider-failure-policy", choices=["abort", "compat_fallback"], default=None,
         help="Abort on provider failure instead of substituting wait; formal runs require abort.",
@@ -7457,7 +7610,18 @@ def _run_batch_main() -> int:
             "hard-coded --scenario-slice registry lookup."
         ),
     )
+    p.add_argument("--implementation-policy", choices=["strict", "provenance"], default="strict",
+                   help="Keep code identity as provenance for public ordinary evaluation; checkpoints require strict compatibility.")
+    p.add_argument("--episode-checkpoint", action="store_true", help="Durable verified decision replay for logical persistent episodes.")
+    p.add_argument("--held-cells", help="Campaign-held exact cells; retained in scope but not dispatched.")
     args = p.parse_args()
+    if args.implementation_policy == "provenance":
+        if args.formal_run or args.episode_checkpoint:
+            p.error("provenance policy is for public ordinary runs; native maintainer qualification and episode checkpoints use strict compatibility")
+        args.resume_policy = "retry-infrastructure"
+    if args.episode_checkpoint and (args.interaction_mode != "logical_persistent" or not args.save_trajectories):
+        print("[FATAL] episode-checkpoint requires logical_persistent and saved trajectories", file=sys.stderr)
+        return 1
     if args.max_jobs is not None and args.max_jobs < 1:
         print("[FATAL] --max-jobs must be positive", file=sys.stderr)
         return 1
@@ -7507,6 +7671,10 @@ def _run_batch_main() -> int:
         return 1
     if args.max_tokens < 1:
         print("[FATAL] --max-tokens must be >= 1", file=sys.stderr)
+        return 1
+    if (args.provider_retry_max_attempts < 1 or not math.isfinite(args.provider_retry_max_elapsed_s)
+            or args.provider_retry_max_elapsed_s <= 0):
+        print("[FATAL] provider retry budgets must be finite and positive", file=sys.stderr)
         return 1
     if args.provider_timeout_s <= 0:
         print("[FATAL] --provider-timeout-s must be positive", file=sys.stderr)
@@ -7998,6 +8166,8 @@ def _run_batch_main() -> int:
         (existing_run_config or {}).get("implementation_tree_sha256")
         or current_tree_at_start
     )
+    if args.implementation_policy == "provenance":
+        expected_run_tree = current_tree_at_start
     if current_tree_at_start != expected_run_tree:
         print(
             "[FATAL] implementation_tree_changed_since_run_start",
@@ -8072,6 +8242,7 @@ def _run_batch_main() -> int:
         "suite_eligibility": suite_eligibility,
         "suite_eligibility_sha256": suite_eligibility_sha256,
         "formal_run": bool(args.formal_run),
+        "implementation_policy": args.implementation_policy,
         "implementation_tree_sha256": expected_run_tree,
         "implementation_tree_sha256_start": current_tree_at_start,
         "release_id": (formal_manifest_binding or {}).get("release_id"),
@@ -8154,7 +8325,10 @@ def _run_batch_main() -> int:
             else (64 if args.interaction_mode == "logical_persistent" else 32)
         ),
         "harness": "direct_api",
+        "episode_checkpoint": args.episode_checkpoint,
         "provider_timeout_s": (args.provider_timeout_s),
+        "provider_retry_max_attempts": args.provider_retry_max_attempts,
+        "provider_retry_max_elapsed_s": args.provider_retry_max_elapsed_s,
         "provider_rpm_limit": args.provider_rpm_limit,
         "provider_rpd_limit": args.provider_rpd_limit,
         "provider_rate_limit_scope": args.provider_rate_limit_scope,
@@ -8190,6 +8364,7 @@ def _run_batch_main() -> int:
             args.prompt_mode,
             args.max_tokens,
             args.interaction_mode,
+            episode_checkpoint=args.episode_checkpoint,
         ),
         "within_tick_interaction": True,
         "scoring_version": SCORING_VERSION,
@@ -8389,6 +8564,7 @@ def _run_batch_main() -> int:
         )
         for job in jobs:
             job["implementation_tree_sha256"] = expected_run_tree
+            job["implementation_policy"] = args.implementation_policy
         scope_jobs = list(jobs)
         if args.retry_cells:
             retry_path = Path(args.retry_cells)
@@ -8423,7 +8599,8 @@ def _run_batch_main() -> int:
         before = len(jobs)
         try:
             jobs = _filter_pending_jobs(
-                jobs, prior_rows, batch_root=out_dir, resume_policy=args.resume_policy
+                jobs, prior_rows, batch_root=out_dir, resume_policy=args.resume_policy,
+                repair_failures=[] if args.held_cells else None,
             )
         except ResumeArtifactIntegrityError as exc:
             exc.dry_run = args.dry_run
@@ -8436,6 +8613,21 @@ def _run_batch_main() -> int:
                 len(jobs),
             )
     pending_before = len(jobs)
+    if args.held_cells:
+        held_rows = json.loads(Path(args.held_cells).read_text(encoding="utf-8"))
+        if isinstance(held_rows, dict):
+            held_rows = held_rows.get("cells")
+        if not isinstance(held_rows, list) or not all(
+            isinstance(row, dict) and all(key in row for key in ("scenario_slug", "model", "seed", "pass_id"))
+            for row in held_rows
+        ):
+            raise ValueError("held-cells must be a list of exact scenario/model/seed/pass_id cells")
+        def hold_key(row):
+            return (row["scenario_slug"], row["model"], row["seed"], row.get("pass_id"))
+        held = {hold_key(row) for row in held_rows}
+        for job in scope_jobs:
+            job["campaign_hold"] = hold_key(job) in held
+        jobs = [job for job in jobs if not job.get("campaign_hold")]
     if args.max_jobs is not None:
         jobs = jobs[:args.max_jobs]
 
@@ -8543,7 +8735,7 @@ def _run_batch_main() -> int:
     current_tree_at_end = implementation_identity(REPO_ROOT)[
         "implementation_tree_sha256"
     ]
-    if current_tree_at_end != expected_run_tree:
+    if args.implementation_policy != "provenance" and current_tree_at_end != expected_run_tree:
         meta["implementation_tree_sha256_end"] = current_tree_at_end
         meta["implementation_tree_stable"] = False
         _atomic_write_text(
@@ -8556,7 +8748,7 @@ def _run_batch_main() -> int:
         )
         return 1
     meta["implementation_tree_sha256_end"] = current_tree_at_end
-    meta["implementation_tree_stable"] = True
+    meta["implementation_tree_stable"] = current_tree_at_end == expected_run_tree
     git_metadata_end = _git_metadata()
     meta["git_metadata_available_end"] = git_metadata_end.get("git_metadata_available")
     meta["git_commit_end"] = git_metadata_end.get("git_commit")
