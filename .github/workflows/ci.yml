@@ -56,7 +56,7 @@ jobs:
         run: |
           uv run --no-sync python -m pytest -q \
             -k "not real_logistics_and_llm_state_match_with_checkpoint_and_recovery" \
-            tests/test_public_code_provenance.py tests/test_campaign_cooldown_extension.py \
+            tests/test_public_code_provenance.py tests/test_optional_git_provenance.py tests/test_campaign_cooldown_extension.py \
             tests/test_citylearn_completed_observation.py tests/test_provider_transport_closure.py \
             tests/test_provider_wire_recovery.py tests/test_episode_checkpoint.py \
             tests/test_recovery_audit.py tests/test_recovery_audit_batch.py \
