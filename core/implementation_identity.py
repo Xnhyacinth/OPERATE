@@ -137,13 +137,18 @@ def _files_sha256(root: Path, files: list[Path]) -> str:
 
 
 def _git_output(repo_root: Path, *args: str) -> bytes:
-    completed = subprocess.run(
-        ("git", *args),
-        cwd=repo_root,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-    )
+    try:
+        completed = subprocess.run(
+            ("git", *args),
+            cwd=repo_root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        # Source archives need file-based identity, not an installed Git CLI.
+        # Maintainer Git requirements are checked by their own admission gate.
+        return b""
     return completed.stdout if completed.returncode == 0 else b""
 
 
