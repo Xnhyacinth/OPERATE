@@ -26,8 +26,8 @@ def _full_discriminative_dimensions() -> list[dict]:
     ]
 
 
-def test_scoring_version_is_0150() -> None:
-    assert SCORING_VERSION == "0.15.0"
+def test_scoring_version_is_0170() -> None:
+    assert SCORING_VERSION == "0.17.0"
 
 
 def test_headline_groups_do_not_count_a_dimension_twice() -> None:
@@ -54,10 +54,13 @@ def test_task_completion_fraction_is_scaled_to_points_before_weighting() -> None
     assert complete["task_completion_score"] == 100.0
     assert complete["task_completion_input_unit"] == "fraction_0_1"
     assert complete["task_completion_score_unit"] == "points_0_100"
-    assert incomplete["weight_denominator"] == 100.0
-    assert incomplete["total_score"] == 35.0
-    assert complete["total_score"] == 65.0
-    assert complete["total_score"] - incomplete["total_score"] == 30.0
+    assert incomplete["legacy_five_group_weight_denominator"] == 100.0
+    assert incomplete["legacy_five_group_total"] == 35.0
+    assert complete["legacy_five_group_total"] == 65.0
+    assert complete["legacy_five_group_total"] - incomplete["legacy_five_group_total"] == 30.0
+    assert incomplete["total_score"] == 50.0
+    assert complete["total_score"] == 50.0
+    assert incomplete["aggregation"] == "wait_relative_outcome_v1"
     assert incomplete["group_scores"]["task_completion"] == 0.0
     assert complete["group_scores"]["task_completion"] == 100.0
     assert DISCRIMINATIVE_CORE_DIMENSIONS["task_completion"] == 30.0
@@ -72,6 +75,7 @@ def test_partial_task_completion_is_scaled_once_to_points() -> None:
     assert result["task_completion_raw"] == 0.5
     assert result["task_completion_score"] == 50.0
     assert result["total_score"] == 50.0
+    assert result["legacy_five_group_total"] == 50.0
 
 
 def test_missing_evidence_for_an_entire_group_fails_closed() -> None:
@@ -86,9 +90,11 @@ def test_missing_evidence_for_an_entire_group_fails_closed() -> None:
 
     result = discriminative_core_total(dimensions, task_completion=1.0)
 
-    assert result["formal_score_eligible"] is False
+    assert result["formal_score_eligible"] is True
+    assert result["legacy_formal_score_eligible"] is False
     assert result["missing_groups"] == ["adaptation_and_foresight"]
     assert result["group_scores"]["adaptation_and_foresight"] == 0.0
+    assert result["total_score"] == 50.0
 
 
 def test_within_group_score_is_mean_of_supported_members_only() -> None:
@@ -141,9 +147,10 @@ def test_within_group_score_is_mean_of_supported_members_only() -> None:
     assert result["group_scores"]["adaptation_and_foresight"] == 20.0
     assert result["group_scores"]["system_outcome"] == 25.0
     assert result["group_scores"]["action_efficiency"] == 40.0
-    # 30*0 + 25*25 + 20*97.5 + 15*20 + 10*40 = 3275 → 32.75
-    assert result["raw_total"] == pytest.approx(32.75)
-    assert result["total_score"] == pytest.approx(32.75)
+    # Primary is CF only (50), not the (econ 0 + CF 50) / 2 mix.
+    assert result["wait_relative_source"] == "counterfactual_prevention"
+    assert result["total_score"] == pytest.approx(50.0)
+    assert result["legacy_five_group_total"] == pytest.approx(32.75)
 
 
 def test_declared_zero_efficiency_dimensions_keep_action_denominator_fixed() -> None:

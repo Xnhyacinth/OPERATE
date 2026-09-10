@@ -55,14 +55,16 @@ def test_structural_na_group_renormalizes_only_predeclared_contract():
     )
     assert result["formal_score_eligible"] is True
     assert result["excluded_groups"] == ["adaptation_and_foresight"]
-    assert result["weight_denominator"] == 85.0
-    assert result["total_score"] == pytest.approx(57.5 / 0.85)
+    assert result["legacy_five_group_weight_denominator"] == 85.0
+    assert result["legacy_five_group_total"] == pytest.approx(57.5 / 0.85)
+    assert result["total_score"] == 50.0
     assert result["fixed_five_group_total"] == 57.5
     assert sum(result["effective_group_weights"].values()) == pytest.approx(1.0)
     assert result["effective_group_weights"]["adaptation_and_foresight"] == 0.0
     without_contract = discriminative_core_total(dimensions, task_completion=1.0)
-    assert without_contract["formal_score_eligible"] is False
-    assert without_contract["weight_denominator"] == 100.0
+    assert without_contract["formal_score_eligible"] is True
+    assert without_contract["legacy_formal_score_eligible"] is False
+    assert without_contract["legacy_five_group_weight_denominator"] == 100.0
 
 
 @pytest.mark.parametrize(
@@ -277,8 +279,10 @@ def test_declared_applicable_missing_member_cannot_raise_group_mean():
         dimension_applicability={"information_efficiency": True},
     )
     assert result["group_scores"]["action_efficiency"] == 50.0
-    assert result["formal_score_eligible"] is False
+    assert result["formal_score_eligible"] is True
+    assert result["legacy_formal_score_eligible"] is False
     assert result["missing_declared_dimensions"] == ["information_efficiency"]
+    assert result["primary_missing_declared_dimensions"] == []
 
 
 def test_native_runner_binds_routing_comparability_to_score_and_evidence(tmp_path):

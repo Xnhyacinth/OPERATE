@@ -3,6 +3,7 @@
   "name": "OPERATE",
   "version": "0.62.0",
   "scoring_version": "0.15.0",
+  "live_scoring_version": "0.17.0",
   "n_scenarios": 769,
   "n_physical_sources": 502,
   "n_lite_scenarios": 193,
@@ -10,18 +11,18 @@
   "core_suite": {
     "path": "core_suite.json",
     "n_scenarios": 769,
-    "sha256": "fbd7dbe9462bfc71e6a9601cc78353993e8258961eee5eec0578d89e1258ca23"
+    "sha256": "e24853b4a575696b561ab915e906bea92295a128f21038d4f7cf4c5bedc0127d"
   },
   "lite_suite": {
     "path": "lite_suite.json",
     "n_scenarios": 193,
-    "sha256": "3d3861af6c5f2cf68ed6e1e57d27f8aa329878320c74cd4c0fee05f4a967a46d"
-  },
-  "backend_runtime_closure": {
-    "path": "backend_runtime_closure.json",
-    "sha256": "83609aafe7546e96b8b0cdde500249f1063e0c6714dd4c04b9b86ff6cd3dbe55"
+    "sha256": "3b9bcf370128a34f136ed9d99c8b8ecd50eccb1da414ce2aee22637942532079"
   },
   "formal_evaluation_ready": true,
   "leaderboard_eligible": false,
-  "public_release_ready": false
+  "public_release_ready": false,
+  "backend_runtime_closure": {
+    "path": "backend_runtime_closure.json",
+    "sha256": "27e947af2ec56b6dba4d80dd2c4f404c76c54bedeea2ce94502f798bc1a6d1cb"
+  }
 }

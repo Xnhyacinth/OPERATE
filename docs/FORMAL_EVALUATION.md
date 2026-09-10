@@ -7,7 +7,7 @@ This runbook applies to the current 769-row public Core. The
 
 - `logical_persistent` is the primary leaderboard treatment.
 - `realtime_persistent` is a separate supervision scorecard and is not pooled
-  into the thirteen-dimension primary score.
+  into the 0.17 wait-relative primary.
 - One complete model shard is a valid formal unit. There is no fixed model
   roster or three-repeat gate; `pass_k` is an explicit reliability stratum.
 - The simulator advances state. A tick is a causal coordinate, not a repeated
@@ -21,6 +21,8 @@ This runbook applies to the current 769-row public Core. The
 - The canonical `agent_scheduled_v1` wakeup policy gives review scheduling to
   the agent, disables harness-periodic scans, delivers typed actionable events,
   and treats unknown events as non-actionable.
+
+Live `realtime_persistent` uses `native_dt_v1`: wall ticks equal each row's native plant quantum, and the default speed card is `benchmark/realtime_speed_suite.json` (37 Core rows).
 
 Public startup verifies dataset/source integrity, compatible scoring contracts,
 backend assets and provider settings. It does not require Git or an approved

@@ -274,7 +274,7 @@ def test_formal_bounded_chunks_keep_manifest_scope_and_require_publication_audit
     scenarios = ["test/full-short", "test/full-long"]
     readiness = {
         "formal_evaluation_ready": True, "suite_blocked": False,
-        "suite_manifest_sha256": "fixture-suite", "scoring_version": batch.SCORING_VERSION,
+        "suite_manifest_sha256": "fixture-suite", "scoring_version": batch.QUALIFICATION_SCORING_VERSION,
         "primary_leaderboard_formula_version": batch.PRIMARY_LEADERBOARD_FORMULA_VERSION,
         "primary_inference_version": batch.PRIMARY_INFERENCE_VERSION,
         "task_completion_input_unit": batch.TASK_COMPLETION_INPUT_UNIT,

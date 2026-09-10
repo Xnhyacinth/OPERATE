@@ -327,6 +327,45 @@ def task_completion_contract(domain: str, family: str) -> str:
     return "unsupported"
 
 
+FEASIBILITY_COMPLETION_CONTRACTS = frozenset(
+    {"logistics.job_shop.all_operations_scheduled.v1"}
+)
+
+
+def contract_kind_from_name(contract: str) -> str:
+    """Classify a completion contract as feasibility, mitigation, or unsupported."""
+
+    name = str(contract or "")
+    if name in FEASIBILITY_COMPLETION_CONTRACTS:
+        return "feasibility"
+    if not name or name == "unsupported":
+        return "unsupported"
+    return "mitigation"
+
+
+def task_completion_contract_kind(domain: str, family: str) -> str:
+    """Return the ranking role of this cell's completion contract."""
+
+    return contract_kind_from_name(task_completion_contract(domain, family))
+
+
+def _annotate_task_completion(
+    result: dict[str, Any], *, domain: str, family: str
+) -> dict[str, Any]:
+    kind = task_completion_contract_kind(domain, family)
+    result["contract_kind"] = kind
+    result["schema_version"] = "1.1"
+    evidence = result.get("evidence")
+    if not isinstance(evidence, dict):
+        return result
+    if kind == "feasibility":
+        required = evidence.get("operations_required")
+        scheduled = evidence.get("operations_scheduled")
+        if isinstance(required, int) and required > 0 and isinstance(scheduled, int):
+            evidence["schedule_coverage"] = scheduled / required
+    return result
+
+
 def evaluate_task_completion(
     *,
     scenario: dict[str, Any],
@@ -363,23 +402,29 @@ def evaluate_task_completion(
     contract_name = task_completion_contract(domain, family)
     if contract_name == "unsupported":
         actual_cost = _finite_float(counterfactual.get("actual_cost"))
-        return {
-            "schema_version": "1.0",
-            "contract": contract_name,
-            "applicable": False,
-            "completed": False,
-            "reason_code": "unsupported_task_contract",
-            "evidence": {
-                "actual_cost": actual_cost,
-                "counterfactual_cost": _finite_float(
-                    counterfactual.get("counterfactual_cost")
-                ),
-                "prevented_loss": _finite_float(counterfactual.get("prevented_loss")),
-                "materiality_threshold": max(1.0, abs(actual_cost) * 0.001),
-                "survival_floor_violation": survival_floor,
-                "chose_fatal_option": fatal,
+        return _annotate_task_completion(
+            {
+                "schema_version": "1.0",
+                "contract": contract_name,
+                "applicable": False,
+                "completed": False,
+                "reason_code": "unsupported_task_contract",
+                "evidence": {
+                    "actual_cost": actual_cost,
+                    "counterfactual_cost": _finite_float(
+                        counterfactual.get("counterfactual_cost")
+                    ),
+                    "prevented_loss": _finite_float(
+                        counterfactual.get("prevented_loss")
+                    ),
+                    "materiality_threshold": max(1.0, abs(actual_cost) * 0.001),
+                    "survival_floor_violation": survival_floor,
+                    "chose_fatal_option": fatal,
+                },
             },
-        }
+            domain=domain,
+            family=family,
+        )
 
     if domain == "building_energy" and family in {
         "citylearn_der_storage_control",
@@ -510,7 +555,8 @@ def evaluate_task_completion(
             reason_code = "no_material_improvement_vs_no_action"
         else:
             reason_code = "insufficient_native_outcome_improvement"
-        return {
+        return _annotate_task_completion(
+            {
             "schema_version": "1.0",
             "contract": task_completion_contract(domain, family),
             "applicable": applicable,
@@ -540,7 +586,10 @@ def evaluate_task_completion(
                 "survival_floor_violation": survival_floor,
                 "chose_fatal_option": fatal,
             },
-        }
+            },
+            domain=domain,
+            family=family,
+        )
 
     if domain == "microgrid" and family in {
         "microgrid_lv_voltage_6h",
@@ -683,7 +732,8 @@ def evaluate_task_completion(
             reason_code = "phase_recovery_incomplete"
         else:
             reason_code = "insufficient_voltage_violation_mitigation"
-        return {
+        return _annotate_task_completion(
+            {
             "schema_version": "1.0",
             "contract": task_completion_contract(domain, family),
             "applicable": applicable,
@@ -714,7 +764,10 @@ def evaluate_task_completion(
                     else {}
                 ),
             },
-        }
+            },
+            domain=domain,
+            family=family,
+        )
 
     if domain == "logistics" and family == "job_shop_dispatch":
         scheduled = int(ground_truth.get("operations_scheduled") or 0)
@@ -793,7 +846,8 @@ def evaluate_task_completion(
             and not fatal
             and not survival_floor
         )
-        return {
+        return _annotate_task_completion(
+            {
             "schema_version": "1.0",
             "contract": task_completion_contract(domain, family),
             "applicable": applicable,
@@ -821,7 +875,10 @@ def evaluate_task_completion(
                 "chose_fatal_option": fatal,
                 **native_requirement_evidence,
             },
-        }
+            },
+            domain=domain,
+            family=family,
+        )
 
     logistics_task_loss_keys = {
         "cvrp_dispatch": ("unmet_demand_cost", "drop_order_penalty"),
@@ -1392,7 +1449,8 @@ def evaluate_task_completion(
             reason_code = "no_material_improvement_vs_no_action"
         else:
             reason_code = "insufficient_task_loss_mitigation"
-        return {
+        return _annotate_task_completion(
+            {
             "schema_version": "1.0",
             "contract": contract_name,
             "applicable": applicable,
@@ -1416,12 +1474,16 @@ def evaluate_task_completion(
                 "native_control_requirements_met": (native_requirements_met),
                 **native_requirement_evidence,
             },
-        }
+            },
+            domain=domain,
+            family=family,
+        )
 
     actual_cost = float(counterfactual.get("actual_cost") or 0.0)
     prevented_loss = float(counterfactual.get("prevented_loss") or 0.0)
     materiality_threshold = max(1.0, abs(actual_cost) * 0.001)
-    return {
+    return _annotate_task_completion(
+        {
         "schema_version": "1.0",
         "contract": task_completion_contract(domain, family),
         "applicable": False,
@@ -1437,4 +1499,7 @@ def evaluate_task_completion(
             "survival_floor_violation": survival_floor,
             "chose_fatal_option": fatal,
         },
-    }
+        },
+        domain=domain,
+        family=family,
+    )

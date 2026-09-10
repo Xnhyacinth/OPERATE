@@ -11,6 +11,7 @@ from __future__ import annotations
 import fcntl
 import hashlib
 import json
+import math
 import os
 import tempfile
 from functools import partial
@@ -42,9 +43,24 @@ def _json_default(value: Any) -> Any:
     raise TypeError(f"checkpoint requires JSON values, got {type(value).__name__}")
 
 
+def _canonicalize(value: Any) -> Any:
+    """Keep checkpoint JSON strict while preserving native non-finite numbers."""
+    if isinstance(value, dict):
+        return {str(key): _canonicalize(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_canonicalize(item) for item in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            token = "nan"
+        else:
+            token = "inf" if value > 0 else "-inf"
+        return {"__nonfinite_float__": token}
+    return value
+
+
 def _encode(value: Any) -> bytes:
     return json.dumps(
-        value,
+        _canonicalize(value),
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
@@ -398,7 +414,10 @@ class JournaledAgent:
             self._failure = (
                 exc
                 if isinstance(exc, CheckpointIntegrityError)
-                else CheckpointIntegrityError("checkpoint replay validation failed")
+                else CheckpointIntegrityError(
+                    "checkpoint replay validation failed: "
+                    f"{type(exc).__name__}: {exc}"
+                )
             )
             raise self._failure from exc
 
@@ -440,7 +459,10 @@ class JournaledAgent:
             self._failure = (
                 exc
                 if isinstance(exc, CheckpointIntegrityError)
-                else CheckpointIntegrityError("checkpoint durability failure")
+                else CheckpointIntegrityError(
+                    "checkpoint durability failure: "
+                    f"{type(exc).__name__}: {exc}"
+                )
             )
             raise self._failure from exc
 

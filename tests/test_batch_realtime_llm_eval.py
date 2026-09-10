@@ -102,6 +102,7 @@ def _job(batch_hash: str) -> dict:
         "scenario_signature": "d" * 64,
         "seed": 42,
         "horizon_ticks": 4,
+        "tick_interval_s": 0.25,
         "episode_timeout_s": 301.25,
         "process_hard_timeout_s": 331.25,
         "pass_id": "pass-0",
@@ -366,6 +367,75 @@ def _episode_identity() -> dict:
         },
         "wakeup_policy": deepcopy(EXPECTED_WAKEUP_POLICY),
     }
+
+
+def test_native_dt_batch_identity_omits_uniform_tick() -> None:
+    identity = batch.build_batch_treatment_identity(
+        model="hy3-ioa",
+        provider="openai_compatible",
+        base_url="https://copilot.tencent.com/v2",
+        api_mode="chat_completions",
+        api_version=None,
+        responses_base_url=None,
+        model_context_window_tokens=192_000,
+        model_max_output_tokens=65_536,
+        max_tokens=65_536,
+        protocol_repair_max_tokens=8_192,
+        persistent_history_max_messages=64,
+        persistent_context_max_chars=512_000,
+        persistent_memory_max_items=128,
+        provider_timeout_s=300.0,
+        tick_interval_policy="native_dt_v1",
+        episode_timeout_policy=("horizon_ticks_x_tick_plus_provider_timeout_plus_tick"),
+        process_hard_timeout_overhead_s=30.0,
+        termination_grace_s=5.0,
+        max_workers=4,
+        pass_k=1,
+        suite_sha256="a" * 64,
+        formal_manifest_sha256="b" * 64,
+        implementation_tree_sha256="c" * 64,
+        formal_runtime_binding={
+            "release_id": "operate",
+            "release_tooling_sha256": "1" * 64,
+            "manifest_path": "/machine/repo/release/operate/manifest.json",
+            "manifest_sha256": "b" * 64,
+            "readiness_path": "/machine/repo/release/operate/readiness.json",
+            "readiness_sha256": "d" * 64,
+            "core_release_pipeline_sha256": "e" * 64,
+            "backend_runtime_closure_identity_sha256": "f" * 64,
+        },
+    )
+
+    assert identity["clock"]["tick_interval_policy"] == "native_dt_v1"
+    assert "tick_interval_s" not in identity["clock"]
+    with pytest.raises(ValueError, match="per-row"):
+        batch.build_batch_treatment_identity(
+            model="hy3-ioa",
+            provider="openai_compatible",
+            base_url="https://copilot.tencent.com/v2",
+            api_mode="chat_completions",
+            api_version=None,
+            responses_base_url=None,
+            model_context_window_tokens=192_000,
+            model_max_output_tokens=65_536,
+            max_tokens=65_536,
+            protocol_repair_max_tokens=8_192,
+            persistent_history_max_messages=64,
+            persistent_context_max_chars=512_000,
+            persistent_memory_max_items=128,
+            provider_timeout_s=300.0,
+            tick_interval_s=5.0,
+            tick_interval_policy="native_dt_v1",
+            episode_timeout_policy=("horizon_ticks_x_tick_plus_provider_timeout_plus_tick"),
+            process_hard_timeout_overhead_s=30.0,
+            termination_grace_s=5.0,
+            max_workers=4,
+            pass_k=1,
+            suite_sha256="a" * 64,
+            formal_manifest_sha256="b" * 64,
+            implementation_tree_sha256="c" * 64,
+            formal_runtime_binding=identity["formal_runtime_binding"],
+        )
 
 
 def test_batch_treatment_hash_creates_bound_directory_and_config(
@@ -634,12 +704,7 @@ def test_formal_realtime_provider_quota_fails_closed_at_startup(
         lambda _path: {
             "agentic_profile": dict(batch.CANONICAL_AGENTIC_PROFILE),
             "realtime_contract": {
-                "clock_profile": {
-                    "tick_interval_s": 5.0,
-                    "episode_timeout_policy": batch.EPISODE_TIMEOUT_POLICY,
-                    "process_hard_timeout_overhead_s": 30.0,
-                    "termination_grace_s": 5.0,
-                }
+                "clock_profile": dict(batch.NATIVE_DT_CLOCK_PROFILE),
             },
             "selection_path": str(tmp_path / "manifest-bound-suite.json"),
         },
@@ -676,7 +741,7 @@ def test_formal_manifest_supplies_canonical_agentic_and_clock_profiles(
     selection_path = tmp_path / "readiness.json"
     selection_path.write_text("{}", encoding="utf-8")
     contract = {
-        "contract_version": "realtime_persistent.v2",
+        "contract_version": "realtime_persistent.v3",
         "interaction_mode": "realtime_persistent",
         "leaderboard": "realtime_supervision",
         "scorecard_version": "realtime-diagnostics/1.6",
@@ -689,18 +754,11 @@ def test_formal_manifest_supplies_canonical_agentic_and_clock_profiles(
         "wakeup_policy": deepcopy(EXPECTED_WAKEUP_POLICY),
         "aggregation_version": "realtime-scorecard-micro-v1",
         "merge_with_primary_leaderboard": False,
-        "selection_binding": "same_release_core",
+        "selection_binding": "native_dt_speed_critical_v1",
+        "n_scenarios": 37,
         "selection_source": str(selection_path),
         "suite_manifest_sha256": "a" * 64,
-        "clock_profile": {
-            "kind": "soft_realtime_monotonic_single_writer",
-            "tick_interval_s": 5.0,
-            "episode_timeout_policy": (
-                "horizon_ticks_x_tick_plus_provider_timeout_plus_tick"
-            ),
-            "process_hard_timeout_overhead_s": 30.0,
-            "termination_grace_s": 5.0,
-        },
+        "clock_profile": dict(batch.NATIVE_DT_CLOCK_PROFILE),
         "safety_profile": {
             "supervisor": "domain_neutral_hold",
             "native_takeover_applicable": False,
@@ -795,9 +853,8 @@ def test_formal_manifest_supplies_canonical_agentic_and_clock_profiles(
         "native_takeover_applicable": True,
     }
     manifest_path.write_text(json.dumps(native_manifest), encoding="utf-8")
-    loaded_native = batch.load_formal_contract(manifest_path)
-    assert loaded_native["selection_path"] == str(native_selection.resolve())
-    assert loaded_native["selection_sha256"] == batch.file_sha256(native_selection)
+    with pytest.raises(ValueError, match="selection_binding|safety profile"):
+        batch.load_formal_contract(manifest_path)
 
     for field in (
         "batch_schema_version",
@@ -2010,12 +2067,7 @@ def test_concurrent_runner_fails_before_opening_formal_journal(
         "agentic_profile": deepcopy(batch.CANONICAL_AGENTIC_PROFILE),
         "realtime_contract": {
             "suite_manifest_sha256": suite_sha,
-            "clock_profile": {
-                "tick_interval_s": 5.0,
-                "episode_timeout_policy": batch.EPISODE_TIMEOUT_POLICY,
-                "process_hard_timeout_overhead_s": 30.0,
-                "termination_grace_s": 5.0,
-            },
+            "clock_profile": dict(batch.NATIVE_DT_CLOCK_PROFILE),
         },
     }
     output_root = tmp_path / "output"
@@ -2123,6 +2175,7 @@ def test_dry_run_preflights_without_key_output_provider_or_quota_claim(
                         "scenario_signature": "d" * 64,
                         "seed": 42,
                         "horizon_ticks": 4,
+                        "tick_interval_s": 5.0,
                     }
                 ],
             }
@@ -2155,12 +2208,7 @@ def test_dry_run_preflights_without_key_output_provider_or_quota_claim(
             "agentic_profile": deepcopy(batch.CANONICAL_AGENTIC_PROFILE),
             "realtime_contract": {
                 "suite_manifest_sha256": suite_sha,
-                "clock_profile": {
-                    "tick_interval_s": 5.0,
-                    "episode_timeout_policy": batch.EPISODE_TIMEOUT_POLICY,
-                    "process_hard_timeout_overhead_s": 30.0,
-                    "termination_grace_s": 5.0,
-                },
+                "clock_profile": dict(batch.NATIVE_DT_CLOCK_PROFILE),
             },
         },
     )
@@ -2370,7 +2418,7 @@ def test_formal_episode_row_uses_relative_subprocess_log_path(
         job,
         config,
         SimpleNamespace(
-            api_key_env="API_KEY",
+            api_key_env="T_KEY",
             base_url="https://copilot.tencent.com/v2",
             responses_base_url=None,
         ),
@@ -2609,7 +2657,7 @@ def test_native_thinking_controls_bind_namespace_runner_and_resume(tmp_path):
     out_dir, config = batch.initialize_run_directory(tmp_path, identity)
     job = _job(config["batch_treatment_sha256"])
     job["trajectory_dir"] = str(out_dir / "episode")
-    command = batch._command_for_job(job, config, SimpleNamespace(api_key_env="API_KEY", base_url=None, responses_base_url=None))
+    command = batch._command_for_job(job, config, SimpleNamespace(api_key_env="T_KEY", base_url=None, responses_base_url=None))
     assert command[command.index("--reasoning-effort-format") + 1] == "native"
     assert command[command.index("--thinking-type") + 1] == "enabled"
     changed = _identity(reasoning_effort_format="openrouter", thinking_type="enabled")
