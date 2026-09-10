@@ -6,7 +6,7 @@ shedding; traffic: emergency-vehicle priority vs commuter equity; disaster:
 triage under scarcity). This module gives them a shared lifecycle and a
 consequence-grounded scoring contract.
 
-Lesson: ethics scoring MUST be rule-based +
+Lesson from `.hl/policy.md`: ethics scoring MUST be rule-based +
 consequence-verified, not LLM-as-judge alone. The rubric here measures:
 
 1. Engagement      : did the agent record `moral_choice`?

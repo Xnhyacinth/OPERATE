@@ -5515,7 +5515,7 @@
   },
   "identity_sha256": "a2854a8a649e5c566348289318e8a7e77aaf70a1d2f9bf7fa91a5b66e71d5b01",
   "portable": true,
-  "release_id": "operate",
+  "release_id": "operate_v0_62_0",
   "repo_tracked_files": {
     "sources/alibaba/alibaba_trace_gpu_jobs_1000.csv": {
       "backend_kinds": [

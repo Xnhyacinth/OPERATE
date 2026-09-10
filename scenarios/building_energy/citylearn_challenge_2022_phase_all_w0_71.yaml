@@ -356,4 +356,4 @@ source_contract:
     recipe_version: citylearn_locked_csv_window_v1
 candidate_only: true
 construct_contract: operational_agency.v1
-scenario_signature: 53380cb9c0452789
+scenario_signature: 164c33ce3953828e

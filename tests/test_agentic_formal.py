@@ -12,7 +12,7 @@ def _green_readiness() -> dict:
     return {
         "formal_evaluation_ready": True,
         "suite_manifest_sha256": "suite",
-        "scoring_version": batch.SCORING_VERSION,
+        "scoring_version": batch.QUALIFICATION_SCORING_VERSION,
         "primary_leaderboard_formula_version": (
             batch.PRIMARY_LEADERBOARD_FORMULA_VERSION
         ),
@@ -197,7 +197,7 @@ def test_effective_llm_config_matches_v057_agentic_profile() -> None:
         reasoning_effort=None,
         stream_chat_completions=profile["stream_chat_completions"],
         api_mode="chat_completions",
-        api_key_env="API_KEY",
+        api_key_env="T_KEY",
         prompt_mode="strict",
     )
 

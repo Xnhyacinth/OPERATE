@@ -284,17 +284,10 @@ def validate_scenario_yaml(
             and isinstance(actual_seed_id, str)
             and actual_seed_id not in allowed_seed_ids
         ):
-            stem = Path(source_path).stem if source_path is not None else ""
-            seed_tail = actual_seed_id.rsplit("/", 1)[-1]
-            # Admitted rows may keep a stable seed_id when the filename adds a
-            # license or horizon suffix. Block only unrelated identities.
-            if seed_tail not in stem and stem not in actual_seed_id:
-                related = seed_tail.replace("_ccby_", "_") in stem.replace("_ccby_", "_")
-                if not related:
-                    errors.append(
-                        "canonical seed_id mismatch: "
-                        f"expected one of {sorted(allowed_seed_ids)!r}, got {actual_seed_id!r}"
-                    )
+            errors.append(
+                "canonical seed_id mismatch: "
+                f"expected one of {sorted(allowed_seed_ids)!r}, got {actual_seed_id!r}"
+            )
 
         actual_scenario_id = scenario.get("scenario_id")
         expected_scenario_id = canonical_scenario_slug_from_path(source_path)
@@ -303,13 +296,10 @@ def validate_scenario_yaml(
             and isinstance(actual_scenario_id, str)
             and actual_scenario_id != expected_scenario_id
         ):
-            actual_tail = actual_scenario_id.rsplit("/", 1)[-1]
-            expected_tail = expected_scenario_id.rsplit("/", 1)[-1]
-            if actual_tail.replace("_ccby_", "_") != expected_tail.replace("_ccby_", "_"):
-                errors.append(
-                    "canonical scenario_id mismatch: "
-                    f"expected {expected_scenario_id!r}, got {actual_scenario_id!r}"
-                )
+            errors.append(
+                "canonical scenario_id mismatch: "
+                f"expected {expected_scenario_id!r}, got {actual_scenario_id!r}"
+            )
 
     # ---- Optional field type checks ----
     for field, expected_type in OPTIONAL_FIELDS.items():

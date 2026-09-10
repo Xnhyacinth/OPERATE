@@ -64,6 +64,7 @@ from core.suite_identity import (  # noqa: E402
 from evaluation import (  # noqa: E402
     OPERATIONAL_AGENCY_DIMENSIONS,  # noqa: F401
     OPERATIONAL_AGENCY_PROFILE_VERSION,  # noqa: F401
+    QUALIFICATION_SCORING_VERSION,
     SCORING_VERSION,
     build_leaderboard,
     operational_agency_profile_is_consistent,
@@ -299,7 +300,7 @@ def resolve_formal_manifest_slice(
             and readiness.get("implementation_tree_sha256") == qualification_tree
         ):
             raise ValueError("formal qualification implementation tree mismatch")
-        if readiness.get("scoring_version") != SCORING_VERSION:
+        if readiness.get("scoring_version") != QUALIFICATION_SCORING_VERSION:
             raise ValueError("formal scoring version mismatch")
         replay_binding = manifest.get("protocol21_replay")
         if not isinstance(replay_binding, dict):
@@ -391,7 +392,7 @@ def resolve_formal_manifest_slice(
         and readiness.get("status") == "formal_evaluation_ready"
         and readiness.get("formal_evaluation_ready") is True
         and readiness.get("formal_run_blockers") == []
-        and readiness.get("scoring_version") == SCORING_VERSION
+        and readiness.get("scoring_version") == QUALIFICATION_SCORING_VERSION
         and readiness.get("primary_leaderboard_formula_version")
         == PRIMARY_LEADERBOARD_FORMULA_VERSION
         and readiness.get("primary_inference_version") == PRIMARY_INFERENCE_VERSION
@@ -2868,7 +2869,7 @@ def _validate_protocol21_formal_run(
     if readiness.get("formal_evaluation_ready") is not True:
         reasons.append("formal_readiness_not_green")
     scoring_version = readiness.get("scoring_version")
-    if scoring_version != SCORING_VERSION:
+    if scoring_version != QUALIFICATION_SCORING_VERSION:
         reasons.append("formal_scoring_version_mismatch")
     formula_version = readiness.get("primary_leaderboard_formula_version")
     if formula_version in (None, ""):
@@ -5727,6 +5728,7 @@ def _score_for_leaderboard_view(row: dict[str, Any], view_name: str) -> float | 
             task_completion=task_completion_for_row(row),
             difficulty_level=str(row.get("difficulty_level", "basic")),
             dimension_applicability=score.get("dimension_applicability") or {},
+            completion_contract_kind=_completion_contract_kind_for_row(row),
         )
         return float(result["total_score"])
     score_views = score.get("score_views") or {}
@@ -5734,6 +5736,18 @@ def _score_for_leaderboard_view(row: dict[str, Any], view_name: str) -> float | 
         return None
     view = score_views.get(view_name) or {}
     return float(view.get("total_score", 0.0) or 0.0)
+
+
+def _completion_contract_kind_for_row(row: dict[str, Any]) -> str:
+    from evaluation.task_completion import contract_kind_from_name
+
+    completion = row.get("task_completion")
+    if not isinstance(completion, dict):
+        return "unsupported"
+    kind = completion.get("contract_kind")
+    if kind in {"feasibility", "mitigation", "unsupported"}:
+        return str(kind)
+    return contract_kind_from_name(str(completion.get("contract") or ""))
 
 
 def task_completion_for_row(row: dict[str, Any]) -> float:
@@ -5846,12 +5860,15 @@ def _primary_leaderboard_payload(
                 task_completion=task_completion,
                 difficulty_level=str(row.get("difficulty_level", "basic")),
                 dimension_applicability=applicability,
+                completion_contract_kind=_completion_contract_kind_for_row(row),
             )
             if score_contract["formal_score_eligible"] is not True:
                 raise PrimaryLeaderboardContractError(
-                    "precomputed formal score is missing five-group evidence: "
-                    + ", ".join(score_contract["missing_groups"]
-                                + score_contract["missing_declared_dimensions"])
+                    "precomputed formal score is missing outcome evidence: "
+                    + ", ".join(
+                        score_contract["missing_groups"]
+                        + score_contract["primary_missing_declared_dimensions"]
+                    )
                 )
             try:
                 precomputed_score = float(row["discriminative_core_score"])
@@ -5892,12 +5909,15 @@ def _primary_leaderboard_payload(
             task_completion=task_completion,
             difficulty_level=str(row.get("difficulty_level", "basic")),
             dimension_applicability=applicability,
+            completion_contract_kind=_completion_contract_kind_for_row(row),
         )
         if score_contract["formal_score_eligible"] is not True:
             raise PrimaryLeaderboardContractError(
-                "formal five-group evidence is incomplete: "
-                + ", ".join(score_contract["missing_groups"]
-                            + score_contract["missing_declared_dimensions"])
+                "formal outcome evidence is incomplete: "
+                + ", ".join(
+                    score_contract["missing_groups"]
+                    + score_contract["primary_missing_declared_dimensions"]
+                )
             )
         group_contracts.append({"scenario_signature": row.get("scenario_signature"),
                                 "model": row.get("model"), **score_contract})

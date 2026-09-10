@@ -669,4 +669,4 @@ source_contract:
   derived_window:
     sha256: dc8138e8b91ddb2ccaa45d659c51729a32323f0fe9fd99970c9cdaea2c309deb
     recipe_version: citylearn_locked_csv_window_v1
-scenario_signature: f41b6f54b58b85ee
+scenario_signature: f3af94e947db096d

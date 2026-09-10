@@ -14,10 +14,10 @@ keeps resolving.
 
 Usage:
 
-    python run.py --scenario building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w216_287 \\
+    python run.py --scenario operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w216_287 \\
                   --agent wait_only --output results/wait.json
 
-    python run.py --scenario building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7392_7463 \\
+    python run.py --scenario operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7392_7463 \\
                   --agent llm_agent --provider openai --model gpt-4o-mini --output results/gpt.json
 """
 
@@ -212,11 +212,11 @@ def main() -> int:
     p.add_argument(
         "--realtime-tick-interval-s",
         type=float,
-        default=60.0,
+        default=None,
         help=(
-            "Wall-clock seconds per simulator tick. The 60-second default gives "
-            "a streamed agent a usable one-tick decision window; use shorter "
-            "intervals explicitly for latency stress cells."
+            "Wall-clock seconds per simulator tick. The default follows "
+            "native_dt_v1: one wall second per source-converted plant tick. "
+            "Pass an explicit interval only for a labelled latency-stress cell."
         ),
     )
     p.add_argument(
@@ -346,7 +346,7 @@ def main() -> int:
         and args.protocol_repair_max_tokens < 1
     ):
         p.error("--protocol-repair-max-tokens must be positive")
-    if (
+    if args.realtime_tick_interval_s is not None and (
         not math.isfinite(args.realtime_tick_interval_s)
         or args.realtime_tick_interval_s < 1e-9
     ):
@@ -491,6 +491,15 @@ def main() -> int:
 
     trajectory_dir = Path(args.trajectory_dir) if args.trajectory_dir else None
     if args.interaction_mode == "realtime_persistent":
+        from core.realtime_clock import native_seconds_per_tick
+
+        if args.realtime_tick_interval_s is None:
+            try:
+                tick_interval_s = native_seconds_per_tick(scenario)
+            except ValueError as exc:
+                p.error(f"realtime native clock: {exc}")
+        else:
+            tick_interval_s = float(args.realtime_tick_interval_s)
         if trajectory_dir is None:
             trajectory_dir = Path("trajectories/realtime")
         realtime_timeout_s = (
@@ -498,9 +507,9 @@ def main() -> int:
             if args.realtime_episode_timeout_s is not None
             else (
                 max(1, int(scenario.get("horizon_ticks", 1)))
-                * float(args.realtime_tick_interval_s)
+                * float(tick_interval_s)
                 + float(agent_kwargs["config"].timeout_s)
-                + float(args.realtime_tick_interval_s)
+                + float(tick_interval_s)
             )
         )
         result = run_realtime(
@@ -508,7 +517,7 @@ def main() -> int:
             args.agent,
             agent_kwargs=agent_kwargs,
             seed_override=args.seed,
-            tick_interval_s=args.realtime_tick_interval_s,
+            tick_interval_s=tick_interval_s,
             timeout_s=realtime_timeout_s,
             safety_supervisor=make_realtime_safety_supervisor(
                 args.realtime_safety_profile

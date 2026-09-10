@@ -41,19 +41,12 @@ def bind_lite_core_lineage(
     """
     lite, lite_hash = _read(lite_suite)
     core, core_hash = _read(lite_suite.parent / 'core_suite.json')
-    source_path = lite_suite.parent / 'protocol21_source_suite.json'
-    source = None
-    source_hash = None
-    if source_path.is_file():
-        source, source_hash = _read(source_path)
+    source, source_hash = _read(lite_suite.parent / 'protocol21_source_suite.json')
     if lite.get('parent_core_suite_sha256') != core_hash:
         raise ValueError('Lite parent Core hash mismatch')
-    if lite.get('parent_release_id') != core.get('release_id'):
+    if lite.get('parent_release_id') != core.get('release_id') or core.get('release_id') != source.get('release_id'):
         raise ValueError('Lite Core source release mismatch')
-    if source is not None and core.get('release_id') != source.get('release_id'):
-        raise ValueError('Lite Core source release mismatch')
-    selected, core_rows = _index(lite), _index(core)
-    source_rows = _index(source) if source is not None else {}
+    selected, core_rows, source_rows = _index(lite), _index(core), _index(source)
     if set(scenario_bodies) != set(selected) or len(selected) != lite.get('n_scenarios'):
         raise ValueError('fixed Lite coverage mismatch')
     binding = {
@@ -67,9 +60,7 @@ def bind_lite_core_lineage(
     staged = {}
     for slug, row in selected.items():
         body = scenario_bodies[slug]
-        members = [core_rows.get(slug)]
-        if source is not None:
-            members.append(source_rows.get(slug))
+        members = [core_rows.get(slug), source_rows.get(slug)]
         if any(member is None for member in members):
             raise ValueError(f'Lite parent membership missing: {slug}')
         for member in members:
@@ -85,13 +76,7 @@ def bind_lite_core_lineage(
         path = (repo_root / row['path']).resolve()
         if repo_root.resolve() not in path.parents or hashlib.sha256(path.read_bytes()).hexdigest() != row.get('yaml_sha256'):
             raise ValueError(f'Lite input YAML hash mismatch: {slug}')
-        ledger = None
-        if source is not None:
-            ledger = members[-1].get('case_ledger')
-        if not isinstance(ledger, dict):
-            ledger = body.get('case_ledger')
-        if not isinstance(ledger, dict):
-            ledger = {'source_denominator_key': row['source_denominator_key']}
+        ledger = members[1].get('case_ledger')
         if not isinstance(ledger, dict) or ledger.get('source_denominator_key') != row['source_denominator_key']:
             raise ValueError(f'Lite source case ledger mismatch: {slug}')
         staged[slug] = {
@@ -129,19 +114,15 @@ def apply_lite_worker_binding(
     if hashlib.sha256(path.read_bytes()).hexdigest() != lineage.get('yaml_sha256'):
         raise ValueError('Lite worker YAML hash mismatch')
     release = str(lineage.get('parent_release_id') or '')
-    release_dir = repo_root / 'benchmark'
-    if not (release_dir / 'lite_suite.json').is_file():
-        release_dir = repo_root / 'release' / release
+    release_dir = repo_root / 'release' / release
     if not release or Path(release).name != release:
         raise ValueError('Lite worker release path invalid')
     suite_rows = {}
-    required = (
+    for filename, field in (
         ('lite_suite.json', 'lite_suite_sha256'),
         ('core_suite.json', 'core_suite_sha256'),
-    )
-    if (release_dir / 'protocol21_source_suite.json').is_file():
-        required = required + (('protocol21_source_suite.json', 'source_suite_sha256'),)
-    for filename, field in required:
+        ('protocol21_source_suite.json', 'source_suite_sha256'),
+    ):
         suite, digest = _read(release_dir / filename)
         if digest != lineage.get(field):
             raise ValueError('Lite worker suite hash mismatch')
@@ -150,10 +131,7 @@ def apply_lite_worker_binding(
             raise ValueError('Lite worker suite identity mismatch')
         suite_rows[filename] = row
     core_row = suite_rows['core_suite.json']
-    if 'protocol21_source_suite.json' in suite_rows:
-        ledger = suite_rows['protocol21_source_suite.json'].get('case_ledger')
-    else:
-        ledger = binding.get('case_ledger')
+    ledger = suite_rows['protocol21_source_suite.json'].get('case_ledger')
     if binding.get('case_ledger') != ledger or binding.get('source_denominator_key') != core_row.get('source_denominator_key') or binding.get('construct_contract') != core_row.get('construct_contract'):
         raise ValueError('Lite worker source contract mismatch')
     for key in ('construct_contract', 'source_denominator_key', 'case_ledger', 'lite_core_lineage'):

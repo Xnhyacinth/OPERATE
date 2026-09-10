@@ -7,7 +7,7 @@ windows consumed by native simulators; declared, deterministic stress overlays
 create outages, surges, breakdowns and observation loss without making an LLM
 part of the world transition.
 
-The current Core uses scoring `0.15.0`. Results from a different
+The promoted `operate_v0_61_0` release uses scoring 0.14.0. Results from a different
 implementation hash are diagnostic evidence only and cannot validate or resume
 a current formal shard.
 

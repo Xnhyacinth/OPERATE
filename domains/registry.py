@@ -12,7 +12,7 @@ domain-agnostic ``run.py`` / ``audit.py`` use to:
     * locate the oracle ``reference_optimum`` that feeds
       ``ScoringInputs.lp_optimum`` (``reference_optimum``).
 
-Design constraints (core/domain boundary):
+Design constraints (see AGENTS.md red lines):
 
 * **Lazy imports.** Resolving one domain must never import another
   domain's heavy backend deps (grid2op, pandapower, pymgrid, PyVRP,

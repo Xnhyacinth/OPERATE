@@ -69,9 +69,9 @@ cancel-and-resume plus response supersession. Late responses are retained in
 the turn ledger but cannot reach the environment actor. This treatment emits a
 separate `realtime-diagnostics/1.6` scorecard. It is formal only within its own
 release-bound clock, supervisor, provider and concurrency stratum and is never
-merged with the thirteen-dimension logical primary leaderboard.
+merged with the 0.17 wait-relative logical primary leaderboard.
 
-The current Core binds the complete realtime artifact stack:
+The promoted `operate` release binds the complete realtime artifact stack:
 `realtime-formal-batch/1.1`, `realtime-formal-scorecard/1.1`,
 `realtime-episode/1.1`, `realtime-treatment/1.1`,
 `realtime-provider-audit-contract/1.0`, diagnostics 1.6, and coordinator
@@ -293,11 +293,15 @@ UTF-8 byte accounting, not a model tokenizer measurement. Under the formal
 `abort` policy, an irreducible local prompt/context error terminates the episode
 with its recorded error in decision, investigation and receipt-reconciliation
 paths. It cannot be converted into a model-chosen wait.
-The current formal realtime clock is 5 wall seconds per simulator tick. Its
-episode timeout is derived from the scenario horizon plus one provider-timeout
-and one tick of teardown slack, so long-horizon rows are not silently cut off
-by a fixed five-minute default; shorter intervals/timeouts are explicit
-latency stress treatments.
+The current formal realtime clock is `native_dt_v1`: one wall tick equals that
+row's native plant seconds (`tick_seconds`, or `tick_minutes * 60`), bound
+before the episode. Thinking time is real wall time and can miss ticks. The
+default speed scorecard is the 37 Core rows whose native tick is at most 60s
+and whose plant wall is at most 1800s. Hour-scale CityLearn/microgrid ticks and
+long job-shop horizons are not speed-critical. A uniform 5s overlay remains a
+labelled stress treatment, not 1:1 operator latency. Episode timeout is still
+horizon times the bound tick plus one provider timeout and one tick of
+teardown slack.
 Every effective parameter is treatment-bound. A length-terminated or text-only
 response is invalid, never synthesized into `wait`. Text-only output may
 receive one bounded protocol-repair request; its text is never executed

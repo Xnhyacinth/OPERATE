@@ -38,6 +38,8 @@ from .realtime_diagnostics import (
 from .realtime_diagnostics import evaluate_realtime_diagnostics
 from .scorer import (
     DIFFICULTY_CAL,
+    PRIMARY_HEADLINE_AGGREGATION,
+    QUALIFICATION_SCORING_VERSION,
     SCORING_VERSION,
     EpisodeScore,
     ScoringInputs,
@@ -70,6 +72,8 @@ __all__ = [
     "task_completion_contract",
     "DIFFICULTY_CAL",
     "EpisodeScore",
+    "PRIMARY_HEADLINE_AGGREGATION",
+    "QUALIFICATION_SCORING_VERSION",
     "SCORING_VERSION",
     "ScoringInputs",
     "score_episode",

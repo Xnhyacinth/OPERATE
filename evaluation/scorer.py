@@ -213,7 +213,21 @@ from core.difficulty_levels import canonical_difficulty_level
 # gates reference efficiency on native feasibility. Unusable counterfactual
 # replays no longer contribute economic credit. Frozen artifacts retain their
 # original identity; these semantics require newly identified evaluations.
-SCORING_VERSION = "0.15.0"
+# v0.16.0 stops ranking on the 30/25/20/15/10 mix. The primary headline is
+# native system outcome, gated by survival floor and by job-shop feasibility.
+# Mitigation-family 0/1 completion remains a diagnostic, not 30% of S.
+# Adaptation and action-efficiency stay published as groups; they no longer
+# occupy primary weight. Frozen 0.15.0 artifacts keep their identity.
+# v0.17.0 keeps those gates but ranks on one wait-relative outcome. It does
+# not average economic_cost's 50-at-parity transform with counterfactual
+# prevention, and optimality_gap stays a diagnostic rather than padding the
+# headline. Frozen 0.15.0 / 0.16.0 artifacts keep their identity.
+QUALIFICATION_SCORING_VERSION = "0.15.0"
+SCORING_VERSION = "0.17.0"
+PRIMARY_HEADLINE_AGGREGATION = "wait_relative_outcome_v1"
+LEGACY_FIVE_GROUP_AGGREGATION = "scenario_applicable_five_group_v2"
+PRIMARY_WAIT_RELATIVE_PREFERRED = "counterfactual_prevention"
+PRIMARY_WAIT_RELATIVE_FALLBACK = "economic_cost"
 
 TASK_COMPLETION_INPUT_UNIT = "fraction_0_1"
 TASK_COMPLETION_SCORE_UNIT = "points_0_100"
@@ -1864,24 +1878,95 @@ def _score_views(
     }
 
 
+def _evidenced_calibrated_score(
+    dimension: dict[str, Any] | None,
+    *,
+    name: str,
+) -> float | None:
+    """Return a finite 0–100 score when the dimension is applicable and evidenced."""
+
+    if not dimension or dimension.get("applicable") is not True:
+        return None
+    evidence_ids = dimension.get("evidence_ids") or []
+    if evidence_ids and (
+        not isinstance(evidence_ids, list)
+        or not all(
+            isinstance(evidence_id, str) and evidence_id.strip()
+            for evidence_id in evidence_ids
+        )
+    ):
+        raise ValueError(f"{name} evidence_ids must be a list of non-empty strings")
+    if not evidence_ids:
+        return None
+    score = float(dimension.get("calibrated_score", 0.0))
+    if not math.isfinite(score):
+        raise ValueError(f"{name} calibrated_score must be finite")
+    return max(0.0, min(100.0, score))
+
+
+def reanchor_economic_cost(score: float) -> float:
+    """Map 50-at-wait-parity economic_cost onto 0-at-wait-parity points."""
+
+    numeric = float(score)
+    if not math.isfinite(numeric):
+        raise ValueError("economic_cost calibrated_score must be finite")
+    return max(0.0, min(100.0, 2.0 * (numeric - 50.0)))
+
+
+def _wait_relative_outcome(
+    emitted: dict[str, dict[str, Any]],
+    dimension_applicability: dict[str, Any],
+) -> dict[str, Any]:
+    """Pick one wait-relative headline: CF first, else reanchored economic_cost."""
+
+    missing_declared: list[str] = []
+    for name in (PRIMARY_WAIT_RELATIVE_PREFERRED, PRIMARY_WAIT_RELATIVE_FALLBACK):
+        declared = _declared_dimension_applicable(dimension_applicability, name)
+        if declared is False:
+            continue
+        score = _evidenced_calibrated_score(emitted.get(name), name=name)
+        if score is None:
+            if declared is True:
+                missing_declared.append(name)
+            continue
+        if name == PRIMARY_WAIT_RELATIVE_FALLBACK:
+            return {
+                "score": reanchor_economic_cost(score),
+                "source": "economic_cost_reanchored",
+                "missing_declared": missing_declared,
+            }
+        return {
+            "score": score,
+            "source": name,
+            "missing_declared": missing_declared,
+        }
+    return {
+        "score": None,
+        "source": None,
+        "missing_declared": missing_declared,
+    }
+
+
 def discriminative_core_total(
     dimensions: list[dict[str, Any]],
     *,
     task_completion: float,
     difficulty_level: str = "basic",
     dimension_applicability: dict[str, Any] | None = None,
+    completion_contract_kind: str = "mitigation",
+    survival_floor: bool | None = None,
+    schedule_coverage: float | None = None,
 ) -> dict[str, Any]:
-    """Build the scenario-applicable five-group formal headline.
+    """Build the wait-relative primary headline and five-group diagnostics.
 
-    A diagnostic dimension contributes only when it is applicable and has
-    evidence. Missing an entire non-completion group makes the formal score
-    ineligible and contributes zero for that group. Within a group that has
-    at least one supported member, the group score is the mean of those
-    members, with explicitly applicable but unsupported members counted as zero
-    and flagged as ineligible. Undeclared unsupported members retain the
-    historical diagnostic exclusion. Group weights renormalize only when every member is explicitly
-    false in the pre-bound scenario contract supplied by the caller. Missing
-    agent evidence or runtime applicability can never remove a group.
+    Primary ranking uses one wait-relative outcome: counterfactual prevention
+    when evidenced, otherwise economic_cost reanchored so wait-parity is 0
+    rather than 50. Optimality gap stays in ``group_scores`` and is not mixed
+    into the headline. A survival floor zeros the primary; survivor outcome
+    remains published. Feasibility contracts (job-shop) also require task
+    completion; mitigation 0/1 completion and schedule coverage stay
+    diagnostics. Adaptation and efficiency groups stay in ``group_scores``
+    and ``legacy_five_group_total``.
     """
     task_completion_score = task_completion_points(task_completion)
     emitted = {
@@ -1918,32 +2003,13 @@ def discriminative_core_total(
             )
             if declared is False:
                 continue
-            dimension = emitted.get(name)
-            if not dimension or dimension.get("applicable") is not True:
+            score = _evidenced_calibrated_score(emitted.get(name), name=name)
+            if score is None:
                 if declared is True:
                     missing_declared_dimensions.append(name)
                     missing_members += 1
                 continue
-            evidence_ids = dimension.get("evidence_ids") or []
-            if evidence_ids and (
-                not isinstance(evidence_ids, list)
-                or not all(
-                    isinstance(evidence_id, str) and evidence_id.strip()
-                    for evidence_id in evidence_ids
-                )
-            ):
-                raise ValueError(
-                    f"{name} evidence_ids must be a list of non-empty strings"
-                )
-            if not evidence_ids:
-                if declared is True:
-                    missing_declared_dimensions.append(name)
-                    missing_members += 1
-                continue
-            score = float(dimension.get("calibrated_score", 0.0))
-            if not math.isfinite(score):
-                raise ValueError(f"{name} calibrated_score must be finite")
-            supported.append((name, max(0.0, min(100.0, score))))
+            supported.append((name, score))
         group_support[group_name] = [name for name, _ in supported]
         if supported:
             group_scores[group_name] = sum(score for _, score in supported) / (
@@ -1962,9 +2028,43 @@ def discriminative_core_total(
         float(contract["weight"]) * group_scores[group_name]
         for group_name, contract in HEADLINE_SCORE_GROUPS.items()
     )
-    raw_total = numerator / denominator
+    legacy_total = numerator / denominator if denominator > 0.0 else 0.0
+    kind = str(completion_contract_kind or "mitigation")
+    if kind not in {"feasibility", "mitigation", "unsupported"}:
+        raise ValueError(
+            "completion_contract_kind must be feasibility, mitigation, or unsupported"
+        )
+    floor = (
+        bool(survival_floor)
+        if survival_floor is not None
+        else _survival_floor_violation(dimensions)
+    )
+    wait_relative = _wait_relative_outcome(
+        emitted, dimension_applicability or {}
+    )
+    wait_relative_declared_missing = list(wait_relative["missing_declared"])
+    coverage = None
+    if schedule_coverage is not None:
+        numeric_coverage = float(schedule_coverage)
+        if not math.isfinite(numeric_coverage) or not 0.0 <= numeric_coverage <= 1.0:
+            raise ValueError("schedule_coverage must be finite and within [0, 1]")
+        coverage = numeric_coverage
+    feasibility_zeroed = kind == "feasibility" and float(task_completion) < 1.0
+    primary_eligible = (
+        kind != "unsupported"
+        and wait_relative["score"] is not None
+        and not wait_relative_declared_missing
+    )
+    survivor = (
+        float(wait_relative["score"]) if wait_relative["score"] is not None else 0.0
+    )
+    if not primary_eligible or floor or feasibility_zeroed:
+        primary = 0.0
+    else:
+        primary = survivor
     return {
-        "aggregation": "scenario_applicable_five_group_v2",
+        "aggregation": PRIMARY_HEADLINE_AGGREGATION,
+        "legacy_five_group_aggregation": LEGACY_FIVE_GROUP_AGGREGATION,
         "applicable_groups": [
             name for name in HEADLINE_SCORE_GROUPS if name not in excluded_groups
         ],
@@ -1979,9 +2079,14 @@ def discriminative_core_total(
         "fixed_five_group_total": numerator / sum(
             float(contract["weight"]) for contract in HEADLINE_SCORE_GROUPS.values()
         ),
-        "raw_total": raw_total,
-        "total_score": _calibrate(raw_total, difficulty_level),
-        "weight_denominator": denominator,
+        "legacy_five_group_total": _calibrate(legacy_total, difficulty_level),
+        "legacy_five_group_weight_denominator": denominator,
+        "legacy_formal_score_eligible": (
+            not missing_groups and not missing_declared_dimensions
+        ),
+        "raw_total": primary,
+        "total_score": _calibrate(primary, difficulty_level),
+        "weight_denominator": 100.0 if primary_eligible else 0.0,
         "group_scores": group_scores,
         "group_weights": {
             name: float(contract["weight"])
@@ -1990,7 +2095,18 @@ def discriminative_core_total(
         "group_support": group_support,
         "missing_groups": missing_groups,
         "missing_declared_dimensions": missing_declared_dimensions,
-        "formal_score_eligible": not missing_groups and not missing_declared_dimensions,
+        "primary_missing_declared_dimensions": wait_relative_declared_missing,
+        "formal_score_eligible": primary_eligible,
+        "survival_floor_zeroed": floor,
+        "catastrophe_zeroed": floor,
+        "feasibility_zeroed": feasibility_zeroed,
+        "wait_relative_score": (
+            None if wait_relative["score"] is None else float(wait_relative["score"])
+        ),
+        "wait_relative_source": wait_relative["source"],
+        "survivor_outcome": _calibrate(survivor, difficulty_level),
+        "schedule_coverage": coverage,
+        "completion_contract_kind": kind,
         "task_completion": float(task_completion),
         "task_completion_raw": float(task_completion),
         "task_completion_score": task_completion_score,
@@ -1998,6 +2114,17 @@ def discriminative_core_total(
         "task_completion_score_unit": TASK_COMPLETION_SCORE_UNIT,
         "n_dimensions": len(emitted) + 1,
     }
+
+
+def _survival_floor_violation(dimensions: list[dict[str, Any]]) -> bool:
+    for item in dimensions:
+        if not isinstance(item, dict):
+            continue
+        if item.get("name") != "system_survival":
+            continue
+        if item.get("applicable") is True and bool(item.get("floor_violation")):
+            return True
+    return False
 
 
 def task_completion_points(value: float) -> float:

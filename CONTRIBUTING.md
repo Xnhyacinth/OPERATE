@@ -3,7 +3,7 @@
 ## Current Core
 
 New evaluation work targets the current Core: 769 source rows across 502
-physical sources at scoring `0.15.0`. Scenario contracts live under
+physical sources qualifying at `0.15.0` and scoring live runs at `0.17.0`. Scenario contracts live under
 `scenarios/<domain>/...`. Catalogs live under `benchmark/`.
 
 ## Test tiers

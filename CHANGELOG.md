@@ -1,5 +1,15 @@
 # Updates
 
+## 2026-09-10
+
+- Live scoring is `0.17.0` (`wait_relative_outcome_v1`). Catalog qualification
+  remains `0.15.0` and is not rewritten.
+- Live realtime uses `native_dt_v1`: wall ticks equal each row's native plant
+  quantum. The default speed card is the 37 Core rows in
+  `benchmark/realtime_speed_suite.json`.
+- Core remains 769 rows and Lite remains 193 rows. Membership is not driven by
+  model scores.
+
 ## 2026-09-07
 
 - Public GitHub ships one current catalog under `benchmark/` and flattened

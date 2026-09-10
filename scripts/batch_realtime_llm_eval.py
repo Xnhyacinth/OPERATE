@@ -40,6 +40,13 @@ from baselines.llm_agent import (  # noqa: E402
 )
 from core.event_protocol import EVENT_DECISION_CONTRACT_VERSION  # noqa: E402
 from core.implementation_identity import implementation_identity  # noqa: E402
+from core.realtime_clock import (  # noqa: E402
+    CORE_SPEED_SCORECARD_N,
+    NATIVE_DT_CLOCK_PROFILE,
+    POLICY_VERSION as NATIVE_DT_POLICY,
+    SELECTION_BINDING as NATIVE_DT_SELECTION_BINDING,
+    classify_realtime_clock,
+)
 from core.protocol21_evidence import (  # noqa: E402
     canonicalize_repo_owned_paths,
     resolve_binding_path,
@@ -358,7 +365,8 @@ def build_batch_treatment_identity(
     persistent_context_max_chars: int,
     persistent_memory_max_items: int,
     provider_timeout_s: float,
-    tick_interval_s: float,
+    tick_interval_s: float | None = None,
+    tick_interval_policy: str = "explicit_uniform_v1",
     episode_timeout_policy: str,
     process_hard_timeout_overhead_s: float,
     termination_grace_s: float,
@@ -403,9 +411,33 @@ def build_batch_treatment_identity(
         raise ValueError(
             "protocol_repair_max_tokens must fit within model_max_output_tokens"
         )
+    if tick_interval_policy == NATIVE_DT_POLICY:
+        if tick_interval_s is not None:
+            raise ValueError("native_dt_v1 derives per-row tick intervals")
+        clock_fields: dict[str, Any] = dict(NATIVE_DT_CLOCK_PROFILE)
+        clock_fields["process_exit_hard_deadline"] = True
+    elif tick_interval_policy != "explicit_uniform_v1":
+        raise ValueError("unsupported realtime tick_interval_policy")
+    else:
+        if (
+            tick_interval_s is None
+            or not math.isfinite(float(tick_interval_s))
+            or float(tick_interval_s) <= 0
+        ):
+            raise ValueError("tick_interval_s must be finite and positive")
+        clock_fields = {
+            "kind": "soft_realtime_monotonic_single_writer",
+            "tick_interval_policy": "explicit_uniform_v1",
+            "tick_interval_s": float(tick_interval_s),
+            "episode_timeout_policy": episode_timeout_policy,
+            "process_hard_timeout_overhead_s": float(
+                process_hard_timeout_overhead_s
+            ),
+            "termination_grace_s": float(termination_grace_s),
+            "process_exit_hard_deadline": True,
+        }
     for name, value in (
         ("provider_timeout_s", provider_timeout_s),
-        ("tick_interval_s", tick_interval_s),
         ("process_hard_timeout_overhead_s", process_hard_timeout_overhead_s),
         ("termination_grace_s", termination_grace_s),
     ):
@@ -523,14 +555,7 @@ def build_batch_treatment_identity(
             "persistent_context_max_chars": int(persistent_context_max_chars),
             "persistent_memory_max_items": int(persistent_memory_max_items),
         },
-        "clock": {
-            "kind": "soft_realtime_monotonic_single_writer",
-            "tick_interval_s": float(tick_interval_s),
-            "episode_timeout_policy": episode_timeout_policy,
-            "process_exit_hard_deadline": True,
-            "process_hard_timeout_overhead_s": float(process_hard_timeout_overhead_s),
-            "termination_grace_s": float(termination_grace_s),
-        },
+        "clock": clock_fields,
         "safety": safety_identity,
         "scheduler": {
             "kind": "bounded_subprocess_pool",
@@ -1347,7 +1372,17 @@ def _episode_treatment_reasons(
         reasons.append("episode_provider_treatment_mismatch")
     clock = identity.get("clock") or {}
     batch_clock = batch_identity.get("clock") or {}
-    if clock.get("tick_interval_s") != batch_clock.get("tick_interval_s"):
+    if batch_clock.get("tick_interval_policy") == NATIVE_DT_POLICY:
+        interval = clock.get("tick_interval_s")
+        if (
+            not isinstance(interval, (int, float))
+            or isinstance(interval, bool)
+            or not math.isfinite(float(interval))
+            or float(interval) <= 0
+            or float(interval) != float(job["tick_interval_s"])
+        ):
+            reasons.append("episode_tick_interval_mismatch")
+    elif clock.get("tick_interval_s") != batch_clock.get("tick_interval_s"):
         reasons.append("episode_tick_interval_mismatch")
     if clock.get("episode_timeout_s") != job.get("episode_timeout_s"):
         reasons.append("episode_timeout_mismatch")
@@ -2359,6 +2394,38 @@ def finalize_run(
     return manifest
 
 
+def _attach_native_clock(row: dict[str, Any]) -> dict[str, Any]:
+    import yaml
+
+    path = REPO_ROOT / "scenarios" / f"{row['scenario_slug']}.yaml"
+    scenario = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(scenario, dict):
+        raise ValueError(f"scenario YAML must be a mapping: {path}")
+    clock = classify_realtime_clock(
+        scenario, horizon_ticks=int(row["horizon_ticks"])
+    )
+    attached = dict(row)
+    attached["tick_interval_s"] = float(clock["wall_tick_interval_s"])
+    attached["native_seconds_per_tick"] = float(clock["native_seconds_per_tick"])
+    attached["clock_fidelity"] = str(clock["fidelity"])
+    attached["realtime_scorecard_eligible"] = bool(clock["scorecard_eligible"])
+    attached["realtime_clock_reason"] = str(clock["reason"])
+    return attached
+
+
+def _select_native_dt_scorecard_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    selected = [
+        row
+        for row in (_attach_native_clock(item) for item in rows)
+        if row["realtime_scorecard_eligible"]
+    ]
+    if not selected:
+        raise ValueError("native_dt_v1 scorecard selection is empty")
+    return selected
+
+
 def _safe_component(value: str) -> str:
     normalized = "".join(
         char if char.isalnum() or char in "-_." else "_" for char in value
@@ -2402,19 +2469,28 @@ def _load_suite(path: Path) -> list[dict[str, Any]]:
             or horizon_ticks < 1
         ):
             raise ValueError("suite row requires positive integer horizon_ticks")
-        rows.append(
-            {
-                "scenario_slug": canonical_scenario_slug(str(slug)),
-                "scenario_id": str(scenario_id),
-                "scenario_signature": str(signature),
-                "seed": int(raw.get("seed", 42)),
-                "horizon_ticks": horizon_ticks,
-                "domain": str(raw.get("domain") or "").strip().lower(),
-                "backend_kind": str(raw.get("backend_kind") or "")
-                .strip()
-                .lower(),
-            }
-        )
+        row = {
+            "scenario_slug": canonical_scenario_slug(str(slug)),
+            "scenario_id": str(scenario_id),
+            "scenario_signature": str(signature),
+            "seed": int(raw.get("seed", 42)),
+            "horizon_ticks": horizon_ticks,
+            "domain": str(raw.get("domain") or "").strip().lower(),
+            "backend_kind": str(raw.get("backend_kind") or "")
+            .strip()
+            .lower(),
+        }
+        if "tick_interval_s" in raw:
+            interval = raw["tick_interval_s"]
+            if (
+                isinstance(interval, bool)
+                or not isinstance(interval, (int, float))
+                or not math.isfinite(float(interval))
+                or float(interval) <= 0
+            ):
+                raise ValueError("suite row tick_interval_s must be finite and positive")
+            row["tick_interval_s"] = float(interval)
+        rows.append(row)
     return rows
 
 
@@ -2498,13 +2574,24 @@ def _build_jobs(
     identity = run_config["batch_treatment_identity"]
     clock = identity["clock"]
     model = identity["model_shard"]
-    tick_interval_s = float(clock["tick_interval_s"])
+    policy = str(clock.get("tick_interval_policy") or "explicit_uniform_v1")
     provider_timeout_s = float(model["provider_timeout_s"])
     process_overhead_s = float(clock["process_hard_timeout_overhead_s"])
     jobs: list[dict[str, Any]] = []
     for row in suite_rows:
+        if policy == NATIVE_DT_POLICY:
+            bound_row = (
+                row
+                if "tick_interval_s" in row
+                else _attach_native_clock(row)
+            )
+            tick_interval_s = float(bound_row["tick_interval_s"])
+        else:
+            bound_row = dict(row)
+            tick_interval_s = float(clock["tick_interval_s"])
+            bound_row["tick_interval_s"] = tick_interval_s
         episode_timeout_s = (
-            int(row["horizon_ticks"]) * tick_interval_s
+            int(bound_row["horizon_ticks"]) * tick_interval_s
             + provider_timeout_s
             + tick_interval_s
         )
@@ -2512,13 +2599,13 @@ def _build_jobs(
         for pass_index in range(pass_k):
             pass_id = f"pass-{pass_index}"
             key_payload = {
-                **row,
+                **bound_row,
                 "pass_id": pass_id,
                 "batch_treatment_sha256": batch_hash,
             }
             job_key = canonical_sha256(key_payload)
             component = _safe_component(
-                f"{row['scenario_id']}_s{row['seed']}_{pass_id}_{job_key[:12]}"
+                f"{bound_row['scenario_id']}_s{bound_row['seed']}_{pass_id}_{job_key[:12]}"
             )
             trajectory_dir = (
                 out_dir
@@ -2530,7 +2617,7 @@ def _build_jobs(
             )
             jobs.append(
                 {
-                    **row,
+                    **bound_row,
                     "job_key": job_key,
                     "pass_id": pass_id,
                     "pass_index": pass_index,
@@ -2550,7 +2637,6 @@ def _command_for_job(
 ) -> list[str]:
     identity = run_config["batch_treatment_identity"]
     model = identity["model_shard"]
-    clock = identity["clock"]
     command = [
         sys.executable,
         str(REPO_ROOT / "run.py"),
@@ -2598,7 +2684,7 @@ def _command_for_job(
         "--prompt-mode",
         "strict",
         "--realtime-tick-interval-s",
-        str(clock["tick_interval_s"]),
+        str(job["tick_interval_s"]),
         "--realtime-episode-timeout-s",
         str(job["episode_timeout_s"]),
         "--realtime-safety-profile",
@@ -3024,7 +3110,7 @@ def load_formal_contract(path: Path) -> dict[str, Any]:
     for field, expected in CANONICAL_AGENTIC_PROFILE.items():
         if agentic_profile.get(field) != expected:
             raise ValueError(f"formal manifest agentic_profile.{field} mismatch")
-    if contract.get("contract_version") != "realtime_persistent.v2":
+    if contract.get("contract_version") != "realtime_persistent.v3":
         raise ValueError("formal manifest realtime contract version mismatch")
     if contract.get("wakeup_policy") != CANONICAL_WAKEUP_POLICY:
         raise ValueError("formal manifest realtime wakeup policy mismatch")
@@ -3054,20 +3140,12 @@ def load_formal_contract(path: Path) -> dict[str, Any]:
         raise ValueError("formal manifest is missing realtime clock_profile")
     if clock.get("kind") != "soft_realtime_monotonic_single_writer":
         raise ValueError("formal manifest realtime clock kind mismatch")
-    for field in (
-        "tick_interval_s",
-        "process_hard_timeout_overhead_s",
-        "termination_grace_s",
-    ):
-        value = clock.get(field)
-        if (
-            not isinstance(value, (int, float))
-            or not math.isfinite(float(value))
-            or value <= 0
-        ):
-            raise ValueError(f"formal manifest clock_profile.{field} invalid")
-    if float(clock["tick_interval_s"]) != 5.0:
-        raise ValueError("formal realtime tick_interval_s must equal 5.0")
+    if clock != NATIVE_DT_CLOCK_PROFILE:
+        raise ValueError("formal manifest realtime clock_profile must be native_dt_v1")
+    if contract.get("selection_binding") != NATIVE_DT_SELECTION_BINDING:
+        raise ValueError("formal manifest realtime selection_binding mismatch")
+    if contract.get("n_scenarios") != CORE_SPEED_SCORECARD_N:
+        raise ValueError("formal native_dt_v1 scorecard must contain 37 Core rows")
     if clock.get("episode_timeout_policy") != EPISODE_TIMEOUT_POLICY:
         raise ValueError("formal realtime episode timeout policy mismatch")
     if float(clock["process_hard_timeout_overhead_s"]) != 30.0:
@@ -3084,15 +3162,9 @@ def load_formal_contract(path: Path) -> dict[str, Any]:
         set(safety) != {"supervisor", "native_takeover_applicable"}
         or safety.get("native_takeover_applicable")
         is not expected_safety["native_takeover_applicable"]
+        or expected_safety["native_takeover_applicable"] is not False
     ):
         raise ValueError("formal manifest realtime safety profile mismatch")
-    expected_selection_binding = (
-        "native_supervisor_supported_release_subset"
-        if expected_safety["native_takeover_applicable"] is True
-        else "same_release_core"
-    )
-    if contract.get("selection_binding") != expected_selection_binding:
-        raise ValueError("formal manifest realtime selection binding mismatch")
     required_artifacts = set(contract.get("required_artifacts") or [])
     if not {
         "provider_audit",
@@ -3293,11 +3365,14 @@ def main(argv: list[str] | None = None) -> int:
             agentic_profile["provider_timeout_s"],
             flag="--provider-timeout-s",
         )
-        tick_interval_s = _bound_cli_value(
-            args.tick_interval_s,
-            clock_profile["tick_interval_s"],
-            flag="--tick-interval-s",
-        )
+        if clock_profile.get("tick_interval_policy") != NATIVE_DT_POLICY:
+            raise ValueError("formal realtime tick_interval_policy must be native_dt_v1")
+        if args.tick_interval_s is not None:
+            raise ValueError(
+                "--tick-interval-s is not a formal native_dt_v1 flag; "
+                "wall ticks are derived per scenario"
+            )
+        tick_interval_policy = NATIVE_DT_POLICY
         if args.episode_timeout_s is not None:
             raise ValueError(
                 "--episode-timeout-s is derived per row by the formal clock policy"
@@ -3314,6 +3389,23 @@ def main(argv: list[str] | None = None) -> int:
         suite_rows, selection_contract = _select_suite(
             args.suite, args.suite_kind, formal, args.formal_manifest,
         )
+        if str(realtime_contract.get("selection_binding")) == NATIVE_DT_SELECTION_BINDING:
+            parent_n = len(suite_rows)
+            suite_rows = _select_native_dt_scorecard_rows(suite_rows)
+            if args.suite_kind == "core":
+                expected_n = realtime_contract.get("n_scenarios")
+                if expected_n != len(suite_rows):
+                    raise ValueError(
+                        "native_dt_v1 core scorecard size "
+                        f"{len(suite_rows)} != contract {expected_n}"
+                    )
+            selection_contract = {
+                **selection_contract,
+                "clock_policy": NATIVE_DT_POLICY,
+                "selection_binding": NATIVE_DT_SELECTION_BINDING,
+                "n_scorecard_rows": len(suite_rows),
+                "parent_suite_n": parent_n,
+            }
         suite_sha = selection_contract["suite_sha256"]
         formal_safety_profile = str(
             (realtime_contract.get("safety_profile") or {}).get(
@@ -3352,7 +3444,7 @@ def main(argv: list[str] | None = None) -> int:
             persistent_context_max_chars=context_chars,
             persistent_memory_max_items=memory_items,
             provider_timeout_s=provider_timeout_s,
-            tick_interval_s=tick_interval_s,
+            tick_interval_policy=tick_interval_policy,
             episode_timeout_policy=clock_profile["episode_timeout_policy"],
             process_hard_timeout_overhead_s=clock_profile[
                 "process_hard_timeout_overhead_s"
@@ -3372,7 +3464,7 @@ def main(argv: list[str] | None = None) -> int:
             provider_rate_limit_scope=args.provider_rate_limit_scope,
             safety_profile=formal_safety_profile,
         )
-        if args.suite_kind == "lite":
+        if args.suite_kind == "lite" or selection_contract.get("clock_policy"):
             identity["selection_contract"] = selection_contract
         out_dir, run_config = resolve_run_directory(
             args.output_root,

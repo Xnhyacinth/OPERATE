@@ -329,7 +329,7 @@ def _green_formal_readiness(root: Path) -> dict[str, Any]:
         "status": "formal_evaluation_ready",
         "formal_evaluation_ready": True,
         "formal_run_blockers": [],
-        "scoring_version": mod.SCORING_VERSION,
+        "scoring_version": mod.QUALIFICATION_SCORING_VERSION,
         "primary_leaderboard_formula_version": (
             mod.PRIMARY_LEADERBOARD_FORMULA_VERSION
         ),
@@ -386,7 +386,7 @@ def _agentic_formal_readiness(**overrides: Any) -> dict[str, Any]:
     readiness = {
         "formal_evaluation_ready": True,
         "suite_manifest_sha256": "suite",
-        "scoring_version": mod.SCORING_VERSION,
+        "scoring_version": mod.QUALIFICATION_SCORING_VERSION,
         "primary_leaderboard_formula_version": (
             mod.PRIMARY_LEADERBOARD_FORMULA_VERSION
         ),
@@ -1735,6 +1735,7 @@ def test_formal_run_contract_rejects_readiness_and_suite_hash_mismatch() -> None
     ("readiness_override", "reason"),
     [
         ({"scoring_version": "0.9.0"}, "formal_scoring_version_mismatch"),
+        ({"scoring_version": "0.17.0"}, "formal_scoring_version_mismatch"),
         (
             {"primary_leaderboard_formula_version": None},
             "formal_primary_leaderboard_formula_missing",
@@ -5156,7 +5157,7 @@ def test_formal_leaderboard_records_incomplete_five_group_as_blocker(
     assert returned == []
     assert "primary_leaderboard" not in payload
     assert payload["formal_primary_blockers"] == ["formal_primary_contract_error"]
-    assert "five-group evidence" in payload["formal_primary_contract_error"]
+    assert "outcome evidence" in payload["formal_primary_contract_error"]
 
 
 def test_formal_leaderboard_blocks_ineligible_configured_episode(
@@ -6435,7 +6436,7 @@ def _formal_eligibility_inputs() -> tuple[dict, dict, dict, dict, dict]:
         "suite_eligibility": {
             "suite_blocked": False,
             "formal_evaluation_ready": True,
-            "scoring_version": mod.SCORING_VERSION,
+            "scoring_version": mod.QUALIFICATION_SCORING_VERSION,
             "primary_leaderboard_formula_version": (
                 mod.PRIMARY_LEADERBOARD_FORMULA_VERSION
             ),

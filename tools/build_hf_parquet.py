@@ -18,7 +18,8 @@ _PUBLIC_OMITTED_COLUMNS = {
     "core_disposition", "construct_contract",
     "suite_template_json",
 }
-DEFAULT_RELEASE_DIR = Path("benchmark")
+DEFAULT_RELEASE_DIR = Path("release/operate_v0_62_0")
+PUBLIC_RELEASE_DIR = Path("benchmark")
 PARQUET_NAME = "test-00000-of-00001.parquet"
 _SCENARIOS_SENTINEL = {"__operate_scenarios__": True}
 _ROW_FIELDS = (
@@ -263,6 +264,19 @@ def _write_parquet(
     )
 
 
+def resolve_release_dir(
+    repo_root: Path, release_dir: Path = DEFAULT_RELEASE_DIR
+) -> Path:
+    path = release_dir if release_dir.is_absolute() else repo_root / release_dir
+    if (path / "core_suite.json").is_file():
+        return path
+    if Path(release_dir) == DEFAULT_RELEASE_DIR:
+        public = repo_root / PUBLIC_RELEASE_DIR
+        if (public / "core_suite.json").is_file():
+            return public
+    return path
+
+
 def _validate_lite_membership(
     full: dict[str, Any], lite: dict[str, Any], *, core_sha256: str
 ) -> None:
@@ -290,7 +304,7 @@ def build_exports(
 ) -> dict[str, Any]:
     """Build deterministic Full/Lite Parquet files and their integrity manifest."""
 
-    release_path = release_dir if release_dir.is_absolute() else repo_root / release_dir
+    release_path = resolve_release_dir(repo_root, release_dir)
     core_path = release_path / "core_suite.json"
     lite_path = release_path / "lite_suite.json"
     core_raw, full = _load_suite(core_path)
