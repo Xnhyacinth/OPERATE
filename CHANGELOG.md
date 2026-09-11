@@ -2,6 +2,8 @@
 
 ## 2026-09-11
 
+- Compile provider tool schemas per wire dialect so Gemini/OpenLux routes do
+  not receive OpenAI-only JSON Schema keywords such as `uniqueItems`.
 - Rebuild OPERATE-Lite with a quality gate: 144 Core rows from 85 physical
   sources. Wait/greedy/oracle CPU baselines, four-model scores, and Hy3 Full
   ok episodes drive a hardness filter. Coverage hostages and easy cells are
