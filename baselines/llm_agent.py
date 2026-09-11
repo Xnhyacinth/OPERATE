@@ -47,6 +47,11 @@ from urllib.parse import urlparse, urlsplit, urlunsplit
 from core import Action, ToolCall
 from core.event_protocol import resolve_event_decision
 from core.pomdp_env import POMDPEnvironment
+from core.tool_protocol import (
+    adapt_openai_tool_specs_for_wire,
+    compile_parameters_for_wire,
+    tool_wire_dialect,
+)
 from core.provider_request_limiter import (
     ProviderDailyQuotaExhausted,
     ProviderLimiterStateError,
@@ -66,6 +71,33 @@ _PROVIDER_TRANSIENT_BACKOFF_MAX_S = 60.0
 _PROVIDER_TRANSIENT_RETRY_REASONS = frozenset(
     {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
 )
+
+
+def feasible_provider_retry_attempts(
+    *,
+    timeout_s: float,
+    max_elapsed_s: float,
+    max_attempts: int,
+) -> int:
+    """Hung attempts that can finish inside the elapsed budget.
+
+    Each attempt's wire timeout is clipped to remaining elapsed time, so a
+    configured ``max_attempts`` larger than ``ceil(max_elapsed_s / timeout_s)``
+    cannot run. Schema and other 4xx errors are not retried at all.
+    """
+    if (
+        max_attempts < 1
+        or not math.isfinite(timeout_s)
+        or not math.isfinite(max_elapsed_s)
+        or timeout_s <= 0.0
+        or max_elapsed_s <= 0.0
+    ):
+        return 0
+    full, remainder = divmod(max_elapsed_s, timeout_s)
+    completed = int(full) + (1 if remainder > 0.0 else 0)
+    return min(max_attempts, max(1, completed))
+
+
 _RETRY_AFTER_RE = re.compile(
     r"(?:retry[-_ ]after(?:_seconds(?:_raw)?)?)[\"']?\s*[:=]\s*[\"']?"
     r"(\d+(?:\.\d+)?)",
@@ -147,6 +179,7 @@ _PROVIDER_CIRCUIT_REASONS = frozenset(
         "provider_other_error",
         "provider_transport_error",
         "provider_tool_call_failure",
+        "provider_tool_schema_error",
     }
 )
 _PROMPT_ENTITY_SKIP_KEYS = frozenset({"_noisy_attrs", "_hidden_attrs"})
@@ -547,6 +580,19 @@ def provider_error_http_status(error: object) -> int | None:
     return None
 
 
+def _is_provider_tool_schema_error(raw: str) -> bool:
+    """True when the provider rejected JSON Schema keywords on the tool wire."""
+    if "uniqueitems" in raw:
+        return True
+    if "unknown name" not in raw:
+        return False
+    return (
+        "function_declarations" in raw
+        or "function_declaration" in raw
+        or ("tools[" in raw and "parameters" in raw)
+    )
+
+
 def classify_provider_error(text: object) -> str:
     """Classify provider/API errors for batch telemetry without exposing secrets."""
     if isinstance(text, RequestBudgetPreflightError):
@@ -606,6 +652,8 @@ def classify_provider_error(text: object) -> str:
     else:
         if isinstance(text, (NetworkError, RemoteProtocolError, TimeoutException)):
             return "provider_transport_error"
+    if _is_provider_tool_schema_error(raw):
+        return "provider_tool_schema_error"
     if any(marker in raw for marker in _TOOL_CALL_FAILURE_MARKERS):
         return "provider_tool_call_failure"
     if status is not None:
@@ -2412,6 +2460,8 @@ class LLMAgent(BaselineAgent):
         reason = classify_provider_error(exc)
         if reason == "provider_tool_call_failure":
             self._bump_stat("provider_tool_call_failures")
+        elif reason == "provider_tool_schema_error":
+            self._bump_stat("provider_tool_schema_failures")
         elif reason == "provider_rate_limit":
             self._bump_stat("provider_rate_limit_failures")
         elif reason == "provider_server_error":
@@ -2552,6 +2602,12 @@ class LLMAgent(BaselineAgent):
             while True:
                 self._check_realtime_cancellation()
                 self._check_provider_retry_deadline()
+                remaining_s = max(0.0, state["deadline"] - time.monotonic())
+                if remaining_s <= 0.0:
+                    raise self._provider_retry_budget_error("max_elapsed")
+                state["wire_timeout_s"] = min(
+                    float(self.config.timeout_s), remaining_s
+                )
                 started_ns = time.monotonic_ns()
                 try:
                     request_sequence = self._record_provider_request(
@@ -2755,12 +2811,17 @@ class LLMAgent(BaselineAgent):
         tools: list[dict[str, Any]] = []
         for spec in tool_specs:
             fn = spec.get("function", {}) or {}
+            parameters = fn.get("parameters", {})
+            if isinstance(parameters, dict):
+                parameters = compile_parameters_for_wire(
+                    parameters, dialect="openai"
+                )
             tools.append(
                 {
                     "type": "function",
                     "name": fn.get("name", ""),
                     "description": fn.get("description", ""),
-                    "parameters": fn.get("parameters", {}),
+                    "parameters": parameters,
                     "strict": False,
                 }
             )
@@ -4787,6 +4848,19 @@ class LLMAgent(BaselineAgent):
         )
         return projected, projection
 
+    def _compiled_wire_tools(
+        self, tool_specs: list[dict[str, Any]] | None = None
+    ) -> list[dict[str, Any]]:
+        """Compile canonical OpenAI-shaped specs for this model's wire dialect."""
+        specs = self._tool_specs if tool_specs is None else tool_specs
+        return adapt_openai_tool_specs_for_wire(
+            specs,
+            dialect=tool_wire_dialect(
+                provider=self.config.provider,
+                model=self.config.model,
+            ),
+        )
+
     def _provider_wire_projection(
         self,
         *,
@@ -4856,7 +4930,7 @@ class LLMAgent(BaselineAgent):
         projection = {
             "model": self.config.model,
             "messages": messages,
-            "tools": tools,
+            "tools": self._compiled_wire_tools(tools),
             "temperature": effective_temperature,
             "max_tokens": int(max_tokens),
             "tool_choice": effective_tool_choice,
@@ -5640,18 +5714,22 @@ class LLMAgent(BaselineAgent):
     def _anthropic_tools_from_specs(
         tool_specs: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        return [
-            {
-                "name": (spec.get("function") or {}).get("name", ""),
-                "description": (spec.get("function") or {}).get(
-                    "description", ""
-                ),
-                "input_schema": (spec.get("function") or {}).get(
-                    "parameters", {}
-                ),
-            }
-            for spec in tool_specs
-        ]
+        compiled: list[dict[str, Any]] = []
+        for spec in tool_specs:
+            fn = spec.get("function") or {}
+            parameters = fn.get("parameters", {})
+            if isinstance(parameters, dict):
+                parameters = compile_parameters_for_wire(
+                    parameters, dialect="anthropic"
+                )
+            compiled.append(
+                {
+                    "name": fn.get("name", ""),
+                    "description": fn.get("description", ""),
+                    "input_schema": parameters,
+                }
+            )
+        return compiled
 
     @staticmethod
     def _google_contents_from_messages(
@@ -5670,22 +5748,22 @@ class LLMAgent(BaselineAgent):
     def _google_tools_from_specs(
         tool_specs: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        return [
-            {
-                "function_declarations": [
-                    {
-                        "name": (spec.get("function") or {}).get("name", ""),
-                        "description": (spec.get("function") or {}).get(
-                            "description", ""
-                        ),
-                        "parameters": (spec.get("function") or {}).get(
-                            "parameters", {}
-                        ),
-                    }
-                    for spec in tool_specs
-                ]
-            }
-        ]
+        declarations: list[dict[str, Any]] = []
+        for spec in tool_specs:
+            fn = spec.get("function") or {}
+            parameters = fn.get("parameters", {})
+            if isinstance(parameters, dict):
+                parameters = compile_parameters_for_wire(
+                    parameters, dialect="gemini"
+                )
+            declarations.append(
+                {
+                    "name": fn.get("name", ""),
+                    "description": fn.get("description", ""),
+                    "parameters": parameters,
+                }
+            )
+        return [{"function_declarations": declarations}]
 
     def _google_generation_config(
         self,
@@ -5728,8 +5806,9 @@ class LLMAgent(BaselineAgent):
         if effective_tool_choice is not None:
             kwargs["tool_choice"] = effective_tool_choice
         kwargs.update(self._openai_chat_reasoning_fields())
+        wire_tools = self._compiled_wire_tools()
         try:
-            rsp = create(**kwargs, tools=self._tool_specs)
+            rsp = create(**kwargs, tools=wire_tools)
             if self.config.stream_chat_completions:
                 return self._action_from_openai_stream(rsp)
             self._record_provider_response_identity(rsp)
@@ -5845,7 +5924,7 @@ class LLMAgent(BaselineAgent):
             "temperature": 0.0,
             "max_tokens": self.config.protocol_repair_max_tokens,
             "timeout": self._effective_provider_timeout_s(),
-            "tools": tools,
+            "tools": self._compiled_wire_tools(tools),
         }
         effective_tool_choice = self._effective_wire_tool_choice(
             request_kind="protocol_repair",

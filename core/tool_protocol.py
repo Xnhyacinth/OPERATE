@@ -1274,11 +1274,125 @@ def _payload_failure_message(payload: dict[str, Any]) -> str:
     )
 
 
+TOOL_WIRE_DIALECTS = frozenset({"openai", "anthropic", "gemini"})
+_GEMINI_SCHEMA_DROP_KEYS = frozenset(
+    {
+        "uniqueItems",
+        "$schema",
+        "$id",
+        "$ref",
+        "$defs",
+        "definitions",
+        "examples",
+        "unevaluatedProperties",
+        "dependentRequired",
+        "dependentSchemas",
+        "prefixItems",
+        "if",
+        "then",
+        "else",
+        "not",
+        "contentEncoding",
+        "contentMediaType",
+        "contentSchema",
+        "propertyNames",
+        "patternProperties",
+        "oneOf",
+        "allOf",
+    }
+)
+
+
+def tool_wire_dialect(*, provider: str, model: str) -> str:
+    """Select the JSON-Schema subset the provider will accept on the wire.
+
+    Canonical ``ToolSpec`` objects stay OpenAI-shaped. Gateways that speak
+    Chat Completions but compile to Gemini ``function_declarations`` still
+    need the Gemini dialect when the model id is ``gemini*``.
+    """
+    provider_key = (provider or "").strip().lower()
+    model_id = (model or "").strip().lower()
+    if "/" in model_id:
+        model_id = model_id.rsplit("/", 1)[-1]
+    if provider_key == "google" or model_id.startswith("gemini"):
+        return "gemini"
+    if provider_key == "anthropic" or model_id.startswith("claude"):
+        return "anthropic"
+    return "openai"
+
+
+def _compile_gemini_schema(node: Any) -> Any:
+    """Drop JSON Schema keywords absent from Gemini FunctionDeclaration Schema."""
+    if isinstance(node, list):
+        return [_compile_gemini_schema(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    out = dict(node)
+    const = out.pop("const", None)
+    if const is not None and "enum" not in out:
+        out["enum"] = [const]
+    if isinstance(out.get("additionalProperties"), bool):
+        out.pop("additionalProperties")
+    for key in _GEMINI_SCHEMA_DROP_KEYS:
+        out.pop(key, None)
+    for key, val in list(out.items()):
+        if key == "properties" and isinstance(val, dict):
+            out[key] = {
+                child: _compile_gemini_schema(child_val)
+                for child, child_val in val.items()
+            }
+        elif key in {"items", "additionalProperties"}:
+            out[key] = _compile_gemini_schema(val)
+        elif key == "anyOf" and isinstance(val, list):
+            out[key] = _compile_gemini_schema(val)
+    return out
+
+
+def compile_parameters_for_wire(
+    schema: dict[str, Any], *, dialect: str = "openai"
+) -> dict[str, Any]:
+    """Compile canonical tool parameters for one provider wire dialect."""
+    if dialect not in TOOL_WIRE_DIALECTS:
+        raise ValueError(f"unknown tool wire dialect: {dialect!r}")
+    compiled = sanitize_openai_parameters(schema)
+    if dialect == "gemini":
+        compiled = _compile_gemini_schema(compiled)
+        return compiled if isinstance(compiled, dict) else {}
+    return compiled
+
+
+def adapt_openai_tool_specs_for_wire(
+    specs: list[dict[str, Any]], *, dialect: str = "openai"
+) -> list[dict[str, Any]]:
+    """Return Chat Completions-shaped tools compiled for ``dialect``."""
+    if dialect not in TOOL_WIRE_DIALECTS:
+        raise ValueError(f"unknown tool wire dialect: {dialect!r}")
+    adapted: list[dict[str, Any]] = []
+    for spec in specs:
+        if not isinstance(spec, dict):
+            adapted.append(spec)
+            continue
+        spec = copy.deepcopy(spec)
+        fn = spec.get("function")
+        if isinstance(fn, dict) and isinstance(fn.get("parameters"), dict):
+            fn["parameters"] = compile_parameters_for_wire(
+                fn["parameters"], dialect=dialect
+            )
+        if dialect == "gemini":
+            spec.pop("x-cost-units", None)
+        adapted.append(spec)
+    return adapted
+
+
 def sanitize_openai_parameters(schema: dict[str, Any]) -> dict[str, Any]:
-    """Make JSON Schema safe for strict OpenAI / Gemini tool APIs.
+    """Make JSON Schema safe for OpenAI-style function tools.
 
     - ``exclusiveMinimum`` / ``exclusiveMaximum`` → ``minimum`` / ``maximum``
     - Arrays without ``items`` get a generic item schema
+
+    Gemini protobuf ``function_declarations`` reject additional keywords
+    such as ``uniqueItems``; compile those through
+    ``compile_parameters_for_wire(..., dialect="gemini")``.
     """
 
     def _walk(node: Any) -> Any:
