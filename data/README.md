@@ -1,7 +1,7 @@
 # OPERATE data
 
 The current public catalog contains 769 Core rows over 502 physical sources
-and 193 Lite rows over 122 sources. Scenario contracts live under
+and 144 Lite rows over 85 sources. Scenario contracts live under
 `scenarios/<domain>/...`. Compact redistributable source assets live under
 `sources/`. `benchmark/core_suite.json` plus `benchmark/manifest.json` define
 the evaluation denominator.

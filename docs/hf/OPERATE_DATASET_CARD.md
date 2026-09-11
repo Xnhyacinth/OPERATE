@@ -49,20 +49,12 @@ Lite and runtime artifacts. See the repository
 ## Benchmark scope
 
 The Core contains 769 scenarios over 502 physical sources and seven domains.
-OPERATE-Lite contains 193 exact Core-locked rows from 122 physical sources.
-It retains a 104-row coverage core over joint task classes, source families,
-event/control mechanisms, native scale and declared source variation. Complete
-rounds then increase independent-source support, adding 23, 14 and 13 rows until
-the first complete round inside the 150–200-row development budget. All admitted
-Autonomous Driving, Building Energy, Microgrid, Power Grid and Traffic rows are
-then retained, adding 30 window/condition variants. Datacenter retains all
-11 medium and 7 high cases plus its 9 selected basic cases, adding 9 rows;
-Logistics remains at 66 selected rows. Every row has an inclusion/exclusion reason.
-Selection does not use LLM scores. Core admission supplies the quality
-requirement, not the size budget.
-All 17 backends, 22 task families, four difficulty levels and six horizon buckets
-remain covered. This is a development/ablation subset, not a statistical sample,
-a mathematical minimum or the Full/Core leaderboard denominator.
+OPERATE-Lite contains 144 exact Core-locked rows from 85 physical sources.
+It keeps hardness-eligible Core rows (open-headroom, Hy3-strict, discriminative)
+and drops saturated, LLM-easy, and unrankable cells. Families or domains with
+no hard row are omitted. This is a development/ablation subset, not a
+statistical sample or the Full/Core leaderboard denominator. The current Lite
+quality gate uses model outcomes.
 
 Primary results use `logical_persistent`. `realtime_persistent` is a separate
 supervision treatment for proactive monitoring, correct silence, latency,

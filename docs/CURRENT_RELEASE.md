@@ -2,7 +2,7 @@
 
 The promoted input namespace is `operate`. Qualification artifacts stay
 bound to scoring `0.15.0`. Live evaluations use scoring `0.17.0`. Core remains
-769 rows across 502 physical sources, with 193 Lite rows across 122 sources.
+769 rows across 502 physical sources, with 144 Lite rows across 85 sources.
 Native qualification is bound to its recorded implementation identity. Later
 verified maintenance changes bind their actual new execution identity; resume
 and merge remain strict. Formal logical/realtime provider runs and leaderboard
@@ -16,6 +16,8 @@ not valid inputs to a current formal run.
 ## Promoted Core
 
 - 769 source-grounded scenario contracts across 502 physical sources
+- 144 Lite rows across 85 physical sources, selected by
+  `quality_gated_cpu_headroom_hy3_v9`
 - seven domains: Autonomous Driving, Building Energy, Datacenter, Logistics,
   Microgrid, Power Grid, and Traffic
 - tracked source locks and compact Alibaba/DynaSched assets under `sources/`
