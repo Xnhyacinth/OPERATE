@@ -6,8 +6,8 @@
   "live_scoring_version": "0.17.0",
   "n_scenarios": 769,
   "n_physical_sources": 502,
-  "n_lite_scenarios": 193,
-  "n_lite_physical_sources": 122,
+  "n_lite_scenarios": 144,
+  "n_lite_physical_sources": 85,
   "core_suite": {
     "path": "core_suite.json",
     "n_scenarios": 769,
@@ -15,8 +15,8 @@
   },
   "lite_suite": {
     "path": "lite_suite.json",
-    "n_scenarios": 193,
-    "sha256": "3b9bcf370128a34f136ed9d99c8b8ecd50eccb1da414ce2aee22637942532079"
+    "n_scenarios": 144,
+    "sha256": "434df7089cb7b45891f7c10e00c873edf0d1106961143f51d42500c5ee310092"
   },
   "formal_evaluation_ready": true,
   "leaderboard_eligible": false,

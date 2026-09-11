@@ -4,13 +4,13 @@ OPERATE admits a scenario only when its initial state and exogenous series are
 bound to real public source material or an explicitly labelled deterministic
 stress overlay. An LLM never generates environment state.
 
-The current public catalog is 769 Core rows over 502 physical sources and 193
-Lite rows over 122 sources.
+The current public catalog is 769 Core rows over 502 physical sources and 144
+Lite rows over 85 sources.
 
 ## Active catalog
 
 - `benchmark/core_suite.json` — current 769-row Core catalog
-- `benchmark/lite_suite.json` — current 193-row Lite catalog
+- `benchmark/lite_suite.json` — current 144-row Lite catalog
 - `benchmark/manifest.json` — public counts, scoring version, and file hashes
 - `sources/locks/` — tracked source locks
 - `sources/alibaba/` — compact trace inputs used by released Datacenter rows

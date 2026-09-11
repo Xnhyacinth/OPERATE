@@ -8,7 +8,7 @@
     <a href="https://huggingface.co/datasets/Xnhyacinth/OPERATE"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-Full%20%7C%20Lite-FFD21E" alt="Hugging Face dataset: Full and Lite" /></a>
     <a href="https://huggingface.co/collections/Xnhyacinth/operate-6a9ed166a0c8cd671910ca1a"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Collection-OPERATE-FFD21E" alt="Hugging Face collection: OPERATE" /></a>
     <img src="https://img.shields.io/badge/Full-769%20scenarios-0F766E" alt="Full: 769 scenarios" />
-    <img src="https://img.shields.io/badge/Lite-193%20scenarios-0EA5A4" alt="Lite: 193 scenarios" />
+    <img src="https://img.shields.io/badge/Lite-144%20scenarios-0EA5A4" alt="Lite: 144 scenarios" />
     <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white" alt="Python 3.10 through 3.14" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/Code-MIT-blue" alt="Code license: MIT" /></a>
   </p>
@@ -35,7 +35,7 @@ selectable historical datasets.
 ## Current qualification and provider status
 
 The current Core qualifies at scoring `0.15.0` and scores live runs at `0.17.0`,
-769 Core rows across 502 physical sources and 193 Lite rows across 122 sources.
+769 Core rows across 502 physical sources and 144 Lite rows across 85 sources.
 Qualification records describe the code used for their original checks. Public
 users can run their own checkout; ordinary resume preserves completed cells
 when only code changes, while recording each attempt's actual implementation. Formal logical/realtime provider runs and leaderboard
@@ -67,22 +67,23 @@ does not create harness-periodic scans, and keeps unknown events non-actionable.
 ## Full and Lite
 
 The official Full track contains 769 source-grounded scenarios across 502 physical
-sources and seven domains. OPERATE-Lite selects a coverage core and enriches it
-with independent physical-source support, then retains every admitted row in
-the five smaller domains under the policy below. It
-preserves all 17 backends, 22 task families, four difficulty levels, and six
-horizon buckets, but it is not a substitute for the Full leaderboard denominator.
+sources and seven domains. OPERATE-Lite is a hardness-filtered development
+subset: it keeps open-headroom, Hy3-strict, and discriminative Core rows and
+drops saturated, LLM-easy, and unrankable cells. Families or domains with no
+hard row are omitted (currently Traffic). It covers 13 backends, 19 task
+families, four difficulty levels, and six horizon buckets, but it is not a
+substitute for the Full leaderboard denominator.
 
 | Domain | Full rows | Lite rows | Full sources | Lite sources |
 | --- | ---: | ---: | ---: | ---: |
 | Autonomous Driving | 7 | 7 | 7 | 7 |
-| Building Energy | 18 | 18 | 6 | 6 |
-| Datacenter | 142 | 27 | 4 | 4 |
-| Logistics | 527 | 66 | 443 | 63 |
-| Microgrid | 37 | 37 | 21 | 21 |
-| Power Grid | 19 | 19 | 11 | 11 |
-| Traffic | 19 | 19 | 10 | 10 |
-| **Total** | **769** | **193** | **502** | **122** |
+| Building Energy | 18 | 10 | 6 | 5 |
+| Datacenter | 142 | 33 | 4 | 3 |
+| Logistics | 527 | 56 | 443 | 45 |
+| Microgrid | 37 | 28 | 21 | 17 |
+| Power Grid | 19 | 10 | 11 | 8 |
+| Traffic | 19 | 0 | 10 | 0 |
+| **Total** | **769** | **144** | **502** | **85** |
 
 Formal logical/realtime provider runs remain pending; public result release
 and leaderboard eligibility remain false.
@@ -184,31 +185,16 @@ uv run python run_full.py \
 
 ## Run OPERATE-Lite
 
-`OPERATE-Lite` contains 193 exact Core-locked rows from 122 physical sources.
-Core admission and verified YAML identities supply the quality requirement;
-selection does not rank cases by any LLM's scores.
+`OPERATE-Lite` contains 144 exact Core-locked rows from 85 physical sources.
+Selection uses wait/greedy/oracle CPU baselines, four-model Lite 0.17 scores,
+and Hy3 Full ok episodes, then keeps only hardness-eligible rows. Saturated,
+LLM-easy, Hy3-easy, plateau, and unrankable dead cells are dropped, including
+unique-family hostages. A Core family or domain with no hard row is omitted
+(currently Traffic). Preferred size 100–165 is a cap on enrichment, not a
+target. Lite remains an efficiency/development track, not a Full leaderboard
+denominator. The Lite selection audit contains per-row inclusion/exclusion
+reasons.
 
-First, deterministic coverage selection retains joint task classes, source
-families, native event/control mechanisms, scale shapes and declared source
-variation: driving hazards/deadlines, microgrid site/forecast/supply conditions,
-building event channels, power networks/feeders and controllable traffic topology.
-This yields a 104-row coverage core. Then complete rounds increase independent
-physical-source support for those features, stopping at the first complete round
-inside the 150–200-row development budget. The current rounds add 23, 14 and 13
-rows, retaining the entire coverage core. Finally, all admitted rows in
-Autonomous Driving, Building Energy, Microgrid, Power Grid and Traffic are
-retained, adding 30 window/condition variants. Datacenter additionally retains
-all 11 medium and 7 high cases, alongside its 9 selected basic cases; this adds
-9 rows. Logistics remains at 66 selected rows. This explicit retention policy
-avoids overcompressing already small domains; it is not a quality exception.
-
-The budget is an explicit cost/coverage tradeoff, not a quality threshold or a
-reason to discard required coverage, small-domain variants or the scarce
-medium/high datacenter cases.
-All 17 backends, 22 task families, four difficulty levels and six horizon buckets
-remain covered. The suite records inclusion, exclusion and coverage reasons;
-it is neither a statistical sample nor a mathematical minimum. Full retains
-the complete admitted source/window variation. Lite scores are not Full scores.
 Request `--max-tokens` must equal `--model-max-output-tokens` for that route.
 
 ```bash

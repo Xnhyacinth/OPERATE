@@ -50,39 +50,73 @@ def test_committed_lite_suite_is_deterministic_and_covers_runtime_strata() -> No
 
     core_rows = json.loads(CORE_PATH.read_text(encoding="utf-8"))["scenarios"]
     lite_rows = rebuilt["scenarios"]
+    evidence = builder.load_quality_evidence(CORE_PATH)
+    eligible = [
+        row for row in core_rows if builder._is_hardness_eligible(row, evidence)
+    ]
     assert 0 < len(lite_rows) < len(core_rows)
     assert rebuilt["selection_audit"]["coverage_complete"] is True
     for field in ("backend_kind", "family", "difficulty_level"):
-        assert {row[field] for row in lite_rows} == {row[field] for row in core_rows}
+        assert {row[field] for row in lite_rows} == {row[field] for row in eligible}
     assert {
         builder._horizon_bucket(int(row["horizon_ticks"])) for row in lite_rows
-    } == {label for _, _, label in builder.HORIZON_BUCKETS}
+    } == {
+        builder._horizon_bucket(int(row["horizon_ticks"])) for row in eligible
+    }
+    assert all(builder._is_hardness_eligible(row, evidence) for row in lite_rows)
 
     audit = rebuilt["selection_audit"]
     selected_ids = {row["scenario_id"] for row in lite_rows}
+    assert rebuilt["selection_algorithm"] == "quality_gated_cpu_headroom_hy3_v9"
+    assert rebuilt["selection_policy"]["model_outcomes_used_for_selection"] is True
+    assert audit["coverage_complete"] is True
+    assert audit["budget_satisfied"] is True
     assert len(audit["rows"]) == len(core_rows)
     selected_features = set()
+    included_stages = {
+        "coverage_core",
+        "restored_excluded_representative",
+        "stratum_completion",
+        "domain_floor",
+        "must_keep_headroom",
+        "quality_enrichment",
+    }
+    excluded_reasons = {
+        "quality_gate_hard_exclude",
+        "quality_gate_soft_exclude",
+        "family_soft_cap",
+        "coverage_already_represented",
+        "preferred_budget_reached",
+    }
     for row in audit["rows"]:
         assert row["included"] == (row["scenario_id"] in selected_ids)
         if row["included"]:
+            assert row["selection_stage"] in included_stages
             if row["selection_stage"] == "coverage_core":
                 assert row["new_feature_ids"]
-            elif row["selection_stage"] == "small_domain_retention":
-                assert row["reason"] == "preserves_admitted_small_domain_variation"
-            elif row["selection_stage"] == "datacenter_difficulty_retention":
-                assert row["reason"] == "preserves_admitted_datacenter_medium_high"
+                assert row["reason"] == "adds_coverage"
+            elif row["selection_stage"] == "restored_excluded_representative":
+                assert row["reason"] == "restores_core_stratum_after_quality_gate"
+            elif row["selection_stage"] == "stratum_completion":
+                assert row["reason"] == "completes_core_runtime_stratum"
+            elif row["selection_stage"] == "domain_floor":
+                assert row["reason"] == "preserves_domain_floor"
+            elif row["selection_stage"] == "must_keep_headroom":
+                assert row["reason"] == "preserves_open_headroom_or_cpu_gap"
             else:
-                assert row["selection_stage"] == "diversity_enrichment"
-                assert row["new_source_support_feature_ids"]
-                assert row["reason"] == "adds_independent_source_support"
+                assert row["reason"] == "adds_headroom_or_hy3_hard_diversity"
             selected_features.update(row["feature_ids"])
         else:
-            assert row["reason"] in {
-                "coverage_already_represented",
-                "preferred_budget_reached",
-            }
+            assert row["selection_stage"] == "excluded"
+            assert row["reason"] in excluded_reasons
             assert set(row["covered_by"]) <= selected_ids
     assert selected_features == set(range(len(audit["features"])))
+    assert not any(
+        set(row.get("quality_flags") or [])
+        & {"too_easy_ceiling", "too_easy_saturated"}
+        for row in audit["rows"]
+        if row["included"]
+    )
 
 
 def test_lite_rows_are_exact_members_of_parent_core() -> None:
