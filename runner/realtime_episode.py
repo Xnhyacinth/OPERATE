@@ -838,6 +838,7 @@ def _build_evidence_closure(env: Any, artifact: dict[str, Any]) -> dict[str, Any
     invalid_takeover_action_ids: set[str] = set()
     invalid_realized_event_evidence_ids: set[str] = set()
     unproven_agent_mutation_event_ids: set[str] = set()
+    proven_effect_action_ids: set[str] = set()
     for event in artifact.get("events") or []:
         referenced.update(str(value) for value in event.get("evidence_ids") or [])
     for transition in artifact.get("transitions") or []:
@@ -1119,9 +1120,15 @@ def _build_evidence_closure(env: Any, artifact: dict[str, Any]) -> dict[str, Any
                         or "unknown"
                     )
                 )
-        if transition.get("effect_observed") is True and not valid_effect:
+        action_id = str(transition.get("action_id") or "unknown")
+        if valid_effect:
+            proven_effect_action_ids.add(action_id)
+        elif (
+            transition.get("effect_observed") is True
+            and action_id not in proven_effect_action_ids
+        ):
             invalid_effect_action_ids.add(
-                str(transition.get("action_id") or "unknown")
+                action_id
             )
     available = {
         str(row.get("evidence_id"))
