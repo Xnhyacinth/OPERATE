@@ -2,8 +2,8 @@
 
 OPERATE scores verified environment outcomes, not prose similarity or a gold
 tool sequence. The promoted `operate` release binds qualification
-artifacts to scoring `0.15.0`. The live headline is `SCORING_VERSION = 0.17.0`.
-Frozen 0.15.0 identities are not rewritten; new evaluations use 0.17.0.
+artifacts to scoring `0.15.0`. The live headline is `SCORING_VERSION = 0.18.0`.
+Frozen 0.15.0–0.17.0 identities are not rewritten; new evaluations use 0.18.0.
 
 The 769-row, 502-physical-source Core is data/code ready for formal shards.
 Provider runs are still pending, so this readiness does not make the release
@@ -17,7 +17,7 @@ public or leaderboard eligible.
   runs use `realtime_persistent.v3` / `native_dt_v1`: wall ticks equal the
   source-converted plant quantum, thinking time is real wall time, and the
   default scorecard is the 37-row speed-critical subset. Do not pool it into
-  the 0.17 primary.
+  the 0.18 primary.
 - `logical_stateless` is a non-primary compatibility treatment.
 
 Treatments are never pooled. A shard is comparable only when its suite,
@@ -76,6 +76,30 @@ evidence is non-applicable or contributes zero according to the frozen scoring
 contract. `robustness_to_fog` and `adaptive_decision_making` remain cross-batch
 analyses and are not silently injected into a per-episode headline.
 
+## Scoring 0.18 repair contract
+
+- OpenDSS and LV survival use native convergence/terminal failure flags.
+  Ordinary voltage-band violations remain safety and economic costs; their
+  node/phase count is not a count of collapsed buses.
+- CityLearn declares signed `energy_cost`. Actual and counterfactual replays,
+  including masked action replays, must agree on that declaration. Undeclared
+  negative penalties and non-finite values remain invalid. A non-positive
+  wait cost has no applicable ratio under this normalization.
+- Missing outcome evidence returns no leaderboard value, not a model zero.
+  `score_group_contracts` includes schedule coverage and `native_outcome`:
+  actual/wait cost, prevented loss, unclipped wait-relative change, and a
+  clipping indicator. Compare native costs only within matched tasks. The
+  bounded primary still ties some completed schedules and clips negative
+  improvement at zero; those ties do not imply equal native outcomes.
+- Normal completions, telemetry and agent-caused effects do not create an
+  adaptation opportunity. Query and plan credit requires successful consumed
+  evidence, a real native effect and positive masked replay attribution.
+  A revised plan must reference an earlier recorded plan; a claimed ID alone
+  earns no revision credit. Native reveal/deadline/surprise metadata survives
+  canonicalization, and consumed reveal evidence establishes observation time.
+- Trade-off quality remains unavailable until structured, replay-bound
+  alternative policies exist. It is not a measured model weakness or strength.
+
 ## Causal agency checks
 
 Operational-agency credit requires a native event-to-action-to-effect chain and
@@ -90,7 +114,7 @@ acknowledgement is insufficient. The diagnostic scorecard separately reports:
 - tool efficiency and duplicate suppression;
 - context truncation, repair and provider failures.
 
-Those diagnostics, and the realtime supervision table, stay out of the 0.17
+Those diagnostics, and the realtime supervision table, stay out of the 0.18
 primary. Long-horizon memory and proactive adaptation are not claimed by the
 headline.
 
@@ -104,7 +128,40 @@ autonomous driving (5s NGSIM supervisory ticks), 19 traffic, 6 power, and 5
 datacenter (60s). CityLearn/microgrid hour ticks and long job-shop horizons
 are not 1:1 operator-latency tests. Investigation still serializes on the
 environment actor; `harness_periodic_supervisory_scan` remains false; hold is
-not native takeover.
+not native takeover. Environment completion uses the remaining episode wall
+budget to settle both provider requests and serialized observation ingestion.
+If that budget expires, unfinished behavioral state stays ineligible; it is
+not read concurrently or converted into a model score.
+
+## Horizon analysis and Lite scope
+
+Lite v11 keeps 141 rows, including 298-tick continuous scheduling and
+400-tick fault/priority recovery representatives. The withdrawn v10 rule
+removed every row above 192 ticks; that cost-only cutoff erased the long-tick
+stratum. The retained representatives are chosen by shortest horizon within
+frozen backend/family/difficulty-mode strata, not by model score.
+
+A horizon chart must show Core and Lite separately with their denominators.
+Core has 54/769 rows above 192 ticks; Lite has 2/141. This reporting split is
+not a scientific definition of persistent agency, and Lite is not a
+frequency-preserving sample of Core. Two long-tick representatives cannot
+support a broad long-horizon capability or significance claim on their own.
+Use matched, eligible results from the long-task diagnostic slice for that
+analysis; report missing coverage rather than filling it with zeros.
+
+Keep configured tick budget, realized decision/model-call count, native source
+time, and provider wall time separate. DynaSched advances to native event or
+machine boundaries: its declared `tick_minutes: 1` does not establish that
+every step spans one physical minute. CityLearn's 72 hourly ticks are a long
+source-time window, but elapsed source time alone does not demonstrate deep
+planning or memory retention. Those claims require cross-boundary plan,
+observation, action, and effect evidence.
+
+The 1023-tick dynamic Dyna case remains in Core and long-task diagnostics.
+Its cancellation, route, processing-time, maintenance and due-date changes
+have value that the smaller representatives do not fully retain. Restoring
+204/204 old selection features must not be described as complete dynamic
+mechanism coverage.
 
 ## Counterfactuals and determinism
 

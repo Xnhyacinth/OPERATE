@@ -3,11 +3,11 @@
   "name": "OPERATE",
   "version": "0.62.0",
   "scoring_version": "0.15.0",
-  "live_scoring_version": "0.17.0",
+  "live_scoring_version": "0.18.0",
   "n_scenarios": 769,
   "n_physical_sources": 502,
-  "n_lite_scenarios": 144,
-  "n_lite_physical_sources": 85,
+  "n_lite_scenarios": 141,
+  "n_lite_physical_sources": 82,
   "core_suite": {
     "path": "core_suite.json",
     "n_scenarios": 769,
@@ -15,8 +15,8 @@
   },
   "lite_suite": {
     "path": "lite_suite.json",
-    "n_scenarios": 144,
-    "sha256": "434df7089cb7b45891f7c10e00c873edf0d1106961143f51d42500c5ee310092"
+    "n_scenarios": 141,
+    "sha256": "eeb564ddd6ebe988dd90888f7f4388f139e16084426fe317fdb9b0a5da40b6d8"
   },
   "formal_evaluation_ready": true,
   "leaderboard_eligible": false,

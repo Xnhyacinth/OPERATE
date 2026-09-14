@@ -722,15 +722,17 @@ def _register_native_tools(
         )
 
         register_dynasched_flexible_job_shop_tools(reg, backend)
-        return
-    if getattr(backend, "backend_kind", "") == "orgym_invmgmt":
+    elif getattr(backend, "backend_kind", "") == "orgym_invmgmt":
         from .backends.orgym_invmgmt import register_orgym_inventory_tools
 
         register_orgym_inventory_tools(reg, backend)
+    if getattr(backend, "backend_kind", "") in {
+        "dynasched_flexible_job_shop", "orgym_invmgmt",
+    }:
         reg.register(
             ToolSpec(
                 name="commit_to_plan",
-                description="Record or revise an inventory replenishment plan and demand predictions.",
+                description="Record or revise an operational plan, predictions, and review timing.",
                 parameters={
                     "type": "object",
                     "properties": {

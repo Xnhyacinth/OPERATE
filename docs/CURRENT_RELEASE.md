@@ -1,8 +1,8 @@
 # Current release
 
 The promoted input namespace is `operate`. Qualification artifacts stay
-bound to scoring `0.15.0`. Live evaluations use scoring `0.17.0`. Core remains
-769 rows across 502 physical sources, with 144 Lite rows across 85 sources.
+bound to scoring `0.15.0`. Live evaluations use scoring `0.18.0`. Core remains
+769 rows across 502 physical sources, with 141 Lite rows across 82 sources.
 Native qualification is bound to its recorded implementation identity. Later
 verified maintenance changes bind their actual new execution identity; resume
 and merge remain strict. Formal logical/realtime provider runs and leaderboard
@@ -16,8 +16,8 @@ not valid inputs to a current formal run.
 ## Promoted Core
 
 - 769 source-grounded scenario contracts across 502 physical sources
-- 144 Lite rows across 85 physical sources, selected by
-  `quality_gated_cpu_headroom_hy3_v9`
+- 141 Lite rows across 82 physical sources, selected by
+  `reviewed_horizon_balanced_v11`
 - seven domains: Autonomous Driving, Building Energy, Datacenter, Logistics,
   Microgrid, Power Grid, and Traffic
 - tracked source locks and compact Alibaba/DynaSched assets under `sources/`
@@ -26,7 +26,7 @@ not valid inputs to a current formal run.
 - matching formal manifest at `benchmark/manifest.json`
 - replay and provenance suite at `benchmark/core_suite.json`
 - promoted qualification scoring version `0.15.0`
-- live evaluation scoring version `0.17.0` (`wait_relative_outcome_v1`)
+- live evaluation scoring version `0.18.0` (`wait_relative_outcome_v1`)
 - live realtime contract `realtime_persistent.v3` / `native_dt_v1`; default
   supervision scorecard is the 37-row speed-critical subset in
   `benchmark/realtime_speed_suite.json`
@@ -45,6 +45,21 @@ as newly executed evidence.
 `core_suite.json` together with its matching `manifest.json` defines the formal
 denominator. `protocol21_source_suite.json` remains the bound replay input and
 provenance ledger.
+
+## Lite review scope
+
+Lite v11 freezes the previous 144-row model-informed selection. A routine
+192-tick budget retains the shortest longer candidate per backend/family/
+difficulty-mode stratum: Dyna static moo (298 ticks) and breakdown recovery
+(400 ticks), alongside Sweep (111 ticks). Three longer alternatives remain
+in Core/long-horizon diagnostics. The interim v10 uniform cap is withdrawn.
+The resulting 141 rows retain 204/204 parent features and six domains;
+this does not establish complete Core or scientific coverage. Traffic remains
+outside Lite. Native ticks do not bound provider latency or call count, and
+192 ticks is a budget cutoff, not a definition of long-horizon agency.
+Historical zero/ceiling scores affected by measurement defects are not new
+exclusion evidence. Decisions are in
+`benchmark/lite_review_dispositions.json`.
 
 ## Release status
 

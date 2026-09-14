@@ -1,5 +1,33 @@
 # Updates
 
+## 2026-09-12
+
+- Lite v11 retains 141 Core rows from 82 physical sources. A routine 192-tick
+  budget keeps the shortest long representative per operational stratum:
+  Dyna moo (298 ticks) and breakdown (400), alongside Sweep (111). Three long
+  alternatives remain in the unchanged 769-row Core. This supersedes the
+  interim v10 cap. Frozen v9 selection remains model-informed; all 204 declared
+  parent features remain, without claiming complete Core/scientific coverage.
+
+## 2026-09-11
+
+- Compile provider tool schemas per wire dialect so Gemini/OpenLux routes do
+  not receive OpenAI-only JSON Schema keywords such as `uniqueItems`.
+- Rebuild OPERATE-Lite with a quality gate: 144 Core rows from 85 physical
+  sources. Wait/greedy/oracle CPU baselines, four-model scores, and Hy3 Full
+  ok episodes drive a hardness filter. Coverage hostages and easy cells are
+  dropped. Membership uses model and CPU outcomes. Core remains 769 rows.
+
+## 2026-09-10
+
+- Live scoring is `0.17.0` (`wait_relative_outcome_v1`). Catalog qualification
+  remains `0.15.0` and is not rewritten.
+- Live realtime uses `native_dt_v1`: wall ticks equal each row's native plant
+  quantum. The default speed card is the 37 Core rows in
+  `benchmark/realtime_speed_suite.json`.
+- Core remains 769 rows. Historical 193-row Lite membership is superseded by
+  the quality-gated Lite in this snapshot.
+
 ## 2026-09-11
 
 - Compile provider tool schemas per wire dialect so Gemini/OpenLux routes do

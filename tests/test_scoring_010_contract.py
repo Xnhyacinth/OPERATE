@@ -26,8 +26,8 @@ def _full_discriminative_dimensions() -> list[dict]:
     ]
 
 
-def test_scoring_version_is_0170() -> None:
-    assert SCORING_VERSION == "0.17.0"
+def test_live_scoring_version_is_0180() -> None:
+    assert SCORING_VERSION == "0.18.0"
 
 
 def test_headline_groups_do_not_count_a_dimension_twice() -> None:

@@ -1389,6 +1389,7 @@ def sanitize_openai_parameters(schema: dict[str, Any]) -> dict[str, Any]:
 
     - ``exclusiveMinimum`` / ``exclusiveMaximum`` → ``minimum`` / ``maximum``
     - Arrays without ``items`` get a generic item schema
+    - Object composition branches inherit the parent's explicit object type
 
     Gemini protobuf ``function_declarations`` reject additional keywords
     such as ``uniqueItems``; compile those through
@@ -1415,6 +1416,12 @@ def sanitize_openai_parameters(schema: dict[str, Any]) -> dict[str, Any]:
             elif key == "items":
                 out[key] = _walk(val)
             elif key in {"anyOf", "oneOf", "allOf"} and isinstance(val, list):
+                if out.get("type") == "object":
+                    # These branches constrain the same already-object instance.
+                    # Explicit types help gateways without changing constraints.
+                    for branch in val:
+                        if isinstance(branch, dict):
+                            branch.setdefault("type", "object")
                 out[key] = [_walk(v) for v in val]
         return out
 

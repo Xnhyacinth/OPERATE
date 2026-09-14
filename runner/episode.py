@@ -61,7 +61,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LOGGER = logging.getLogger(__name__)
 EVALUATION_PROTOCOL_VERSION = "2.1"
 EVALUATION_IMPLEMENTATION_FINGERPRINT = (
-    "protocol-2.1-v21-opportunity-aware-five-group-v15"
+    "protocol-2.1-v22-native-evidence-scoring-v18"
 )
 MAX_WITHIN_TICK_INVESTIGATION_CALLS = 2
 WITHIN_TICK_COMMIT_CALL_RESERVE = 1
@@ -541,6 +541,7 @@ def _build_event_response_records(
                     request_tick if consumes_parent_evidence else None
                 ),
                 "first_investigation_tick": None,
+                "reveal_evidence_ids": list(parent.get("reveal_evidence_ids") or []),
                 "first_control_call_tick": request_tick,
                 "first_effect_tick": effect_tick,
                 "mandatory_response_tick": (
@@ -558,6 +559,85 @@ def _build_event_response_records(
             }
         )
     return records
+
+
+def _enrich_event_response_records(
+    records: list[dict[str, Any]], *, evidence_logger: Any,
+) -> None:
+    """Resolve query and plan dependencies from the authoritative tool ledger.
+
+    Merely occurring before a control is insufficient. Only explicitly consumed
+    results (including a tool-call's linked result) can establish information
+    use or a plan-to-effect chain. Future results never receive credit.
+    """
+    if evidence_logger is None:
+        return
+    from evaluation.scorer import _completed_successful_tool_payload
+
+    items = list(evidence_logger.items())
+    by_id = {item.evidence_id: item for item in items}
+    order = {item.evidence_id: index for index, item in enumerate(items)}
+    controls = {
+        str(item.payload.get("call_id")): item
+        for item in items
+        if item.kind == "tool_call"
+        and _completed_successful_tool_payload(item.payload)
+        and item.payload.get("state_changing") is True
+    }
+    for record in records:
+        control = controls.get(str(record.get("call_id") or ""))
+        if control is None:
+            continue
+        consumed = set(control.payload.get("consumes_evidence_ids") or [])
+        resolved: dict[str, Any] = {}
+        pending = list(consumed)
+        while pending:
+            evidence_id = pending.pop()
+            item = by_id.get(evidence_id)
+            if (
+                item is None or evidence_id in resolved
+                or item.tick > control.tick
+                or order[evidence_id] >= order[control.evidence_id]
+            ):
+                continue
+            resolved[evidence_id] = item
+            linked = item.payload.get("linked_result_evidence_id")
+            if (item.kind == "tool_call"
+                    and _completed_successful_tool_payload(item.payload) and linked):
+                pending.append(linked)
+        investigations = [
+            item for item in resolved.values()
+            if item.kind in {"investigation", "forecast_requested"}
+            and int(record.get("event_tick") or 0) <= item.tick
+        ]
+        if investigations:
+            record["first_investigation_tick"] = min(item.tick for item in investigations)
+            record["observation_evidence_ids"] = list(dict.fromkeys([
+                *(record.get("observation_evidence_ids") or []),
+                *(item.evidence_id for item in investigations),
+            ]))
+            reveals = [item.tick for item in investigations
+                       if item.evidence_id in (record.get("reveal_evidence_ids") or [])]
+            if reveals:
+                previous = record.get("first_observed_tick")
+                record["first_observed_tick"] = min(
+                    [*reveals, *([] if previous is None else [previous])]
+                )
+        plans = [item for item in resolved.values() if item.kind == "commit_to_plan"]
+        if plans:
+            latest = max(plans, key=lambda item: order[item.evidence_id])
+            record["plan_evidence_ids"] = [item.evidence_id for item in plans]
+            replaced = latest.payload.get("replaces_plan_id")
+            old_plans = [item for item in items if (
+                item.kind == "commit_to_plan"
+                and replaced and replaced != latest.payload.get("plan_id")
+                and item.payload.get("plan_id") == replaced
+                and item.tick <= latest.tick
+                and order[item.evidence_id] < order[latest.evidence_id]
+            )]
+            if old_plans:
+                record["replaces_plan_id"] = replaced
+                record["plan_evidence_ids"].append(old_plans[-1].evidence_id)
 
 
 def _normalize_event_response_evidence_ids(
@@ -705,6 +785,7 @@ def _operational_agency_artifacts(
     )
     if not records:
         records = _build_event_response_records(analysis_steps)
+    _enrich_event_response_records(records, evidence_logger=evidence_logger)
     records = _normalize_event_response_evidence_ids(
         records,
         valid_evidence_ids=valid_evidence_ids,
@@ -2994,6 +3075,7 @@ def _run_one_with_environment_impl(
         cf.to_dict(),
         tool_results_ok=tool_results_ok,
         tool_results_failed=tool_results_failed,
+        registry=tool_registry,
     )
     task_counterfactual = cf.to_dict()
     task_counterfactual["_counterfactual_task_tick_records"] = (

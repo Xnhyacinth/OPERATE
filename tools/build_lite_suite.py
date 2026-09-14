@@ -18,6 +18,10 @@ PREFERRED_RANGE = (150, 200)
 QUALITY_PREFERRED_RANGE = (100, 165)
 QUALITY_EVIDENCE_NAME = "lite_quality_evidence.json"
 QUALITY_ALGORITHM = "quality_gated_cpu_headroom_hy3_v9"
+REVIEW_ALGORITHM = "reviewed_horizon_balanced_v11"
+LONG_HORIZON_RULE = "minimum_horizon_per_backend_family_difficulty_mode"
+ROUTINE_HORIZON_BUDGET = 192
+REVIEW_DISPOSITIONS_NAME = "lite_review_dispositions.json"
 TRUE_EASY_FLAGS = frozenset(
     {
         "too_easy_ceiling",
@@ -997,7 +1001,7 @@ def _counts(rows: list[dict[str, Any]], field: str) -> dict[str, int]:
     return dict(sorted(Counter(str(row[field]) for row in rows).items()))
 
 
-def build_payload(core_path: Path, *, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+def _build_parent_payload(core_path: Path, *, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     core_bytes = core_path.read_bytes()
     core = json.loads(core_bytes)
     evidence_path = _quality_evidence_path(core_path)
@@ -1114,6 +1118,130 @@ def build_payload(core_path: Path, *, repo_root: Path = REPO_ROOT) -> dict[str, 
         "selection_audit": audit,
         "scenarios": selected,
     }
+    payload["suite_sha256"] = _sha256_bytes(_canonical_bytes(payload))
+    return payload
+
+
+def _long_horizon_representatives(rows: list[dict[str, Any]]) -> set[str]:
+    """Keep the shortest long candidate in each frozen operational stratum."""
+    strata: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        if int(row["horizon_ticks"]) > ROUTINE_HORIZON_BUDGET:
+            strata[(row["backend_kind"], row["family"], row["difficulty_mode"])].append(row)
+    return {
+        min(candidates, key=lambda row: (int(row["horizon_ticks"]), row["scenario_id"]))["scenario_id"]
+        for candidates in strata.values()
+    }
+
+
+def build_payload(core_path: Path, *, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    """Apply the reviewed budget to frozen v9 membership, preserving Core rows."""
+    payload = _build_parent_payload(core_path, repo_root=repo_root)
+    review_path = core_path.parent / REVIEW_DISPOSITIONS_NAME
+    review_bytes = review_path.read_bytes()
+    review = json.loads(review_bytes)
+    parent_ids = [row["scenario_id"] for row in payload["scenarios"]]
+    if (
+        review.get("schema_version") != "operate-lite-review-dispositions-v1"
+        or review.get("selection_algorithm") != REVIEW_ALGORITHM
+        or review.get("parent_scenario_ids") != parent_ids
+        or review.get("parent_quality_evidence_sha256")
+        != payload["selection_audit"]["quality_evidence_sha256"]
+    ):
+        raise ValueError("Lite review does not match frozen parent membership/evidence")
+    limit = review.get("routine_horizon_budget_ticks")
+    if type(limit) is not int or limit != ROUTINE_HORIZON_BUDGET:
+        raise ValueError("invalid reviewed Lite routine horizon budget")
+    representatives = _long_horizon_representatives(payload["scenarios"])
+    if (
+        review.get("long_horizon_representative_rule") != LONG_HORIZON_RULE
+        or review.get("long_horizon_representative_ids") != sorted(representatives)
+    ):
+        raise ValueError("Lite long-horizon representatives violate frozen stratum rule")
+    dispositions = {row["scenario_id"]: row for row in review["rows"]}
+    if len(dispositions) != len(review["rows"]) or set(dispositions) != set(parent_ids):
+        raise ValueError("Lite review must cover each frozen parent row exactly once")
+    excluded = set()
+    for row in payload["scenarios"]:
+        decision = dispositions[row["scenario_id"]]
+        expected = (
+            "long_horizon_representative" if row["scenario_id"] in representatives
+            else "long_horizon_diagnostic" if int(row["horizon_ticks"]) > limit
+            else "retain_for_retest"
+        )
+        if (
+            decision.get("disposition") != expected
+            or decision.get("horizon_ticks") != row["horizon_ticks"]
+            or (expected == "long_horizon_representative" and LONG_HORIZON_RULE not in decision.get("reason_codes", []))
+        ):
+            raise ValueError("Lite review disposition violates reviewed horizon strata")
+        if expected == "long_horizon_diagnostic":
+            excluded.add(row["scenario_id"])
+    selected = [row for row in payload["scenarios"] if row["scenario_id"] not in excluded]
+    selected_ids = {row["scenario_id"] for row in selected}
+    audit = payload["selection_audit"]
+    features = set()
+    owners: dict[int, list[str]] = defaultdict(list)
+    for row in audit["rows"]:
+        row["included"] = row["scenario_id"] in selected_ids
+        if row["included"]:
+            features.update(row["feature_ids"])
+            for feature in row["feature_ids"]:
+                owners[feature].append(row["scenario_id"])
+        if row["scenario_id"] in dispositions:
+            decision = dispositions[row["scenario_id"]]
+            row["review_disposition"] = decision["disposition"]
+            row["review_reason_codes"] = decision["reason_codes"]
+            row["backend_kind"] = decision["backend_kind"]
+        if row["scenario_id"] in excluded:
+            row.update(selection_stage="excluded", reason="reviewed_horizon_budget_exceeded")
+    for row in audit["rows"]:
+        covered_by = set(row["covered_by"]) & selected_ids
+        for feature in row["feature_ids"]:
+            if not covered_by.intersection(owners[feature]):
+                covered_by.update(owners[feature][:1])
+        row["covered_by"] = sorted(covered_by)
+    audit.update(
+        coverage_complete=len(features) == len(audit["features"]),
+        n_parent_features=len(audit["features"]),
+        n_retained_parent_features=len(features),
+        uncovered_parent_feature_ids=sorted(set(range(len(audit["features"]))) - features),
+        feature_universe="frozen_v9_eligible_pool_before_review_budget",
+        review_excluded_scenario_ids=sorted(excluded),
+        long_horizon_representative_ids=sorted(representatives),
+        review_dispositions_path=REVIEW_DISPOSITIONS_NAME,
+        review_dispositions_sha256=_sha256_bytes(review_bytes),
+        parent_selection_algorithm=QUALITY_ALGORITHM,
+        selection_order=[sid for sid in audit["selection_order"] if sid in selected_ids],
+    )
+    audit["coverage_core_scenario_ids"] = [sid for sid in audit["coverage_core_scenario_ids"] if sid in selected_ids]
+    audit["n_coverage_core"] = len(audit["coverage_core_scenario_ids"])
+    for stage in ("restored_excluded_representative", "stratum_completion", "domain_floor", "must_keep_headroom", "quality_enrichment"):
+        audit[f"n_{stage}"] = sum(row["included"] and row["selection_stage"] == stage for row in audit["rows"])
+    payload["selection_algorithm"] = REVIEW_ALGORITHM
+    payload["selection_policy"] = {
+        "parent_policy": payload["selection_policy"],
+        "model_outcomes_used_for_selection": True,
+        "new_model_score_thresholds_used": False,
+        "routine_horizon_budget_ticks": limit,
+        "long_horizon_representative_rule": LONG_HORIZON_RULE,
+        "long_horizon_representative_ids": sorted(representatives),
+        "scope": review["scope"],
+        "evidence_boundary": review["evidence_boundary"],
+        "coverage_complete": audit["coverage_complete"],
+    }
+    payload.update(
+        scenarios=selected, n_scenarios=len(selected),
+        n_physical_sources=len({row["physical_source_key"] for row in selected}),
+        n_semantic_fingerprints=len({row["semantic_fingerprint"] for row in selected}),
+        n_structural_fingerprints=len({row["structural_fingerprint"] for row in selected}),
+        total_horizon_ticks=sum(int(row["horizon_ticks"]) for row in selected),
+        horizon_bucket_counts=dict(sorted(Counter(_horizon_bucket(int(row["horizon_ticks"])) for row in selected).items())),
+    )
+    for field in ("domain", "backend", "family", "difficulty"):
+        source = {"backend": "backend_kind", "difficulty": "difficulty_level"}.get(field, field)
+        payload[f"by_{field}"] = _counts(selected, source)
+    payload.pop("suite_sha256")
     payload["suite_sha256"] = _sha256_bytes(_canonical_bytes(payload))
     return payload
 

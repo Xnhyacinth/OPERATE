@@ -125,7 +125,9 @@ def canonicalize_runtime_events(
             "origin": origin,
             "declared_event": dict(raw.get("declared_event") or {}),
             "applied_tick": int(applied_tick),
-            "visibility": "hidden" if raw.get("hidden") else "visible",
+            "visibility": raw.get("visibility") or (
+                "hidden" if raw.get("hidden") else "visible"
+            ),
             "event_class": event_decision.decision_class.value,
             "decision_required": event_decision.requires_decision,
             "event_decision_declared_by": event_decision.declared_by,
@@ -176,6 +178,12 @@ def canonicalize_runtime_events(
             "response_window_required",
             "response_opportunity_tick",
             "terminal_response_window_missing",
+            "surprise",
+            "response_deadline_tick",
+            "mandatory_response_tick",
+            "first_observed_tick",
+            "first_investigation_tick",
+            "reveal_evidence_ids",
         ):
             if key in raw:
                 record[key] = raw[key]

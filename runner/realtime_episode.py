@@ -51,6 +51,15 @@ _BEHAVIOR_QUERY_VALUE_FIELDS = frozenset(
 )
 _PROVIDER_CANCEL_SETTLEMENT_GRACE_S = 2.0
 _REALTIME_ARTIFACT_NAME_MAX_BYTES = 200
+EPISODE_END_DISPATCH_SUPPRESSION_REASONS = frozenset(
+    {
+        "ENVIRONMENT_DONE",
+        "ENVIRONMENT_CLOSED",
+        "ENVIRONMENT_STOPPED",
+        "EPISODE_WALL_TIMEOUT",
+    }
+)
+SEMANTIC_SESSION_LEDGER_SCHEMA_VERSION = "semantic_session_ledger_v1"
 REALTIME_EPISODE_SCHEMA_VERSION = "realtime-episode/1.1"
 REALTIME_TREATMENT_SCHEMA_VERSION = "realtime-treatment/1.1"
 
@@ -246,6 +255,51 @@ def is_model_caused_terminal_feedback(event: dict[str, Any]) -> bool:
         and event.get("terminal_trigger_origin") == "model_action_feedback"
         and event.get("terminal_formal_blocker") is False
     )
+
+
+def is_terminal_actionable_validation_blocker(event: dict[str, Any]) -> bool:
+    """True when a missed trigger should void the artifact, not just the scorecard.
+
+    Episode-end suppression stays auditable missed work. It must not fail closed
+    as an unanswerable post-episode decision.
+    """
+
+    if not isinstance(event, dict):
+        return False
+    if event.get("decision_required") is not True:
+        return False
+    if event.get("terminal_unanswerable") is not True:
+        return False
+    if is_model_caused_terminal_feedback(event):
+        return False
+    return (
+        event.get("dispatch_suppressed_reason")
+        not in EPISODE_END_DISPATCH_SUPPRESSION_REASONS
+    )
+
+
+def canonical_realtime_scenario_id(scenario: dict[str, Any]) -> str:
+    """Bind the suite scenario_id; YAML seed_id is only the fallback basename."""
+
+    return str(scenario.get("scenario_id") or scenario.get("seed_id") or "")
+
+
+def _semantic_ledger_artifact(records: Any) -> dict[str, Any] | None:
+    """Wrap the agent ledger list as the dict eligibility contract requires."""
+
+    if records is None:
+        return None
+    if isinstance(records, dict):
+        return deepcopy(records)
+    if not isinstance(records, list) or not all(
+        isinstance(item, dict) for item in records
+    ):
+        raise TypeError("agent semantic session ledger must be list[dict] or dict")
+    return {
+        "schema_version": SEMANTIC_SESSION_LEDGER_SCHEMA_VERSION,
+        "event_count": len(records),
+        "records": deepcopy(records),
+    }
 
 
 def is_expected_provider_stream_cancellation(
@@ -1136,9 +1190,7 @@ def _apply_realtime_artifact_validation(
     if (artifact.get("tool_surface_contract") or {}).get("complete") is not True:
         validation_blockers.append("TOOL_SURFACE_INCOMPLETE")
     if any(
-        event.get("decision_required") is True
-        and event.get("terminal_unanswerable") is True
-        and not is_model_caused_terminal_feedback(event)
+        is_terminal_actionable_validation_blocker(event)
         for event in artifact.get("events") or []
         if isinstance(event, dict)
     ):
@@ -3313,6 +3365,9 @@ class RealtimeEpisodeCoordinator:
         deadline = time.monotonic() + float(timeout_s)
         actor_stop_exception: str | None = None
         behavioral_settlement_complete: bool | None = None
+        wait_for_settlement: Any = None
+        settlement_timeout_s = 0.0
+        outstanding_turns = 0
         try:
             while not self._actor.done:
                 remaining = deadline - time.monotonic()
@@ -3353,14 +3408,29 @@ class RealtimeEpisodeCoordinator:
             wait_for_settlement = getattr(
                 self._driver, "wait_for_behavioral_settlement", None
             )
+            outstanding = getattr(self._driver, "outstanding_turn_count", None)
+            pre_wait_outstanding = (
+                int(outstanding()) if callable(outstanding) else 0
+            )
+            with self._lock:
+                pending_ingest = bool(self._pending_observation_ingest_futures)
+            remaining_s = max(
+                0.0,
+                float(timeout_s) - (time.monotonic_ns() - started_ns) / 1e9,
+            )
+            settlement_timeout_s = _PROVIDER_CANCEL_SETTLEMENT_GRACE_S
+            if (
+                not self._timed_out
+                and (pre_wait_outstanding > 0 or pending_ingest)
+            ):
+                settlement_timeout_s = remaining_s
             if callable(wait_for_settlement):
                 behavioral_settlement_complete = bool(
-                    wait_for_settlement(
-                        timeout_s=_PROVIDER_CANCEL_SETTLEMENT_GRACE_S
-                    )
+                    wait_for_settlement(timeout_s=settlement_timeout_s)
                 )
-            outstanding = getattr(self._driver, "outstanding_turn_count", None)
-            outstanding_turns = int(outstanding()) if callable(outstanding) else 0
+            outstanding_turns = (
+                int(outstanding()) if callable(outstanding) else 0
+            )
             close = self._driver.close
             try:
                 close(
@@ -3371,6 +3441,20 @@ class RealtimeEpisodeCoordinator:
                 )
             except TypeError:
                 close()
+
+        # Delivery cancellation can settle its future before the wrapped
+        # provider closes. Capture the eventual transport outcome after teardown.
+        with self._lock:
+            for record in self._turns:
+                if (
+                    record.get("status") == "superseded"
+                    and record.get("cancel_requested") is True
+                ):
+                    self._record_cancel_audit(
+                        record,
+                        turn_id=str(record["turn_id"]),
+                        cancel_acknowledged=bool(record.get("cancel_acknowledged")),
+                    )
 
         transitions = [
             {
@@ -3593,7 +3677,7 @@ class RealtimeEpisodeCoordinator:
                 "unsafe_teardown": not self._actor.stopped,
                 "environment_close_allowed": self._actor.stopped,
                 "behavioral_settlement_grace_s": (
-                    _PROVIDER_CANCEL_SETTLEMENT_GRACE_S
+                    settlement_timeout_s
                     if callable(wait_for_settlement)
                     else 0.0
                 ),
@@ -3804,9 +3888,10 @@ def run_realtime(
             if failed_ingests or canceled_ingests
             else "unavailable_unsettled_behavioral_work"
         )
+        scenario_id = canonical_realtime_scenario_id(scenario)
         artifact.update(
             {
-                "scenario_id": scenario.get("seed_id"),
+                "scenario_id": scenario_id,
                 "scenario_signature": recompute_signature_with_seed(
                     scenario, seed, spec
                 ),
@@ -3817,7 +3902,7 @@ def run_realtime(
                 "tool_surface_contract": tool_surface_contract,
                 "behavioral_state_artifact_status": behavioral_state_status,
                 "semantic_ledger": (
-                    session_ledger()
+                    _semantic_ledger_artifact(session_ledger())
                     if behavioral_state_settled and callable(session_ledger)
                     else None
                 ),
@@ -3846,7 +3931,7 @@ def run_realtime(
             target = _realtime_artifact_target(
                 trajectory_dir=trajectory_dir,
                 agent_name=agent_name,
-                scenario_id=str(scenario.get("seed_id") or "anonymous"),
+                scenario_id=str(scenario_id or "anonymous"),
                 seed=seed,
                 treatment_sha256=treatment_sha256,
             )

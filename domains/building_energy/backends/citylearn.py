@@ -2029,6 +2029,8 @@ class CityLearnBackend:
         state = self.snapshot()
         state["control_summary"] = self.control_summary()
         state["cost_components"] = self.ground_truth_costs()
+        # Native net electricity settlement credits exports; burdens remain penalties.
+        state["cost_component_value_domains"] = {"energy_cost": "signed"}
         state["emissions_components"] = {
             "carbon_emissions": float(
                 sum(record.carbon_emissions for record in self._records)

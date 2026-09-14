@@ -1243,6 +1243,49 @@ def test_artifact_eligibility_binds_treatment_lifecycle_and_late_fence(
         batch.realtime_artifact_eligibility(model_terminal_feedback, job, config)
     )
 
+    episode_end_alarm = _artifact(_episode_identity())
+    episode_end_alarm["events"] = [
+        {
+            "event_id": "terminal-alarm",
+            "kind": "environment_alarm",
+            "decision_required": True,
+            "terminal_unanswerable": True,
+            "terminal_trigger_origin": "environment_or_harness",
+            "terminal_formal_blocker": True,
+            "terminal_dispatch_suppressed": True,
+            "dispatch_suppressed_reason": "ENVIRONMENT_DONE",
+        }
+    ]
+    assert "terminal_actionable_trigger_undeliverable" not in (
+        batch.realtime_artifact_eligibility(episode_end_alarm, job, config)
+    )
+
+
+def test_held_cells_drop_dispatch_by_scenario_id(tmp_path: Path) -> None:
+    jobs = [
+        {
+            "scenario_slug": "operate_v0_58_0/traffic/kept",
+            "scenario_id": "traffic/kept",
+            "seed": 42,
+            "pass_id": "pass-0",
+        },
+        {
+            "scenario_slug": "operate_v0_58_0/traffic/held",
+            "scenario_id": "traffic/held",
+            "seed": 42,
+            "pass_id": "pass-0",
+        },
+    ]
+    held_path = tmp_path / "held.json"
+    held_path.write_text(
+        json.dumps({"scenario_ids": ["traffic/held"]}),
+        encoding="utf-8",
+    )
+
+    kept = batch._hold_realtime_jobs(jobs, held_path, model="hy3-ioa")
+
+    assert [job["scenario_id"] for job in kept] == ["traffic/kept"]
+
 
 def test_artifact_eligibility_requires_canonical_wakeup_policy(
     tmp_path: Path,
@@ -2607,6 +2650,36 @@ def test_finalize_blocks_canonical_runtime_binding_drift(
 
     assert manifest["leaderboard_eligible"] is False
     assert "formal_runtime_binding_changed:readiness_sha256" in manifest["blockers"]
+
+
+def test_finalize_ignores_manifest_slice_selection_metadata(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    identity = _identity()
+    out_dir, config = batch.initialize_run_directory(tmp_path, identity)
+    (out_dir / "episodes.jsonl").write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        batch,
+        "resolve_formal_manifest_slice",
+        lambda _path: {
+            **_matching_live_runtime_binding(config),
+            "slice_name": "manifest_fixture",
+            "dynamic_slice_spec": ["operate_v0_62_0", "formal_runtime_bundle.json", {}],
+        },
+    )
+
+    manifest = batch.finalize_run(
+        out_dir,
+        jobs=[],
+        rows=[],
+        run_config=config,
+        current_implementation_tree_sha256="c" * 64,
+    )
+
+    assert "formal_runtime_binding_revalidation_failed:ValueError" not in manifest[
+        "blockers"
+    ]
 
 
 def test_finalize_invalidates_old_manifest_before_derived_artifacts(

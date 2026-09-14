@@ -477,13 +477,17 @@ Queued events are never converted into new provider turns after the simulator
 has terminated. They remain in the artifact with
 `terminal_dispatch_suppressed=true` and
 `dispatch_suppressed_reason=ENVIRONMENT_DONE`, so missed terminal work is
-auditable without creating an unanswerable post-episode decision.
+auditable without creating an unanswerable post-episode decision. Those
+episode-end suppressions stay on the supervision scorecard; they do not void
+`evaluation_ready`.
 
 An in-flight streamed turn is execution-fenced and canceled when the episode
-ends. The direct driver then allows a bounded two-second audit-settlement grace:
-this cannot apply a late action, but lets the canceled worker record its
-terminal provider response and roll back transactional memory before artifact
-validation. An unresponsive worker still fails closed as unsettled.
+ends. If the simulator finished inside the episode budget, the direct driver
+waits the remaining episode timeout for canceled workers to record their
+terminal provider response and roll back transactional memory. If the wall
+timeout already fired, the wait stays a bounded two-second audit-settlement
+grace. This cannot apply a late action. An unresponsive worker still fails
+closed as unsettled.
 
 ## Python runtime tiers
 

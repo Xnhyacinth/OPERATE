@@ -5729,13 +5729,22 @@ def _score_for_leaderboard_view(row: dict[str, Any], view_name: str) -> float | 
             difficulty_level=str(row.get("difficulty_level", "basic")),
             dimension_applicability=score.get("dimension_applicability") or {},
             completion_contract_kind=_completion_contract_kind_for_row(row),
+            schedule_coverage=_schedule_coverage_for_row(row),
         )
-        return float(result["total_score"])
+        return float(result["total_score"]) if result["formal_score_eligible"] else None
     score_views = score.get("score_views") or {}
     if view_name not in score_views:
         return None
     view = score_views.get(view_name) or {}
     return float(view.get("total_score", 0.0) or 0.0)
+
+
+def _schedule_coverage_for_row(row: dict[str, Any]) -> float | None:
+    completion = row.get("task_completion") or {}
+    if completion.get("applicable") is not True:
+        return None
+    evidence = completion.get("evidence") or {}
+    return evidence.get("schedule_coverage")
 
 
 def _completion_contract_kind_for_row(row: dict[str, Any]) -> str:
@@ -5861,6 +5870,7 @@ def _primary_leaderboard_payload(
                 difficulty_level=str(row.get("difficulty_level", "basic")),
                 dimension_applicability=applicability,
                 completion_contract_kind=_completion_contract_kind_for_row(row),
+                schedule_coverage=_schedule_coverage_for_row(row),
             )
             if score_contract["formal_score_eligible"] is not True:
                 raise PrimaryLeaderboardContractError(
@@ -5910,6 +5920,7 @@ def _primary_leaderboard_payload(
             difficulty_level=str(row.get("difficulty_level", "basic")),
             dimension_applicability=applicability,
             completion_contract_kind=_completion_contract_kind_for_row(row),
+            schedule_coverage=_schedule_coverage_for_row(row),
         )
         if score_contract["formal_score_eligible"] is not True:
             raise PrimaryLeaderboardContractError(
@@ -5941,6 +5952,10 @@ def _primary_leaderboard_payload(
             }
         )
     report = infer_primary_leaderboard(prepared)
+    from evaluation.scorer import native_outcome_diagnostics
+
+    for contract, row in zip(group_contracts, rows, strict=True):
+        contract["native_outcome"] = native_outcome_diagnostics(row.get("counterfactual"))
     report["score_group_contracts"] = group_contracts
     return report
 
