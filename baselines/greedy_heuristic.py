@@ -146,6 +146,9 @@ class GreedyHeuristicAgent(BaselineAgent):
 
             return greedy_action(observation, tool_specs)
 
+        if "dispatch_flexible_operations" in avail_tools:
+            return self._flexible_job_shop_action(observation, avail_tools)
+
         # 1. Resolve any active dilemma (pick the non-fatal option once)
         for dilemma in observation.get("active_dilemmas", []) or []:
             did = dilemma.get("dilemma_id", "")
@@ -359,6 +362,52 @@ class GreedyHeuristicAgent(BaselineAgent):
 
         dominant = calls[0].name if calls else "wait"
         return Action(tool_calls=calls[:4], dominant=dominant)
+
+    def _flexible_job_shop_action(
+        self, observation: dict[str, Any], avail_tools: set[str]
+    ) -> Action:
+        """Earliest-finish dispatch using only public ready rows and machines."""
+        machines = observation.get("machines") or {}
+        now = float(observation.get("simulator_time") or 0.0)
+        available = {
+            mid: max(now, float(row["available_from"]), float(row["blocked_until"]))
+            for mid, row in machines.items()
+        }
+        remaining = list(observation.get("ready_operations") or [])
+        operations = []
+        while remaining and len(operations) < 50:
+            candidates = [
+                (available[mid] + float(op["processing_time"]) / max(
+                    1e-9, float(machines[mid]["speed"])
+                ), str(op["job_id"]), int(op["operation_index"]), mid, index)
+                for index, op in enumerate(remaining)
+                for mid in op["candidate_machines"] if mid in machines
+            ]
+            if not candidates:
+                break
+            end, job_id, operation_index, mid, index = min(candidates)
+            remaining.pop(index)
+            operations.append({
+                "job_id": job_id, "operation_index": operation_index, "machine_id": mid,
+            })
+            available[mid] = end
+        calls = [ToolCall(
+            name="dispatch_flexible_operations" if operations else "wait",
+            args={"operations": operations} if operations else {},
+            idempotency_key=self._next_idem_key("fjsp"),
+            consumes_evidence_ids=_visible_source_evidence_ids(observation) or None,
+        )]
+        if "commit_to_plan" in avail_tools:
+            calls.append(ToolCall(
+                name="commit_to_plan",
+                args={
+                    "plan_id": f"greedy-fjsp-{self._tick}",
+                    "review_after_ticks": 1,
+                    "rationale": "Reassess public ready operations at the next native boundary.",
+                },
+                idempotency_key=self._next_idem_key("fjsp_plan"),
+            ))
+        return Action(tool_calls=calls, dominant=calls[0].name)
 
     def _traffic_greedy_action(
         self,

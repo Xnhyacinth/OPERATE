@@ -223,7 +223,9 @@ from core.difficulty_levels import canonical_difficulty_level
 # prevention, and optimality_gap stays a diagnostic rather than padding the
 # headline. Frozen 0.15.0 / 0.16.0 artifacts keep their identity.
 QUALIFICATION_SCORING_VERSION = "0.15.0"
-SCORING_VERSION = "0.17.0"
+# v0.18.0 repairs native catastrophe, signed settlement, and causal evidence
+# contracts. Qualification and historical trajectories retain their identity.
+SCORING_VERSION = "0.18.0"
 PRIMARY_HEADLINE_AGGREGATION = "wait_relative_outcome_v1"
 LEGACY_FIVE_GROUP_AGGREGATION = "scenario_applicable_five_group_v2"
 PRIMARY_WAIT_RELATIVE_PREFERRED = "counterfactual_prevention"
@@ -445,9 +447,18 @@ def score_economic_cost(
     counterfactual_cost: float | None,
     *,
     evidence_ids: list[str],
+    cost_component_value_domains: dict[str, str] | None = None,
 ) -> DimensionScore:
+    from core.counterfactual import _cost_components_are_usable
+
+    if not _cost_components_are_usable(cost_components, cost_component_value_domains):
+        return DimensionScore(
+            name="economic_cost", applicable=False,
+            reason="invalid native cost components", weight=1.5,
+        )
     total = sum(v for v in cost_components.values() if isinstance(v, (int, float)))
-    if counterfactual_cost is None or counterfactual_cost <= 0:
+    if (counterfactual_cost is None or not math.isfinite(counterfactual_cost)
+            or counterfactual_cost <= 0):
         return DimensionScore(
             name="economic_cost",
             raw_score=0.0,
@@ -809,6 +820,22 @@ def score_adaptive_replanning(
             applicable=False,
             reason="no disruptions to react to",
         )
+    # Normal completion, telemetry and an agent's own effects are not tests
+    # of adaptation. Unknown events do not create measurement opportunities.
+    from evaluation.foresight import is_forecastable_event
+
+    opportunities = [event for event in realized_events if (
+        str(event.get("origin") or "") not in {"agent_caused", "endogenous_completion"}
+        and str(event.get("event_class") or "") not in {"agent_outcome", "lifecycle", "telemetry"}
+        and (event.get("surprise") is True
+             or event.get("event_class") == "disruption"
+             or is_forecastable_event(event))
+    )]
+    if not opportunities:
+        return DimensionScore(
+            name="adaptive_replanning", applicable=False,
+            reason="no native adaptation opportunity",
+        )
     dimension = causal_adaptation if isinstance(causal_adaptation, dict) else {}
     causal_evidence = dimension.get("evidence_ids")
     causal_evidence = (
@@ -842,7 +869,7 @@ def score_adaptive_replanning(
         support_count=(
             int(dimension.get("support_count") or 1)
             if causal_credit
-            else len(realized_events)
+            else len(opportunities)
         ),
         evidence_ids=supporting_evidence,
         reason=(
@@ -1256,6 +1283,32 @@ def score_optimality_gap(
     )
 
 
+def native_outcome_diagnostics(report: dict[str, Any] | None) -> dict[str, Any]:
+    """Retain native outcome resolution outside the bounded primary score.
+
+    Costs are comparable only within a matched native task/objective. This
+    diagnostic does not change eligibility, gates, or cross-domain weights.
+    """
+    unavailable = {"applicable": False, "reason": "usable native replay costs unavailable"}
+    if not report or report.get("applicable") is not True:
+        return unavailable
+    values = [report.get(key) for key in ("actual_cost", "counterfactual_cost")]
+    if any(isinstance(v, bool) or not isinstance(v, (int, float))
+           or not math.isfinite(v) for v in values):
+        return unavailable
+    actual, baseline = map(float, values)
+    relative = (baseline - actual) / baseline if baseline > 0.0 else None
+    return {
+        "applicable": True,
+        "actual_cost": actual,
+        "counterfactual_cost": baseline,
+        "prevented_loss": baseline - actual,
+        "wait_relative_change": relative,
+        "bounded_score_clipped": relative is not None and not 0.0 <= relative <= 1.0,
+        "aggregation": "matched_native_objective_only",
+    }
+
+
 def score_counterfactual_prevention(
     counterfactual_report: dict[str, Any] | None,
     *,
@@ -1290,7 +1343,14 @@ def score_counterfactual_prevention(
             reason=reason,
             weight=2.0,
         )
-    norm = float(counterfactual_report.get("normalized_prevention", 0.0))
+    value = counterfactual_report.get("normalized_prevention")
+    if (isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value) or not 0.0 <= value <= 1.0):
+        return DimensionScore(
+            name="counterfactual_prevention", applicable=False,
+            reason="invalid normalized counterfactual prevention", weight=2.0,
+        )
+    norm = float(value)
     return DimensionScore(
         name="counterfactual_prevention",
         raw_score=round(100.0 * norm, 2),
@@ -2380,7 +2440,12 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
 
     dims: list[DimensionScore] = [
         score_system_survival(inputs.backend_tick_records, evidence_ids=state_evs),
-        score_economic_cost(inputs.cost_components, cf_cost, evidence_ids=cost_evs),
+        score_economic_cost(
+            inputs.cost_components, cf_cost, evidence_ids=cost_evs,
+            cost_component_value_domains=(inputs.counterfactual_report or {}).get(
+                "cost_component_value_domains", {}
+            ),
+        ),
         score_safety_violation(inputs.backend_tick_records, evidence_ids=state_evs),
         # v0.3.0 D-03 flip: canonical dimension name is now
         # ``weighted_equity_score`` (the old ``score_equity_fairness``

@@ -822,6 +822,8 @@ class OpenDssIeee13Backend(OpenDssIeee13ProbeBackend):
             "n_disconnected_lines": 0,
             "done": False,
             "converged": bool(snapshot.get("converged")),
+            # Counts above are node/phase band violations, not collapsed buses.
+            "catastrophic_failure": snapshot.get("converged") is not True,
             "voltage_min_pu": snapshot.get("voltage_min_pu"),
             "voltage_max_pu": snapshot.get("voltage_max_pu"),
             "voltage_band_error": self._voltage_band_error(snapshot),
@@ -1227,6 +1229,8 @@ class OpenDssIeee13DraftEnvironment(POMDPEnvironment):
             "tick": self._tick,
             "backend_kind": OpenDssIeee13ProbeBackend.backend_kind,
             "done": False,
+            "converged": snapshot.get("converged") is True,
+            "catastrophic_failure": snapshot.get("converged") is not True,
             "balance_error_mw": 0.0,
             "reserves_required_mw": 0.0,
             "reserves_procured_mw": 0.0,

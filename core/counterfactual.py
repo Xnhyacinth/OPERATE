@@ -101,6 +101,9 @@ class CounterfactualReport:
         compare=False,
     )
 
+    # Native value-domain declaration; undeclared components remain penalties.
+    cost_component_value_domains: dict[str, str] = field(default_factory=dict)
+
     @property
     def normalized_prevention(self) -> float:
         """0 = agent matched the do-nothing baseline; 1 = agent fully averted
@@ -119,7 +122,16 @@ class CounterfactualReport:
             )
         ):
             return 0.0
-        if self.actual_cost < 0 or self.counterfactual_cost < 0:
+        if self.actual_cost < 0 and not (
+            self.actual_components
+            and _cost_components_are_usable(
+                self.actual_components, self.cost_component_value_domains
+            )
+            and math.isclose(
+                _sum_costs(self.actual_components, self.cost_component_value_domains),
+                self.actual_cost,
+            )
+        ):
             return 0.0
         if self.counterfactual_cost <= 0:
             return 0.0
@@ -135,6 +147,7 @@ class CounterfactualReport:
             "counterfactual_components": _finite_json_components(
                 self.counterfactual_components
             ),
+            "cost_component_value_domains": dict(self.cost_component_value_domains),
             "masking_policy": self.masking_policy,
             "normalized_prevention": round(self.normalized_prevention, 4),
             "applicable": bool(self.applicable),
@@ -633,8 +646,8 @@ def run_counterfactual(
     cost_extractor:
         Function that maps an env ``ground_truth()`` snapshot to a dict of
         cost components (e.g., ``{"shed_energy_mwh": 12.3, "violation_ticks":
-        4, "casualty_proxy": 2}``). The scorer sums positive numeric values
-        in this dict to derive a single scalar cost.
+        4, "casualty_proxy": 2}``). Finite numeric components are summed;
+        only components declared signed in native ground truth may be negative.
     per_action:
         When True, populate ``CounterfactualReport.per_action`` with one
         entry per state-changing tool call (capped at 20 by default) giving
@@ -696,8 +709,10 @@ def run_counterfactual(
             )
         )
 
-    actual_cost = _sum_costs(actual_components)
-    cf_cost = _sum_costs(cf_components)
+    value_domains = actual_replay.ground_truth.get("cost_component_value_domains", {})
+    cf_value_domains = counterfactual_replay.ground_truth.get("cost_component_value_domains", {})
+    actual_cost = _sum_costs(actual_components, value_domains)
+    cf_cost = _sum_costs(cf_components, cf_value_domains)
     notes_parts = [
         *(f"actual {note}" for note in actual_replay.notes),
         *(f"cf {note}" for note in counterfactual_replay.notes),
@@ -726,9 +741,11 @@ def run_counterfactual(
     # normalised score is meaningless. Mark applicable=False rather
     # than handing out a free 1.0 (perfect prevention of nothing).
     costs_finite = math.isfinite(actual_cost) and math.isfinite(cf_cost)
-    components_usable = _cost_components_are_usable(
-        actual_components
-    ) and _cost_components_are_usable(cf_components)
+    components_usable = (
+        value_domains == cf_value_domains
+        and _cost_components_are_usable(actual_components, value_domains)
+        and _cost_components_are_usable(cf_components, cf_value_domains)
+    )
     applicable = (
         schedule_proven
         and components_usable
@@ -739,9 +756,9 @@ def run_counterfactual(
         not components_usable or not costs_finite or cf_cost <= 0
     ):
         notes_parts.append(
-            f"cf baseline produced cf_cost={cf_cost:.2f}; "
-            "normalized_prevention unavailable (cost components must be "
-            "finite and non-negative)"
+            f"actual_cost={actual_cost:.2f}, cf_cost={cf_cost:.2f}; "
+            "normalized_prevention requires a positive baseline and finite "
+            "components satisfying equal native value-domain declarations"
         )
     notes = "; ".join(notes_parts)
     if applicable:
@@ -773,6 +790,7 @@ def run_counterfactual(
             actual_actions=actual_actions,
             cost_extractor=cost_extractor,
             actual_cost=actual_cost,
+            cost_component_value_domains=value_domains,
             readonly_tool_names=readonly_tool_names,
             max_actions=per_action_cap,
         )
@@ -813,6 +831,7 @@ def run_counterfactual(
             actual_actions=actual_actions,
             cost_extractor=cost_extractor,
             actual_cost=actual_cost,
+            cost_component_value_domains=value_domains,
             readonly_tool_names=readonly_tool_names,
             max_groups=per_action_group_cap,
         )
@@ -858,41 +877,39 @@ def run_counterfactual(
         per_action_group_attempted=per_action_group_attempted,
         per_action_group_completed=len(per_action_group_entries),
         per_action_group_failures=per_action_group_failures,
+        cost_component_value_domains=(dict(value_domains) if isinstance(value_domains, dict) else {}),
         actual_ground_truth=actual_replay.ground_truth,
         counterfactual_ground_truth=counterfactual_replay.ground_truth,
     )
 
 
-def _sum_costs(components: dict[str, float]) -> float:
-    """Aggregate non-negative finite numeric cost components fail-closed.
+def _sum_costs(
+    components: dict[str, float], value_domains: dict[str, str] | None = None,
+) -> float:
+    """Sum finite costs under native domains; undeclared costs are non-negative."""
+    if not _cost_components_are_usable(components, value_domains):
+        return 0.0
+    return sum(float(value) for value in components.values()
+               if isinstance(value, (int, float)))
 
-    Cost components are penalties, not credits.  A negative or non-finite
-    component is therefore an invalid replay result, even when another
-    component would make the aggregate positive.  Returning zero keeps the
-    report JSON-safe; callers separately check
-    :func:`_cost_components_are_usable` before marking a replay applicable.
-    """
+
+def _cost_components_are_usable(
+    components: dict[str, float], value_domains: dict[str, str] | None = None,
+) -> bool:
+    """Allow signed settlements only when the backend explicitly declares them."""
+    domains = {} if value_domains is None else value_domains
+    if not isinstance(domains, dict) or any(
+        name not in components or not isinstance(domain, str)
+        or domain not in {"signed", "nonnegative"}
+        for name, domain in domains.items()
+    ):
+        return False
     total = 0.0
-    for value in components.values():
+    for name, value in components.items():
         if not isinstance(value, (int, float)):
             continue
         numeric = float(value)
-        if not math.isfinite(numeric) or numeric < 0:
-            return 0.0
-        total += numeric
-        if not math.isfinite(total):
-            return 0.0
-    return total
-
-
-def _cost_components_are_usable(components: dict[str, float]) -> bool:
-    """Return whether all numeric cost components are finite and non-negative."""
-    total = 0.0
-    for value in components.values():
-        if not isinstance(value, (int, float)):
-            continue
-        numeric = float(value)
-        if not math.isfinite(numeric) or numeric < 0:
+        if not math.isfinite(numeric) or (numeric < 0 and domains.get(name) != "signed"):
             return False
         total += numeric
         if not math.isfinite(total):
@@ -1017,6 +1034,7 @@ def _attribute_per_action_prevented_loss(
     actual_actions: list[Action],
     cost_extractor: Callable[[dict[str, Any]], dict[str, float]],
     actual_cost: float,
+    cost_component_value_domains: dict[str, str],
     readonly_tool_names: set[str] | None,
     max_actions: int | None,
 ) -> _PerActionAttribution:
@@ -1080,7 +1098,11 @@ def _attribute_per_action_prevented_loss(
                 }
             )
             continue
-        if not _cost_components_are_usable(masked_components):
+        masked_domains = replay.ground_truth.get("cost_component_value_domains", {})
+        if (
+            masked_domains != cost_component_value_domains
+            or not _cost_components_are_usable(masked_components, masked_domains)
+        ):
             failures.append(
                 {
                     "tick": int(tick),
@@ -1090,13 +1112,12 @@ def _attribute_per_action_prevented_loss(
                     "tool_name": str(state_call.name),
                     "reason_code": REASON_CODE_CF_BASELINE_UNUSABLE,
                     "notes": [
-                        "masked replay produced non-finite or negative "
-                        "cost components"
+                        "masked replay violated finite cost components or native value domains"
                     ],
                 }
             )
             continue
-        masked_cost = _sum_costs(masked_components)
+        masked_cost = _sum_costs(masked_components, masked_domains)
         marginal = masked_cost - actual_cost
         entries.append(
             {
@@ -1129,6 +1150,7 @@ def _attribute_repeated_action_groups_prevented_loss(
     actual_actions: list[Action],
     cost_extractor: Callable[[dict[str, Any]], dict[str, float]],
     actual_cost: float,
+    cost_component_value_domains: dict[str, str],
     readonly_tool_names: set[str] | None,
     max_groups: int | None,
 ) -> _PerActionGroupAttribution:
@@ -1197,15 +1219,18 @@ def _attribute_repeated_action_groups_prevented_loss(
                 }
             )
             continue
-        if not _cost_components_are_usable(masked_components):
+        masked_domains = replay.ground_truth.get("cost_component_value_domains", {})
+        if (
+            masked_domains != cost_component_value_domains
+            or not _cost_components_are_usable(masked_components, masked_domains)
+        ):
             failures.append(
                 {
                     "group_id": group_id,
                     "call_ids": call_ids,
                     "reason_code": REASON_CODE_CF_BASELINE_UNUSABLE,
                     "notes": [
-                        "masked group replay produced non-finite or negative "
-                        "cost components"
+                        "masked group replay violated finite cost components or native value domains"
                     ],
                 }
             )
@@ -1218,7 +1243,7 @@ def _attribute_repeated_action_groups_prevented_loss(
                 "tool_name": tool_name,
                 "args_signature": args_signature,
                 "masked_action_group_delta": float(
-                    _sum_costs(masked_components) - actual_cost
+                    _sum_costs(masked_components, masked_domains) - actual_cost
                 ),
             }
         )
@@ -1329,7 +1354,9 @@ def multi_policy_counterfactual(
             actual_actions,
         )
         actual_components = cost_extractor(actual_replay.ground_truth)
-        actual_cost = _sum_costs(actual_components)
+        actual_cost = _sum_costs(
+            actual_components, actual_replay.ground_truth.get("cost_component_value_domains", {})
+        )
     finally:
         env_actual.close()
 
@@ -1415,16 +1442,20 @@ def _baseline_report_from_action_replay(
         list(baseline_actions),
         cost_extractor,
     )
-    cf_cost = _sum_costs(cf_components)
+    value_domains = actual_replay.ground_truth.get("cost_component_value_domains", {})
+    cf_value_domains = baseline_replay.ground_truth.get("cost_component_value_domains", {})
+    cf_cost = _sum_costs(cf_components, cf_value_domains)
     schedule_proven = bool(
         actual_replay.actual_schedule_is_proven
         and len(baseline_actions) == len(actual_actions)
         and baseline_replay.completed_recorded_schedule
     )
     costs_finite = math.isfinite(actual_cost) and math.isfinite(cf_cost)
-    components_usable = _cost_components_are_usable(
-        actual_components
-    ) and _cost_components_are_usable(cf_components)
+    components_usable = (
+        value_domains == cf_value_domains
+        and _cost_components_are_usable(actual_components, value_domains)
+        and _cost_components_are_usable(cf_components, cf_value_domains)
+    )
     applicable = (
         schedule_proven
         and components_usable
@@ -1442,8 +1473,9 @@ def _baseline_report_from_action_replay(
     elif not components_usable or not costs_finite or cf_cost <= 0:
         reason_code = REASON_CODE_CF_BASELINE_UNUSABLE
         notes = (
-            f"cf baseline produced cf_cost={cf_cost:.2f}; "
-            "cost components must be finite and non-negative"
+            f"actual_cost={actual_cost:.2f}, cf_cost={cf_cost:.2f}; "
+            "requires a positive baseline and finite components satisfying "
+            "equal native value-domain declarations"
         )
     else:
         reason_code = ""
@@ -1455,6 +1487,7 @@ def _baseline_report_from_action_replay(
         actual_components=actual_components,
         counterfactual_components=cf_components,
         masking_policy=label,
+        cost_component_value_domains=(dict(value_domains) if isinstance(value_domains, dict) else {}),
         applicable=applicable,
         reason_code=reason_code,
         notes=notes,

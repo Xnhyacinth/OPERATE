@@ -39,7 +39,7 @@ def _drop(name: str, dimensions: list[dict]) -> list[dict]:
 
 def test_scoring_version_and_aggregation() -> None:
     assert QUALIFICATION_SCORING_VERSION == "0.15.0"
-    assert SCORING_VERSION == "0.17.0"
+    assert SCORING_VERSION == "0.18.0"
     assert PRIMARY_HEADLINE_AGGREGATION == "wait_relative_outcome_v1"
     result = discriminative_core_total(_dimensions(), task_completion=1.0)
     assert result["aggregation"] == "wait_relative_outcome_v1"

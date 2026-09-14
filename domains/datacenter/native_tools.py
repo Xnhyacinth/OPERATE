@@ -389,14 +389,15 @@ def _register_openb_tools(
 
 def _log(
     env: DatacenterEnvironment, tick: int, tool: str, payload: dict[str, Any]
-) -> None:
+) -> str | None:
     if env.evidence is not None:
-        env.evidence.log(
+        return env.evidence.log(
             kind="investigation" if tool.startswith(("query", "forecast")) else tool,
             tick=tick,
             payload={"tool": tool, **payload},
             source="tool",
         )
+    return None
 
 
 def _query(backend: Any, env: DatacenterEnvironment, target: str):
@@ -404,7 +405,9 @@ def _query(backend: Any, env: DatacenterEnvironment, target: str):
         result = (
             backend.queue_state() if target == "queue" else backend.capacity_state()
         )
-        _log(env, ctx.tick, f"query_{target}", result)
+        evidence_id = _log(env, ctx.tick, f"query_{target}", result)
+        if evidence_id:
+            result = {**result, "evidence_id": evidence_id}
         return result
 
     return handler
@@ -413,7 +416,9 @@ def _query(backend: Any, env: DatacenterEnvironment, target: str):
 def _query_openb(backend: Any, env: DatacenterEnvironment):
     def handler(_args: dict[str, Any], ctx: ToolContext) -> dict[str, Any]:
         result = backend.placement_state()
-        _log(env, ctx.tick, "query_node_placements", result)
+        evidence_id = _log(env, ctx.tick, "query_node_placements", result)
+        if evidence_id:
+            result = {**result, "evidence_id": evidence_id}
         return result
 
     return handler
@@ -422,7 +427,9 @@ def _query_openb(backend: Any, env: DatacenterEnvironment):
 def _forecast(backend: Any, env: DatacenterEnvironment):
     def handler(args: dict[str, Any], ctx: ToolContext) -> dict[str, Any]:
         result = backend.arrival_forecast(int(args.get("horizon_ticks") or 1))
-        _log(env, ctx.tick, "forecast_trace_arrivals", result)
+        evidence_id = _log(env, ctx.tick, "forecast_trace_arrivals", result)
+        if evidence_id:
+            result = {**result, "evidence_id": evidence_id}
         return result
 
     return handler

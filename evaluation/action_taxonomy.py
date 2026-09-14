@@ -232,6 +232,7 @@ def summarize_decision_impact(
     *,
     tool_results_ok: int = 0,
     tool_results_failed: int = 0,
+    registry: ToolRegistry | None = None,
 ) -> dict[str, Any]:
     """Whether the agent's decisions measurably changed episode cost vs wait-only."""
     cf = counterfactual or {}
@@ -240,7 +241,7 @@ def summarize_decision_impact(
     cf_cost = float(cf.get("counterfactual_cost", 0.0))
     norm = float(cf.get("normalized_prevention", 0.0))
 
-    buckets = classify_tool_histogram(tool_histogram)
+    buckets = classify_tool_histogram(tool_histogram, registry=registry)
     n_control = buckets["n_control_calls"]
     n_investigation = buckets["n_investigation_calls"]
     outcome_changed = abs(prevented) > _COST_EPSILON

@@ -5,93 +5,71 @@
   "formal_full_leaderboard_eligible": false,
   "parent_release_id": "operate",
   "parent_core_suite_sha256": "e24853b4a575696b561ab915e906bea92295a128f21038d4f7cf4c5bedc0127d",
-  "selection_algorithm": "quality_gated_cpu_headroom_hy3_v9",
+  "selection_algorithm": "reviewed_horizon_balanced_v11",
   "selection_policy": {
-    "eligibility": "exact Core-locked rows with complete identities and verified YAML hashes; keep only hardness-eligible rows: open-headroom, all-models-zero with open oracle, Hy3-strict [5, 35), unresolved Hy3-zero, greedy-strong/LLM-lag, or discriminative rows with min=0 and mean<40; drop saturated/ceiling, unrankable dead cells, LLM-easy means>=50, Hy3>=50 unless models still lag, score plateaus, and horizon>=600 unless keep-headroom still lags. Families or domains with no hard row are omitted; unique-family hostages are not restored",
-    "inclusion": "coverage-close the hardness-eligible pool, complete eligible backend/family/difficulty/horizon strata, hit domain floors from the hard pool, keep open-headroom / greedy-peer-with-LLM-lag cells, then enrich Hy3-hard rows under family caps",
-    "model_outcomes_used_for_selection": true,
-    "scoring_version": "0.17.0",
-    "priority": [
-      "most_uncovered_eligible_features",
-      "quality_rank",
-      "new_physical_source",
-      "shorter_horizon",
-      "scenario_id_ascending"
-    ],
-    "coverage_axes": [
-      "domain_backend_family_mode_difficulty_horizon_cell",
-      "source_dataset",
-      "typed_event_hiddenness_profile",
-      "native_control_and_task_contract_profile",
-      "positive_native_size_shape",
-      "driving_hazard_and_preventive_inspection_deadlines",
-      "microgrid_site_forecast_bias_sigma_genset_availability",
-      "building_dataset_native_event_kind_channel_hiddenness",
-      "power_network_feeder_decision_axis",
-      "traffic_controllable_topology"
-    ],
-    "native_size_fields": [
-      "n_jobs",
-      "n_machines",
-      "n_operations",
-      "n_buses",
-      "n_lines",
-      "n_loads",
-      "n_vehicles",
-      "n_buildings",
-      "n_nodes",
-      "n_edges"
-    ],
-    "horizon_buckets": [
-      "1-8",
-      "9-16",
-      "17-48",
-      "49-96",
-      "97-192",
-      "193+"
-    ],
-    "preferred_size_range": [
-      100,
-      165
-    ],
-    "hard_exclude_flags": [
-      "cpu_oracle_dead",
-      "dead_headroom",
-      "lite_cost_extreme_horizon",
-      "oracle_yardstick_broken",
-      "too_easy_ceiling",
-      "too_easy_saturated",
-      "wait_parity_collapse"
-    ],
-    "soft_exclude_flags": [
-      "cpu_oracle_dead",
-      "lite_cost_long_horizon",
-      "oracle_yardstick_broken",
-      "short_and_easy"
-    ],
-    "domain_floor": {
-      "autonomous_driving": 7,
-      "building_energy": 3,
-      "datacenter": 10,
-      "logistics": 20,
-      "microgrid": 10,
-      "power_grid": 6,
-      "traffic": 0
-    },
-    "family_soft_cap": {
-      "job_shop_dispatch": 8,
-      "citylearn_der_storage_control": 10,
-      "signal_coordination": 4,
-      "microgrid_economic_dispatch_24h": 26,
-      "vrptw_dispatch": 22,
-      "cvrp_dispatch": 16,
-      "gpu_cluster_sla_control": 16,
-      "gpu_cluster_queue_control": 14,
-      "inventory_replenishment": 12
-    },
-    "budget_interpretation": "upper bound limits quality enrichment and never removes required eligible coverage, stratum completion, or domain floors; lower bound is not a size target; Lite may omit a Core family or domain that has no hardness-eligible row",
-    "quality_ranking": "CPU wait/greedy/oracle 0.17, four-model Lite 0.17, and Hy3 Full ok scores; hardness-eligible rows rank above saturated, dead, plateau, LLM-easy, or Hy3-easy cells",
-    "domain_or_stratum_quota": {
+    "parent_policy": {
+      "eligibility": "exact Core-locked rows with complete identities and verified YAML hashes; keep only hardness-eligible rows: open-headroom, all-models-zero with open oracle, Hy3-strict [5, 35), unresolved Hy3-zero, greedy-strong/LLM-lag, or discriminative rows with min=0 and mean<40; drop saturated/ceiling, unrankable dead cells, LLM-easy means>=50, Hy3>=50 unless models still lag, score plateaus, and horizon>=600 unless keep-headroom still lags. Families or domains with no hard row are omitted; unique-family hostages are not restored",
+      "inclusion": "coverage-close the hardness-eligible pool, complete eligible backend/family/difficulty/horizon strata, hit domain floors from the hard pool, keep open-headroom / greedy-peer-with-LLM-lag cells, then enrich Hy3-hard rows under family caps",
+      "model_outcomes_used_for_selection": true,
+      "scoring_version": "0.17.0",
+      "priority": [
+        "most_uncovered_eligible_features",
+        "quality_rank",
+        "new_physical_source",
+        "shorter_horizon",
+        "scenario_id_ascending"
+      ],
+      "coverage_axes": [
+        "domain_backend_family_mode_difficulty_horizon_cell",
+        "source_dataset",
+        "typed_event_hiddenness_profile",
+        "native_control_and_task_contract_profile",
+        "positive_native_size_shape",
+        "driving_hazard_and_preventive_inspection_deadlines",
+        "microgrid_site_forecast_bias_sigma_genset_availability",
+        "building_dataset_native_event_kind_channel_hiddenness",
+        "power_network_feeder_decision_axis",
+        "traffic_controllable_topology"
+      ],
+      "native_size_fields": [
+        "n_jobs",
+        "n_machines",
+        "n_operations",
+        "n_buses",
+        "n_lines",
+        "n_loads",
+        "n_vehicles",
+        "n_buildings",
+        "n_nodes",
+        "n_edges"
+      ],
+      "horizon_buckets": [
+        "1-8",
+        "9-16",
+        "17-48",
+        "49-96",
+        "97-192",
+        "193+"
+      ],
+      "preferred_size_range": [
+        100,
+        165
+      ],
+      "hard_exclude_flags": [
+        "cpu_oracle_dead",
+        "dead_headroom",
+        "lite_cost_extreme_horizon",
+        "oracle_yardstick_broken",
+        "too_easy_ceiling",
+        "too_easy_saturated",
+        "wait_parity_collapse"
+      ],
+      "soft_exclude_flags": [
+        "cpu_oracle_dead",
+        "lite_cost_long_horizon",
+        "oracle_yardstick_broken",
+        "short_and_easy"
+      ],
       "domain_floor": {
         "autonomous_driving": 7,
         "building_energy": 3,
@@ -101,25 +79,60 @@
         "power_grid": 6,
         "traffic": 0
       },
-      "stratum_complete": [
-        "backend_kind",
-        "family",
-        "difficulty_level",
-        "horizon_bucket"
-      ]
+      "family_soft_cap": {
+        "job_shop_dispatch": 8,
+        "citylearn_der_storage_control": 10,
+        "signal_coordination": 4,
+        "microgrid_economic_dispatch_24h": 26,
+        "vrptw_dispatch": 22,
+        "cvrp_dispatch": 16,
+        "gpu_cluster_sla_control": 16,
+        "gpu_cluster_queue_control": 14,
+        "inventory_replenishment": 12
+      },
+      "budget_interpretation": "upper bound limits quality enrichment and never removes required eligible coverage, stratum completion, or domain floors; lower bound is not a size target; Lite may omit a Core family or domain that has no hardness-eligible row",
+      "quality_ranking": "CPU wait/greedy/oracle 0.17, four-model Lite 0.17, and Hy3 Full ok scores; hardness-eligible rows rank above saturated, dead, plateau, LLM-easy, or Hy3-easy cells",
+      "domain_or_stratum_quota": {
+        "domain_floor": {
+          "autonomous_driving": 7,
+          "building_energy": 3,
+          "datacenter": 10,
+          "logistics": 20,
+          "microgrid": 10,
+          "power_grid": 6,
+          "traffic": 0
+        },
+        "stratum_complete": [
+          "backend_kind",
+          "family",
+          "difficulty_level",
+          "horizon_bucket"
+        ]
+      },
+      "scope": "hardness-filtered development coverage, not a statistical sample or Full leaderboard denominator"
     },
-    "scope": "hardness-filtered development coverage, not a statistical sample or Full leaderboard denominator"
+    "model_outcomes_used_for_selection": true,
+    "new_model_score_thresholds_used": false,
+    "routine_horizon_budget_ticks": 192,
+    "long_horizon_representative_rule": "minimum_horizon_per_backend_family_difficulty_mode",
+    "long_horizon_representative_ids": [
+      "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_moo",
+      "logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42"
+    ],
+    "scope": "Frozen v9 development membership with a routine 192-tick budget and the shortest long-horizon representative per backend/family/difficulty_mode stratum. The cutoff is an efficiency budget, not a scientific definition of long-horizon agency. Native ticks are not wall-time or API-call guarantees. Core membership is unchanged.",
+    "evidence_boundary": "Historical model-based selection remains a development-set bias; pre-repair zero/ceiling scores and infrastructure failures do not justify further exclusions. Repaired CPU greedy completes all six Dyna schedules.",
+    "coverage_complete": true
   },
-  "n_scenarios": 144,
-  "n_physical_sources": 85,
-  "n_semantic_fingerprints": 133,
-  "n_structural_fingerprints": 144,
-  "total_horizon_ticks": 5516,
+  "n_scenarios": 141,
+  "n_physical_sources": 82,
+  "n_semantic_fingerprints": 130,
+  "n_structural_fingerprints": 141,
+  "total_horizon_ticks": 3709,
   "by_domain": {
     "autonomous_driving": 7,
     "building_energy": 10,
     "datacenter": 33,
-    "logistics": 56,
+    "logistics": 53,
     "microgrid": 28,
     "power_grid": 10
   },
@@ -127,7 +140,7 @@
     "alibaba_trace_sim": 33,
     "cigre_distribution": 4,
     "citylearn": 10,
-    "dynasched_flexible_job_shop": 6,
+    "dynasched_flexible_job_shop": 3,
     "opendss_fresh_feeders": 3,
     "opendss_ieee13": 1,
     "orgym_invmgmt": 12,
@@ -146,7 +159,7 @@
     "gpu_cluster_sla_control": 16,
     "gpu_cluster_spot_sla_control": 3,
     "inventory_replenishment": 12,
-    "job_shop_dispatch": 6,
+    "job_shop_dispatch": 3,
     "microgrid_economic_dispatch_24h": 23,
     "microgrid_lv_voltage_recovery_10h": 1,
     "microgrid_lv_voltage_staged_6h": 4,
@@ -162,13 +175,13 @@
   "by_difficulty": {
     "basic": 25,
     "extreme": 31,
-    "high": 69,
+    "high": 66,
     "medium": 19
   },
   "horizon_bucket_counts": {
     "1-8": 28,
     "17-48": 47,
-    "193+": 5,
+    "193+": 2,
     "49-96": 11,
     "9-16": 52,
     "97-192": 1
@@ -245,8 +258,8 @@
     "n_coverage_core": 65,
     "n_restored_excluded_representative": 0,
     "n_stratum_completion": 0,
-    "n_domain_floor": 8,
-    "n_must_keep_headroom": 24,
+    "n_domain_floor": 7,
+    "n_must_keep_headroom": 22,
     "n_quality_enrichment": 47,
     "n_hard_excluded": 530,
     "preferred_size_range": [
@@ -254,7 +267,7 @@
       165
     ],
     "budget_satisfied": true,
-    "feature_universe": "eligible_pool_after_quality_gate",
+    "feature_universe": "frozen_v9_eligible_pool_before_review_budget",
     "features": [
       [
         "cell",
@@ -2434,7 +2447,6 @@
       "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847260700_extreme_s42",
       "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847070800_extreme_s42",
       "candidate_delta/logistics/routing/routing_cvrp_X-n223-k34",
-      "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_sequential",
       "candidate_delta/logistics/routing/routing_cvrp_X-n204-k19",
       "candidate_delta/logistics/routing/routing_vrptw_GH200_C1_2_4",
       "candidate_delta/logistics/routing/routing_cvrp_X-n129-k18",
@@ -2445,8 +2457,6 @@
       "datacenter/gpu_cluster_queue_control/time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w904_6531_6537_medium__6715e80d__relabel_v1__b38f3183__relabel_v1",
       "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_5356_6453_6464_high",
       "power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p18912_r0p6_h48",
-      "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_hybrid",
-      "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid",
       "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_denver_co_high_p840_s79",
       "candidate_delta/logistics/routing/routing_vrptw_GH200_RC2_2_9",
       "candidate_delta/logistics/routing/routing_cvrp_CMT6",
@@ -2543,7 +2553,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "sumo_ego"
       },
       {
         "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847070800_extreme_s42",
@@ -2568,7 +2583,12 @@
         "quality_flags": [
           "cpu_greedy_peer_strong",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "sumo_ego"
       },
       {
         "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847187100_extreme_s42",
@@ -2596,7 +2616,12 @@
           "cpu_greedy_peer_strong",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "sumo_ego"
       },
       {
         "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847260700_extreme_s42",
@@ -2622,7 +2647,12 @@
           "cpu_greedy_peer_strong",
           "hy3_hard_strict",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "sumo_ego"
       },
       {
         "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847482500_extreme_s42",
@@ -2650,7 +2680,12 @@
           "cpu_greedy_peer_strong",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "sumo_ego"
       },
       {
         "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847616700_extreme_s42",
@@ -2675,7 +2710,12 @@
           "cpu_greedy_peer_strong",
           "hy3_hard_strict",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "sumo_ego"
       },
       {
         "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847677100_extreme_s42",
@@ -2703,7 +2743,12 @@
           "cpu_greedy_peer_strong",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "sumo_ego"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w216_287",
@@ -2769,7 +2814,12 @@
           "cpu_headroom",
           "high_disagreement",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7560_7631",
@@ -2797,7 +2847,12 @@
           "beats_oracle",
           "high_disagreement",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7632_7703",
@@ -2888,7 +2943,12 @@
           "beats_oracle",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_2_w4824_4895",
@@ -2973,7 +3033,12 @@
           "cpu_oracle_dead",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w216_287",
@@ -3030,7 +3095,12 @@
           "beats_oracle",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w4584_4655",
@@ -3064,7 +3134,12 @@
         "quality_rank": 40.56,
         "quality_flags": [
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w5376_5447",
@@ -3093,7 +3168,12 @@
           "beats_oracle",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w5448_5519",
@@ -3123,7 +3203,12 @@
           "cpu_oracle_dead",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w720_791",
@@ -3190,7 +3275,12 @@
           "cpu_oracle_dead",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/high/ca_alameda_county_neighborhood_w6792_6863",
@@ -3243,13 +3333,18 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "citylearn"
       },
       {
         "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid",
-        "included": true,
-        "selection_stage": "must_keep_headroom",
-        "reason": "preserves_open_headroom_or_cpu_gap",
+        "included": false,
+        "selection_stage": "excluded",
+        "reason": "reviewed_horizon_budget_exceeded",
         "feature_ids": [
           12,
           41,
@@ -3269,13 +3364,18 @@
           "keep_headroom",
           "lite_cost_extreme_horizon",
           "lite_cost_long_horizon"
-        ]
+        ],
+        "review_disposition": "long_horizon_diagnostic",
+        "review_reason_codes": [
+          "routine_budget_exceeded_stratum_has_shorter_long_representative"
+        ],
+        "backend_kind": "dynasched_flexible_job_shop"
       },
       {
         "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_hybrid",
-        "included": true,
-        "selection_stage": "must_keep_headroom",
-        "reason": "preserves_open_headroom_or_cpu_gap",
+        "included": false,
+        "selection_stage": "excluded",
+        "reason": "reviewed_horizon_budget_exceeded",
         "feature_ids": [
           12,
           41,
@@ -3294,7 +3394,12 @@
           "cpu_headroom",
           "keep_headroom",
           "lite_cost_long_horizon"
-        ]
+        ],
+        "review_disposition": "long_horizon_diagnostic",
+        "review_reason_codes": [
+          "routine_budget_exceeded_stratum_has_shorter_long_representative"
+        ],
+        "backend_kind": "dynasched_flexible_job_shop"
       },
       {
         "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_moo",
@@ -3326,13 +3431,19 @@
           "keep_discriminative",
           "keep_headroom",
           "lite_cost_long_horizon"
-        ]
+        ],
+        "review_disposition": "long_horizon_representative",
+        "review_reason_codes": [
+          "minimum_horizon_per_backend_family_difficulty_mode",
+          "preserve_long_horizon_operational_structure"
+        ],
+        "backend_kind": "dynasched_flexible_job_shop"
       },
       {
         "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_sequential",
-        "included": true,
-        "selection_stage": "domain_floor",
-        "reason": "preserves_domain_floor",
+        "included": false,
+        "selection_stage": "excluded",
+        "reason": "reviewed_horizon_budget_exceeded",
         "feature_ids": [
           12,
           41,
@@ -3352,7 +3463,12 @@
           "keep_discriminative",
           "keep_headroom",
           "lite_cost_long_horizon"
-        ]
+        ],
+        "review_disposition": "long_horizon_diagnostic",
+        "review_reason_codes": [
+          "routine_budget_exceeded_stratum_has_shorter_long_representative"
+        ],
+        "backend_kind": "dynasched_flexible_job_shop"
       },
       {
         "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_bottleneck__mode_hybrid",
@@ -6192,7 +6308,13 @@
         "quality_rank": 20.78,
         "quality_flags": [
           "hy3_zero_unresolved"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_ceiling_requires_optimization_quality_retest"
+        ],
+        "backend_kind": "dynasched_flexible_job_shop"
       },
       {
         "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Sweep_exp14_v2_queue_static_small__moo__rho0p80__ddt2p00__scva1p50__scvp1p50__distBase__lcvBase",
@@ -7788,7 +7910,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "candidate_delta/logistics/realm_j2/realm_j2_abz08_disrupted",
@@ -7865,7 +7992,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_Bre-1",
@@ -7893,7 +8025,12 @@
           "cpu_headroom",
           "hy3_hard_strict",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_CMT6",
@@ -7917,7 +8054,12 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_M-n101-k10",
@@ -7969,7 +8111,12 @@
           "all_models_zero_oracle_open",
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n129-k18",
@@ -7994,7 +8141,12 @@
           "cpu_headroom",
           "hy3_hard_strict",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n134-k13",
@@ -8047,7 +8199,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n162-k11",
@@ -8075,7 +8232,12 @@
           "cpu_headroom",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n167-k10",
@@ -8124,7 +8286,12 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n204-k19",
@@ -8151,7 +8318,12 @@
           "keep_discriminative",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n214-k11",
@@ -8175,7 +8347,12 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n223-k34",
@@ -8201,7 +8378,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n233-k16",
@@ -8363,7 +8545,13 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_all_zero_unresolved_measurement"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n322-k28",
@@ -8820,7 +9008,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n979-k58",
@@ -8866,7 +9059,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_XXL_Ghent1",
@@ -8891,7 +9089,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_XXL_Leuven1",
@@ -8935,7 +9138,12 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_2",
@@ -8959,7 +9167,13 @@
           "all_models_zero_oracle_open",
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_3",
@@ -8983,7 +9197,12 @@
           "all_models_zero_oracle_open",
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_5",
@@ -9007,7 +9226,12 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_6",
@@ -9055,7 +9279,12 @@
         "quality_rank": 39.76,
         "quality_flags": [
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C2_10_1",
@@ -9086,7 +9315,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C2_10_10",
@@ -9220,7 +9454,12 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C2_10_9",
@@ -9310,7 +9549,12 @@
           "cpu_headroom",
           "hy3_hard_strict",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_GH200_C1_2_6",
@@ -9554,7 +9798,12 @@
           "high_disagreement",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_GH200_R2_2_3",
@@ -9626,7 +9875,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_GH200_R2_2_7",
@@ -9946,7 +10200,12 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_GH400_C1_4_5",
@@ -12377,7 +12636,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_R2_10_8",
@@ -12421,7 +12685,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_RC1_10_10",
@@ -12444,7 +12713,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_RC1_10_2",
@@ -12510,7 +12784,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_RC1_10_6",
@@ -12699,7 +12978,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_C103",
@@ -12722,7 +13006,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_C105",
@@ -12807,7 +13096,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_C203",
@@ -12831,7 +13125,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_C205",
@@ -12916,7 +13215,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_R105",
@@ -13023,7 +13327,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_R206",
@@ -13392,7 +13701,12 @@
         "quality_flags": [
           "cpu_headroom",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/alibaba_spot_gpu_candidate/deep_planning/high/a800-sxm4-80gb_w367542_f62ea88128c9",
@@ -13440,7 +13754,12 @@
         "quality_rank": 38.68,
         "quality_flags": [
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high",
@@ -13471,7 +13790,12 @@
           "cpu_headroom",
           "high_disagreement",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_5356_6453_6464_high",
@@ -13498,7 +13822,12 @@
           "high_disagreement",
           "hy3_hard_strict",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w006_37cd43512549_fd47dd9d194d_basic",
@@ -13524,7 +13853,12 @@
           "cpu_headroom",
           "high_disagreement",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w010_4d8567586eee_ba0aabff83a1_basic",
@@ -13773,7 +14107,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w620_4457_4462_basic",
@@ -13950,7 +14289,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w924_6674_6679_basic",
@@ -13974,7 +14318,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w944_6838_6853_basic",
@@ -13998,7 +14347,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w994_7209_7214_basic",
@@ -14045,7 +14399,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w000_d1c907cbfb6d_af68ac870a61_medium__c5c42329__relabel_v1",
@@ -14167,7 +14526,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w008_7b492de89d06_7f779421cf71_medium__a94fc3de__relabel_v1",
@@ -14217,7 +14581,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w018_fcd31da412c5_7a6eaa87ab13_medium__1ff9f1b0__relabel_v1",
@@ -14274,7 +14643,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w030_f8aff532191f_546b09c9c415_medium__6447f64f__relabel_v1",
@@ -14420,7 +14794,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w330_2247_2253_medium__251cb72e__relabel_v1",
@@ -14856,7 +15235,12 @@
           "cpu_headroom",
           "keep_headroom",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w910_6576_6581_medium__33266f2a__relabel_v1__5b08c6e3__relabel_v1",
@@ -14888,7 +15272,12 @@
           "keep_discriminative",
           "keep_headroom",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/deep_planning/medium/datacenter__gpu_cluster_sla_control__deep_planning__extreme__alibaba_gpu_w007_48e63be965f9_a25c527aaecf_extreme__40a0c16c__relabel_v1",
@@ -14918,7 +15307,12 @@
           "cpu_headroom",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/deep_planning/medium/datacenter__gpu_cluster_sla_control__deep_planning__high__alibaba_gpu_w005_de70b9377895_9c11e12760e8_high__3a164836__relabel_v1",
@@ -14948,7 +15342,12 @@
           "keep_discriminative",
           "keep_headroom",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w001_a868d61ecfa5_83a28b86769d_basic",
@@ -15722,7 +16121,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w873_6329_6334_basic",
@@ -15767,7 +16171,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w967_7013_7018_basic",
@@ -15791,7 +16200,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w969_7025_7030_basic",
@@ -15815,7 +16229,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w981_7118_7125_basic",
@@ -15839,7 +16258,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w991_7186_7191_basic",
@@ -15914,7 +16338,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w021_a9336363c465_67726022669a_medium__71530e92__relabel_v1",
@@ -15940,7 +16369,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w023_81ef74aca261_8bad7084bd02_medium__f3e3b5f3__relabel_v1",
@@ -15966,7 +16400,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w029_223_230_medium__9b9967fc__relabel_v1",
@@ -16018,7 +16457,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w083_bf57ed26c43b_cc8df413130b_medium__2cb0079f__relabel_v1",
@@ -16068,7 +16512,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w129_873_878_medium__29324b7d__relabel_v1",
@@ -16095,7 +16544,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w187_1252_1257_medium__bd76466c__relabel_v1",
@@ -16674,7 +17128,12 @@
           "keep_discriminative",
           "keep_headroom",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w561_4012_4017_medium__7d116ae3__relabel_v1__fe1b16a4__relabel_v1",
@@ -16698,7 +17157,12 @@
           "cpu_headroom",
           "keep_headroom",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w703_5049_5058_medium__8542f98f__relabel_v1__baa3d71e__relabel_v1",
@@ -16723,7 +17187,12 @@
           "cpu_headroom",
           "keep_headroom",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "datacenter/gpu_cluster_spot_sla_control/deep_planning/high/alibaba_spot_gpu_a100_w448554_high",
@@ -16752,7 +17221,12 @@
         "quality_flags": [
           "cpu_headroom",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "alibaba_trace_sim"
       },
       {
         "scenario_id": "logistics/cvrp_dispatch/time_pressure/basic/cvrp_A-n32-k5_time_pressure_basic_s7701",
@@ -16781,7 +17255,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_cvrp"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_foods_1_001_tx_1_d1800_30d__578831d4__relabel_v1",
@@ -16805,7 +17284,12 @@
         "quality_flags": [
           "keep_discriminative",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_foods_1_004_tx_1_d1530_30d_lt2_cap68__f155e85a__relabel_v1",
@@ -16929,7 +17413,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_hobbies_2_032_ca_3_d1540_30d_lt2_cap65__d3592ffe__relabel_v1",
@@ -17392,7 +17881,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_014_tx_1_d1590_30d_lt6_cap56_protocol21_migration_v57__11a058e0__relabel_v1",
@@ -17441,7 +17935,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_067_wi_1_d1470_30d_lt3_cap68_protocol21_migration_v57__d2f236db__relabel_v1",
@@ -17536,7 +18035,12 @@
         "quality_flags": [
           "hy3_hard_band",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_348_ca_1_d960_30d_lt2_cap60_protocol21_migration_v57__3ef50910__relabel_v1",
@@ -17561,7 +18065,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_371_tx_2_d1080_30d_lt5_cap55_protocol21_migration_v57__4369f5fa__relabel_v1",
@@ -17610,7 +18119,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_2_036_wi_3_d1900_30d_lt3_cap62_protocol21_migration_v57__8577337f__relabel_v1",
@@ -17659,7 +18173,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_2_059_wi_1_d1380_30d_lt3_cap68_protocol21_migration_v57__53cd7ad5__relabel_v1",
@@ -17708,7 +18227,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_003_ca_3_d1130_30d_lt6_cap48_protocol21_migration_v57__0a647e4b__relabel_v1",
@@ -17757,7 +18281,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_005_tx_2_d1820_30d_lt6_cap52_protocol21_migration_v57__c4b93611__relabel_v1",
@@ -17829,7 +18358,12 @@
           "hy3_hard_band",
           "hy3_hard_strict",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "orgym_invmgmt"
       },
       {
         "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_439_tx_1_d1140_30d_lt4_cap60_protocol21_migration_v57__36604754__relabel_v1",
@@ -18069,7 +18603,13 @@
           "keep_discriminative",
           "keep_headroom",
           "lite_cost_long_horizon"
-        ]
+        ],
+        "review_disposition": "long_horizon_representative",
+        "review_reason_codes": [
+          "minimum_horizon_per_backend_family_difficulty_mode",
+          "preserve_long_horizon_operational_structure"
+        ],
+        "backend_kind": "dynasched_flexible_job_shop"
       },
       {
         "scenario_id": "logistics/job_shop_dispatch/time_pressure/high/jobshop_abz5_dynamic_recovery_high_s101",
@@ -18246,7 +18786,12 @@
           "keep_discriminative",
           "keep_headroom",
           "relabel_alias"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pyvrp_vrptw"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_albuquerque_nm_extreme_v58",
@@ -18275,7 +18820,12 @@
           "cpu_oracle_dead",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_atlanta_ga_extreme_v58",
@@ -18309,7 +18859,12 @@
           "keep_discriminative",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_boston_ma_extreme_v58",
@@ -18338,7 +18893,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_columbus_extreme_s63",
@@ -18390,7 +18951,12 @@
         "quality_flags": [
           "cpu_headroom",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_denver_extreme_s59",
@@ -18419,7 +18985,12 @@
           "keep_discriminative",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_las_vegas_nv_extreme_v58",
@@ -18469,7 +19040,12 @@
         "quality_rank": 42.52,
         "quality_flags": [
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_v58",
@@ -18495,7 +19071,12 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_phoenix_az_extreme_v58",
@@ -18546,7 +19127,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_sacramento_ca_extreme_p7382_plus5",
@@ -18570,7 +19156,12 @@
         "quality_rank": 41.52,
         "quality_flags": [
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_sacramento_ca_extreme_v58",
@@ -18597,7 +19188,12 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_salt_lake_city_ut_extreme_v58",
@@ -18626,7 +19222,12 @@
           "hy3_hard_strict",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_seattle_wa_extreme_v58",
@@ -18654,7 +19255,12 @@
           "cpu_headroom",
           "hy3_hard_strict",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_tucson_az_extreme_p1668_plus5",
@@ -18728,7 +19334,12 @@
           "cpu_oracle_dead",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_atlanta_ga_high_p672_s77",
@@ -18757,7 +19368,12 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_boston_ma_high_p168_s71",
@@ -18784,7 +19400,12 @@
         "quality_rank": 39.52,
         "quality_flags": [
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_chicago_high_s61",
@@ -18813,7 +19434,12 @@
           "cpu_headroom",
           "hy3_hard_strict",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_columbus_oh_high_p1344_s85",
@@ -18866,7 +19492,12 @@
           "cpu_headroom",
           "hy3_hard_strict",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_miami_high_s57",
@@ -18896,7 +19527,12 @@
           "hy3_hard_strict",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_minneapolis_mn_high_p2016_s93",
@@ -18926,7 +19562,12 @@
           "hy3_hard_strict",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_nashville_tn_high_p1512_s87",
@@ -19000,7 +19641,12 @@
         "quality_flags": [
           "cpu_headroom",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_sacramento_ca_high_p2184_s95",
@@ -19031,7 +19677,12 @@
           "hy3_hard_strict",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_salt_lake_city_ut_high_p2352_s97",
@@ -19084,7 +19735,12 @@
           "cpu_oracle_dead",
           "hy3_hard_strict",
           "oracle_yardstick_broken"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_tucson_az_high_p1008_s81",
@@ -19112,7 +19768,12 @@
         "quality_flags": [
           "cpu_oracle_dead",
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pymgrid_economic_dispatch"
       },
       {
         "scenario_id": "microgrid/microgrid_lv_voltage_recovery_10h/time_pressure/extreme/microgrid_lv_portland_or_extreme_p1543_s62",
@@ -19145,7 +19806,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "pandapower_lv"
       },
       {
         "scenario_id": "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_albuquerque_nm_high_p1590_v58_s8700",
@@ -19173,7 +19840,12 @@
           "cpu_headroom",
           "hy3_hard_strict",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "pandapower_lv"
       },
       {
         "scenario_id": "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_las_vegas_nv_high_p1281_s61",
@@ -19206,7 +19878,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "pandapower_lv"
       },
       {
         "scenario_id": "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_miami_fl_high_p5217_s57",
@@ -19235,7 +19913,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "pandapower_lv"
       },
       {
         "scenario_id": "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_seattle_wa_high_p4877_v58_s8728",
@@ -19264,7 +19948,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "pandapower_lv"
       },
       {
         "scenario_id": "power_grid/acopf_dispatch_24h/deep_planning/extreme/pglib_opf_case30_ieee_ordered_recovery_no_line_outage_v2_extreme_s42__physical_reserve_ordered_recovery_v1",
@@ -19310,7 +20000,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "pglib_uc_synthetic"
       },
       {
         "scenario_id": "power_grid/opendss_fresh_feeders_solar_ramp/deep_planning/basic/opendss_ieee123_solar_ramp_s42",
@@ -19345,7 +20041,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "opendss_fresh_feeders"
       },
       {
         "scenario_id": "power_grid/opendss_ieee13_volt_var/deep_planning/basic/opendss_ieee13_regulator_tap_dynamic_s42",
@@ -19380,7 +20082,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "opendss_ieee13"
       },
       {
         "scenario_id": "power_grid/opendss_infrastructure_feeder_control/deep_planning/basic/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt5_master_ckt5_dss",
@@ -19416,7 +20124,12 @@
           "keep_discriminative",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "opendss_fresh_feeders"
       },
       {
         "scenario_id": "power_grid/opendss_infrastructure_feeder_control/deep_planning/high/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt24_master_ckt24_dss",
@@ -19450,7 +20163,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "opendss_fresh_feeders"
       },
       {
         "scenario_id": "power_grid/opendss_infrastructure_feeder_control/deep_planning/high/infrastructure_opendss_distribution_version8_distrib_ieeetestcases_34bus_run_ieee34mod1_dss",
@@ -19527,7 +20246,13 @@
           "cpu_headroom",
           "keep_headroom",
           "llm_floor_cluster"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained",
+          "legacy_zero_survival_floor_requires_retest"
+        ],
+        "backend_kind": "pglib_uc_synthetic"
       },
       {
         "scenario_id": "power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p11616_r0p6_h48",
@@ -19653,7 +20378,12 @@
           "high_disagreement",
           "hy3_hard_strict",
           "keep_discriminative"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "cigre_distribution"
       },
       {
         "scenario_id": "power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p19008_r0p6_h48",
@@ -19685,7 +20415,12 @@
           "cpu_headroom",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "cigre_distribution"
       },
       {
         "scenario_id": "power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p21504_r0p6_h48",
@@ -19756,7 +20491,12 @@
         "quality_rank": 38.04,
         "quality_flags": [
           "hy3_hard_strict"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "cigre_distribution"
       },
       {
         "scenario_id": "power_grid/simbench_mv_semiurban_timeseries_control/deep_planning/high/grounded_1_MV_semiurb_0_sw_high_p19680_r0p6_h48",
@@ -19789,7 +20529,12 @@
           "cpu_headroom",
           "keep_discriminative",
           "keep_headroom"
-        ]
+        ],
+        "review_disposition": "retain_for_retest",
+        "review_reason_codes": [
+          "frozen_parent_membership_retained"
+        ],
+        "backend_kind": "cigre_distribution"
       },
       {
         "scenario_id": "traffic/signal_coordination/deep_planning/basic/ingolstadt_24h_afternoon14_phase_s9616",
@@ -20081,7 +20826,22 @@
       }
     ],
     "quality_evidence_sha256": "0a5a020715b94475543a272b5027c14fe222ced95a184f1bac0feb62b21bce7f",
-    "quality_evidence_path": "lite_quality_evidence.json"
+    "quality_evidence_path": "lite_quality_evidence.json",
+    "n_parent_features": 204,
+    "n_retained_parent_features": 204,
+    "uncovered_parent_feature_ids": [],
+    "review_excluded_scenario_ids": [
+      "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid",
+      "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_hybrid",
+      "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_sequential"
+    ],
+    "long_horizon_representative_ids": [
+      "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_moo",
+      "logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42"
+    ],
+    "review_dispositions_path": "lite_review_dispositions.json",
+    "review_dispositions_sha256": "2bd22b833d7831f6419d09275394ade7cb253210cf71303914d00b454674d230",
+    "parent_selection_algorithm": "quality_gated_cpu_headroom_hy3_v9"
   },
   "scenarios": [
     {
@@ -20432,46 +21192,6 @@
       "difficulty_mode": "deep_planning",
       "domain": "logistics",
       "family": "job_shop_dispatch",
-      "horizon_ticks": 1023,
-      "path": "scenarios/logistics/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid.yaml",
-      "physical_source_key": "{\"backend_kind\":\"dynasched_flexible_job_shop\",\"required_source_assets\":[{\"declared_path\":\"events.jsonl\",\"sha256\":\"8453642531e068647c3a9a8ff485c56c14d2d6e4420ee5004c0118d2c67520de\"},{\"declared_path\":\"input_model.json\",\"sha256\":\"a3876f864cc1b3a3dd2d3991610c3480037292aa557256b23e0a5ca48627921a\"}],\"schema_version\":\"source_asset_graph_v1\"}",
-      "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid",
-      "scenario_signature": "a6943e23fc99d189",
-      "seed": 794377427,
-      "semantic_fingerprint": "6536beda6f779fef",
-      "source_denominator_key": "dynasched_flexible_job_shop:3794415955578779118ac096438b12c2",
-      "status": "core_locked",
-      "structural_fingerprint": "ed066279442d7551",
-      "yaml_sha256": "782175c584c82d17858f4f2978ddf56979760c333fc7a8ab542d768f35769136"
-    },
-    {
-      "backend_kind": "dynasched_flexible_job_shop",
-      "construct_contract": "operational_agency.v1",
-      "core_disposition": "core_locked",
-      "difficulty_level": "high",
-      "difficulty_mode": "deep_planning",
-      "domain": "logistics",
-      "family": "job_shop_dispatch",
-      "horizon_ticks": 364,
-      "path": "scenarios/logistics/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_hybrid.yaml",
-      "physical_source_key": "{\"backend_kind\":\"dynasched_flexible_job_shop\",\"required_source_assets\":[{\"declared_path\":\"events.jsonl\",\"sha256\":\"727304f18f23c81e468dabfa8b5e3a7d04f38bda3d43881f9c62809557faf525\"},{\"declared_path\":\"input_model.json\",\"sha256\":\"c3099a4482d722bd141586bf38ed0134dee2bc7975e19eb7f68ed9f94468752a\"}],\"schema_version\":\"source_asset_graph_v1\"}",
-      "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_hybrid",
-      "scenario_signature": "ec397a11247b5c90",
-      "seed": 4044553846,
-      "semantic_fingerprint": "9c19b5d7e7781019",
-      "source_denominator_key": "dynasched_flexible_job_shop:7784df27abd56b4a410296d886a338f8",
-      "status": "core_locked",
-      "structural_fingerprint": "37cfc4b185b7a612",
-      "yaml_sha256": "e8b451fc7d24b3e844d4bf7c037b82086ed20e76ee9ddf10c669dd62c0fa446a"
-    },
-    {
-      "backend_kind": "dynasched_flexible_job_shop",
-      "construct_contract": "operational_agency.v1",
-      "core_disposition": "core_locked",
-      "difficulty_level": "high",
-      "difficulty_mode": "deep_planning",
-      "domain": "logistics",
-      "family": "job_shop_dispatch",
       "horizon_ticks": 298,
       "path": "scenarios/logistics/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_moo.yaml",
       "physical_source_key": "{\"backend_kind\":\"dynasched_flexible_job_shop\",\"required_source_assets\":[{\"declared_path\":\"events.jsonl\",\"sha256\":\"5bc9f453e5563da29f22b9da362733c2281f4d0f7c35b04120e5735b3e23081b\"},{\"declared_path\":\"input_model.json\",\"sha256\":\"e96c181e902fa51d4c54ae7db00902c449a4d3c8aae5cabd60260aca9b2397f6\"}],\"schema_version\":\"source_asset_graph_v1\"}",
@@ -20483,26 +21203,6 @@
       "status": "core_locked",
       "structural_fingerprint": "d153dcca51ca976a",
       "yaml_sha256": "389f857901ce6572a3396b7e5789dc2165b65c7629b125ea21b471f22fc52657"
-    },
-    {
-      "backend_kind": "dynasched_flexible_job_shop",
-      "construct_contract": "operational_agency.v1",
-      "core_disposition": "core_locked",
-      "difficulty_level": "high",
-      "difficulty_mode": "deep_planning",
-      "domain": "logistics",
-      "family": "job_shop_dispatch",
-      "horizon_ticks": 420,
-      "path": "scenarios/logistics/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_sequential.yaml",
-      "physical_source_key": "{\"backend_kind\":\"dynasched_flexible_job_shop\",\"required_source_assets\":[{\"declared_path\":\"events.jsonl\",\"sha256\":\"2ce084d7f6de3804f64acd3fc874e62d7ababa60cb036ea459e42451319a94f0\"},{\"declared_path\":\"input_model.json\",\"sha256\":\"e39d2e376b2a8149bfe9ca25c842f87a6545dcb3f75f608eabd945c668256125\"}],\"schema_version\":\"source_asset_graph_v1\"}",
-      "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_sequential",
-      "scenario_signature": "7d9a3dd5ccf94f50",
-      "seed": 2575698462,
-      "semantic_fingerprint": "9f3513bc7110159b",
-      "source_denominator_key": "dynasched_flexible_job_shop:9f9b2789a2efa26b914f727582c14a67",
-      "status": "core_locked",
-      "structural_fingerprint": "384ed20b7ac1654c",
-      "yaml_sha256": "9016f383737525e25a20e2f7931171f53ce6490a56a4b3e29730a24c3a79eac2"
     },
     {
       "backend_kind": "dynasched_flexible_job_shop",
@@ -22965,5 +23665,5 @@
       "yaml_sha256": "e9275e1b789de16686874ea97d8421077f938d6975620146ae19ebbd247c9165"
     }
   ],
-  "suite_sha256": "48b5cec6b0818975e004896860cea31428efdb13826a660961ed8bb8fb6a1a75"
+  "suite_sha256": "ace0f7b8865435b069373ddc140656abc1a2b845d3c40b8658395bbf564ec920"
 }

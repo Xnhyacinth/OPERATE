@@ -298,12 +298,13 @@ def commit_to_plan_handler(
                 payload["plan_expires_at_tick"] = int(
                     args["plan_expires_at_tick"]
                 )
-            env.evidence.log(
+            evidence_id = env.evidence.log(
                 "commit_to_plan",
                 ctx.tick,
                 payload=payload,
                 source="agent",
             )
+            return {"plan_id": args.get("plan_id"), "ack": True, "evidence_id": evidence_id}
         return {"plan_id": args.get("plan_id"), "ack": True}
 
     return handler

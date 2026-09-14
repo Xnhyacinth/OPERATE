@@ -607,15 +607,23 @@ def classify_provider_error(text: object) -> str:
     raw = original.lower()
     body = getattr(text, "body", None)
     quota_codes = [getattr(text, "code", None)]
+    quota_messages = [raw]
     if isinstance(body, dict):
         quota_codes.append(body.get("code"))
+        quota_messages.append(str(body.get("message", "")).lower())
         if isinstance(body.get("error"), dict):
             quota_codes.append(body["error"].get("code"))
+            quota_messages.append(str(body["error"].get("message", "")).lower())
     if "max_chars" in raw and "action-critical" in raw:
         return "prompt_budget_exceeded"
     if (
         isinstance(text, ProviderQuotaExhaustedError)
-        or any(code in (6004, "6004") for code in quota_codes)
+        or any(code in (6004, "6004", "INSUFFICIENT_BALANCE") for code in quota_codes)
+        or any(
+            marker in message
+            for message in quota_messages
+            for marker in ("insufficient balance", "insufficient account balance")
+        )
         or re.search(r"\bcode[\"']?\s*[:=]\s*[\"']?6004\b", raw)
         or "超出频率限制" in original
     ):
@@ -4150,14 +4158,10 @@ class LLMAgent(BaselineAgent):
             body["allowed_tool_names"] = list(allowed_tools)
         serialized_body = self._serialize_prompt_body(
             body,
-            # Persistent treatments bind a complete session budget. Applying
-            # the legacy stateless 8k cap first discards usable observations
-            # before the provider-aware context projection can budget them.
-            max_chars=(
-                int(self.config.persistent_context_max_chars)
-                if self._uses_persistent_session()
-                else self._observation_budget_chars
-            ),
+            # Both E1 arms must receive the same current observation. Session
+            # persistence controls history, not the size of the present state.
+            # Provider-aware projection applies the actual request budget later.
+            max_chars=int(self.config.persistent_context_max_chars),
             include_cost_units=self._uses_persistent_session(),
         )
         if self._uses_persistent_session():
@@ -5304,6 +5308,8 @@ class LLMAgent(BaselineAgent):
             ready_operations = dict(
                 sorted(ready_operations.items())[:_MAX_READY_OPERATIONS]
             )
+        elif isinstance(ready_operations, list):
+            ready_operations = ready_operations[:_MAX_READY_OPERATIONS]
         else:
             ready_operations = {}
         native_state_keys = (
@@ -5509,7 +5515,7 @@ class LLMAgent(BaselineAgent):
                 },
                 "ready_operations": {
                     "available": len(observation.get("ready_operations") or {})
-                    if isinstance(observation.get("ready_operations") or {}, dict)
+                    if isinstance(observation.get("ready_operations"), (dict, list))
                     else 0,
                     "included": len(ready_operations),
                 },

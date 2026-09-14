@@ -40,83 +40,27 @@ def _runner_module():
     return module
 
 
-def test_committed_lite_suite_is_deterministic_and_covers_runtime_strata() -> None:
+def test_committed_lite_suite_is_deterministic_and_discloses_parent_coverage_scope() -> None:
     builder = _builder_module()
     expected = json.loads(LITE_PATH.read_text(encoding="utf-8"))
     rebuilt = builder.build_payload(CORE_PATH)
-    assert [row["scenario_id"] for row in rebuilt["scenarios"]] == [
-        row["scenario_id"] for row in expected["scenarios"]
-    ]
-
+    assert rebuilt == expected
     core_rows = json.loads(CORE_PATH.read_text(encoding="utf-8"))["scenarios"]
-    lite_rows = rebuilt["scenarios"]
-    evidence = builder.load_quality_evidence(CORE_PATH)
-    eligible = [
-        row for row in core_rows if builder._is_hardness_eligible(row, evidence)
-    ]
-    assert 0 < len(lite_rows) < len(core_rows)
-    assert rebuilt["selection_audit"]["coverage_complete"] is True
-    for field in ("backend_kind", "family", "difficulty_level"):
-        assert {row[field] for row in lite_rows} == {row[field] for row in eligible}
-    assert {
-        builder._horizon_bucket(int(row["horizon_ticks"])) for row in lite_rows
-    } == {
-        builder._horizon_bucket(int(row["horizon_ticks"])) for row in eligible
-    }
-    assert all(builder._is_hardness_eligible(row, evidence) for row in lite_rows)
-
     audit = rebuilt["selection_audit"]
-    selected_ids = {row["scenario_id"] for row in lite_rows}
-    assert rebuilt["selection_algorithm"] == "quality_gated_cpu_headroom_hy3_v9"
+    selected_ids = {row["scenario_id"] for row in rebuilt["scenarios"]}
     assert rebuilt["selection_policy"]["model_outcomes_used_for_selection"] is True
+    assert rebuilt["selection_policy"]["new_model_score_thresholds_used"] is False
     assert audit["coverage_complete"] is True
     assert audit["budget_satisfied"] is True
     assert len(audit["rows"]) == len(core_rows)
     selected_features = set()
-    included_stages = {
-        "coverage_core",
-        "restored_excluded_representative",
-        "stratum_completion",
-        "domain_floor",
-        "must_keep_headroom",
-        "quality_enrichment",
-    }
-    excluded_reasons = {
-        "quality_gate_hard_exclude",
-        "quality_gate_soft_exclude",
-        "family_soft_cap",
-        "coverage_already_represented",
-        "preferred_budget_reached",
-    }
     for row in audit["rows"]:
         assert row["included"] == (row["scenario_id"] in selected_ids)
+        assert set(row["covered_by"]) <= selected_ids
         if row["included"]:
-            assert row["selection_stage"] in included_stages
-            if row["selection_stage"] == "coverage_core":
-                assert row["new_feature_ids"]
-                assert row["reason"] == "adds_coverage"
-            elif row["selection_stage"] == "restored_excluded_representative":
-                assert row["reason"] == "restores_core_stratum_after_quality_gate"
-            elif row["selection_stage"] == "stratum_completion":
-                assert row["reason"] == "completes_core_runtime_stratum"
-            elif row["selection_stage"] == "domain_floor":
-                assert row["reason"] == "preserves_domain_floor"
-            elif row["selection_stage"] == "must_keep_headroom":
-                assert row["reason"] == "preserves_open_headroom_or_cpu_gap"
-            else:
-                assert row["reason"] == "adds_headroom_or_hy3_hard_diversity"
             selected_features.update(row["feature_ids"])
-        else:
-            assert row["selection_stage"] == "excluded"
-            assert row["reason"] in excluded_reasons
-            assert set(row["covered_by"]) <= selected_ids
-    assert selected_features == set(range(len(audit["features"])))
-    assert not any(
-        set(row.get("quality_flags") or [])
-        & {"too_easy_ceiling", "too_easy_saturated"}
-        for row in audit["rows"]
-        if row["included"]
-    )
+    assert len(selected_features) == audit["n_retained_parent_features"] == 204
+    assert set(audit["uncovered_parent_feature_ids"]) == set(range(204)) - selected_features
 
 
 def test_lite_rows_are_exact_members_of_parent_core() -> None:
@@ -338,3 +282,59 @@ def test_declared_hazard_and_site_regimes_are_coverage_not_opaque_ids(tmp_path):
         ),
     ]
     assert builder.select_lite(rows, repo_root=tmp_path) == rows
+
+
+def test_reviewed_lite_budget_does_not_prune_suspect_old_zero_scores():
+    rebuilt = _builder_module().build_payload(CORE_PATH)
+    assert rebuilt['selection_algorithm'] == 'reviewed_horizon_balanced_v11'
+    assert rebuilt['n_scenarios'] == 141
+    assert rebuilt['n_physical_sources'] == 82
+    assert sorted(row['horizon_ticks'] for row in rebuilt['scenarios'] if row['horizon_ticks'] > 192) == [298, 400]
+    assert rebuilt['total_horizon_ticks'] == 3709
+    audit = rebuilt['selection_audit']
+    assert audit['n_parent_features'] == 204
+    assert audit['n_retained_parent_features'] == 204
+    assert audit['coverage_complete'] is True
+    assert len(audit['review_excluded_scenario_ids']) == 3
+    assert all(row['backend_kind'] == 'dynasched_flexible_job_shop'
+               for row in audit['rows'] if row.get('review_disposition') == 'long_horizon_diagnostic')
+    assert any('routing_cvrp_X-n313-k71' in row['path'] for row in rebuilt['scenarios'])
+
+
+def test_long_representatives_follow_frozen_strata_not_score_or_row_order():
+    builder = _builder_module()
+    rows = [
+        {'scenario_id': name, 'backend_kind': 'fixture', 'family': 'shop',
+         'difficulty_mode': mode, 'horizon_ticks': horizon, 'model_score': score}
+        for name, mode, horizon, score in [
+            ('routine', 'deep_planning', 192, 0),
+            ('deep-long', 'deep_planning', 420, 0),
+            ('deep-short', 'deep_planning', 298, 100),
+            ('recovery', 'time_pressure', 400, 100),
+        ]
+    ]
+    assert builder._long_horizon_representatives(rows) == {'deep-short', 'recovery'}
+    assert builder._long_horizon_representatives(list(reversed(rows))) == {'deep-short', 'recovery'}
+
+
+def test_review_rejects_arbitrary_long_horizon_whitelist(tmp_path, monkeypatch):
+    builder = _builder_module()
+    rows = [
+        {'scenario_id': name, 'backend_kind': 'fixture', 'family': 'shop',
+         'difficulty_mode': 'deep_planning', 'horizon_ticks': horizon}
+        for name, horizon in [('shorter', 298), ('longer', 420)]
+    ]
+    monkeypatch.setattr(builder, '_build_parent_payload', lambda *args, **kwargs: {
+        'scenarios': rows, 'selection_audit': {'quality_evidence_sha256': 'frozen'},
+    })
+    (tmp_path / builder.REVIEW_DISPOSITIONS_NAME).write_text(json.dumps({
+        'schema_version': 'operate-lite-review-dispositions-v1',
+        'selection_algorithm': builder.REVIEW_ALGORITHM,
+        'parent_scenario_ids': ['shorter', 'longer'],
+        'parent_quality_evidence_sha256': 'frozen',
+        'routine_horizon_budget_ticks': 192,
+        'long_horizon_representative_rule': builder.LONG_HORIZON_RULE,
+        'long_horizon_representative_ids': ['longer'],
+    }))
+    with pytest.raises(ValueError, match='frozen stratum rule'):
+        builder.build_payload(tmp_path / 'core_suite.json')

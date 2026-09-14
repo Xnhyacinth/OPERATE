@@ -1,0 +1,1622 @@
+{
+  "schema_version": "operate-lite-review-dispositions-v1",
+  "review_id": "lite_review_20260912_v11",
+  "selection_algorithm": "reviewed_horizon_balanced_v11",
+  "parent_selection_algorithm": "quality_gated_cpu_headroom_hy3_v9",
+  "historical_parent_suite_sha256": "48b5cec6b0818975e004896860cea31428efdb13826a660961ed8bb8fb6a1a75",
+  "parent_quality_evidence_sha256": "0a5a020715b94475543a272b5027c14fe222ced95a184f1bac0feb62b21bce7f",
+  "model_outcomes_used_for_selection": true,
+  "new_model_score_thresholds_used": false,
+  "scope": "Frozen v9 development membership with a routine 192-tick budget and the shortest long-horizon representative per backend/family/difficulty_mode stratum. The cutoff is an efficiency budget, not a scientific definition of long-horizon agency. Native ticks are not wall-time or API-call guarantees. Core membership is unchanged.",
+  "evidence_boundary": "Historical model-based selection remains a development-set bias; pre-repair zero/ceiling scores and infrastructure failures do not justify further exclusions. Repaired CPU greedy completes all six Dyna schedules.",
+  "parent_scenario_ids": [
+    "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118846999200_extreme_s42",
+    "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847070800_extreme_s42",
+    "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847187100_extreme_s42",
+    "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847260700_extreme_s42",
+    "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847482500_extreme_s42",
+    "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847616700_extreme_s42",
+    "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847677100_extreme_s42",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7392_7463",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7560_7631",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_2_w4416_4487",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w144_215",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w4392_4463",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w4584_4655",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w5376_5447",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w5448_5519",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_all_w0_71",
+    "building_energy/citylearn_der_storage_control/source_locked_long_horizon/high/tx_travis_county_neighborhood_w1104_1175",
+    "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid",
+    "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_hybrid",
+    "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_moo",
+    "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_sequential",
+    "candidate_delta/logistics/dynasched/dynasched_DynaSched-Sweep_exp14_v2_queue_static_small__moo__rho0p80__ddt2p00__scva1p50__scvp0p50__distBase__lcvBase",
+    "candidate_delta/logistics/m5_orgym/m5_orgym_HOUSEHOLD_2_476_TX_1_evaluation_d1882_d1941",
+    "candidate_delta/logistics/routing/routing_cvrp_B-n31-k5",
+    "candidate_delta/logistics/routing/routing_cvrp_Bre-1",
+    "candidate_delta/logistics/routing/routing_cvrp_CMT6",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n106-k14",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n129-k18",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n139-k10",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n162-k11",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n186-k15",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n204-k19",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n214-k11",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n223-k34",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n313-k71",
+    "candidate_delta/logistics/routing/routing_cvrp_X-n895-k37",
+    "candidate_delta/logistics/routing/routing_cvrp_XXL_Brussels2",
+    "candidate_delta/logistics/routing/routing_cvrp_XXL_Ghent1",
+    "candidate_delta/logistics/routing/routing_vrptw_C1_10_1",
+    "candidate_delta/logistics/routing/routing_vrptw_C1_10_2",
+    "candidate_delta/logistics/routing/routing_vrptw_C1_10_3",
+    "candidate_delta/logistics/routing/routing_vrptw_C1_10_5",
+    "candidate_delta/logistics/routing/routing_vrptw_C1_10_9",
+    "candidate_delta/logistics/routing/routing_vrptw_C2_10_1",
+    "candidate_delta/logistics/routing/routing_vrptw_C2_10_7",
+    "candidate_delta/logistics/routing/routing_vrptw_GH200_C1_2_4",
+    "candidate_delta/logistics/routing/routing_vrptw_GH200_R2_2_1",
+    "candidate_delta/logistics/routing/routing_vrptw_GH200_R2_2_6",
+    "candidate_delta/logistics/routing/routing_vrptw_GH200_RC2_2_9",
+    "candidate_delta/logistics/routing/routing_vrptw_R2_10_7",
+    "candidate_delta/logistics/routing/routing_vrptw_R2_10_9",
+    "candidate_delta/logistics/routing/routing_vrptw_RC1_10_10",
+    "candidate_delta/logistics/routing/routing_vrptw_RC1_10_5",
+    "candidate_delta/logistics/routing/routing_vrptw_RC2_10_9",
+    "candidate_delta/logistics/routing/routing_vrptw_Solomon_C103",
+    "candidate_delta/logistics/routing/routing_vrptw_Solomon_C201",
+    "candidate_delta/logistics/routing/routing_vrptw_Solomon_C203",
+    "candidate_delta/logistics/routing/routing_vrptw_Solomon_R101",
+    "candidate_delta/logistics/routing/routing_vrptw_Solomon_R203",
+    "datacenter/alibaba_spot_gpu_candidate/deep_planning/high/a10_w96933_e7218475fc23",
+    "datacenter/alibaba_spot_gpu_candidate/deep_planning/high/h800_w398260_9f627a0ef742",
+    "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high",
+    "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_5356_6453_6464_high",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w006_37cd43512549_fd47dd9d194d_basic",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w598_4291_4297_basic",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w912_6589_6595_basic",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w924_6674_6679_basic",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w944_6838_6853_basic",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w000_70e4f598c8cd_c6931dc69176_medium__42e7e544__relabel_v1",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w006_fa2b91afd167_3bfde5977acc_medium__d23e455d__relabel_v1",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w016_397d415bda78_79c50c9fc538_medium__05635a5b__relabel_v1",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w026_5b35c1c5bb06_73784323c4f7_medium__464a6562__relabel_v1",
+    "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w250_1676_1681_medium__d38e8ff9__relabel_v1",
+    "datacenter/gpu_cluster_queue_control/time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w904_6531_6537_medium__6715e80d__relabel_v1__b38f3183__relabel_v1",
+    "datacenter/gpu_cluster_queue_control/time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w910_6576_6581_medium__33266f2a__relabel_v1__5b08c6e3__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/deep_planning/medium/datacenter__gpu_cluster_sla_control__deep_planning__extreme__alibaba_gpu_w007_48e63be965f9_a25c527aaecf_extreme__40a0c16c__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/deep_planning/medium/datacenter__gpu_cluster_sla_control__deep_planning__high__alibaba_gpu_w005_de70b9377895_9c11e12760e8_high__3a164836__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w867_6292_6297_basic",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w937_6769_6774_basic",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w967_7013_7018_basic",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w969_7025_7030_basic",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w981_7118_7125_basic",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w019_e74550216000_0577ada090cf_medium__aa837427__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w021_a9336363c465_67726022669a_medium__71530e92__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w023_81ef74aca261_8bad7084bd02_medium__f3e3b5f3__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w031_8df967e6d23e_dc053521baae_medium__46bc229d__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w103_39505c01a93b_9dedbc66aac4_medium__ef5af81b__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w129_873_878_medium__29324b7d__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w335_2282_2289_medium__683ff430__relabel_v1__a5aa235d__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w561_4012_4017_medium__7d116ae3__relabel_v1__fe1b16a4__relabel_v1",
+    "datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w703_5049_5058_medium__8542f98f__relabel_v1__baa3d71e__relabel_v1",
+    "datacenter/gpu_cluster_spot_sla_control/deep_planning/high/alibaba_spot_gpu_a100_w448554_high",
+    "logistics/cvrp_dispatch/time_pressure/basic/cvrp_A-n32-k5_time_pressure_basic_s7701",
+    "logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_foods_1_001_tx_1_d1800_30d__578831d4__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_hobbies_1_254_tx_3_d1710_30d_lt4_cap58__b90dde6c__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_008_tx_2_d1705_30d_lt6_cap48_protocol21_migration_v57__cfeac7c3__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_015_wi_3_d880_30d_lt6_cap60_protocol21_migration_v57__6e53c03d__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_256_tx_1_d1050_30d_lt3_cap58_protocol21_migration_v57",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_348_ca_1_d960_30d_lt2_cap60_protocol21_migration_v57__3ef50910__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_371_wi_2_d1020_30d_lt5_cap55_protocol21_migration_v57__b1dd2798__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_2_043_tx_2_d1780_30d_lt4_cap58_protocol21_migration_v57__3aa166d7__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_002_wi_1_d1015_30d_lt6_cap48_protocol21_migration_v57__1353a1cb__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_004_ca_2_d1705_30d_lt6_cap56_protocol21_migration_v57__12b2fe55__relabel_v1",
+    "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_007_wi_1_d820_30d_lt6_cap56_protocol21_migration_v57__ce8de513__relabel_v1",
+    "logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42",
+    "logistics/vrptw_dispatch/time_pressure/medium/logistics__vrptw_dispatch__time_pressure__basic__vrptw_C101_time_pressure_basic_s8801__49665616__relabel_v1",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_albuquerque_nm_extreme_v58",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_atlanta_ga_extreme_v58",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_boston_ma_extreme_v58",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_denver_co_extreme_p8724_plus5",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_denver_extreme_s59",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_p3683_plus5",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_v58",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_portland_or_extreme_v58",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_sacramento_ca_extreme_p7382_plus5",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_sacramento_ca_extreme_v58",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_salt_lake_city_ut_extreme_v58",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_seattle_wa_extreme_v58",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_albuquerque_nm_high_p1680_s89",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_atlanta_ga_high_p672_s77",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_boston_ma_high_p168_s71",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_chicago_high_s61",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_denver_co_high_p840_s79",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_miami_high_s57",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_minneapolis_mn_high_p2016_s93",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_portland_or_high_p504_s75",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_sacramento_ca_high_p2184_s95",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_seattle_wa_high_p336_s73",
+    "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_tucson_az_high_p1008_s81",
+    "microgrid/microgrid_lv_voltage_recovery_10h/time_pressure/extreme/microgrid_lv_portland_or_extreme_p1543_s62",
+    "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_albuquerque_nm_high_p1590_v58_s8700",
+    "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_las_vegas_nv_high_p1281_s61",
+    "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_miami_fl_high_p5217_s57",
+    "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_seattle_wa_high_p4877_v58_s8728",
+    "power_grid/critical_winter_peak/deep_planning/extreme/pglib_uc_rts_gmlc_2020_05_05_long_extreme_s42",
+    "power_grid/opendss_fresh_feeders_solar_ramp/deep_planning/basic/opendss_ieee123_solar_ramp_s42",
+    "power_grid/opendss_ieee13_volt_var/deep_planning/basic/opendss_ieee13_regulator_tap_dynamic_s42",
+    "power_grid/opendss_infrastructure_feeder_control/deep_planning/basic/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt5_master_ckt5_dss",
+    "power_grid/opendss_infrastructure_feeder_control/deep_planning/high/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt24_master_ckt24_dss",
+    "power_grid/reserve_stress_24h/deep_planning/extreme/pglib_uc_ca_2014_09_01_reserves_0_long_extreme_s42",
+    "power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p18912_r0p6_h48",
+    "power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p19008_r0p6_h48",
+    "power_grid/simbench_mv_semiurban_timeseries_control/deep_planning/high/grounded_1_MV_semiurb_0_sw_high_p14304_r0p6_h48",
+    "power_grid/simbench_mv_semiurban_timeseries_control/deep_planning/high/grounded_1_MV_semiurb_0_sw_high_p19680_r0p6_h48"
+  ],
+  "rows": [
+    {
+      "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118846999200_extreme_s42",
+      "backend_kind": "sumo_ego",
+      "horizon_ticks": 18,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847070800_extreme_s42",
+      "backend_kind": "sumo_ego",
+      "horizon_ticks": 18,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847187100_extreme_s42",
+      "backend_kind": "sumo_ego",
+      "horizon_ticks": 18,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847260700_extreme_s42",
+      "backend_kind": "sumo_ego",
+      "horizon_ticks": 18,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847482500_extreme_s42",
+      "backend_kind": "sumo_ego",
+      "horizon_ticks": 18,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847616700_extreme_s42",
+      "backend_kind": "sumo_ego",
+      "horizon_ticks": 18,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118847677100_extreme_s42",
+      "backend_kind": "sumo_ego",
+      "horizon_ticks": 18,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7392_7463",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7560_7631",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_2_w4416_4487",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w144_215",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w4392_4463",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w4584_4655",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w5376_5447",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w5448_5519",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_all_w0_71",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "building_energy/citylearn_der_storage_control/source_locked_long_horizon/high/tx_travis_county_neighborhood_w1104_1175",
+      "backend_kind": "citylearn",
+      "horizon_ticks": 72,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_dynamic_medium_rho90_varh_bottleneck_dyn1__mode_hybrid",
+      "backend_kind": "dynasched_flexible_job_shop",
+      "horizon_ticks": 1023,
+      "disposition": "long_horizon_diagnostic",
+      "reason_codes": [
+        "routine_budget_exceeded_stratum_has_shorter_long_representative"
+      ],
+      "review": "Retain in Core and long-horizon diagnostics; not evidence of model inability or defective data."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_hybrid",
+      "backend_kind": "dynasched_flexible_job_shop",
+      "horizon_ticks": 364,
+      "disposition": "long_horizon_diagnostic",
+      "reason_codes": [
+        "routine_budget_exceeded_stratum_has_shorter_long_representative"
+      ],
+      "review": "Retain in Core and long-horizon diagnostics; not evidence of model inability or defective data."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_moo",
+      "backend_kind": "dynasched_flexible_job_shop",
+      "horizon_ticks": 298,
+      "disposition": "long_horizon_representative",
+      "reason_codes": [
+        "minimum_horizon_per_backend_family_difficulty_mode",
+        "preserve_long_horizon_operational_structure"
+      ],
+      "review": "Retain the shortest frozen long-horizon representative of this backend/family/difficulty_mode; preserve deep planning or dynamic recovery without using model scores."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_sequential",
+      "backend_kind": "dynasched_flexible_job_shop",
+      "horizon_ticks": 420,
+      "disposition": "long_horizon_diagnostic",
+      "reason_codes": [
+        "routine_budget_exceeded_stratum_has_shorter_long_representative"
+      ],
+      "review": "Retain in Core and long-horizon diagnostics; not evidence of model inability or defective data."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/dynasched/dynasched_DynaSched-Sweep_exp14_v2_queue_static_small__moo__rho0p80__ddt2p00__scva1p50__scvp0p50__distBase__lcvBase",
+      "backend_kind": "dynasched_flexible_job_shop",
+      "horizon_ticks": 111,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_ceiling_requires_optimization_quality_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/m5_orgym/m5_orgym_HOUSEHOLD_2_476_TX_1_evaluation_d1882_d1941",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 60,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_B-n31-k5",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_Bre-1",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_CMT6",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n106-k14",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n129-k18",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n139-k10",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n162-k11",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n186-k15",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n204-k19",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n214-k11",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n223-k34",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n313-k71",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_all_zero_unresolved_measurement"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_X-n895-k37",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_XXL_Brussels2",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_cvrp_XXL_Ghent1",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_1",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_2",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_3",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_5",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C1_10_9",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C2_10_1",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_C2_10_7",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_GH200_C1_2_4",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_GH200_R2_2_1",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_GH200_R2_2_6",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_GH200_RC2_2_9",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_R2_10_7",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_R2_10_9",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_RC1_10_10",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_RC1_10_5",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_RC2_10_9",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_C103",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_C201",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_C203",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_R101",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "candidate_delta/logistics/routing/routing_vrptw_Solomon_R203",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/alibaba_spot_gpu_candidate/deep_planning/high/a10_w96933_e7218475fc23",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 16,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/alibaba_spot_gpu_candidate/deep_planning/high/h800_w398260_9f627a0ef742",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 16,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_5356_6453_6464_high",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w006_37cd43512549_fd47dd9d194d_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w598_4291_4297_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w912_6589_6595_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w924_6674_6679_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w944_6838_6853_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w000_70e4f598c8cd_c6931dc69176_medium__42e7e544__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w006_fa2b91afd167_3bfde5977acc_medium__d23e455d__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w016_397d415bda78_79c50c9fc538_medium__05635a5b__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w026_5b35c1c5bb06_73784323c4f7_medium__464a6562__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w250_1676_1681_medium__d38e8ff9__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 10,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w904_6531_6537_medium__6715e80d__relabel_v1__b38f3183__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 10,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_queue_control/time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w910_6576_6581_medium__33266f2a__relabel_v1__5b08c6e3__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 10,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/deep_planning/medium/datacenter__gpu_cluster_sla_control__deep_planning__extreme__alibaba_gpu_w007_48e63be965f9_a25c527aaecf_extreme__40a0c16c__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 16,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/deep_planning/medium/datacenter__gpu_cluster_sla_control__deep_planning__high__alibaba_gpu_w005_de70b9377895_9c11e12760e8_high__3a164836__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w867_6292_6297_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w937_6769_6774_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w967_7013_7018_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w969_7025_7030_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w981_7118_7125_basic",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w019_e74550216000_0577ada090cf_medium__aa837427__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w021_a9336363c465_67726022669a_medium__71530e92__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w023_81ef74aca261_8bad7084bd02_medium__f3e3b5f3__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w031_8df967e6d23e_dc053521baae_medium__46bc229d__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w103_39505c01a93b_9dedbc66aac4_medium__ef5af81b__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w129_873_878_medium__29324b7d__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 10,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w335_2282_2289_medium__683ff430__relabel_v1__a5aa235d__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 10,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w561_4012_4017_medium__7d116ae3__relabel_v1__fe1b16a4__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 10,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w703_5049_5058_medium__8542f98f__relabel_v1__baa3d71e__relabel_v1",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 10,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "datacenter/gpu_cluster_spot_sla_control/deep_planning/high/alibaba_spot_gpu_a100_w448554_high",
+      "backend_kind": "alibaba_trace_sim",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/cvrp_dispatch/time_pressure/basic/cvrp_A-n32-k5_time_pressure_basic_s7701",
+      "backend_kind": "pyvrp_cvrp",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_foods_1_001_tx_1_d1800_30d__578831d4__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_hobbies_1_254_tx_3_d1710_30d_lt4_cap58__b90dde6c__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_008_tx_2_d1705_30d_lt6_cap48_protocol21_migration_v57__cfeac7c3__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_015_wi_3_d880_30d_lt6_cap60_protocol21_migration_v57__6e53c03d__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_256_tx_1_d1050_30d_lt3_cap58_protocol21_migration_v57",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_348_ca_1_d960_30d_lt2_cap60_protocol21_migration_v57__3ef50910__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_371_wi_2_d1020_30d_lt5_cap55_protocol21_migration_v57__b1dd2798__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_2_043_tx_2_d1780_30d_lt4_cap58_protocol21_migration_v57__3aa166d7__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_002_wi_1_d1015_30d_lt6_cap48_protocol21_migration_v57__1353a1cb__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_004_ca_2_d1705_30d_lt6_cap56_protocol21_migration_v57__12b2fe55__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/inventory_replenishment/time_pressure/medium/m5_household_1_007_wi_1_d820_30d_lt6_cap56_protocol21_migration_v57__ce8de513__relabel_v1",
+      "backend_kind": "orgym_invmgmt",
+      "horizon_ticks": 30,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42",
+      "backend_kind": "dynasched_flexible_job_shop",
+      "horizon_ticks": 400,
+      "disposition": "long_horizon_representative",
+      "reason_codes": [
+        "minimum_horizon_per_backend_family_difficulty_mode",
+        "preserve_long_horizon_operational_structure"
+      ],
+      "review": "Retain the shortest frozen long-horizon representative of this backend/family/difficulty_mode; preserve deep planning or dynamic recovery without using model scores."
+    },
+    {
+      "scenario_id": "logistics/vrptw_dispatch/time_pressure/medium/logistics__vrptw_dispatch__time_pressure__basic__vrptw_C101_time_pressure_basic_s8801__49665616__relabel_v1",
+      "backend_kind": "pyvrp_vrptw",
+      "horizon_ticks": 8,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_albuquerque_nm_extreme_v58",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_atlanta_ga_extreme_v58",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_boston_ma_extreme_v58",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_denver_co_extreme_p8724_plus5",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_denver_extreme_s59",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_p3683_plus5",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_v58",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_portland_or_extreme_v58",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_sacramento_ca_extreme_p7382_plus5",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_sacramento_ca_extreme_v58",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_salt_lake_city_ut_extreme_v58",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_seattle_wa_extreme_v58",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_albuquerque_nm_high_p1680_s89",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_atlanta_ga_high_p672_s77",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_boston_ma_high_p168_s71",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_chicago_high_s61",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_denver_co_high_p840_s79",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_miami_high_s57",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_minneapolis_mn_high_p2016_s93",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_portland_or_high_p504_s75",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_sacramento_ca_high_p2184_s95",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_seattle_wa_high_p336_s73",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_tucson_az_high_p1008_s81",
+      "backend_kind": "pymgrid_economic_dispatch",
+      "horizon_ticks": 24,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_lv_voltage_recovery_10h/time_pressure/extreme/microgrid_lv_portland_or_extreme_p1543_s62",
+      "backend_kind": "pandapower_lv",
+      "horizon_ticks": 10,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_albuquerque_nm_high_p1590_v58_s8700",
+      "backend_kind": "pandapower_lv",
+      "horizon_ticks": 6,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_las_vegas_nv_high_p1281_s61",
+      "backend_kind": "pandapower_lv",
+      "horizon_ticks": 6,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_miami_fl_high_p5217_s57",
+      "backend_kind": "pandapower_lv",
+      "horizon_ticks": 6,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_seattle_wa_high_p4877_v58_s8728",
+      "backend_kind": "pandapower_lv",
+      "horizon_ticks": 6,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/critical_winter_peak/deep_planning/extreme/pglib_uc_rts_gmlc_2020_05_05_long_extreme_s42",
+      "backend_kind": "pglib_uc_synthetic",
+      "horizon_ticks": 48,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/opendss_fresh_feeders_solar_ramp/deep_planning/basic/opendss_ieee123_solar_ramp_s42",
+      "backend_kind": "opendss_fresh_feeders",
+      "horizon_ticks": 6,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/opendss_ieee13_volt_var/deep_planning/basic/opendss_ieee13_regulator_tap_dynamic_s42",
+      "backend_kind": "opendss_ieee13",
+      "horizon_ticks": 4,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/opendss_infrastructure_feeder_control/deep_planning/basic/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt5_master_ckt5_dss",
+      "backend_kind": "opendss_fresh_feeders",
+      "horizon_ticks": 12,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/opendss_infrastructure_feeder_control/deep_planning/high/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt24_master_ckt24_dss",
+      "backend_kind": "opendss_fresh_feeders",
+      "horizon_ticks": 6,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/reserve_stress_24h/deep_planning/extreme/pglib_uc_ca_2014_09_01_reserves_0_long_extreme_s42",
+      "backend_kind": "pglib_uc_synthetic",
+      "horizon_ticks": 44,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained",
+        "legacy_zero_survival_floor_requires_retest"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p18912_r0p6_h48",
+      "backend_kind": "cigre_distribution",
+      "horizon_ticks": 48,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p19008_r0p6_h48",
+      "backend_kind": "cigre_distribution",
+      "horizon_ticks": 48,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/simbench_mv_semiurban_timeseries_control/deep_planning/high/grounded_1_MV_semiurb_0_sw_high_p14304_r0p6_h48",
+      "backend_kind": "cigre_distribution",
+      "horizon_ticks": 48,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    },
+    {
+      "scenario_id": "power_grid/simbench_mv_semiurban_timeseries_control/deep_planning/high/grounded_1_MV_semiurb_0_sw_high_p19680_r0p6_h48",
+      "backend_kind": "cigre_distribution",
+      "horizon_ticks": 48,
+      "disposition": "retain_for_retest",
+      "reason_codes": [
+        "frozen_parent_membership_retained"
+      ],
+      "review": "Retain pending repaired-scoring and valid baseline/model evidence; legacy scores are not a deletion gate."
+    }
+  ],
+  "routine_horizon_budget_ticks": 192,
+  "long_horizon_representative_rule": "minimum_horizon_per_backend_family_difficulty_mode",
+  "long_horizon_representative_ids": [
+    "candidate_delta/logistics/dynasched/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_moo",
+    "logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42"
+  ],
+  "supersedes": "withdrawn_reviewed_cost_bounded_v10: uniform cap removed important long-horizon structure; revised after user review"
+}

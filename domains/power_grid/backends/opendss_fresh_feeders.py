@@ -1741,6 +1741,8 @@ class OpenDssFreshFeedersBackend(OpenDssFreshFeederProbeBackend):
             ),
             "done": False,
             "converged": bool(snapshot.get("converged")),
+            # Voltage-band counts measure constraint violations, not blackout.
+            "catastrophic_failure": snapshot.get("converged") is not True,
             "voltage_min_pu": snapshot.get("voltage_min_pu"),
             "voltage_max_pu": snapshot.get("voltage_max_pu"),
             "voltage_band_error": self._voltage_band_error(snapshot),

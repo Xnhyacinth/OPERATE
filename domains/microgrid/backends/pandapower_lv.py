@@ -1076,6 +1076,10 @@ class PandapowerLvBackend:
                 "n_voltage_violations": int(r.n_voltage_violations),
                 "n_disconnected_lines": int(r.n_disconnected_lines),
                 "done": bool(r.done and r.tick < self._horizon - 1),
+                "converged": bool(r.converged),
+                "catastrophic_failure": bool(
+                    not r.converged or (r.done and r.tick < self._horizon - 1)
+                ),
             }
             for r in self._tick_records
         ]

@@ -53,7 +53,7 @@ from core.protocol21_evidence import (  # noqa: E402
 )
 from runner.realtime_episode import (  # noqa: E402
     is_expected_provider_stream_cancellation,
-    is_model_caused_terminal_feedback,
+    is_terminal_actionable_validation_blocker,
     is_valid_zero_request_cancellation,
     recovered_provider_retry_sequences,
 )
@@ -1448,9 +1448,7 @@ def realtime_artifact_eligibility(
     if _nested_int(artifact, "event_contract", "violation_count"):
         reasons.append("event_contract_violation")
     if any(
-        event.get("decision_required") is True
-        and event.get("terminal_unanswerable") is True
-        and not is_model_caused_terminal_feedback(event)
+        is_terminal_actionable_validation_blocker(event)
         for event in artifact.get("events") or []
         if isinstance(event, dict)
     ):
@@ -2169,6 +2167,10 @@ def _formal_runtime_binding_reasons(
                 _resolve_run_config_path(live_raw.get("readiness_path"))
             ),
         }
+        bound_fields = set(expected) | {"manifest_path", "readiness_path"}
+        live_raw = {
+            field: value for field, value in live_raw.items() if field in bound_fields
+        }
         live, live_locator = _normalize_formal_runtime_binding(live_raw)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return [f"formal_runtime_binding_revalidation_failed:{type(exc).__name__}"]
@@ -2561,6 +2563,63 @@ def validate_safety_profile_suite(
             "native safety profile suite contains unsupported rows: "
             + ", ".join(mismatches[:5])
         )
+
+
+def _hold_realtime_jobs(
+    jobs: list[dict[str, Any]],
+    held_cells_path: Path,
+    *,
+    model: str,
+) -> list[dict[str, Any]]:
+    """Drop campaign-held cells from dispatch without changing treatment identity."""
+
+    payload = json.loads(held_cells_path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        cells = payload.get("cells")
+        scenario_ids = payload.get("scenario_ids")
+    else:
+        cells = payload
+        scenario_ids = None
+    held_keys: set[tuple[str, str, int, str]] = set()
+    held_scenario_ids: set[str] = set()
+    if isinstance(scenario_ids, list) and all(
+        isinstance(item, str) and item.strip() for item in scenario_ids
+    ):
+        held_scenario_ids = {item.strip() for item in scenario_ids}
+    elif isinstance(cells, list) and all(isinstance(row, dict) for row in cells):
+        required = ("scenario_slug", "model", "seed", "pass_id")
+        if not all(all(key in row for key in required) for row in cells):
+            raise ValueError(
+                "held-cells must be a list of exact scenario/model/seed/pass_id cells"
+            )
+        held_keys = {
+            (
+                str(row["scenario_slug"]),
+                str(row["model"]),
+                int(row["seed"]),
+                str(row["pass_id"]),
+            )
+            for row in cells
+        }
+    else:
+        raise ValueError(
+            "held-cells must be a cell list or a JSON object with cells/scenario_ids"
+        )
+
+    def job_key(job: dict[str, Any]) -> tuple[str, str, int, str]:
+        return (
+            str(job["scenario_slug"]),
+            str(job.get("model") or model),
+            int(job["seed"]),
+            str(job.get("pass_id") or "pass-0"),
+        )
+
+    return [
+        job
+        for job in jobs
+        if job_key(job) not in held_keys
+        and str(job.get("scenario_id") or "") not in held_scenario_ids
+    ]
 
 
 def _build_jobs(
@@ -3285,6 +3344,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--resume-policy", choices=["retry-infrastructure"], default="retry-infrastructure")
     parser.add_argument("--max-jobs", type=int, default=None)
+    parser.add_argument(
+        "--held-cells",
+        default=None,
+        help="Campaign-held cells or scenario_ids; not dispatched.",
+    )
     parser.add_argument("--no-finalize", action="store_true")
     parser.add_argument("--finalize-only", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -3473,6 +3537,10 @@ def main(argv: list[str] | None = None) -> int:
             formal_runtime_binding=formal["formal_runtime_binding"],
         )
         jobs = _build_jobs(suite_rows, out_dir, run_config)
+        if args.held_cells:
+            jobs = _hold_realtime_jobs(
+                jobs, Path(args.held_cells), model=str(args.model)
+            )
         if args.dry_run:
             print(
                 json.dumps(

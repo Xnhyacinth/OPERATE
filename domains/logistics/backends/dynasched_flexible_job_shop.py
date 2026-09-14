@@ -152,6 +152,7 @@ class DynaSchedFlexibleJobShopBackend:
         self._initial_state_digest = ""
         self._runtime_event_types: set[str] = set()
         self._pending_action_effects: list[dict[str, Any]] = []
+        self._ready_event_ids: dict[str, str] = {}
         self._source_event_ids: dict[int, str] = {}
         self._expected_source_event_ids: list[str] = []
         self._events_source_sha256 = ""
@@ -289,6 +290,7 @@ class DynaSchedFlexibleJobShopBackend:
         self._consumption_ticks = []
         self._runtime_event_types = set()
         self._pending_action_effects = []
+        self._ready_event_ids = {}
         self._events_source_sha256 = _sha256(self._source_paths["events_jsonl"])
         self._prepare_source_event_contract()
         before_reset_state = self._source_state()
@@ -474,6 +476,7 @@ class DynaSchedFlexibleJobShopBackend:
                 "origin": "agent_caused",
                 "agent_caused": True,
                 "tool_name": "dispatch_flexible_operations",
+                "causal_parent_event_id": self._ready_event_ids.get(row["operation_id"]),
                 "requested_action": {
                     "job_id": job_id,
                     "operation_index": operation_index,
@@ -516,6 +519,7 @@ class DynaSchedFlexibleJobShopBackend:
             raise RuntimeError("dynasched_backend_not_reset")
         self._current_tick = int(current_tick)
         realized: list[dict[str, Any]] = []
+        ready_before = {row["operation_id"] for row in self.ready_operations()}
         consumed_source_this_tick = False
         hidden_types = self._hidden_source_event_types()
         while True:
@@ -536,6 +540,13 @@ class DynaSchedFlexibleJobShopBackend:
                 float(machine.available_from)
                 for machine in self._sim.state.machines.values()
                 if float(machine.available_from) > current_time + 1e-9
+            )
+            native_boundaries.extend(
+                blocked_until
+                for machine_id, machine in self._sim.state.machines.items()
+                if (blocked_until := float(self._sim._machine_block_until(
+                    machine_id, machine.group
+                ))) > current_time + 1e-9
             )
             candidates = list(native_boundaries)
             if next_event_time is not None:
@@ -589,6 +600,25 @@ class DynaSchedFlexibleJobShopBackend:
             if realized or native_boundary_reached or not source_events:
                 break
 
+        newly_ready = sorted(
+            {row["operation_id"] for row in self.ready_operations()} - ready_before
+        )
+        if newly_ready:
+            # A native precedence/arrival boundary, not a periodic harness scan.
+            event_id = f"dynasched:ready:{self._current_tick}:{_digest(newly_ready)}"
+            self._ready_event_ids.update(dict.fromkeys(newly_ready, event_id))
+            realized.append({
+                "type": "operations_ready",
+                "event_class": "task",
+                "origin": "endogenous_completion",
+                "decision_required": True,
+                "actionable": True,
+                "hidden": False,
+                "event_id": event_id,
+                "operation_ids": newly_ready,
+                "source_time": float(self._sim.state.time),
+                "changed_state_fields": ["ready_operations"],
+            })
         realized.extend(self._pending_action_effects)
         self._pending_action_effects = []
 
@@ -673,7 +703,19 @@ class DynaSchedFlexibleJobShopBackend:
                 str(machine.machine_id): {
                     "group": str(machine.group),
                     "speed": float(machine.speed),
-                    "status": str(machine.status),
+                    # dsbx status is event-written and may stay down/busy after
+                    # its interval ends; dispatch uses these native time bounds.
+                    "status": (
+                        str(machine.status)
+                        if self._sim._machine_block_until(
+                            str(machine.machine_id), str(machine.group)
+                        ) > float(native.time)
+                        else "busy" if float(machine.available_from) > float(native.time)
+                        else "idle"
+                    ),
+                    "blocked_until": float(self._sim._machine_block_until(
+                        str(machine.machine_id), str(machine.group)
+                    )),
                     "available_from": float(machine.available_from),
                 }
                 for machine in native.machines
@@ -1233,7 +1275,7 @@ def _query_handler(backend: DynaSchedFlexibleJobShopBackend):
         evidence = ctx.extra.get("evidence")
         if isinstance(evidence, EvidenceLogger):
             result["evidence_id"] = evidence.log(
-                "job_shop_observation", ctx.tick, result, source="tool"
+                "investigation", ctx.tick, result, source="tool"
             )
         return result
 
