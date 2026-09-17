@@ -630,6 +630,50 @@ def _current_value(building: Any, attribute: str, index: int) -> float:
     return float(values[min(max(index, 0), len(values) - 1)])
 
 
+def _opening_storage_inventory(buildings: list[Any], index: int) -> dict[str, dict[str, float]]:
+    """Freeze the native reset price and conversion rate before any action."""
+    result = {}
+    for building in buildings:
+        storage = building.electrical_storage
+        values = {
+            "opening_energy_kwh": _current_value(storage, "soc", index) * float(storage.capacity),
+            "minimum_energy_kwh": float(storage.capacity) * (1.0 - float(getattr(storage, "depth_of_discharge", 1.0))),
+            "reference_price_per_kwh": _current_value(building.pricing, "electricity_pricing", index),
+            "discharge_efficiency": float(storage.round_trip_efficiency),
+        }
+        if not all(np.isfinite(value) for value in values.values()):
+            raise ValueError("non-finite CityLearn opening storage valuation")
+        result[str(building.name)] = values
+    return result
+
+
+def _storage_inventory_settlement(
+    buildings: list[Any], index: int, opening: dict[str, dict[str, float]],
+) -> dict[str, Any]:
+    """Signed opening-minus-closing assets at a fixed reset reference price.
+
+    SoC is a fraction in CityLearn. Use the native remaining capacity, but
+    freeze efficiency so the last dispatch cannot reprice all stored energy.
+    This is a declared inventory valuation, not a forecast of future prices.
+    """
+    rows = {}
+    for building in buildings:
+        initial = opening[str(building.name)]
+        storage = building.electrical_storage
+        closing = _current_value(storage, "soc", index) * float(storage.capacity)
+        if not np.isfinite(closing):
+            raise ValueError("non-finite CityLearn closing stored energy")
+        opening_usable = max(0.0, initial["opening_energy_kwh"] - initial["minimum_energy_kwh"])
+        closing_usable = max(0.0, closing - initial["minimum_energy_kwh"])
+        cost = (opening_usable - closing_usable) * initial["discharge_efficiency"] * initial["reference_price_per_kwh"]
+        rows[str(building.name)] = {**initial, "closing_energy_kwh": closing, "settlement": cost}
+    return {
+        "contract": "fixed_reset_deliverable_energy_v1",
+        "buildings": rows,
+        "cost": sum(row["settlement"] for row in rows.values()),
+    }
+
+
 def _clear_reset_priming(env: Any) -> dict[str, Any]:
     """Remove CityLearn's timestep-zero baseline device priming before step.
 
@@ -801,6 +845,7 @@ class CityLearnBackend:
         self._records: list[CityLearnTickRecord] = []
         self._last_reward = 0.0
         self._last_completed_source_tick: int | None = None
+        self._opening_storage: dict[str, dict[str, float]] = {}
 
     def reset(self, seed_obj: BuildingEnergyScenarioSeed) -> None:
         source_root = _resolve_repo_path(seed_obj.source_root, default=DEFAULT_SOURCE_ROOT)
@@ -828,6 +873,9 @@ class CityLearnBackend:
         _merge_open_trace(self._runtime_open_trace, opened)
         self._seed = seed_obj
         self._buildings = [str(building.name) for building in self._env.buildings]
+        self._opening_storage = _opening_storage_inventory(
+            list(self._env.buildings), self.current_time_step
+        )
         width = int(self._env.action_space[0].shape[0])
         self._storage_indices = electrical_storage_action_indices(self._env)
         if max(self._storage_indices, default=-1) >= width:
@@ -1213,6 +1261,9 @@ class CityLearnBackend:
             try:
                 replay_env.reset(seed=self._seed.seed)
                 _clear_reset_priming(replay_env)
+                opening_storage = _opening_storage_inventory(
+                    list(replay_env.buildings), int(replay_env.time_step)
+                )
                 width = int(replay_env.action_space[0].shape[0])
                 if len(actions) != len(action_masks):
                     raise ValueError(
@@ -1331,6 +1382,11 @@ class CityLearnBackend:
                             "truncated": bool(np.asarray(truncated).all()),
                         }
                     )
+                storage_settlement = _storage_inventory_settlement(
+                    list(replay_env.buildings),
+                    source_tick if rows else int(replay_env.time_step),
+                    opening_storage,
+                )
                 replay = {
                     "n_ticks": len(rows),
                     "rows": rows,
@@ -1338,7 +1394,12 @@ class CityLearnBackend:
                     "trajectory_hash": _stable_hash(rows),
                     "state_effect_observed": state_effect_observed,
                     "action_count": action_count,
+                    "storage_valuation": storage_settlement,
+                    "cost_component_value_domains": {
+                        "energy_cost": "signed", "terminal_storage_settlement": "signed",
+                    },
                     "cost_components": {
+                        "terminal_storage_settlement": storage_settlement["cost"],
                         "energy_cost": float(
                             sum(row["energy_cost"] for row in rows)
                         ),
@@ -2006,6 +2067,23 @@ class CityLearnBackend:
         index = self._observation_source_tick()
         return {
             "domain": "building_energy",
+            "totals": {
+                "economic_contract": {
+                    "id": "fixed_reset_deliverable_energy_v1",
+                    "settlement": "(opening-closing)*eta*price",
+                    "asset": "energy_above_native_DoD_floor",
+                    "energy_unit": "kWh",
+                    "buildings": {
+                        name: {
+                            "opening": max(0.0, values["opening_energy_kwh"] - values["minimum_energy_kwh"]),
+                            "reserve_floor": values["minimum_energy_kwh"],
+                            "reference_price": values["reference_price_per_kwh"],
+                            "eta": values["discharge_efficiency"],
+                        }
+                        for name, values in self._opening_storage.items()
+                    },
+                },
+            },
             "backend_kind": self.backend_kind,
             "clock_semantics": "simulator_owned",
             "time_step": self.current_time_step,
@@ -2030,7 +2108,10 @@ class CityLearnBackend:
         state["control_summary"] = self.control_summary()
         state["cost_components"] = self.ground_truth_costs()
         # Native net electricity settlement credits exports; burdens remain penalties.
-        state["cost_component_value_domains"] = {"energy_cost": "signed"}
+        state["cost_component_value_domains"] = {
+            "energy_cost": "signed", "terminal_storage_settlement": "signed",
+        }
+        state["storage_valuation"] = self.storage_valuation()
         state["emissions_components"] = {
             "carbon_emissions": float(
                 sum(record.carbon_emissions for record in self._records)
@@ -2041,11 +2122,22 @@ class CityLearnBackend:
         }
         return state
 
+    def storage_valuation(self) -> dict[str, Any]:
+        if not self._opening_storage:
+            return {"contract": "fixed_reset_deliverable_energy_v1", "buildings": {}, "cost": 0.0}
+        return _storage_inventory_settlement(
+            list(self._env.buildings), self._observation_source_tick(), self._opening_storage
+        )
+
     def ground_truth_costs(self) -> dict[str, float]:
         if self._env is None:
             return {"energy_cost": 0.0}
         return {
             "energy_cost": float(sum(record.energy_cost for record in self._records)),
+            **(
+                {"terminal_storage_settlement": self.storage_valuation()["cost"]}
+                if self._opening_storage else {}
+            ),
             **(
                 {
                     "source_event_peak_response_burden": float(

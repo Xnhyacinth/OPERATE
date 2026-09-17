@@ -1,7 +1,7 @@
 # Current release
 
 The promoted input namespace is `operate`. Qualification artifacts stay
-bound to scoring `0.15.0`. Live evaluations use scoring `0.18.0`. Core remains
+bound to scoring `0.15.0`. Live evaluations use scoring `0.20.0`. Core remains
 769 rows across 502 physical sources, with 141 Lite rows across 82 sources.
 Native qualification is bound to its recorded implementation identity. Later
 verified maintenance changes bind their actual new execution identity; resume
@@ -26,7 +26,7 @@ not valid inputs to a current formal run.
 - matching formal manifest at `benchmark/manifest.json`
 - replay and provenance suite at `benchmark/core_suite.json`
 - promoted qualification scoring version `0.15.0`
-- live evaluation scoring version `0.18.0` (`wait_relative_outcome_v1`)
+- live evaluation scoring version `0.20.0` (`wait_relative_outcome_v1`)
 - live realtime contract `realtime_persistent.v3` / `native_dt_v1`; default
   supervision scorecard is the 37-row speed-critical subset in
   `benchmark/realtime_speed_suite.json`
@@ -130,9 +130,9 @@ No hidden summarizer rewrites the authoritative history.
 
 ## Distribution
 
-`Xnhyacinth/OPERATE` is the private maintenance repository and retains
-historical sources and audit material. The public `Xnhyacinth/OPERATE` GitHub
-repository and Hugging Face dataset carry only the current complete snapshot.
+`Xnhyacinth/OPERATE` carries the current public code, catalogs, scenarios,
+tests, and concise release documentation. Historical maintenance sources and
+audit material are not part of this snapshot.
 Public commits and the changelog record updates; superseded scenario files and
 old tagged distributions are not retained in the public current tree.
 The public setup installs the versionless runtime companion under `operate_data/`;
@@ -140,9 +140,8 @@ the maintenance checkout may retain its `operate_data/` compatibility root.
 The manifest and recorded immutable HF revision, not that directory name, bind
 the installed bytes to the current code and Core.
 
-The previously verified v0.61 private HF snapshot remains historical.
-The v0.62 distribution receipt must record its own newly uploaded immutable
-HF revision and verified Full/Lite artifact hashes.
+The v0.62 distribution receipt records the immutable runtime-companion
+revision and verified Full/Lite artifact hashes.
 
 See [FORMAL_EVALUATION.md](FORMAL_EVALUATION.md) for provider commands and
 [AGENTIC_INTERACTION.md](AGENTIC_INTERACTION.md) for event-loop semantics.

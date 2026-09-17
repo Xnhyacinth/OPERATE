@@ -60,18 +60,15 @@ closed instead of sharing checkpoints.
 
 ```bash
 python -m pip install uv==0.12.5
-: "${OPERATE_HF_REVISION:?set the immutable private HF commit from the publication receipt}"
+: "${OPERATE_HF_REVISION:?set the immutable HF commit from the publication receipt}"
 bash scripts/setup_eval_env.sh
 .venv/bin/python scripts/verify_release_integrity.py benchmark
 ```
 
 The setup script restores bundle-delivered assets and clones CityLearn,
 JSPLIB, OR-Gym, and clusterdata at their manifest-pinned commits. The
-Kaggle-gated M5 source additionally requires either `M5_ZIP` or
-`KAGGLE_TOKEN` after its competition terms have been accepted. A
-`--download-only` bundle check verifies remote bytes, not formal runtime
-readiness.
-
-The private GitHub/HF archive is `Xnhyacinth/OPERATE`; the public
-current-state distribution is `Xnhyacinth/OPERATE`. Historical maintenance
-artifacts remain private and are not additional formal evaluation inputs.
+runtime companion supplies the permission-cleared M5 tables and the
+release-bound NREL profiles and provenance sidecars used by the catalog.
+A `--download-only` bundle check verifies remote bytes, not formal runtime
+readiness. Historical trajectories and maintenance artifacts are not part
+of the public current-state repository.

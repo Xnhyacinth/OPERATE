@@ -1873,6 +1873,10 @@ class PglibUcSyntheticBackend:
         return [
             {
                 "tick": r.tick,
+                "catastrophic_failure_applicable": False,
+                "catastrophic_failure_inapplicable_reason": (
+                    "aggregate_uc_has_no_native_catastrophe_model"
+                ),
                 "aggregate_demand_mw": r.aggregate_demand_mw,
                 "aggregate_generation_mw": r.aggregate_generation_mw,
                 "balance_error_mw": r.balance_error_mw,

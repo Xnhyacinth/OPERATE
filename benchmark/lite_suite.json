@@ -20825,7 +20825,7 @@
         ]
       }
     ],
-    "quality_evidence_sha256": "0a5a020715b94475543a272b5027c14fe222ced95a184f1bac0feb62b21bce7f",
+    "quality_evidence_sha256": "b6ea51c0dbfe47d0e00fad0ad3ca3c2b81d9a99419594f4c1e7e5c0cc8e78a80",
     "quality_evidence_path": "lite_quality_evidence.json",
     "n_parent_features": 204,
     "n_retained_parent_features": 204,
@@ -20840,7 +20840,7 @@
       "logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42"
     ],
     "review_dispositions_path": "lite_review_dispositions.json",
-    "review_dispositions_sha256": "2bd22b833d7831f6419d09275394ade7cb253210cf71303914d00b454674d230",
+    "review_dispositions_sha256": "425651604cae23309d55782de905ae07cd8dae333822c6f3c874cc99a6db921b",
     "parent_selection_algorithm": "quality_gated_cpu_headroom_hy3_v9"
   },
   "scenarios": [
@@ -23665,5 +23665,5 @@
       "yaml_sha256": "e9275e1b789de16686874ea97d8421077f938d6975620146ae19ebbd247c9165"
     }
   ],
-  "suite_sha256": "ace0f7b8865435b069373ddc140656abc1a2b845d3c40b8658395bbf564ec920"
+  "suite_sha256": "f522ccb650341dd4334abd3774eb4feddef1379fbef7830f2ae99e4c886e397a"
 }

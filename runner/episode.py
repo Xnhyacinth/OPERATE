@@ -3107,6 +3107,9 @@ def _run_one_with_environment_impl(
         # interaction loop and is never inserted into an agent prompt.
         "realized_events": _canonical_json_value(realized),
     }
+    for key in ("cost_component_value_domains", "storage_valuation", "inventory_valuation"):
+        if key in gt:
+            ground_truth_summary[key] = _canonical_json_value(gt[key])
     if str(scenario.get("domain") or "") == "autonomous_driving":
         task_records = [
             dict(record)

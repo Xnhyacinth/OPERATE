@@ -19,6 +19,12 @@ violations, successful evidence-consuming controls, late-stage failures, model
 calls, and tool calls. A pair is invalid when either arm has a provider,
 artifact, or prompt-budget failure.
 
+The fixed all-dimension score remains the frozen E1 logical score. Also report
+the applicable-dimension view within each matched task so that a task with many
+declared non-applicable dimensions is not mistaken for weak model behavior.
+Never compare that adaptive view across unmatched task mixes, and never pool an
+E1 score with the main table unless their scorer identities match.
+
 ## E3: fixed provider delay
 
 E3 measures sensitivity to decision latency under realtime execution. Each
@@ -27,6 +33,12 @@ delay. The environment continues while the request is in flight. Report score,
 action expiry, supersession, cancellation, takeover, deadline misses, useful
 controls, and provider latency. Interpret a task only when all three delay arms
 pass the artifact and provider-audit gates.
+
+E3 has no primary aggregate. Its result is the matched delay-response curve:
+response misses, effected or expired actions, discarded late responses,
+superseded turns, takeovers, controlled holds, and protocol-valid responses at
+0, 1, and 5 seconds. This keeps transport timing separate from logical task
+quality.
 
 ## E4: information reveal ablation
 
@@ -37,6 +49,11 @@ commit timing, native effect, missed action opportunity, native cost, and score.
 Results with no remaining action opportunity after investigation are retained:
 they measure the operational cost of information acquisition rather than a
 scoring defect.
+
+E4 has no primary aggregate. Report reveal-minus-withhold changes in
+investigation actions, successful commit, query-deadline exhaustion, visible
+evidence, model calls, tool calls, and native task outcomes. A pair is invalid
+if its source-state, runtime, harness, or provider configuration hashes differ.
 
 ## Expansion rule
 

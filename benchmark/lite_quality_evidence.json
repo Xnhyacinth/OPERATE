@@ -37,13 +37,8 @@
     "hy3_zero_unresolved": "Hy3 Full ok primary == 0, difficulty high/extreme, horizon >= 17; not treated as dead without an oracle"
   },
   "sources": {
-    "four_model_lite_audit": ".hl/lite_compress_20260911/audit.json",
-    "cpu_baselines_017": ".hl/lite_compress_20260911/cpu_baselines_017.json",
-    "hy3_full_ok": ".hl/lite_compress_20260911/hy3_full_ok.json",
-    "hy3_full_episode_trees": [
-      ".hl/new_release_20260906/campaign_hy3_biao_native_ioa_v062/results/tencent_hy3_full_logical_biao_native_ioa_v062/treatment-c718c9026957f7e2706a97835164bdf8782ee883ae65753281697a150335c2ab/episodes.jsonl",
-      ".hl/retest_20260909/hy3_full_258_biao/treatment-04e2c2bd5ce0e6ff1dad4ddeff685a57b4c05e147a1e387e0452d3882215fd25/episodes.jsonl"
-    ]
+    "availability": "private maintainer archive",
+    "private_source_manifest_sha256": "0a5a020715b94475543a272b5027c14fe222ced95a184f1bac0feb62b21bce7f"
   },
   "rows": {
     "autonomous_driving/sustained_highway_risk_supervision/deep_planning/extreme/ngsim_1118846999200_extreme_s42": {

@@ -225,7 +225,10 @@ from core.difficulty_levels import canonical_difficulty_level
 QUALIFICATION_SCORING_VERSION = "0.15.0"
 # v0.18.0 repairs native catastrophe, signed settlement, and causal evidence
 # contracts. Qualification and historical trajectories retain their identity.
-SCORING_VERSION = "0.18.0"
+# v0.19.0 candidate: explicitly unmodeled native catastrophe is N/A, not a
+# legacy balance-threshold failure or a fabricated perfect survival score.
+# v0.20.0 separates native routing completion from fleet failure.
+SCORING_VERSION = "0.20.0"
 PRIMARY_HEADLINE_AGGREGATION = "wait_relative_outcome_v1"
 LEGACY_FIVE_GROUP_AGGREGATION = "scenario_applicable_five_group_v2"
 PRIMARY_WAIT_RELATIVE_PREFERRED = "counterfactual_prevention"
@@ -385,6 +388,25 @@ def score_system_survival(
             weight=1.0,
         )
     n = len(backend_records)
+    if all(
+        record.get("catastrophic_failure_applicable") is False
+        and isinstance(record.get("catastrophic_failure_inapplicable_reason"), str)
+        and record["catastrophic_failure_inapplicable_reason"].strip()
+        and not bool(record.get("catastrophic_failure", False))
+        and not bool(record.get("done", False))
+        for record in backend_records
+    ):
+        reasons = sorted({
+            record["catastrophic_failure_inapplicable_reason"]
+            for record in backend_records
+        })
+        return DimensionScore(
+            name="system_survival",
+            applicable=False,
+            evidence_ids=list(evidence_ids),
+            reason="native_catastrophe_not_modeled: " + "; ".join(reasons),
+            weight=1.5,
+        )
     if all("catastrophic_failure" in record for record in backend_records):
         catastrophic_ticks = sum(
             bool(record["catastrophic_failure"]) for record in backend_records

@@ -660,7 +660,14 @@ class JsplibJobShopBackend:
                 # current_tick + 1. Record the effect on that same observable
                 # boundary instead of the pre-step tool-execution clock.
                 event["outcome_tick"] = self._current_tick + 1
-        schedule_complete = len(self._scheduled) == operations_total
+        pending_native_events = self.dynamic_mode and any(
+            self._current_tick < int(event.trigger_tick) < self._horizon
+            and str(event.kind) in _NATIVE_EVENT_REGISTRY
+            for event in self._seed_perturbations
+        )
+        schedule_complete = (
+            len(self._scheduled) == operations_total and not pending_native_events
+        )
         for operation in sorted(
             self._scheduled,
             key=lambda item: (
