@@ -14,8 +14,8 @@ snapshot / apply_tool_effect / ground_truth_costs / scoring_records /
 forecast_for / per-customer accumulator + a delayed-effect queue) so the
 logistics adapter is structurally identical to the other adapters.
 
-PyVRP (MIT) is imported lazily and used ONLY on the fixed-plan route-cost
-*evaluation* path (``evaluate_fixed_plan_cost``); when absent the typed
+PyVRP (MIT) availability is retained as a compatibility gate on the legacy
+fixed-plan route-cost diagnostic (``evaluate_fixed_plan_cost``); when absent the typed
 ``LogisticsBackendUnavailable`` is raised there only — the simulator itself
 never needs it.
 """
@@ -90,6 +90,7 @@ class _Vehicle:
     is_standby: bool = False
     broken: bool = False
     broken_hidden: bool = False
+    broken_until: int = -1
     service_rate: int = 2
 
 
@@ -108,6 +109,7 @@ class _Customer:
     dropped: bool = False
     held_until: int = -1
     blocked: bool = False
+    blocked_until: int = -1
     assigned_vehicle: str | None = None
 
 
@@ -127,6 +129,8 @@ class _RouteTickRecord:
     n_time_window_violations: int = 0
     n_failed_routes: int = 0
     done: bool = False
+    catastrophic_failure: bool = False
+    terminal_reason: str = "running"
     realized_events: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -148,6 +152,8 @@ class RouteDemandSimulator:
         self._seed = 0
         self._depot: tuple[float, float] = (0.0, 0.0)
         self._vehicles: dict[str, _Vehicle] = {}
+        # Shared with native tool schemas so arriving carriers remain addressable.
+        self.vehicle_ids: list[str] = []
         self._customers: dict[str, _Customer] = {}
         self._tick_records: list[_RouteTickRecord] = []
         self._has_time_windows = False
@@ -291,6 +297,7 @@ class RouteDemandSimulator:
                 is_standby=True,
                 service_rate=2,
             )
+        self.vehicle_ids[:] = sorted(self._vehicles)
         self._initial_state_digest = self._state_digest()
         self._post_source_state_digests.append(
             {"tick": 0, "sha256": self._initial_state_digest}
@@ -376,6 +383,16 @@ class RouteDemandSimulator:
             elif kind == "hire_spot_carrier":
                 units = float(payload.get("capacity_units", 0.0) or 0.0)
                 before_digest = self._state_digest()
+                vid = f"spot_{len(self._vehicles)}"
+                while vid in self._vehicles:
+                    vid += "_new"
+                self._vehicles[vid] = _Vehicle(
+                    vid=vid, capacity=units, remaining_capacity=units,
+                    pos=self._depot, active=True, is_standby=True,
+                    service_rate=2,
+                )
+                self.vehicle_ids.append(vid)
+                self.vehicle_ids.sort()
                 self._procured_standby += units
                 self._record_tick_cost("spot_premium", units * _SPOT_PREMIUM_PER_UNIT)
                 after_digest = self._state_digest()
@@ -400,6 +417,7 @@ class RouteDemandSimulator:
                         "actionable": False,
                         "tick": current_tick,
                         "region": payload.get("region"),
+                        "vehicle_id": vid,
                         "capacity_units": units,
                         **(
                             {
@@ -432,6 +450,15 @@ class RouteDemandSimulator:
 
         # 2) apply perturbations firing this tick.
         self._apply_perturbations_at_tick(self._tick)
+        # Expire after applying new triggers so overlapping outages do not
+        # briefly restore service at an adjacent or overlapping boundary.
+        for vehicle in self._vehicles.values():
+            if vehicle.broken and 0 <= vehicle.broken_until <= self._tick:
+                vehicle.broken = False
+                vehicle.broken_hidden = False
+        for customer in self._customers.values():
+            if customer.blocked and 0 <= customer.blocked_until <= self._tick:
+                customer.blocked = False
         # expire transient disruptions.
         if self._traffic_until >= 0 and self._tick >= self._traffic_until:
             self._traffic_mult = 1.0
@@ -466,14 +493,16 @@ class RouteDemandSimulator:
                 if cust.blocked:
                     new_route.append(cid)  # cannot traverse; stays stranded
                     continue
+                if veh.remaining_capacity + 1e-9 < cust.demand:
+                    n_cap_viol += 1
+                    new_route.append(cid)
+                    continue
                 leg = _dist(veh.pos, (cust.x, cust.y))
                 routing_cost += leg * _COST_PER_DISTANCE * self._traffic_mult
                 if self._traffic_mult > 1.0:
                     routing_cost += (
                         leg * _TRAVEL_TIME_PREMIUM * (self._traffic_mult - 1.0)
                     )
-                if veh.remaining_capacity + 1e-9 < cust.demand:
-                    n_cap_viol += 1  # over-capacity service
                 veh.remaining_capacity = max(0.0, veh.remaining_capacity - cust.demand)
                 veh.pos = (cust.x, cust.y)
                 cust.served = True
@@ -497,8 +526,7 @@ class RouteDemandSimulator:
                 }
                 self._realized_events_this_tick.append(completion)
                 self._world_evolution_records.append(dict(completion))
-                if self._has_time_windows and self._tick > cust.due_tick:
-                    n_tw_viol += 1
+                # Dispatch-wave deadlines are not source-native time windows.
             veh.route = new_route
             if veh.capacity > 0:
                 util = (veh.capacity - veh.remaining_capacity) / veh.capacity
@@ -510,14 +538,14 @@ class RouteDemandSimulator:
             sum(
                 c.demand
                 for c in self._customers.values()
-                if c.due_tick <= self._tick and not c.dropped
+                if c.due_tick <= self._tick
             )
             * surge,
             3,
         )
         unmet = 0.0
         for c in self._customers.values():
-            if c.served or c.dropped:
+            if c.served:
                 continue
             if c.due_tick <= self._tick:
                 unmet += c.demand
@@ -546,14 +574,19 @@ class RouteDemandSimulator:
         else:
             required_standby = 0.0
         procured_standby = (
-            round(self._procured_standby, 3) if self._models_standby else 0.0
+            round(sum(v.remaining_capacity for v in self._vehicles.values()
+                      if v.active and not v.broken and v.is_standby), 3)
+            if self._models_standby else 0.0
         )
 
-        # 7) terminal / infeasible.
-        all_done = all(c.served or c.dropped for c in self._customers.values())
+        # All policies share the scenario horizon, including completed fleets
+        # and failed fleets. This preserves future arrivals and the no-action
+        # comparison window. A temporary outage can still be recovered through
+        # declared expiry, standby dispatch or procurement before the boundary.
+        all_done = all(c.served for c in self._customers.values())
         active_alive = any(v.active and not v.broken for v in self._vehicles.values())
-        infeasible = not active_alive and not all_done
-        done = (self._tick >= self._horizon - 1) or all_done or infeasible
+        done = self._tick >= self._horizon - 1
+        infeasible = done and not active_alive and not all_done
 
         record = _RouteTickRecord(
             tick=self._tick,
@@ -570,6 +603,13 @@ class RouteDemandSimulator:
             n_time_window_violations=int(n_tw_viol),
             n_failed_routes=int(n_failed),
             done=bool(done),
+            catastrophic_failure=bool(infeasible),
+            terminal_reason=(
+                "fleet_unavailable_with_unresolved_orders" if infeasible
+                else "all_orders_resolved" if done and all_done
+                else "horizon" if done
+                else "running"
+            ),
             realized_events=list(self._realized_events_this_tick),
         )
         # Fold any drop penalties accrued (via apply_tool_effect) this tick.
@@ -610,9 +650,10 @@ class RouteDemandSimulator:
             idx = int(p.target.get("vehicle_index", 0))
             vid = f"v{idx}"
             veh = self._vehicles.get(vid)
-            if veh is not None and not veh.broken:
+            if veh is not None:
                 before = self._state_digest()
                 veh.broken = True
+                veh.broken_until = max(veh.broken_until, tick + int(p.duration_ticks))
                 veh.broken_hidden = bool(p.hidden)
                 self._append_declared_perturbation_event(
                     p,
@@ -658,6 +699,9 @@ class RouteDemandSimulator:
                 cid = cust_ids[idx % len(cust_ids)]
                 before = self._state_digest()
                 self._customers[cid].blocked = True
+                self._customers[cid].blocked_until = max(
+                    self._customers[cid].blocked_until, tick + int(p.duration_ticks)
+                )
                 self._append_declared_perturbation_event(
                     p,
                     tick,
@@ -939,8 +983,20 @@ class RouteDemandSimulator:
             cust = self._customers.get(cid)
             if cust is None or cust.served or cust.dropped:
                 return {"_status": "error", "error": "invalid_stop", "customer_id": cid}
+            if cid in new_route:
+                return {"_status": "error", "error": "duplicate_stop", "customer_id": cid}
             new_route.append(cid)
+        # Validate the whole replacement before changing any route ownership.
+        selected = set(new_route)
+        for customer in self._customers.values():
+            if customer.assigned_vehicle == vid and customer.cid not in selected:
+                customer.assigned_vehicle = None
+        for other in self._vehicles.values():
+            if other is not veh:
+                other.route = [cid for cid in other.route if cid not in selected]
         veh.route = new_route
+        for cid in new_route:
+            self._customers[cid].assigned_vehicle = vid
         return {"vehicle_id": vid, "stop_sequence": new_route}
 
     def _hold_order(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -951,13 +1007,6 @@ class RouteDemandSimulator:
             return {"_status": "error", "error": "unknown_customer", "customer_id": cid}
         if cust.served:
             return {"_status": "error", "error": "already_served", "customer_id": cid}
-        if self._has_time_windows and until > cust.due_tick:
-            return {
-                "_status": "error",
-                "error": "past_hard_window",
-                "customer_id": cid,
-                "due_tick": cust.due_tick,
-            }
         cust.held_until = until
         return {"customer_id": cid, "held_until": until}
 
@@ -971,6 +1020,7 @@ class RouteDemandSimulator:
         if cust.dropped:
             return {"_status": "error", "error": "already_dropped", "customer_id": cid}
         cust.dropped = True
+        cust.assigned_vehicle = None
         for ov in self._vehicles.values():
             if cid in ov.route:
                 ov.route.remove(cid)
@@ -986,24 +1036,18 @@ class RouteDemandSimulator:
     # ── Read-only helpers (noised ETA / forecast) ───────────────────────
 
     def eta_for(self, vehicle_id: str) -> dict[str, Any]:
-        """Noised ETA for a vehicle's next stop (documented bias/variance)."""
+        """Reveal status; native travel ETA is unavailable in the quota model."""
         veh = self._vehicles.get(vehicle_id)
         if veh is None:
             return {"_status": "error", "error": "unknown_vehicle"}
-        if not veh.route:
-            return {"vehicle_id": vehicle_id, "eta_ticks": None, "next_stop": None}
-        cid = veh.route[0]
-        cust = self._customers.get(cid)
-        true_eta = 1
-        if cust is not None:
-            true_eta = max(1, math.ceil(_dist(veh.pos, (cust.x, cust.y)) / 20.0))
-        # Deterministic +/- bias from the seed (documented; no ground truth).
-        noise = (_det_hash(self._seed, self._tick, f"eta|{vehicle_id}") % 5) - 2
         return {
             "vehicle_id": vehicle_id,
-            "next_stop": cid,
-            "eta_ticks": max(1, true_eta + noise),
-            "noised": True,
+            "next_stop": veh.route[0] if veh.route else None,
+            "eta_ticks": None,
+            "applicable": False,
+            "reason": "native_travel_time_to_dispatch_wave_mapping_unavailable",
+            "broken": veh.broken,
+            "service_quota_per_tick": veh.service_rate,
         }
 
     def reveal_vehicle(self, vehicle_id: str) -> None:
@@ -1077,12 +1121,34 @@ class RouteDemandSimulator:
             "max_capacity_utilization": last.max_utilization if last else 0.0,
             "n_failed_routes": last.n_failed_routes if last else 0,
             "procured_standby_capacity": (last.procured_standby if last else 0.0),
+            "unresolved_order_units": sum(c.demand for c in self._customers.values() if not c.served),
+            "canceled_unfulfilled_units": sum(c.demand for c in self._customers.values() if c.dropped),
         }
         return {
             "tick": self._tick,
             "horizon": self._horizon,
+            "execution_contract": self.execution_contract(),
             "entities": entities,
             "totals": totals,
+        }
+
+    def execution_contract(self) -> dict[str, Any]:
+        """Expose supported dispatch semantics without claiming native VRPTW."""
+        unavailable = {
+            "applicable": False,
+            "reason": "native_time_to_dispatch_wave_mapping_unavailable",
+        }
+        return {
+            "version": "route_service_quota_v2",
+            "clock": "dispatch_wave",
+            "evaluation_horizon": "fixed_scenario_horizon_all_policies",
+            "fleet_failure": "unavailable_with_unfulfilled_orders_at_horizon",
+            "movement": "ordered_service_quota_per_vehicle_per_wave",
+            "travel_time": dict(unavailable),
+            "native_time_windows": dict(unavailable),
+            "source_service_duration": dict(unavailable),
+            "due_tick": "procedural_order_deadline_wave_not_source_time_window",
+            "cancellation": "removes_route_stop_but_retains_unfulfilled_demand",
         }
 
     # ── Cost roll-up / scoring ──────────────────────────────────────────
@@ -1109,9 +1175,9 @@ class RouteDemandSimulator:
     def scoring_records(self) -> list[dict[str, Any]]:
         """Per-tick rows: the canonical 14-key contract with the §7 alias
         mapping. Keys declared ``honest_zero`` for this family are forced 0.
-        ``done`` is early-guarded ``bool(done and tick < horizon-1)`` so a
-        normal horizon-end tick is never miscounted as a catastrophic
-        collapse by ``score_system_survival``.
+        ``done`` retains the early-terminal diagnostic, while catastrophe
+        records actual fleet infeasibility. Delivering all orders is normal
+        termination; canceled deliveries remain unfulfilled obligations.
         """
         hz = self._honest_zero_keys
         rows: list[dict[str, Any]] = []
@@ -1138,7 +1204,8 @@ class RouteDemandSimulator:
                 ),
                 "n_disconnected_lines": r.n_failed_routes,
                 "done": bool(r.done and r.tick < self._horizon - 1),
-                "catastrophic_failure": bool(r.done and r.tick < self._horizon - 1),
+                "catastrophic_failure": r.catastrophic_failure,
+                "terminal_reason": r.terminal_reason,
                 "safety_violation_severity": min(
                     1.0, max(utilization_excess, violation_density)
                 ),
@@ -1173,8 +1240,6 @@ class RouteDemandSimulator:
             "remaining_capacity",
             "route_distance",
         ]
-        if resolution["instance_kind"] == "vrptw":
-            fields.extend(["route_arrival_times", "time_window_feasibility"])
         semantic = {
             "source_sha256": resolution["source_sha256"],
             "parser_output_digest": resolution["parser_output_digest"],
@@ -1193,7 +1258,9 @@ class RouteDemandSimulator:
             "consumed_source_hashes": {declared_path: resolution["source_sha256"]},
             "parser_output_digest": resolution["parser_output_digest"],
             "instance_kind": resolution["instance_kind"],
-            "consumed_channels": list(resolution["consumed_channels"]),
+            "consumed_channels": [channel for channel in resolution["consumed_channels"]
+                                  if channel not in {"service_duration", "time_window"}],
+            "execution_contract": self.execution_contract(),
             "derived_backend_state_fields": fields,
             "consumption_ticks": [0],
             "initial_state_digest": self._initial_state_digest,
@@ -1224,6 +1291,7 @@ class RouteDemandSimulator:
                     "route": vehicle.route,
                     "active": vehicle.active,
                     "broken": vehicle.broken,
+                    "broken_until": vehicle.broken_until,
                 }
                 for vid, vehicle in sorted(self._vehicles.items())
             },
@@ -1234,6 +1302,7 @@ class RouteDemandSimulator:
                     "held_until": customer.held_until,
                     "assigned_vehicle": customer.assigned_vehicle,
                     "blocked": customer.blocked,
+                    "blocked_until": customer.blocked_until,
                 }
                 for cid, customer in sorted(self._customers.items())
             },
@@ -1250,11 +1319,11 @@ class RouteDemandSimulator:
     # ── PyVRP fixed-plan cost eval (optional; cost-eval path only) ──────
 
     def evaluate_fixed_plan_cost(self) -> float:
-        """Evaluate the current routes' total distance via PyVRP (MIT).
+        """Remaining fixed-route closed-tour distance; never optimize the plan.
 
-        This is the ONLY path that requires PyVRP; the simulator never needs
-        it to step. Raises the typed ``LogisticsBackendUnavailable`` when
-        PyVRP is absent so callers / tests can skip cleanly.
+        This diagnostic excludes dispatch/unmet costs and does not establish
+        timing or capacity feasibility. Retains the optional-dependency gate
+        for existing callers of this legacy evaluation surface.
         """
         if not PYVRP_AVAILABLE:
             raise LogisticsBackendUnavailable(
@@ -1263,33 +1332,16 @@ class RouteDemandSimulator:
                 "Install via `pip install pyvrp`. The deterministic simulator "
                 "does NOT require PyVRP to run."
             )
-        m = _PyVRPModel()  # type: ignore[operator]
-        depot = m.add_depot(x=int(round(self._depot[0])), y=int(round(self._depot[1])))
-        n_active = sum(1 for v in self._vehicles.values() if v.active)
-        m.add_vehicle_type(
-            max(1, n_active), capacity=int(max(1, round(self._capacity)))
-        )
-        clients = {}
-        for cid, c in self._customers.items():
-            if c.dropped:
-                continue
-            clients[cid] = m.add_client(
-                x=int(round(c.x)),
-                y=int(round(c.y)),
-                delivery=int(max(0, round(c.demand))),
-            )
-        locs = [depot] + list(clients.values())
-        for a in locs:
-            for b in locs:
-                if a is b:
-                    continue
-                m.add_edge(a, b, distance=int(round(_dist((a.x, a.y), (b.x, b.y)))))
-        res = m.solve(stop=_pyvrp_stop(), display=False)
-        return float(res.cost())
-
-
-def _pyvrp_stop():  # pragma: no cover - only when pyvrp present
-    """Deterministic PyVRP stopping rule (max-iteration count, no wall clock)."""
-    from pyvrp.stop import MaxIterations  # type: ignore[import]
-
-    return MaxIterations(50)
+        distance = 0.0
+        for vehicle in self._vehicles.values():
+            pos = vehicle.pos
+            remaining = [self._customers[cid] for cid in vehicle.route
+                         if not self._customers[cid].served
+                         and not self._customers[cid].dropped]
+            for customer in remaining:
+                next_pos = (customer.x, customer.y)
+                distance += _dist(pos, next_pos)
+                pos = next_pos
+            if remaining:
+                distance += _dist(pos, self._depot)
+        return distance

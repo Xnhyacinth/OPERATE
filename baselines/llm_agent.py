@@ -4156,13 +4156,30 @@ class LLMAgent(BaselineAgent):
             ]
         if allowed_tools:
             body["allowed_tool_names"] = list(allowed_tools)
-        serialized_body = self._serialize_prompt_body(
-            body,
-            # Both E1 arms must receive the same current observation. Session
-            # persistence controls history, not the size of the present state.
-            # Provider-aware projection applies the actual request budget later.
-            max_chars=int(self.config.persistent_context_max_chars),
-            include_cost_units=self._uses_persistent_session(),
+        original_tool_specs = self._tool_specs
+        if allowed_tools is None:
+            selected_tool_specs = original_tool_specs
+        else:
+            allowed = {str(name) for name in allowed_tools}
+            selected_tool_specs = [
+                spec
+                for spec in original_tool_specs
+                if str((spec.get("function") or {}).get("name")) in allowed
+            ]
+        effective_decision_tool_choice = self._effective_wire_tool_choice(
+            request_kind=request_kind,
+            tools=selected_tool_specs,
+        )
+        serialized_body, observation_projection = (
+            self._serialize_current_observation_for_provider(
+                body=body,
+                observation=observation,
+                tools=selected_tool_specs,
+                max_tokens=self.config.max_tokens,
+                effective_tool_choice=effective_decision_tool_choice,
+                effective_wire_stream=self._effective_wire_stream(),
+                effective_temperature=self.config.temperature,
+            )
         )
         if self._uses_persistent_session():
             event_payload = self._persistent_event_payload(
@@ -4193,19 +4210,8 @@ class LLMAgent(BaselineAgent):
                 {"role": "system", "content": self._system_prompt},
                 user_msg,
             ]
-        original_tool_specs = self._tool_specs
-        if allowed_tools is not None:
-            allowed = {str(name) for name in allowed_tools}
-            self._tool_specs = [
-                spec
-                for spec in original_tool_specs
-                if str((spec.get("function") or {}).get("name")) in allowed
-            ]
+        self._tool_specs = selected_tool_specs
         request_tool_specs = deepcopy(self._tool_specs)
-        effective_decision_tool_choice = self._effective_wire_tool_choice(
-            request_kind=request_kind,
-            tools=self._tool_specs,
-        )
         self._last_provider_response_metadata = {}
         try:
             messages, context_projection = self._provider_cap_aware_projection(
@@ -4216,6 +4222,12 @@ class LLMAgent(BaselineAgent):
                 effective_wire_stream=self._effective_wire_stream(),
                 effective_temperature=self.config.temperature,
             )
+            if context_projection is None:
+                context_projection = observation_projection
+            else:
+                context_projection["current_observation_projection"] = (
+                    observation_projection
+                )
             action, provider_started_ns, provider_request_sequence = (
                 self._call_with_transient_provider_retries(
                     invoke=lambda: self._invoke_decision_provider(messages),
@@ -4851,6 +4863,110 @@ class LLMAgent(BaselineAgent):
             effective_max_chars
         )
         return projected, projection
+
+    def _serialize_current_observation_for_provider(
+        self,
+        *,
+        body: dict[str, Any],
+        observation: dict[str, Any],
+        tools: list[dict[str, Any]],
+        max_tokens: int,
+        effective_tool_choice: str | None,
+        effective_wire_stream: bool,
+        effective_temperature: float,
+    ) -> tuple[str, dict[str, Any]]:
+        """Fit one treatment-neutral current observation to the provider cap."""
+
+        requested_max_chars = max(
+            500, int(self.config.persistent_context_max_chars)
+        )
+        context_window = self.config.model_context_window_tokens
+        effective_max_chars = requested_max_chars
+        serialized = self._serialize_prompt_body(
+            body,
+            max_chars=requested_max_chars,
+            include_cost_units=True,
+        )
+        requested_serialized = serialized
+        input_upper_bound = 0
+        total_reserved = 0
+
+        for _ in range(8):
+            if effective_max_chars != requested_max_chars:
+                try:
+                    serialized = self._serialize_prompt_body(
+                        body,
+                        max_chars=effective_max_chars,
+                        # Cost is part of the current decision state. It must
+                        # not vary with whether prior messages are carried.
+                        include_cost_units=True,
+                    )
+                except ValueError:
+                    # Preserve the existing audited preflight path for an
+                    # irreducible prompt/tool envelope. The later wire audit
+                    # records RequestBudgetPreflightError before HTTP.
+                    serialized = requested_serialized
+                    effective_max_chars = requested_max_chars
+                    break
+            stateless_messages = [
+                {"role": "system", "content": self._system_prompt},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Tick {observation.get('tick', self._tick)}. "
+                        "Observation summary:\n" + serialized
+                    ),
+                },
+            ]
+            wire_projection = self._provider_wire_projection(
+                messages=stateless_messages,
+                tools=tools,
+                max_tokens=max_tokens,
+                effective_tool_choice=effective_tool_choice,
+                effective_wire_stream=effective_wire_stream,
+                effective_temperature=effective_temperature,
+            )
+            input_upper_bound = len(
+                json.dumps(
+                    wire_projection,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    default=str,
+                ).encode("utf-8")
+            )
+            total_reserved = input_upper_bound + int(max_tokens)
+            if context_window is None or total_reserved <= int(context_window):
+                break
+            overage = total_reserved - int(context_window)
+            next_max_chars = max(
+                500,
+                effective_max_chars
+                - max(overage, effective_max_chars // 10),
+            )
+            if next_max_chars >= effective_max_chars:
+                break
+            effective_max_chars = next_max_chars
+
+        projection = {
+            "schema_version": "provider_cap_current_observation_projection_v1",
+            "requested_max_chars": requested_max_chars,
+            "effective_max_chars": effective_max_chars,
+            "provider_cap_applied": effective_max_chars < requested_max_chars,
+            "model_context_window_tokens": context_window,
+            "request_output_token_reserve": int(max_tokens),
+            "input_token_upper_bound": input_upper_bound,
+            "total_reserved_tokens": total_reserved,
+            "treatment_neutral": True,
+            "include_cost_units": True,
+        }
+        self._stats["current_observation_requested_max_chars"] = (
+            requested_max_chars
+        )
+        self._stats["current_observation_effective_max_chars"] = (
+            effective_max_chars
+        )
+        return serialized, projection
 
     def _compiled_wire_tools(
         self, tool_specs: list[dict[str, Any]] | None = None

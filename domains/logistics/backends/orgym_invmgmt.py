@@ -623,7 +623,7 @@ class OrgymInvmgmtBackend:
         self._last_observation = self._env.reset()
         self._current_tick = 0
         stages = max(1, int(getattr(self._env, "num_stages", 2)) - 1)
-        self._pending_action = np.zeros(stages, dtype=np.int16)
+        self._pending_action = np.zeros(stages, dtype=np.int64)
         self._tick_records = []
         for key in self._costs:
             self._costs[key] = 0.0
@@ -665,6 +665,16 @@ class OrgymInvmgmtBackend:
                 "native_opportunity": True,
             },
             "inventory_environment_id": ORGYM_ENV_ID,
+            "cost_component_value_domains": {"inventory_asset_settlement": "signed"},
+            "inventory_asset_contract": "opening_minus_closing_at_native_unit_cost_v1",
+            "inventory_valuation": {
+                "contract": "opening_minus_closing_at_native_unit_cost_v1",
+                "opening_on_hand": _as_float_list(env.I[0]),
+                "opening_pipeline": _as_float_list(env.T[0]),
+                "closing_on_hand": inventory,
+                "closing_pipeline": pipeline,
+                "unit_cost": _as_float_list(env.unit_cost)[:len(inventory)],
+            },
             "source_denominator_key": self._source_denominator_key,
             "period": period,
             "tick": self._current_tick,
@@ -685,6 +695,14 @@ class OrgymInvmgmtBackend:
             ),
             "last_tool_effects": list(self._last_tool_effects[-4:]),
             "totals": {
+                "economic_contract": {
+                    "id": "opening_minus_closing_at_native_unit_cost_v1",
+                    "asset_units": "on_hand_plus_paid_pipeline",
+                    "settlement": "opening_value_minus_closing_value",
+                    "unit_cost": _as_float_list(env.unit_cost)[:len(inventory)],
+                    "opening_on_hand": _as_float_list(env.I[0]),
+                    "opening_pipeline": _as_float_list(env.T[0]),
+                },
                 "aggregate_demand_mw": float(
                     sum(r.aggregate_demand for r in self._tick_records)
                 ),
@@ -756,7 +774,7 @@ class OrgymInvmgmtBackend:
                 "quantity_requested": quantity,
             }
         clipped = quantity
-        action = np.zeros(n_stages, dtype=np.int16)
+        action = np.zeros(n_stages, dtype=np.int64)
         action[stage] = int(clipped)
         self._pending_action = action
         physical_tick = int(
@@ -824,7 +842,7 @@ class OrgymInvmgmtBackend:
         action = self._pending_action
         if action is None:
             action = np.zeros(
-                max(1, int(getattr(env, "num_stages", 2)) - 1), dtype=np.int16
+                max(1, int(getattr(env, "num_stages", 2)) - 1), dtype=np.int64
             )
         before_period = int(getattr(env, "period", tick) or tick)
         pending_order = (
@@ -1120,7 +1138,23 @@ class OrgymInvmgmtBackend:
         return out
 
     def ground_truth_costs(self) -> dict[str, float]:
-        return {key: round(float(value), 6) for key, value in self._costs.items()}
+        env = self._require_env()
+        period = int(env.period)
+        opening = np.asarray(env.I[0], dtype=float) + np.asarray(env.T[0], dtype=float)
+        closing = np.asarray(env.I[period], dtype=float) + np.asarray(env.T[period], dtype=float)
+        prices = np.asarray(env.unit_cost, dtype=float)[:len(opening)]
+        if (opening.shape != closing.shape or prices.shape != opening.shape
+                or not all(np.isfinite(x).all() and (x >= 0).all()
+                           for x in (opening, closing, prices))):
+            raise ValueError("invalid native inventory asset evidence")
+        # Orders are charged on native acceptance; paid in-transit stock is an
+        # asset just like on-hand stock. Receipt alone cannot change its value.
+        # Fixed native procurement prices define book value, not resale profit.
+        settlement = float(np.sum((opening - closing) * prices))
+        return {
+            **{key: round(float(value), 6) for key, value in self._costs.items()},
+            "inventory_asset_settlement": round(settlement, 6),
+        }
 
     def per_customer_unmet_units(self) -> dict[str, float]:
         return dict(self._cumulative_lost_sales)

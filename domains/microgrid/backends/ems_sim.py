@@ -28,6 +28,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
@@ -134,6 +135,9 @@ class _Load:
     current_demand_mw: float = 0.0
     shed_this_tick_mw: float = 0.0
     cumulative_shed_mwh: float = 0.0
+    voluntary_shed_mwh: float = 0.0
+    involuntary_shed_mwh: float = 0.0
+    served_mw: float = 0.0
 
 
 @dataclass
@@ -223,6 +227,8 @@ class EmsSimulator:
         self._horizon = int(scenario_seed.horizon_ticks)
         self._seed = int(scenario_seed.seed)
         self._tick_minutes = int(scenario_seed.tick_minutes)
+        if self._tick_minutes <= 0:
+            raise ValueError("EMS tick_minutes must be positive")
         cfg = scenario_seed.backend_config or {}
 
         profiles = dict(cfg.get("profiles", {}) or {})
@@ -243,14 +249,22 @@ class EmsSimulator:
         bcfg = dict(cfg.get("battery", {}) or {})
         if bcfg:
             cap = float(bcfg.get("capacity_mwh", 0.0) or 0.0)
-            init_soc = float(bcfg.get("init_soc", 0.5) or 0.5)
+            init_soc = float(bcfg.get("init_soc", 0.5))
             self._battery = _Battery(
                 capacity_mwh=cap,
                 soc_mwh=max(0.0, min(cap, init_soc * cap)),
-                max_charge_mw=float(bcfg.get("max_charge_mw", cap) or cap),
-                max_discharge_mw=float(bcfg.get("max_discharge_mw", cap) or cap),
-                efficiency=float(bcfg.get("efficiency", 0.95) or 0.95),
+                max_charge_mw=float(bcfg.get("max_charge_mw", cap)),
+                max_discharge_mw=float(bcfg.get("max_discharge_mw", cap)),
+                efficiency=float(bcfg.get("efficiency", 0.95)),
             )
+            battery = self._battery
+            if not all(
+                math.isfinite(value) and value >= 0.0
+                for value in (cap, battery.max_charge_mw, battery.max_discharge_mw)
+            ) or not (0.0 <= init_soc <= 1.0 and 0.0 < battery.efficiency <= 1.0):
+                raise ValueError(
+                    "invalid EMS battery capacity, limits, SoC or efficiency"
+                )
         else:
             self._battery = None
 
@@ -408,12 +422,12 @@ class EmsSimulator:
         served_load = 0.0
         for load in self._loads.values():
             base = load_total * load.demand_fraction
+            load.shed_this_tick_mw = min(load.shed_this_tick_mw, max(0.0, base))
             load.current_demand_mw = max(0.0, base - load.shed_this_tick_mw)
             served_load += load.current_demand_mw
 
         # 3) battery dispatch (clamped to rate + SoC).
         batt_charge, batt_discharge = self._resolve_battery()
-        self._battery_applied_mw = batt_charge - batt_discharge
 
         # 4) genset output (committed only).
         genset_out = 0.0
@@ -439,7 +453,15 @@ class EmsSimulator:
                 min(self._grid_max_import, demand_local - supply_local),
             )
 
+        # Export cannot draw energy that is unavailable after customer load.
+        if grid_import < 0.0:
+            grid_import = -min(-grid_import, max(0.0, supply_local - served_load))
         total_supply = supply_local + grid_import
+        # Loads not explicitly shed retain priority over battery charging.
+        # A requested setpoint is not delivered energy during supply shortages.
+        batt_charge = min(batt_charge, max(0.0, total_supply - served_load))
+        self._battery_applied_mw = batt_charge - batt_discharge
+        demand_local = served_load + batt_charge
         unmet = max(0.0, demand_local - total_supply)
         overgen = max(0.0, total_supply - demand_local)
         balance_error = unmet - overgen
@@ -452,8 +474,7 @@ class EmsSimulator:
                     self._battery.capacity_mwh,
                     self._battery.soc_mwh
                     + batt_charge * self._battery.efficiency * self._tick_h()
-                    - (batt_discharge / max(0.01, self._battery.efficiency))
-                    * self._tick_h(),
+                    - (batt_discharge / self._battery.efficiency) * self._tick_h(),
                 ),
             )
 
@@ -472,13 +493,22 @@ class EmsSimulator:
 
         shed_penalty = 0.0
         for load in self._loads.values():
-            if load.shed_this_tick_mw <= 0:
-                continue
+            # This aggregate backend has no network topology: an involuntary
+            # shortfall is allocated proportionally to remaining load requests.
+            # The same unserved MWh has the same tariff regardless of its cause.
+            involuntary_mw = (
+                unmet * load.current_demand_mw / served_load if served_load > 0 else 0.0
+            )
+            load.served_mw = max(0.0, load.current_demand_mw - involuntary_mw)
+            voluntary_mwh = load.shed_this_tick_mw * self._tick_h()
+            involuntary_mwh = involuntary_mw * self._tick_h()
             tariff = _SHED_TARIFF_BY_CLASS.get(
                 load.stakeholder_class, _SHED_TARIFF_DEFAULT
             )
-            shed_penalty += load.shed_this_tick_mw * tariff * self._tick_h()
-            load.cumulative_shed_mwh += load.shed_this_tick_mw * self._tick_h()
+            shed_penalty += (voluntary_mwh + involuntary_mwh) * tariff
+            load.voluntary_shed_mwh += voluntary_mwh
+            load.involuntary_shed_mwh += involuntary_mwh
+            load.cumulative_shed_mwh += voluntary_mwh + involuntary_mwh
 
         # 8) reserves.
         reserves_required = _RESERVE_TARGET_FRACTION * served_load
@@ -486,7 +516,7 @@ class EmsSimulator:
         if self._battery is not None:
             reserves_procured += min(
                 self._battery.max_discharge_mw,
-                self._battery.soc_mwh / max(0.01, self._tick_h()),
+                self._battery.soc_mwh * self._battery.efficiency / self._tick_h(),
             )
         if self._genset is not None and self._genset.available:
             reserves_procured += max(0.0, self._genset.max_mw - genset_out)
@@ -494,9 +524,10 @@ class EmsSimulator:
             reserves_procured += max(0.0, self._grid_max_import - max(0.0, grid_import))
 
         # 9) catastrophic islanding collapse → terminal sentinel.
-        critical_unmet = unmet > 0.0 and any(
+        critical_unmet = any(
             load.stakeholder_class in {"hospital", "water"}
-            and load.current_demand_mw > 0.0
+            and (load.shed_this_tick_mw + load.current_demand_mw - load.served_mw)
+            > 1e-9
             for load in self._loads.values()
         )
         battery_depleted = self._battery is None or self._battery.soc_mwh <= 1e-6
@@ -589,12 +620,12 @@ class EmsSimulator:
             return 0.0, 0.0
         sp = self._battery.setpoint_mw
         if sp > 0:  # charge
-            room = (self._battery.capacity_mwh - self._battery.soc_mwh) / max(
-                0.01, self._tick_h()
+            room = (self._battery.capacity_mwh - self._battery.soc_mwh) / (
+                self._tick_h() * self._battery.efficiency
             )
             return min(sp, self._battery.max_charge_mw, max(0.0, room)), 0.0
         if sp < 0:  # discharge
-            avail = self._battery.soc_mwh / max(0.01, self._tick_h())
+            avail = self._battery.soc_mwh * self._battery.efficiency / self._tick_h()
             return 0.0, min(-sp, self._battery.max_discharge_mw, max(0.0, avail))
         return 0.0, 0.0
 
@@ -956,6 +987,9 @@ class EmsSimulator:
                 "criticality": load.criticality,
                 "current_demand_mw": round(load.current_demand_mw, 3),
                 "cumulative_shed_mwh": round(load.cumulative_shed_mwh, 3),
+                "voluntary_shed_mwh": round(load.voluntary_shed_mwh, 3),
+                "involuntary_shed_mwh": round(load.involuntary_shed_mwh, 3),
+                "served_mw": round(load.served_mw, 3),
             }
         last = self._tick_records[-1] if self._tick_records else None
         totals = {
@@ -988,7 +1022,13 @@ class EmsSimulator:
         prod = sum(r.production_cost for r in self._tick_records)
         startup = sum(r.startup_cost for r in self._tick_records)
         shed = sum(r.shed_penalty for r in self._tick_records)
-        balance = sum(abs(r.balance_error_mw) for r in self._tick_records) * 200.0
+        # Shortage already contributes stakeholder service loss above.
+        # Only surplus energy retains the generic imbalance tariff.
+        balance = (
+            sum(max(0.0, -r.balance_error_mw) for r in self._tick_records)
+            * self._tick_h()
+            * 200.0
+        )
         return {
             "production_cost": round(prod, 3),
             "startup_cost": round(startup, 3),
@@ -1006,7 +1046,11 @@ class EmsSimulator:
         """
         hz = self._honest_zero_keys
         rows: list[dict[str, Any]] = []
+        collapsed = False
         for r in self._tick_records:
+            # Native collapse is latched; ordinary imbalance and horizon end
+            # are not irreversible failures. Include first final-tick collapse.
+            collapsed = collapsed or r.collapsed
             row = {
                 "tick": r.tick,
                 "aggregate_demand_mw": r.aggregate_demand_mw,
@@ -1024,6 +1068,7 @@ class EmsSimulator:
                 "n_voltage_violations": 0,
                 "n_disconnected_lines": 0,
                 "done": bool(r.done and r.tick < self._horizon - 1),
+                "catastrophic_failure": bool(collapsed),
             }
             for k in hz:
                 if k in row:

@@ -58,6 +58,8 @@ def register_logistics_tools(
         for entity_id, row in visible_entities.items()
         if row.get("kind") == "vehicle"
     )
+    if hasattr(backend, "vehicle_ids"):
+        vehicle_ids = backend.vehicle_ids
     vehicle_id_schema: dict[str, Any] = {"type": "string"}
     if vehicle_ids:
         vehicle_id_schema["enum"] = vehicle_ids
@@ -150,8 +152,10 @@ def register_logistics_tools(
         ToolSpec(
             name="hire_spot_carrier",
             description=(
-                "Procure external capacity for a region at a premium cost "
-                "(raises procured standby). Acknowledged immediately "
+                "Procure a carrier vehicle at the depot at a premium cost. "
+                "The arrival event gives its vehicle_id for route assignment. "
+                "The region is a request label, not a modeled service boundary. "
+                "Acknowledged immediately "
                 "(status=pending, effect_due_tick=t+2); capacity enters two "
                 "ticks later."
             ),
@@ -179,8 +183,9 @@ def register_logistics_tools(
         ToolSpec(
             name="hold_order",
             description=(
-                "Defer an order to a later wave (until_tick). DOMAIN_REJECTED "
-                "if held past a hard delivery window."
+                "Defer an order to a later dispatch wave (until_tick). "
+                "Unfulfilled demand continues to accrue after due_tick. "
+                "Native source time windows are not modeled."
             ),
             parameters={
                 "type": "object",
@@ -203,7 +208,8 @@ def register_logistics_tools(
         ToolSpec(
             name="drop_order",
             description=(
-                "Abandon a delivery (the shed analog → equity/ethics). "
+                "Cancel a route stop. Cancellation adds a penalty and does not "
+                "erase the unfulfilled delivery obligation or its unmet-demand cost. "
                 "DOMAIN_REJECTED if the order is already served. Dropping a "
                 "high-criticality (medical/perishable) order moves customer "
                 "trust negatively in last-mile scenarios."
@@ -228,9 +234,9 @@ def register_logistics_tools(
         ToolSpec(
             name="query_eta",
             description=(
-                "Query a NOISED ETA to a vehicle's next stop (documented "
-                "bias/variance; never ground truth). Paid query. Also "
-                "discovers a hidden breakdown on that vehicle. Use the exact "
+                "Inspect a vehicle and discover hidden breakdowns. Paid query. "
+                "Native travel ETA is unavailable in the dispatch-wave model; "
+                "the response provides next stop and service quota. Use the exact "
                 "vehicle ID shown in the observation (for example v0), not "
                 "an invented alias such as vehicle_0."
             ),

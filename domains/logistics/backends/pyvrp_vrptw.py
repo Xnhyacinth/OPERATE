@@ -1,10 +1,11 @@
 """
 domains.logistics.backends.pyvrp_vrptw — VRPTW dispatch backend.
 
-Routing with delivery time windows (Solomon / Gehring-Homberger). Primary
-stressor: traffic delay + tight windows → time-window violations
-(``n_voltage_violations`` carries the time-window-breach count). All 14
-keys are real (standby + reserves modeled).
+Source-backed dispatch-wave model using Solomon / Gehring-Homberger demand
+and coordinates. Native travel duration and time-window feasibility are not
+implemented: runtime execution_contract marks these capabilities inapplicable.
+The historical backend identifier is retained for artifact identity only.
+
 """
 
 from __future__ import annotations

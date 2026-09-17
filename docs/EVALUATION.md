@@ -2,8 +2,8 @@
 
 OPERATE scores verified environment outcomes, not prose similarity or a gold
 tool sequence. The promoted `operate` release binds qualification
-artifacts to scoring `0.15.0`. The live headline is `SCORING_VERSION = 0.18.0`.
-Frozen 0.15.0–0.17.0 identities are not rewritten; new evaluations use 0.18.0.
+artifacts to scoring `0.15.0`. The live headline is `SCORING_VERSION = 0.20.0`.
+Frozen 0.15.0–0.19.0 identities are not rewritten; new evaluations use 0.20.0.
 
 The 769-row, 502-physical-source Core is data/code ready for formal shards.
 Provider runs are still pending, so this readiness does not make the release

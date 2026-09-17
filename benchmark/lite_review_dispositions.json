@@ -4,7 +4,7 @@
   "selection_algorithm": "reviewed_horizon_balanced_v11",
   "parent_selection_algorithm": "quality_gated_cpu_headroom_hy3_v9",
   "historical_parent_suite_sha256": "48b5cec6b0818975e004896860cea31428efdb13826a660961ed8bb8fb6a1a75",
-  "parent_quality_evidence_sha256": "0a5a020715b94475543a272b5027c14fe222ced95a184f1bac0feb62b21bce7f",
+  "parent_quality_evidence_sha256": "b6ea51c0dbfe47d0e00fad0ad3ca3c2b81d9a99419594f4c1e7e5c0cc8e78a80",
   "model_outcomes_used_for_selection": true,
   "new_model_score_thresholds_used": false,
   "scope": "Frozen v9 development membership with a routine 192-tick budget and the shortest long-horizon representative per backend/family/difficulty_mode stratum. The cutoff is an efficiency budget, not a scientific definition of long-horizon agency. Native ticks are not wall-time or API-call guarantees. Core membership is unchanged.",

@@ -803,6 +803,7 @@ class AlibabaTraceBackend:
                     }
                 )
 
+        self._reconcile_running_capacity()
         self._schedule_queued_jobs()
         for job in self._jobs.values():
             if job.status == "queued":
@@ -1080,6 +1081,42 @@ class AlibabaTraceBackend:
             gpu_capacity = min(gpu_capacity, self._source_gpu_reservation_limit)
         return (gpu_capacity, self._cpu_capacity)
 
+    def _preempt_running_job(self, job: _Job) -> float:
+        elapsed = max(0, job.duration_ticks - job.remaining_ticks)
+        waste = float(elapsed) * max(1.0, job.gpu_units)
+        self._preemption_waste_total += waste
+        job.preemptions += 1
+        job.remaining_ticks = job.duration_ticks
+        job.status = "queued"
+        return waste
+
+    def _reconcile_running_capacity(self) -> None:
+        """Release unavailable resources before scheduling the next interval.
+
+        Completion above accounts for the preceding interval. Capacity loss or
+        lease expiry cannot let surviving jobs retain nonexistent allocations.
+        Forced preemption uses the same restart semantics as explicit preemption.
+        """
+        gpu_capacity, cpu_capacity = self._available_capacity()
+        used_gpu = used_cpu = 0.0
+        for job in self._ordered_jobs(status="running"):
+            if (used_gpu + job.gpu_units <= gpu_capacity + 1e-9
+                    and used_cpu + job.cpu_units <= cpu_capacity + 1e-9):
+                used_gpu += job.gpu_units
+                used_cpu += job.cpu_units
+                continue
+            waste = self._preempt_running_job(job)
+            self._events.append({
+                "type": "job_capacity_preempted",
+                "event_class": "lifecycle",
+                "origin": "endogenous_completion",
+                "decision_required": False,
+                "actionable": False,
+                "tick": self._tick,
+                "job_id": job.job_id,
+                "wasted_gpu_ticks": waste,
+            })
+
     def _schedule_queued_jobs(self) -> None:
         running = [job for job in self._jobs.values() if job.status == "running"]
         used_gpu = sum(job.gpu_units for job in running)
@@ -1307,12 +1344,7 @@ class AlibabaTraceBackend:
             if job is None or job.status != "running":
                 return {"_status": "error", "error": "job_not_running"}
             before_digest = self._action_state_digest()
-            elapsed = max(0, job.duration_ticks - job.remaining_ticks)
-            waste = float(elapsed) * max(1.0, job.gpu_units)
-            self._preemption_waste_total += waste
-            job.preemptions += 1
-            job.remaining_ticks = job.duration_ticks
-            job.status = "queued"
+            waste = self._preempt_running_job(job)
             token = self._queue_immediate_action_effect(
                 tool_name=name,
                 requested_action=dict(args),

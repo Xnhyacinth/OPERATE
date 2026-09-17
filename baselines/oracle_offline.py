@@ -1292,6 +1292,7 @@ class OracleOfflineAgent(BaselineAgent):
             == "microgrid.native_state_loss.v1"
         ):
             return self._native_state_loss_oracle_calls(
+                observation=observation,
                 gt_entities=gt_entities,
                 avail_tools=avail_tools,
             )
@@ -1592,6 +1593,7 @@ class OracleOfflineAgent(BaselineAgent):
     def _native_state_loss_oracle_calls(
         self,
         *,
+        observation: dict[str, Any],
         gt_entities: dict[str, Any],
         avail_tools: set[str],
     ) -> list[ToolCall]:
@@ -1606,10 +1608,21 @@ class OracleOfflineAgent(BaselineAgent):
         requirements = backend_config.get("task_requirements") or {}
         milestones = requirements.get("ordered_tool_milestones") or []
         current_tick = int(getattr(self._env, "tick", max(0, self._tick - 1)))
+        failed_receipts = {
+            str(row.get("name")): row
+            for row in observation.get("__last_tool_results__") or []
+            if isinstance(row, dict)
+            and row.get("ok") is False
+            and row.get("error_code") in {"INJECTED_FAILURE", "COOLDOWN"}
+            and row.get("call_id")
+        }
         for milestone in milestones:
             if not isinstance(milestone, dict):
                 continue
             tool = str(milestone.get("tool") or "")
+            failed = failed_receipts.get(tool)
+            if failed is not None:
+                self._native_state_loss_milestones_done.discard(tool)
             if not tool or tool in self._native_state_loss_milestones_done:
                 continue
             if tool not in avail_tools:
@@ -1625,13 +1638,12 @@ class OracleOfflineAgent(BaselineAgent):
                     delay_ticks = max(0, int(imperfection.get("delay_ticks", 0)))
                 except (TypeError, ValueError):
                     delay_ticks = 0
-            # Preserve the declared lower-bound request tick when its delayed
-            # effect is still legal; only pull the request earlier when needed
-            # to meet a narrow physical-effect window.
-            not_before = max(0, effect_not_before)
-            not_after = effect_not_after - delay_ticks
-            if not_before > not_after:
-                not_before = max(0, effect_not_before - delay_ticks)
+            # Request at the earliest legal physical outcome, preserving room
+            # for receipt-linked recovery before later obligations are due.
+            # EMS records outcomes one completed-step boundary after application.
+            effect_latency = delay_ticks + 1
+            not_before = max(0, effect_not_before - effect_latency)
+            not_after = effect_not_after - effect_latency
             if not_after < 0 or not_before > not_after:
                 return []
             if current_tick < not_before:
@@ -1675,18 +1687,12 @@ class OracleOfflineAgent(BaselineAgent):
             else:
                 return []
             self._native_state_loss_milestones_done.add(tool)
-            if tool == "set_battery_dispatch":
-                return [
-                    self._microgrid_battery_dispatch_call(
-                        p_mw=float(args["p_mw"]),
-                        key_prefix="orc_native_state_loss_battery",
-                    )
-                ]
             return [
                 ToolCall(
                     name=tool,
                     args=args,
                     idempotency_key=f"orc_native_state_loss_{tool}_{current_tick}",
+                    depends_on_call_ids=[str(failed["call_id"])] if failed else None,
                 )
             ]
         return []

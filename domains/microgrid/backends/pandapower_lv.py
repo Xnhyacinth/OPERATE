@@ -88,6 +88,9 @@ class _LvTickRecord:
     n_overloads: int
     n_voltage_violations: int
     n_disconnected_lines: int
+    unserved_energy_mwh: float = 0.0
+    grid_exchange_mw: float = 0.0
+    network_loss_mw: float = 0.0
     converged: bool = True
     done: bool = False
     realized_events: list[dict[str, Any]] = field(default_factory=list)
@@ -144,6 +147,7 @@ class PandapowerLvBackend:
         self._storage_p_applied = 0.0
         self._storage_capacity_mwh = 0.05
         self._storage_energy_mwh = 0.025
+        self._storage_opening_energy_mwh = 0.025
         self._storage_max_charge_mw = 0.025
         self._storage_max_discharge_mw = 0.025
         self._storage_efficiency = 0.95
@@ -302,6 +306,7 @@ class PandapowerLvBackend:
         ):
             raise ValueError("invalid LV battery capacity, SoC, rate, or efficiency")
         self._storage_energy_mwh = self._storage_capacity_mwh * init_soc
+        self._storage_opening_energy_mwh = self._storage_energy_mwh
         if self._base_sgen_p_mw:
             worst = max(self._base_sgen_p_mw, key=lambda k: self._base_sgen_p_mw[k])
             bus = int(self._net.sgen.bus.iloc[worst])
@@ -442,17 +447,16 @@ class PandapowerLvBackend:
     def _shed_load(self, args: dict[str, Any]) -> dict[str, Any]:
         lid = str(args.get("load_id", ""))
         mw = float(args.get("mw", 0.0))
-        if mw <= 0:
+        if not math.isfinite(mw) or mw <= 0:
             return {"_status": "error", "error": "non_positive_shed", "mw": mw}
         entry = self._loads.get(lid)
         if entry is None:
             return {"_status": "error", "error": "unknown_load", "load_id": lid}
         entry["shed_this_tick_mw"] += mw
-        tick_h = self._tick_minutes / 60.0
-        self._cumulative_shed_mwh[lid] += mw * tick_h
         return {
             "load_id": lid,
             "shed_mw": round(mw, 4),
+            "queued": True,
             "stakeholder_class": entry["stakeholder_class"],
             "criticality": entry["criticality"],
         }
@@ -557,14 +561,16 @@ class PandapowerLvBackend:
         for idx, base in self._base_load_p_mw.items():
             lid = self._idx_to_load_id.get(idx, "")
             shed = float(self._loads.get(lid, {}).get("shed_this_tick_mw", 0.0))
-            new_p = max(
-                0.0,
-                base * diurnal * self._active_load_multiplier - shed,
-            )
+            available = base * diurnal * self._active_load_multiplier
+            realized_shed = min(shed, available)
+            new_p = available - realized_shed
+            if lid:
+                self._loads[lid]["shed_this_tick_mw"] = realized_shed
             self._net.load.at[idx, "p_mw"] = new_p
             q_base = self._base_load_q_mvar.get(idx, 0.0)
             self._net.load.at[idx, "q_mvar"] = (
                 q_base * diurnal * self._active_load_multiplier
+                * (new_p / available if available > 0 else 0.0)
             )
 
         # PV: locked NSRDB factor (new candidates) or legacy solar bell.
@@ -579,7 +585,9 @@ class PandapowerLvBackend:
                 new_p = cap
             self._net.sgen.at[idx, "p_mw"] = new_p
             if idx in self._der_q_targets and "q_mvar" in self._net.sgen:
-                self._net.sgen.at[idx, "q_mvar"] = self._der_q_targets[idx]
+                self._net.sgen.at[idx, "q_mvar"] = (
+                    0.0 if idx in self._failed_sgen_indices else self._der_q_targets[idx]
+                )
 
         if self._storage_idx is not None and len(self._net.storage):
             if self._storage_p_target >= 0:
@@ -591,9 +599,6 @@ class PandapowerLvBackend:
                     self._storage_max_charge_mw,
                     max(0.0, feasible),
                 )
-                self._storage_energy_mwh += (
-                    self._storage_p_applied * self._storage_efficiency * tick_h
-                )
             else:
                 feasible = (
                     self._storage_energy_mwh * self._storage_efficiency / tick_h
@@ -604,19 +609,9 @@ class PandapowerLvBackend:
                     max(0.0, feasible),
                 )
                 self._storage_p_applied = -discharge
-                self._storage_energy_mwh -= (
-                    discharge / self._storage_efficiency * tick_h
-                )
-            self._storage_energy_mwh = min(
-                self._storage_capacity_mwh,
-                max(0.0, self._storage_energy_mwh),
-            )
             self._net.storage.at[
                 self._storage_idx, "p_mw"
             ] = self._storage_p_applied
-            self._net.storage.at[self._storage_idx, "soc_percent"] = (
-                100.0 * self._storage_energy_mwh / self._storage_capacity_mwh
-            )
 
         converged = True
         try:
@@ -624,9 +619,33 @@ class PandapowerLvBackend:
         except Exception:
             converged = False
 
+        if self._storage_idx is not None and len(self._net.storage):
+            # A setpoint is not delivered energy: disconnected storage has
+            # zero native power, and a failed solve certifies no transfer.
+            native_power = (
+                float(self._net.res_storage.at[self._storage_idx, "p_mw"])
+                if converged else 0.0
+            )
+            self._storage_p_applied = native_power if math.isfinite(native_power) else 0.0
+            self._storage_energy_mwh += (
+                self._storage_p_applied * self._storage_efficiency * tick_h
+                if self._storage_p_applied >= 0
+                else self._storage_p_applied / self._storage_efficiency * tick_h
+            )
+            self._storage_energy_mwh = min(
+                self._storage_capacity_mwh, max(0.0, self._storage_energy_mwh)
+            )
+            self._net.storage.at[self._storage_idx, "soc_percent"] = (
+                100.0 * self._storage_energy_mwh / self._storage_capacity_mwh
+            )
+
         if converged:
-            demand_mw = float(self._net.load.p_mw.sum())
-            gen_mw = float(self._net.sgen.p_mw.sum()) + float(
+            demand_mw = float(self._net.res_load.p_mw.sum())
+            grid_exchange_mw = float(self._net.res_ext_grid.p_mw.sum())
+            network_loss_mw = float(self._net.res_line.pl_mw.sum()) + float(
+                self._net.res_trafo.pl_mw.sum()
+            )
+            gen_mw = float(self._net.res_sgen.p_mw.sum()) + float(
                 self._net.res_ext_grid.p_mw.sum()
                 if "p_mw" in self._net.res_ext_grid.columns
                 else 0.0
@@ -642,32 +661,48 @@ class PandapowerLvBackend:
         else:
             last = self._tick_records[-1] if self._tick_records else None
             demand_mw = float(self._net.load.p_mw.sum())
-            gen_mw = last.aggregate_generation_mw if last else 0.0
+            gen_mw = 0.0
+            demand_mw = 0.0
+            grid_exchange_mw = 0.0
+            network_loss_mw = 0.0
             rho_max = last.rho_max if last else 2.0
             n_overload = last.n_overloads if last else len(self._net.line)
             n_v_viol = last.n_voltage_violations if last else len(self._net.bus)
             n_disc = last.n_disconnected_lines if last else 0
 
+        # Count unmet native demand once, regardless of whether it was
+        # voluntarily shed, disconnected, or uncertified after a failed solve.
         shed_penalty = 0.0
-        for entry in self._loads.values():
-            sh = float(entry.get("shed_this_tick_mw", 0.0))
-            if sh <= 0:
-                continue
+        unserved_energy_mwh = 0.0
+        for idx, base in self._base_load_p_mw.items():
+            requested = base * diurnal * self._active_load_multiplier
+            delivered = float(self._net.res_load.at[idx, "p_mw"]) if converged else 0.0
+            delivered = delivered if math.isfinite(delivered) else 0.0
+            unmet = max(0.0, requested - delivered) * tick_h
+            unserved_energy_mwh += unmet
+            lid = self._idx_to_load_id.get(idx)
+            entry = self._loads.get(lid, {})
+            if lid:
+                self._cumulative_shed_mwh[lid] += unmet
             tariff = _SHED_TARIFF_BY_CLASS.get(
                 str(entry.get("stakeholder_class", "")), _SHED_TARIFF_DEFAULT
             )
-            shed_penalty += sh * tariff * tick_h
+            shed_penalty += unmet * tariff
 
-        prod_cost = self.PRODUCTION_COST_PER_MWH * demand_mw * tick_h
+        # Meter imported AC energy, including storage charging and native
+        # network losses. No export credit is declared by this tariff.
+        prod_cost = self.PRODUCTION_COST_PER_MWH * max(0.0, grid_exchange_mw) * tick_h
         prod_cost += n_v_viol * self.VOLTAGE_VIOLATION_COST_PER_TICK
         prod_cost += n_overload * self.OVERLOAD_COST_PER_TICK
         prod_cost += n_disc * self.DISCONNECTION_COST_PER_LINE_TICK
 
         reserves_required = self.RESERVE_TARGET_FRACTION_OF_DEMAND * demand_mw
         # ext-grid acts as slack → effectively ample headroom.
-        reserves_procured = reserves_required + 0.01
+        reserves_procured = (
+            reserves_required + 0.01 if converged and unserved_energy_mwh <= 1e-9 else 0.0
+        )
 
-        balance_error = gen_mw - demand_mw
+        balance_error = gen_mw - demand_mw - self._storage_p_applied - network_loss_mw
         source_event = self._source_schedule_event(
             current_tick=current_tick,
             demand_mw=demand_mw,
@@ -687,6 +722,9 @@ class PandapowerLvBackend:
             n_overloads=n_overload,
             n_voltage_violations=n_v_viol,
             n_disconnected_lines=n_disc,
+            unserved_energy_mwh=unserved_energy_mwh,
+            grid_exchange_mw=grid_exchange_mw,
+            network_loss_mw=network_loss_mw,
             converged=converged,
             done=current_tick >= self._horizon - 1,
             realized_events=[
@@ -990,6 +1028,16 @@ class PandapowerLvBackend:
                     entities[f"bus_{b}"] = {"kind": "bus", "vm_pu": round(vm, 4)}
         last = self._tick_records[-1] if self._tick_records else None
         totals = {
+            "economic_contract": {
+                "id": "fixed_reset_deliverable_energy_v1",
+                "settlement": "(opening-closing)*eta*price",
+                "energy_unit": "MWh",
+                "reference_price": self.PRODUCTION_COST_PER_MWH,
+                "eta": self._storage_efficiency,
+                "opening": self._storage_opening_energy_mwh,
+                "grid_import_price": self.PRODUCTION_COST_PER_MWH,
+                "grid_export_credit": 0.0,
+            },
             "demand_mw": float(self._net.load.p_mw.sum()),
             "der_generation_mw": float(self._net.sgen.p_mw.sum()),
             "rho_max": last.rho_max if last else 0.0,
@@ -1022,6 +1070,14 @@ class PandapowerLvBackend:
             "entities": entities,
             "totals": totals,
             "source_profile": source_profile,
+            "cost_component_value_domains": {"terminal_storage_settlement": "signed"},
+            "storage_valuation": {
+                "contract": "fixed_reset_deliverable_energy_v1",
+                "reference_price_per_mwh": self.PRODUCTION_COST_PER_MWH,
+                "discharge_efficiency": self._storage_efficiency,
+                "opening_energy_mwh": self._storage_opening_energy_mwh,
+                "closing_energy_mwh": self._storage_energy_mwh,
+            },
         }
 
     # ── Cost roll-up / scoring ───────────────────────────────────────────
@@ -1048,6 +1104,10 @@ class PandapowerLvBackend:
         shed = sum(r.shed_penalty for r in self._tick_records)
         return {
             "production_cost": round(production, 3),
+            "terminal_storage_settlement": (
+                (self._storage_opening_energy_mwh - self._storage_energy_mwh)
+                * self._storage_efficiency * self.PRODUCTION_COST_PER_MWH
+            ),
             "startup_cost": 0.0,
             "shed_penalty": round(shed, 3),
             "voltage_violation_cost": round(volt, 3),
@@ -1076,9 +1136,14 @@ class PandapowerLvBackend:
                 "n_voltage_violations": int(r.n_voltage_violations),
                 "n_disconnected_lines": int(r.n_disconnected_lines),
                 "done": bool(r.done and r.tick < self._horizon - 1),
+                "unserved_energy_mwh": r.unserved_energy_mwh,
+                "grid_exchange_mw": r.grid_exchange_mw,
+                "network_loss_mw": r.network_loss_mw,
                 "converged": bool(r.converged),
                 "catastrophic_failure": bool(
-                    not r.converged or (r.done and r.tick < self._horizon - 1)
+                    not r.converged
+                    or (r.aggregate_demand_mw <= 1e-9 and r.unserved_energy_mwh > 1e-9)
+                    or (r.done and r.tick < self._horizon - 1)
                 ),
             }
             for r in self._tick_records
