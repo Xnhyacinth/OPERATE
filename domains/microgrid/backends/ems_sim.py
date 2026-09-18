@@ -78,6 +78,16 @@ def _det_hash(seed: int, tick: int, key: str) -> int:
     return int.from_bytes(hashlib.sha256(body).digest()[:4], "big") % 1000
 
 
+def _seed_identity_token(seed_id: str) -> str:
+    """Non-reversible tag for ``seed_id`` in model-visible event ids.
+
+    ``seed_id`` is the difficulty path (``domain/family/mode/level/…``), so it
+    must never reach the model. The truncated digest keeps event ids stable
+    and collision-resistant without disclosing the path.
+    """
+    return hashlib.sha256(str(seed_id).encode("utf-8")).hexdigest()[:16]
+
+
 def _semantic_digest(value: Any) -> str:
     return hashlib.sha256(
         json.dumps(
@@ -1062,8 +1072,13 @@ class EmsSimulator:
                 "startup_cost": r.startup_cost,
                 "shed_penalty": r.shed_penalty,
                 # pymgrid is an aggregate energy-balance EMS — no AC/DC power
-                # flow → the four power-flow keys are honestly 0 (§7).
+                # flow → the four power-flow keys are honestly 0 (§7), and the
+                # utilisation dimension is declared inapplicable so the scorer
+                # never reads the placeholder zero as a measured loading.
                 "rho_max": 0.0,
+                "utilisation_inapplicable_reason": (
+                    "aggregate_energy_balance_ems_has_no_native_line_loading_limit"
+                ),
                 "n_overloads": 0,
                 "n_voltage_violations": 0,
                 "n_disconnected_lines": 0,
@@ -1195,7 +1210,10 @@ class EmsSimulator:
         value = max(relative_delta.values(), default=0.0)
         return {
             "type": "source_profile_interval",
-            "event_id": (f"ems-source-profile:{self._seed_obj.seed_id}:{record.tick}"),
+            "event_id": (
+                "ems-source-profile:"
+                f"{_seed_identity_token(self._seed_obj.seed_id)}:{record.tick}"
+            ),
             "origin": "source_schedule",
             "event_class": "telemetry",
             "tick": record.tick,

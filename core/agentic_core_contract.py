@@ -678,22 +678,25 @@ def validate_agentic_row(
         ],
         horizon=horizon,
     )
-    delegated_plan_opportunity_ticks = _runtime_ticks(
+    # The tick list is the authoritative delegation evidence; the legacy
+    # scalar flag is only a fallback for payloads that predate the ticks.
+    validated_delegation_ticks = _runtime_ticks(
         evidence.get("delegated_plan_opportunity_ticks"), horizon=horizon
+    )
+    delegation_observed = bool(
+        validated_delegation_ticks
+        or evidence.get("valid_plan_delegation_observed")
     )
     delegation_after_change_observed = any(
         event_tick < delegation_tick
         for event_tick in material_event_ticks
-        for delegation_tick in delegated_plan_opportunity_ticks
+        for delegation_tick in validated_delegation_ticks
     )
     difficulty_level = str(source_row.get("difficulty_level") or "").lower()
     active_replanning_required = difficulty_level in {"high", "extreme"}
     adaptive_control_observed = bool(
         evidence.get("adaptive_replanning_observed")
-        or (
-            evidence.get("valid_plan_delegation_observed")
-            and delegation_after_change_observed
-        )
+        or (delegation_observed and delegation_after_change_observed)
     )
     # Every release row must show a concrete supervision edge.  A scheduled
     # review or periodic scan is preferred; continuous native-control rows may

@@ -86,6 +86,16 @@ def _stable_digest(value: Any) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
+def _seed_identity_token(seed_id: str) -> str:
+    """Non-reversible tag for ``seed_id`` in model-visible event ids.
+
+    ``seed_id`` is the difficulty path (``domain/family/mode/level/…``), so it
+    must never reach the model. The truncated digest keeps event ids stable
+    and collision-resistant without disclosing the path.
+    """
+    return hashlib.sha256(str(seed_id).encode("utf-8")).hexdigest()[:16]
+
+
 def resolve_alibaba_source_window(
     *,
     provenance_files: list[str],
@@ -1215,7 +1225,8 @@ class AlibabaTraceBackend:
             before_digest = self._source_state_digest()
             duration = max(1, int(perturbation.duration_ticks))
             event_id = (
-                f"datacenter:{perturbation.kind}:{self._seed_obj.seed_id}:"
+                f"datacenter:{perturbation.kind}:"
+                f"{_seed_identity_token(self._seed_obj.seed_id)}:"
                 f"{self._tick}:{ordinal}"
             )
             if perturbation.kind == "capacity_reduction":
@@ -1960,13 +1971,24 @@ class AlibabaTraceBackend:
                     "balance_error_mw": max(
                         0.0, record.gpu_demand - record.gpu_allocated
                     ),
+                    # The (demand, capacity) pair is a fleet capacity-stress
+                    # family flag, not a spinning-reserve balance: there is no
+                    # reserve-procurement task on this backend (no scenario
+                    # requires the ``reserve_gpu_capacity`` actuator), and the
+                    # difference is already carried by ``balance_error_mw`` and
+                    # by the ``safety_violation_severity`` breach signal. Declare
+                    # it so ``safety_violation`` stops scoring it as a second
+                    # reserve shortfall.
                     "reserves_required_mw": record.gpu_demand,
                     "reserves_procured_mw": record.gpu_capacity,
+                    "reserve_semantics": "demand_capacity_flag",
                     "production_cost": record.compute_cost,
                     "startup_cost": record.reserve_capacity_cost,
                     "shed_penalty": (
                         record.queue_wait_cost + record.sla_violation_cost
                     ),
+                    # Real per-tick utilisation: allocated / available GPU
+                    # capacity, measured natively by this backend.
                     "rho_max": (record.gpu_allocated / max(1.0, record.gpu_capacity)),
                     "n_overloads": 0,
                     "n_voltage_violations": 0,

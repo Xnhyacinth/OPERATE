@@ -57,6 +57,14 @@ The resulting 141 rows retain 204/204 parent features and six domains;
 this does not establish complete Core or scientific coverage. Traffic remains
 outside Lite. Native ticks do not bound provider latency or call count, and
 192 ticks is a budget cutoff, not a definition of long-horizon agency.
+
+Lite's long-tick bands are starved: 121/141 rows are at most 32 ticks, the
+97–192 band holds 1 row and the 193+ band 2 rows, and only 2 rows exceed 128
+ticks. Lite cannot support a long-horizon capability, memory-retention or
+significance claim. Any such claim needs Core, where 54/769 rows run above 192
+ticks, and the matched long-task diagnostic slice. Report the missing coverage
+rather than filling it with zeros.
+
 Historical zero/ceiling scores affected by measurement defects are not new
 exclusion evidence. Decisions are in
 `benchmark/lite_review_dispositions.json`.

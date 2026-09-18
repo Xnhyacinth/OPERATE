@@ -8,7 +8,7 @@
     <a href="https://huggingface.co/datasets/Xnhyacinth/OPERATE"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-Full%20%7C%20Lite-FFD21E" alt="Hugging Face dataset: Full and Lite" /></a>
     <a href="https://huggingface.co/collections/Xnhyacinth/operate-6a9ed166a0c8cd671910ca1a"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Collection-OPERATE-FFD21E" alt="Hugging Face collection: OPERATE" /></a>
     <img src="https://img.shields.io/badge/Full-769%20scenarios-0F766E" alt="Full: 769 scenarios" />
-    <img src="https://img.shields.io/badge/Lite-144%20scenarios-0EA5A4" alt="Lite: 144 scenarios" />
+    <img src="https://img.shields.io/badge/Lite-141%20scenarios-0EA5A4" alt="Lite: 141 scenarios" />
     <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white" alt="Python 3.10 through 3.14" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/Code-MIT-blue" alt="Code license: MIT" /></a>
   </p>
@@ -34,8 +34,8 @@ selectable historical datasets.
 
 ## Current qualification and provider status
 
-The current Core qualifies at scoring `0.15.0` and scores live runs at `0.17.0`,
-769 Core rows across 502 physical sources and 144 Lite rows across 85 sources.
+The current Core qualifies at scoring `0.15.0` and scores live runs at `0.20.0`,
+769 Core rows across 502 physical sources and 141 Lite rows across 82 sources.
 Qualification records describe the code used for their original checks. Public
 users can run their own checkout; ordinary resume preserves completed cells
 when only code changes, while recording each attempt's actual implementation. Formal logical/realtime provider runs and leaderboard
@@ -185,7 +185,7 @@ uv run python run_full.py \
 
 ## Run OPERATE-Lite
 
-`OPERATE-Lite` contains 144 exact Core-locked rows from 85 physical sources.
+`OPERATE-Lite` contains 141 exact Core-locked rows from 82 physical sources.
 Selection uses wait/greedy/oracle CPU baselines, four-model Lite 0.17 scores,
 and Hy3 Full ok episodes, then keeps only hardness-eligible rows. Saturated,
 LLM-easy, Hy3-easy, plateau, and unrankable dead cells are dropped, including

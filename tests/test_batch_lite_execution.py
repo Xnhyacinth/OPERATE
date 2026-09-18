@@ -33,6 +33,53 @@ def _bind_saved_artifacts(job: dict, row: dict) -> dict:
     return row
 
 
+def test_lite_lineage_defaults_to_abort_and_rejects_fallback() -> None:
+    profile = batch._provider_failure_profile(formal_run=False, lite_lineage=True)
+    assert profile == {
+        "provider_failure_policy": "abort",
+        "max_consecutive_provider_failures": 1,
+    }
+    with pytest.raises(ValueError, match="OPERATE-Lite lineage"):
+        batch._provider_failure_profile(
+            formal_run=False,
+            lite_lineage=True,
+            provider_failure_policy="compat_fallback",
+        )
+    config = batch._batch_llm_config(
+        model="test-model",
+        temperature=0.0,
+        args=argparse.Namespace(
+            api_key_env="TEST_PROVIDER_KEY",
+            api_mode="chat_completions",
+            formal_run=False,
+            lite_lineage_suite=Path("lite_suite.json"),
+        ),
+        base_url="https://example.test/v1",
+        api_version=None,
+        responses_base_url=None,
+    )
+    assert config.provider_failure_policy == "abort"
+    assert config.max_consecutive_provider_failures == 1
+
+
+def test_lite_execution_refuses_dirty_tree_except_dry_run() -> None:
+    dirty = {"git_metadata_available": True, "git_dirty": True}
+    clean = {"git_metadata_available": True, "git_dirty": False}
+    missing = {"git_metadata_available": False, "git_dirty": None}
+    assert batch._lite_dirty_tree_execution_error(
+        dry_run=False, finalize_only=False, git_metadata=dirty,
+    )
+    assert batch._lite_dirty_tree_execution_error(
+        dry_run=False, finalize_only=False, git_metadata=missing,
+    )
+    assert batch._lite_dirty_tree_execution_error(
+        dry_run=True, finalize_only=False, git_metadata=dirty,
+    ) is None
+    assert batch._lite_dirty_tree_execution_error(
+        dry_run=False, finalize_only=False, git_metadata=clean,
+    ) is None
+
+
 def test_diagnostic_abort_profile_reaches_worker_config_and_identity() -> None:
     args = argparse.Namespace(
         api_key_env="TEST_PROVIDER_KEY",
@@ -247,6 +294,8 @@ def test_provider_thinking_configuration_survives_workers_and_changes_identity()
     ["--max-consecutive-provider-failures", "0"],
     ["--formal-run", "--provider-failure-policy", "compat_fallback"],
     ["--formal-run", "--max-consecutive-provider-failures", "2"],
+    ["--lite-lineage-suite", "lite.json", "--provider-failure-policy", "compat_fallback"],
+    ["--lite-lineage-suite", "lite.json", "--max-consecutive-provider-failures", "2"],
 ])
 def test_invalid_controls_fail_before_initializing_output(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, flags: list[str],

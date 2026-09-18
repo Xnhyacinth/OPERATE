@@ -506,6 +506,59 @@ def score_economic_cost(
     )
 
 
+#: Optional per-tick declaration of what a record's ``reserves_required_mw`` /
+#: ``reserves_procured_mw`` pair actually measures. Absent on every legacy
+#: snapshot, where the historical reading (a spinning-reserve shortfall in the
+#: record's native unit) is preserved exactly.
+RESERVE_SEMANTICS_NATIVE = "native_reserve"
+RESERVE_SEMANTICS_FAMILY_FLAG = "demand_capacity_flag"
+RESERVE_SEMANTICS_NOT_MODELED = "not_modelled"
+
+#: Optional per-tick declaration that ``rho_max`` is not a measured loading.
+#: ``rho_max`` may be an honest ``0.0`` (no native limit exists on this backend)
+#: but it must never be a *missing* key read as a measured zero.
+UTILISATION_INAPPLICABLE_KEY = "utilisation_inapplicable_reason"
+
+
+def _utilisation_reading(record: dict[str, Any]) -> tuple[bool, str]:
+    """Return ``(measured, reason)`` for one record's utilisation reading.
+
+    A missing key, an explicit ``None``, or an inapplicability declaration all
+    mean "no native per-tick utilisation limit was measured" — never a
+    measured-zero loading. Only a real numeric reading is scored.
+    """
+    if "rho_max" not in record:
+        return False, "utilisation_key_missing_from_record"
+    if record.get("rho_max") is None:
+        return False, "utilisation_not_measured_by_backend"
+    declared = record.get(UTILISATION_INAPPLICABLE_KEY)
+    if isinstance(declared, str) and declared.strip():
+        return False, declared.strip()
+    return True, ""
+
+
+def _reserve_shortfall_mw(record: dict[str, Any]) -> float | None:
+    """Return a native reserve shortfall, or ``None`` when not a shortfall.
+
+    ``None`` means the record's reserve pair is not a spinning-reserve
+    requirement and must not be scored as one: the pair either declares a
+    demand/capacity family flag (a queue-pressure or capacity-stress signal that
+    other terms already carry) or declares reserves not modelled at all. Absent
+    declaration keeps the historical native-reserve reading.
+    """
+    semantics = record.get("reserve_semantics")
+    if semantics in (
+        RESERVE_SEMANTICS_FAMILY_FLAG,
+        RESERVE_SEMANTICS_NOT_MODELED,
+    ):
+        return None
+    return max(
+        0.0,
+        record.get("reserves_required_mw", 0.0)
+        - record.get("reserves_procured_mw", 0.0),
+    )
+
+
 def score_safety_violation(
     backend_records: list[dict[str, Any]],
     *,
@@ -533,11 +586,14 @@ def score_safety_violation(
             reason=f"native_safety_severity_mean={round(mean_severity, 6)}",
             weight=1.5,
         )
+    # A record whose reserve pair is a demand/capacity family flag (or declares
+    # reserves unmodelled) contributes no shortfall term; only a native spinning
+    # reserve requirement does. Legacy records carry no declaration and keep the
+    # exact historical reading.
     reserve_short = sum(
-        max(
-            0.0, r.get("reserves_required_mw", 0.0) - r.get("reserves_procured_mw", 0.0)
-        )
-        for r in backend_records
+        shortfall
+        for record in backend_records
+        if (shortfall := _reserve_shortfall_mw(record)) is not None
     )
     balance_excursions = sum(
         1 for r in backend_records if abs(r.get("balance_error_mw", 0.0)) > 100.0
@@ -546,9 +602,20 @@ def score_safety_violation(
     # disconnected-line tick-occurrences. Synthetic backend reports 0.
     overload_ticks = sum(int(r.get("n_overloads", 0)) for r in backend_records)
     disc_ticks = sum(int(r.get("n_disconnected_lines", 0)) for r in backend_records)
-    rho_violations = sum(
-        1 for r in backend_records if float(r.get("rho_max", 0.0)) > 1.0
-    )
+    # Only a *measured* utilisation reading can violate the loading limit. A key
+    # that is missing, null, or declared inapplicable is not a measured zero and
+    # must not silently pass as one.
+    rho_violations = 0
+    n_utilisation_measured = 0
+    utilisation_reasons: set[str] = set()
+    for r in backend_records:
+        measured, reason = _utilisation_reading(r)
+        if not measured:
+            utilisation_reasons.add(reason)
+            continue
+        n_utilisation_measured += 1
+        if float(r["rho_max"]) > 1.0:
+            rho_violations += 1
     # BUG-5: count voltage violations as a safety dimension signal.
     voltage_viol_ticks = sum(
         int(r.get("n_voltage_violations", 0)) for r in backend_records
@@ -568,6 +635,12 @@ def score_safety_violation(
     raw -= min(0.15, overload_ticks / (n * 5.0))
     raw -= min(0.15, disc_ticks / (n * 3.0))
     raw = max(0.0, raw)
+    utilisation_note = (
+        f"utilisation_measured_ticks={n_utilisation_measured}/{n}; "
+        "utilisation_inapplicable_reason=" + "; ".join(sorted(utilisation_reasons))
+        if n_utilisation_measured < n
+        else ""
+    )
     return DimensionScore(
         name="safety_violation",
         raw_score=round(100.0 * raw, 2),
@@ -579,7 +652,9 @@ def score_safety_violation(
             f"{balance_excursions}/{n} severe balance excursions; "
             f"reserve_shortfall_MW={round(reserve_short, 1)}; "
             f"overload_tick_count={overload_ticks}; "
-            f"rho_violation_ticks={rho_violations}/{n}; "
+            f"rho_violation_ticks={rho_violations}/{n}"
+            + (f" ({utilisation_note})" if utilisation_note else "")
+            + "; "
             f"disconnected_line_tick_count={disc_ticks}; "
             f"voltage_violation_tick_count={voltage_viol_ticks}"
         ),
@@ -825,9 +900,12 @@ def score_adaptive_replanning(
     """Credit adaptation only through the replay-backed agency evaluator.
 
     Window correlation is not causation: a successful but unrelated action
-    must not turn simulator self-recovery into model credit.  The deprecated
-    recovery arguments remain accepted for API compatibility, but cannot
-    produce a positive score.
+    must not turn simulator self-recovery into model credit.  ``backend_records``
+    plus the retired ``recovery_signal_key`` / ``recovery_signal_name`` pair are
+    explicitly discarded below: they are diagnostic replay inputs (the
+    ``pandapower_lv`` ``balance_error_mw`` pressure signal is pinned near zero by
+    its slack bus), never a scoring input.  They remain accepted for API and
+    snapshot compatibility; nothing here may turn them into a positive score.
     """
     _ = (
         backend_records,
@@ -1331,6 +1409,108 @@ def native_outcome_diagnostics(report: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def _attribution_diagnostics(
+    counterfactual_report: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Summarize the masked-replay attribution the report already computed.
+
+    Publish-only: this is a read-only digest of ``per_action`` /
+    ``per_action_groups``. It never re-scales the dimension, picks a ranking
+    unit, or mixes the two units — the unit is chosen by ordering alone.
+
+    The digest is deliberately limited to values an auditor can recompute from
+    the ``counterfactual_result`` ledger entry (the statuses, the row lists and
+    the three episode costs; ``normalized_prevention`` follows from the report's
+    documented formula). The per-pass ``expected``/``attempted``/``completed``
+    /``capped`` counters are NOT in that entry, so they are not published here
+    rather than asserted without a ledger source. The pass was capped or
+    partial is still visible via the status.
+
+    ``None`` when neither pass ran. The report serializer always emits both row
+    lists (as ``[]``), so list presence cannot distinguish "never requested"
+    from "requested, zero rows"; the ``*_status`` fields can, and those gate
+    this digest.
+    """
+    calls = counterfactual_report.get("per_action")
+    groups = counterfactual_report.get("per_action_groups")
+    call_status = str(counterfactual_report.get("per_action_status") or "")
+    group_status = str(counterfactual_report.get("per_action_group_status") or "")
+    # ``not_requested`` (or absent, in a report predating the status field)
+    # means no pass ran; complete/capped/incomplete/unavailable is a real
+    # attempt whose numbers belong in the ledger.
+    call_ran = call_status not in ("", "not_requested")
+    group_ran = group_status not in ("", "not_requested")
+    if not call_ran and not group_ran:
+        return None
+    # Fixed unit preference, as reported: groups win when the group pass
+    # actually produced rows, else the per-call pass. Never merged.
+    if group_ran and isinstance(groups, list) and groups:
+        unit = "group"
+    elif call_ran and isinstance(calls, list):
+        unit = "call"
+    elif group_ran and isinstance(groups, list):
+        unit = "group"
+    else:
+        return None
+    summary: dict[str, Any] = {
+        "attribution_unit": unit,
+        # Why this unit was chosen: the statuses are in the ledger entry too.
+        "per_action_status": call_status or None,
+        "per_action_group_status": group_status or None,
+        "raw_inputs": {
+            key: _finite_or_none(counterfactual_report.get(key))
+            for key in (
+                "actual_cost",
+                "counterfactual_cost",
+                "prevented_loss",
+                "normalized_prevention",
+            )
+        },
+        # Rows actually replayed — NOT the requested coverage, which the ledger
+        # entry does not carry. The ``_observed`` suffix keeps that explicit.
+        "n_groups_observed": len(groups) if isinstance(groups, list) else 0,
+    }
+    if unit == "group":
+        summary["n_actions_attributed"] = sum(
+            len(row.get("call_ids") or [])
+            for row in groups
+            if isinstance(row, dict)
+        )
+        group_deltas = _attribution_deltas(groups, "masked_action_group_delta")
+        summary["group_sum"] = _sum_or_none(group_deltas)
+        summary["group_deltas"] = group_deltas
+    else:
+        summary["n_actions_attributed"] = len(calls)
+        call_deltas = _attribution_deltas(calls, "marginal_prevented_loss")
+        summary["call_sum"] = _sum_or_none(call_deltas)
+        summary["call_deltas"] = call_deltas
+    return summary
+
+
+def _attribution_deltas(rows: list[Any], key: str) -> list[float]:
+    """Finite float deltas, skipping rows that are absent or malformed."""
+    values: list[float] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        value = row.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        if math.isfinite(float(value)):
+            values.append(float(value))
+    return values
+
+
+def _sum_or_none(values: list[float]) -> float | None:
+    return round(sum(values), 4) if values else None
+
+
+def _finite_or_none(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value) if math.isfinite(float(value)) else None
+
+
 def score_counterfactual_prevention(
     counterfactual_report: dict[str, Any] | None,
     *,
@@ -1342,6 +1522,10 @@ def score_counterfactual_prevention(
             applicable=False,
             reason="no counterfactual replay computed",
         )
+    # Attribution is publish-only: capture it before the early returns so a
+    # report whose baseline is unusable still ships the masked-replay numbers
+    # without touching applicability below.
+    attribution = _attribution_diagnostics(counterfactual_report)
     # v0.2.1 fix (per code-review): respect the report's own applicable
     # flag. When the cf baseline crashed at tick 0 / produced no usable
     # cost, normalized_prevention is meaningless and we mark the
@@ -1364,6 +1548,7 @@ def score_counterfactual_prevention(
             applicable=False,
             reason=reason,
             weight=2.0,
+            attribution_diagnostics=attribution,
         )
     value = counterfactual_report.get("normalized_prevention")
     if (isinstance(value, bool) or not isinstance(value, (int, float))
@@ -1371,6 +1556,7 @@ def score_counterfactual_prevention(
         return DimensionScore(
             name="counterfactual_prevention", applicable=False,
             reason="invalid normalized counterfactual prevention", weight=2.0,
+            attribution_diagnostics=attribution,
         )
     norm = float(value)
     return DimensionScore(
@@ -1385,6 +1571,7 @@ def score_counterfactual_prevention(
             f"vs cf_cost={round(float(counterfactual_report.get('counterfactual_cost', 0.0)), 2)}"
         ),
         weight=2.0,
+        attribution_diagnostics=attribution,
     )
 
 
@@ -1854,6 +2041,10 @@ class ScoringInputs:
     difficulty_level: str = "basic"
     scenario_signature: str = ""
     stale_observation_records: list[dict[str, Any]] = field(default_factory=list)
+    #: Diagnostic-only native recovery row carried for replay inspection.
+    #: ``score_adaptive_replanning`` never reads these; they stay in the
+    #: contract because archived scoring snapshots serialize them and may only
+    #: gain optional fields.
     adaptive_recovery_signal_key: str | None = "balance_error_mw"
     adaptive_recovery_signal_name: str | None = "legacy_balance_error"
     causal_adaptation: dict[str, Any] | None = None

@@ -181,6 +181,7 @@ def canonicalize_runtime_events(
             "surprise",
             "response_deadline_tick",
             "mandatory_response_tick",
+            "response_window_end_tick",
             "first_observed_tick",
             "first_investigation_tick",
             "reveal_evidence_ids",

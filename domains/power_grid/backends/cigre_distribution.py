@@ -35,6 +35,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass, field
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
@@ -59,6 +60,168 @@ CIGRE_PERTURBATION_EVENT_REGISTRY = MappingProxyType(
         "storm_window": ("storm_window", "alarm"),
     }
 )
+
+
+def _packaged_asset_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _relative_to_package(path: Path, package_root: Path) -> str:
+    """Package-relative posix path, falling back to the bare name."""
+    try:
+        return path.relative_to(package_root).as_posix()
+    except ValueError:
+        return path.name
+
+
+def _constructor_data_assets(network: str) -> list[dict[str, str]]:
+    """The bundled *data* files the chosen constructor reads.
+
+    ``create_cigre_network_mv`` and
+    ``create_synthetic_voltage_control_lv_network`` build their nets from
+    numeric literals inside their own module, so for those two tags the module
+    hash IS the data binding and this list is empty (the network definition
+    lives in the module itself). The other two tags read separate files
+    shipped with the package: ``mv_oberrhein`` deserializes
+    ``networks/mv_oberrhein.json`` and SimBench reads the grid CSVs of the
+    scenario's ``complete_data`` folder. Those bytes are what a consumer has
+    to probe to re-derive the net, so they are hashed explicitly.
+    """
+    if network in {
+        "cigre_mv_with_der_all",
+        "synthetic_volt_control_lv",
+    }:
+        return []
+    if network == "mv_oberrhein":
+        from pandapower import pp_dir  # type: ignore[import-untyped]
+
+        folder = Path(pp_dir) / "networks"
+        assets = []
+        for name in ("mv_oberrhein.json", "mv_oberrhein_substations.json"):
+            path = folder / name
+            if path.is_file():
+                assets.append(
+                    {
+                        "path": f"pandapower/networks/{name}",
+                        "sha256": _packaged_asset_sha256(path),
+                    }
+                )
+        return assets
+    if network.startswith("simbench:"):
+        from simbench.networks.extract_simbench_grids_from_csv import (
+            complete_data_path,
+        )
+        from simbench.networks.simbench_code import (
+            get_simbench_code_and_parameters,
+        )
+
+        code = network.split("simbench:", 1)[1]
+        if "--sw" not in code and "--no_sw" not in code:
+            code = f"{code}--sw"
+        _, parameters = get_simbench_code_and_parameters(code)
+        folder = Path(complete_data_path(parameters[5]))
+        if not folder.is_dir():
+            return []
+        return [
+            {
+                "path": (
+                    "simbench/networks/"
+                    f"{folder.name}/{csv_path.name}"
+                ),
+                "sha256": _packaged_asset_sha256(csv_path),
+            }
+            for csv_path in sorted(folder.glob("*.csv"))
+        ]
+    return []
+
+
+def _constructor_runtime_asset(network: str) -> dict[str, Any]:
+    """Bind the constructor's *bundled bytes* to the derived source window.
+
+    The URI-derived pseudo-hash proves only that a whitelisted constructor
+    identity was consumed. It does not pin the bytes that actually built the
+    net. For every constructor reachable from ``network`` we therefore hash
+    the module that defines it, and — where the network definition is not
+    numeric literals in that module — the bundled data files the constructor
+    reads. The resulting digests are what a consumer can re-derive from an
+    installed environment, so the "virtual" source stops being a free-floating
+    string. ``data_assets`` is empty only for the two tags whose net is
+    defined inside the hashed module.
+    """
+    import inspect
+
+    import pandapower.networks as pn  # type: ignore[import-untyped]
+
+    if network == "cigre_mv_with_der_all":
+        constructor = pn.create_cigre_network_mv
+        package = "pandapower"
+    elif network == "mv_oberrhein":
+        constructor = pn.mv_oberrhein
+        package = "pandapower"
+    elif network == "synthetic_volt_control_lv":
+        constructor = pn.create_synthetic_voltage_control_lv_network
+        package = "pandapower"
+    elif network.startswith("simbench:"):
+        import simbench as sb  # type: ignore[import-untyped]
+
+        constructor = sb.get_simbench_net
+        package = "simbench"
+    else:
+        return {}
+    source = inspect.getsourcefile(constructor)
+    if not source:
+        return {}
+    path = Path(source)
+    if not path.is_file():
+        return {}
+    root = Path(getattr(pandapower_module(package), "__file__", path)).parent
+    module = _relative_to_package(path, root)
+    return {
+        "package": package,
+        "package_version": str(
+            getattr(pandapower_module(package), "__version__", "unknown")
+        ),
+        "constructor": getattr(constructor, "__name__", str(constructor)),
+        "module": module,
+        "module_sha256": _packaged_asset_sha256(path),
+        "data_assets": _constructor_data_assets(network),
+    }
+
+
+def pandapower_module(package: str) -> Any:
+    """Resolve the distribution-constructor package for its version string."""
+    if package == "simbench":
+        import simbench as sb  # type: ignore[import-untyped]
+
+        return sb
+    return pp
+
+
+# Every constructor tag reachable from the released seeds. The lock record
+# below covers all of them so a packaged-data substitution is visible without
+# re-running a scenario.
+CONSTRUCTOR_NETWORK_TAGS: tuple[str, ...] = (
+    "cigre_mv_with_der_all",
+    "mv_oberrhein",
+    "synthetic_volt_control_lv",
+    "simbench:1-MV-rural--0-sw",
+)
+
+
+def constructor_data_asset_lock() -> dict[str, dict[str, Any]]:
+    """Repo-visible, machine-checkable lock for constructor-consumed bytes.
+
+    Mirrors the ``sources/locks/`` record pattern: each tag maps to the
+    package-relative files whose bytes build the net. It is a snapshot of the
+    installed environment, not a scenario input, so a drift between an
+    installed package and this record is reported by
+    ``tests/test_cigre_constructor_byte_anchor.py`` rather than silently
+    accepted.
+    """
+    return {
+        tag: _constructor_runtime_asset(tag)
+        for tag in CONSTRUCTOR_NETWORK_TAGS
+    }
 
 
 def _build_distribution_net(network: str) -> Any:
@@ -162,6 +325,9 @@ class CigreDistributionBackend:
         self._profile_step = 1
         self._simbench_source_window_sha256: str | None = None
         self._simbench_source_recipe_version: str | None = None
+        # Bytes actually consumed by the locked constructor (bundled with
+        # pandapower / simbench), bound to the derived window at reset.
+        self._constructor_runtime_asset: dict[str, Any] = {}
         self._simbench_profile_applied_ticks: set[int] = set()
         self._cumulative_shed_mwh: dict[str, float] = {}
         self._pending_curtail: dict[int, float] = {}  # sgen index → MW cap
@@ -240,6 +406,7 @@ class CigreDistributionBackend:
         self._source_constructor_uri = None
         self._source_constructor_hash = None
         self._source_constructor_state_digest = None
+        self._constructor_runtime_asset = {}
         self._source_solver_state_digest = None
         self._source_constructor_blockers = []
         self._telemetry_confidence = 1.0
@@ -302,6 +469,9 @@ class CigreDistributionBackend:
                     self._source_constructor_uri = constructor_uri
                     self._source_constructor_hash = (
                         virtual_source_identity_sha256(constructor_uri)
+                    )
+                    self._constructor_runtime_asset = _constructor_runtime_asset(
+                        network
                     )
                     self._source_constructor_state_digest = (
                         self._constructor_state_digest(network)
@@ -535,6 +705,10 @@ class CigreDistributionBackend:
             "runtime_trace_observed": True,
             "evidence_from_scenario_config_only": False,
             "source_time_variation_claimed": source_profile_consumed,
+            # Byte anchor: the module that defines the consumed constructor,
+            # hashed from the installed environment. This turns the URI-only
+            # pseudo-hash into a re-derivable byte binding (additive field).
+            "constructor_runtime_asset": dict(self._constructor_runtime_asset),
             "blockers": [],
         }
 

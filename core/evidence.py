@@ -58,6 +58,13 @@ class DimensionScore:
     # ``task_completion_for_row``) can key off a real floor rather than
     # thresholding the continuous ``calibrated_score`` density.
     floor_violation: bool = False
+    # Publish-only summary of the masked-replay attribution behind
+    # ``counterfactual_prevention`` (see
+    # ``evaluation.scorer.score_counterfactual_prevention``). ``None`` for every
+    # other dimension and for callers that pass no attribution; it never feeds
+    # a score, weight, applicability or ranking decision. Optional so scoring
+    # snapshots written before this field still deserialize.
+    attribution_diagnostics: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -70,6 +77,11 @@ class DimensionScore:
             "reason": self.reason,
             "weight": float(self.weight),
             "floor_violation": bool(self.floor_violation),
+            "attribution_diagnostics": (
+                None
+                if self.attribution_diagnostics is None
+                else dict(self.attribution_diagnostics)
+            ),
         }
 
 

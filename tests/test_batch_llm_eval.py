@@ -4871,6 +4871,9 @@ def test_finalize_pipeline_writes_expected_artifacts_and_manifest(
     )
     assert leaderboard_payload["batch_state"] == mod.BATCH_STATE_FINAL
     assert leaderboard_payload["n_orphan_interrupted_logs"] == 0
+    # N5: the publish-only diagnostics reach the payload assembled in-scope.
+    # These fixture rows emit no telemetry, so the object is empty but present.
+    assert leaderboard_payload["autonomy_diagnostics"] == {}
     analysis_text = (output_dir / "ANALYSIS.md").read_text(encoding="utf-8")
     assert "Batch state: `final`" in analysis_text
 
@@ -5676,7 +5679,12 @@ def test_per_model_scheduler_writes_scheduler_mode_and_uses_model_lanes(
                 total_score=80.0 if lane["model"].startswith("gpt") else 70.0,
                 n_tool_calls=4,
             )
-            mod._append_jsonl_atomic(episode_path, row)
+            # Bind the mock row to the job's treatment so the resulting batch
+            # is a clean, formally comparable grid (D3: unbound rows now
+            # demote the batch state and therefore the process exit code).
+            mod._append_jsonl_atomic(
+                episode_path, mod._apply_llm_job_metadata(job, row)
+            )
         lane_events.append((lane["model"], seen))
         return {"model": lane["model"], "n_completed": len(lane["jobs"])}
 
@@ -6228,6 +6236,280 @@ def test_write_analysis_excludes_dirty_ok_from_score_means(tmp_path: Path) -> No
     assert stats["n_clean_ok"] == 1
     assert stats["n_dirty_ok"] == 1
     assert stats["tool_stats"]["hy3-ioa"]["n_episodes"] == 2.0
+
+
+def test_write_analysis_publishes_autonomy_diagnostics_as_present_only_means(
+    tmp_path: Path,
+) -> None:
+    detailed = _row("logistics/inv/basic", "hy3-ioa", 42, 10.0)
+    detailed["trajectory_summary"] = {
+        "n_tool_calls": 4,
+        "n_wait_actions": 1,
+        "llm": {"llm_calls_ok": 4, "llm_calls_failed": 0},
+        "event_adaptive_autonomy": {
+            "initiative_lead_ticks": 6,
+            "plan_review_honored_rate": 1.0,
+            "review_offered": 4,
+            "review_omitted": 0,
+        },
+    }
+    partial = _row("logistics/inv/basic", "hy3-ioa", 43, 20.0)
+    partial["trajectory_summary"] = {
+        "n_tool_calls": 3,
+        "n_wait_actions": 0,
+        "llm": {"llm_calls_ok": 3, "llm_calls_failed": 0},
+        "event_adaptive_autonomy": {
+            "initiative_lead_ticks": 2,
+            "plan_review_honored_rate": 0.0,
+        },
+    }
+    silent = _row("logistics/inv/basic", "o3", 42, 30.0)
+    silent["trajectory_summary"] = {
+        "n_tool_calls": 2,
+        "n_wait_actions": 2,
+        "llm": {"llm_calls_ok": 1, "llm_calls_failed": 0},
+    }
+    top_level = _row("logistics/inv/basic", "gemini-3.1-fl", 42, 25.0)
+    top_level["trajectory_summary"] = {
+        "n_tool_calls": 1,
+        "n_wait_actions": 0,
+        "llm": {"llm_calls_ok": 1, "llm_calls_failed": 0},
+        "initiative_lead_ticks": 3,
+    }
+
+    mod._write_analysis(tmp_path, [detailed, partial, silent, top_level])
+
+    stats = json.loads((tmp_path / "stats_by_model.json").read_text(encoding="utf-8"))
+    diagnostics = stats["autonomy_diagnostics"]
+    # initiative_lead_ticks is deliberately unpublished: its positive branch is
+    # structurally unreachable (0 proactive in 1472 archived records), so a
+    # published mean would mislead. The other three fields publish normally.
+    assert "initiative_lead_ticks" not in diagnostics["hy3-ioa"]
+    assert diagnostics["hy3-ioa"]["plan_review_honored_rate"] == {"mean": 0.5, "n": 2}
+    # Emitted once each: a missing value must not be counted as a fabricated 0.
+    assert diagnostics["hy3-ioa"]["review_offered"] == {"mean": 4.0, "n": 1}
+    assert diagnostics["hy3-ioa"]["review_omitted"] == {"mean": 0.0, "n": 1}
+    # A model whose rows never emitted the telemetry gets no fabricated entry.
+    assert "o3" not in diagnostics
+    # A model that only emitted the unpublished field gets no entry at all.
+    assert "gemini-3.1-fl" not in diagnostics
+
+    analysis = (tmp_path / "ANALYSIS.md").read_text(encoding="utf-8")
+    assert "Initiative / plan-review diagnostics (publish-only)" in analysis
+    assert "excluded from scoring and eligibility" in analysis
+
+
+def test_leaderboard_payload_publishes_autonomy_diagnostics_as_means(
+    tmp_path: Path,
+) -> None:
+    """Roadmap N5 acceptance: the diagnostics are visible in the payload.
+
+    Means must match `_write_analysis` byte-for-byte because both surfaces
+    read the same aggregation, and a field that never emitted stays absent.
+    """
+    detailed = _row("logistics/inv/basic", "hy3-ioa", 42, 10.0)
+    detailed["trajectory_summary"] = {
+        "event_adaptive_autonomy": {
+            "review_offered": 4,
+            "review_omitted": 1,
+        },
+    }
+    second = _row("logistics/inv/basic", "hy3-ioa", 43, 20.0)
+    second["trajectory_summary"] = {
+        "event_adaptive_autonomy": {"review_offered": 2},
+        "initiative_lead_ticks": 5,
+    }
+    silent = _row("logistics/inv/basic", "o3", 42, 30.0)
+    silent["trajectory_summary"] = {"n_tool_calls": 1}
+
+    mod._write_leaderboard_json(tmp_path, [detailed, second, silent])
+
+    payload = json.loads((tmp_path / "leaderboard.json").read_text())
+    published = payload["autonomy_diagnostics"]
+    assert published == mod.autonomy_diagnostics_from_rows(
+        [detailed, second, silent]
+    )
+    assert published["hy3-ioa"]["review_offered"] == {"mean": 3.0, "n": 2}
+    assert published["hy3-ioa"]["review_omitted"] == {"mean": 1.0, "n": 1}
+    # The excluded field stays unpublished even when a row recorded it.
+    assert "initiative_lead_ticks" not in published["hy3-ioa"]
+    assert "o3" not in published
+
+    # The ANALYSIS surface must report the identical means.
+    mod._write_analysis(tmp_path, [detailed, second, silent])
+    stats = json.loads((tmp_path / "stats_by_model.json").read_text())
+    assert stats["autonomy_diagnostics"] == published
+
+
+def test_autonomy_diagnostics_do_not_reach_scoring_or_eligibility_paths() -> None:
+    """The publish-only fields must stay out of the scoring/eligibility surface.
+
+    ``initiative_lead_ticks`` is deliberately NOT in the published tuple: its
+    positive (proactive) branch is structurally unreachable — 0 proactive /
+    15 tied / 1457 reactive across all 1,472 archived non-empty
+    event_response_records — because the causal join binds a control to the
+    event it consumed. Re-add it only after the anchor is redefined.
+    """
+    assert mod.AUTONOMY_DIAGNOSTIC_FIELDS == (
+        "plan_review_honored_rate",
+        "review_offered",
+        "review_omitted",
+    )
+    source = Path(mod.__file__).read_text(encoding="utf-8")
+    for field in mod.AUTONOMY_DIAGNOSTIC_FIELDS:
+        # The only reference to each field is the publish tuple itself.
+        assert source.count(f'"{field}"') == 1
+
+
+def _primary_payload_row(
+    model: str,
+    score: float,
+    *,
+    trajectory_summary: dict[str, Any] | None = None,
+    source: str = "source::shared",
+) -> dict[str, Any]:
+    """One minimal row accepted by `_primary_leaderboard_payload`.
+
+    Every row shares `source`, so a model set passes the formal inference's
+    identical-physical-cluster-coverage contract with one row per model.
+    """
+    row: dict[str, Any] = {
+        "status": "ok",
+        "model": model,
+        "domain": "logistics",
+        "backend_kind": "jobshop",
+        "scenario_signature": f"sig::{source}",
+        "source_denominator_key": source,
+        "case_ledger": {"physical_source_lock": {"asset": source}},
+        "task_completion": {
+            "applicable": True,
+            "completed": True,
+            "contract_kind": "feasibility",
+            "contract": "logistics.job_shop.all_operations_scheduled.v1",
+            "evidence": {
+                "operations_scheduled": 10,
+                "operations_required": 10,
+                "schedule_coverage": 1.0,
+            },
+        },
+        "score": {
+            "dimensions": [
+                {
+                    "name": "counterfactual_prevention",
+                    "applicable": True,
+                    "calibrated_score": score,
+                    "evidence_ids": ["cf"],
+                }
+            ]
+        },
+    }
+    if trajectory_summary is not None:
+        row["trajectory_summary"] = trajectory_summary
+    return row
+
+
+def test_primary_payload_publishes_autonomy_diagnostics_per_row() -> None:
+    """Roadmap N5 acceptance: the diagnostics are visible per row, not only
+    as per-model means. Reported values keep their native units; a field the
+    producer never emitted is ``null``, never a fabricated ``0``."""
+    emitted = _primary_payload_row(
+        "hy3-ioa",
+        85.0,
+        trajectory_summary={
+            "event_adaptive_autonomy": {
+                "review_offered": 4,
+                "review_omitted": 0,
+            },
+            "initiative_lead_ticks": -12,
+            "plan_review_honored_rate": 0.8333,
+        },
+    )
+    # Only the nested counters emitted; the derived top-level diagnostics did
+    # not, so they stay null rather than collapsing to 0.
+    partial = _primary_payload_row(
+        "hy3-ioa-flash",
+        40.0,
+        trajectory_summary={"event_adaptive_autonomy": {"review_offered": 0}},
+    )
+    silent = _primary_payload_row("o3", 20.0)
+
+    report = mod._primary_leaderboard_payload([emitted, partial, silent])
+    by_model = {
+        contract["model"]: contract["autonomy_diagnostics"]
+        for contract in report["score_group_contracts"]
+    }
+
+    assert by_model["hy3-ioa"] == {
+        "plan_review_honored_rate": 0.8333,
+        "review_offered": 4,
+        "review_omitted": 0,
+    }
+    assert set(by_model["hy3-ioa"]) == set(mod.AUTONOMY_DIAGNOSTIC_FIELDS)
+    # Counters stay integers; the derived diagnostics stay floats.
+    assert isinstance(by_model["hy3-ioa"]["review_offered"], int)
+    assert isinstance(by_model["hy3-ioa"]["plan_review_honored_rate"], float)
+    # A row that emitted only one field does not inherit its sibling's values.
+    assert by_model["hy3-ioa-flash"] == {
+        "plan_review_honored_rate": None,
+        "review_offered": 0,
+        "review_omitted": None,
+    }
+    # A row that emitted nothing is still published, with explicit nulls.
+    assert by_model["o3"] == dict.fromkeys(mod.AUTONOMY_DIAGNOSTIC_FIELDS, None)
+
+    # The per-model means path is untouched and still keyed by model label;
+    # a model whose rows never emitted the telemetry stays absent there, which
+    # is exactly why the per-row block is a strict addition.
+    means = mod.autonomy_diagnostics_from_rows([emitted, partial, silent])
+    assert means["hy3-ioa"]["review_offered"] == {"mean": 4.0, "n": 1}
+    assert "o3" not in means
+    assert mod.autonomy_diagnostics_for_row(silent) == dict.fromkeys(
+        mod.AUTONOMY_DIAGNOSTIC_FIELDS, None
+    )
+
+
+def test_primary_payload_autonomy_diagnostics_do_not_affect_ranking() -> None:
+    """The added per-row block must not move a ranking, eligibility, or
+    comparability field: the payload is byte-identical to the same rows with
+    the telemetry stripped."""
+    detailed = {
+        "event_adaptive_autonomy": {"review_offered": 7, "review_omitted": 3},
+        "initiative_lead_ticks": 9,
+        "plan_review_honored_rate": 0.25,
+    }
+    with_telemetry = [
+        _primary_payload_row("alpha", 80.0, trajectory_summary=dict(detailed)),
+        _primary_payload_row("beta", 60.0, trajectory_summary={"n_tool_calls": 2}),
+    ]
+    without_telemetry = [
+        _primary_payload_row("alpha", 80.0),
+        _primary_payload_row("beta", 60.0),
+    ]
+
+    with_report = mod._primary_leaderboard_payload(with_telemetry)
+    without_report = mod._primary_leaderboard_payload(without_telemetry)
+
+    # Keys and ordering of the ranking payload are unchanged.
+    assert list(with_report) == list(without_report)
+    assert with_report["leaderboard"] == without_report["leaderboard"]
+    assert [row["model"] for row in with_report["leaderboard"]] == ["alpha", "beta"]
+    assert with_report["primary_pairwise"] == without_report["primary_pairwise"]
+    # Only the per-row diagnostics block differs: strip it from both sides and
+    # every other contract field must match exactly, in the same row order.
+    def _without_diagnostics(contract: dict[str, Any]) -> dict[str, Any]:
+        return {
+            key: value
+            for key, value in contract.items()
+            if key != "autonomy_diagnostics"
+        }
+
+    assert [
+        _without_diagnostics(contract)
+        for contract in with_report["score_group_contracts"]
+    ] == [
+        _without_diagnostics(contract)
+        for contract in without_report["score_group_contracts"]
+    ]
 
 
 def test_model_label_strips_llm_agent_prefix() -> None:
@@ -7311,6 +7593,253 @@ def test_batch_state_handles_none_coverage_gracefully() -> None:
     assert state["batch_state"] == mod.BATCH_STATE_UNKNOWN
     assert state["n_episodes_error"] == 0
     assert state["n_orphan_interrupted_logs"] == 0
+
+
+def _run_main_with_batch_state(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    batch_state: str,
+    execution_coverage: float = 1.0,
+    provider_contaminated: int = 0,
+    prompt_budget_contaminated: int = 0,
+    orphan_interrupted_logs: int = 0,
+    leaderboard_eligible: bool = True,
+) -> int:
+    """Drive a two-episode run whose finalize reports the given batch facts.
+
+    Every row records ``status=ok``, so the legacy status-based return alone
+    cannot fail: only the computed batch components can make this exit 2.
+    ``execution_coverage`` is the per-model share of episodes that actually
+    produced a row (a release-blocked suite can leave this at 1.0 while the
+    *formal* coverage of the same grid is 0.0).
+    """
+    output_dir = tmp_path / f"{batch_state}-{execution_coverage}"
+    scenarios = ["power_grid/daily_ops/time_pressure/basic/do_s42"]
+    models = ["gpt-5-2025-08-07", "o3-2025-04-16"]
+    manifest_extra = {
+        "batch_state": batch_state,
+        "batch_state_reasons": ["fixture reasons"],
+        "n_orphan_interrupted_logs": orphan_interrupted_logs,
+        "n_provider_contaminated_episodes": provider_contaminated,
+        "n_prompt_budget_contaminated_episodes": prompt_budget_contaminated,
+        "leaderboard_eligible": leaderboard_eligible,
+        "coverage": {
+            "per_model_execution_coverage": {
+                model: execution_coverage for model in models
+            },
+        },
+    }
+
+    def fake_load_zhsrc_exports() -> dict[str, str]:
+        return {"OPENAI_API_KEY": "test-key", "OPERATE_MODELS": ",".join(models)}
+
+    def fake_load_scenario_yaml(slug: str) -> dict[str, Any]:
+        return {
+            "seed_id": "do_s42",
+            "family": "daily_ops",
+            "backend_kind": "pglib_uc_synthetic",
+            "scenario_signature": "sig-daily",
+        }
+
+    def fake_run_job(job: dict[str, Any]) -> dict[str, Any]:
+        log_path = Path(job["episode_log_path"])
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.write_text("ok\n", encoding="utf-8")
+        return mod._apply_llm_job_metadata(job, _fake_episode_result(
+            job["scenario_slug"],
+            job["model"],
+            job["seed"],
+            job["scenario_signature"],
+            "daily_ops",
+            "pglib_uc_synthetic",
+            total_score=70.0,
+            n_tool_calls=4,
+        ))
+
+    class FakeFuture:
+        def __init__(self, row: dict[str, Any]) -> None:
+            self.row = row
+
+        def result(self) -> dict[str, Any]:
+            return self.row
+
+    class FakeExecutor:
+        def __init__(self, max_workers: int) -> None:
+            self.max_workers = max_workers
+
+        def __enter__(self) -> FakeExecutor:
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def submit(self, fn, job):
+            del fn
+            return FakeFuture(fake_run_job(job))
+
+    monkeypatch.setattr(mod, "_load_zhsrc_exports", fake_load_zhsrc_exports)
+    monkeypatch.setattr(mod, "_expand_scenarios", lambda patterns: list(scenarios))
+    monkeypatch.setattr(mod, "load_scenario_yaml", fake_load_scenario_yaml)
+    monkeypatch.setattr(
+        mod, "_scenario_signature_for_run",
+        lambda body, seed: f"{body['scenario_signature']}-seed{seed}",
+    )
+    monkeypatch.setattr(mod, "_run_llm_episode_job", fake_run_job)
+    monkeypatch.setattr(
+        mod,
+        "_git_metadata",
+        lambda: {
+            "git_metadata_available": True,
+            "git_commit": "abc",
+            "git_dirty": False,
+            "git_status_short": [],
+        },
+    )
+    # Pin the implementation identity so the run's start/end tree hash cannot
+    # drift mid-test (concurrent edits by other actors would otherwise turn
+    # this into an unrelated implementation_tree_drift abort).
+    monkeypatch.setattr(
+        mod,
+        "implementation_identity",
+        lambda *_args: {"implementation_tree_sha256": "stable-tree"},
+    )
+    monkeypatch.setattr(
+        mod,
+        "_finalize_outputs",
+        lambda out, rows, meta: {
+            "n_episodes_ok": len(rows),
+            "n_episodes_error": 0,
+            "artifacts": {"plots": []},
+            **manifest_extra,
+        },
+    )
+    monkeypatch.setattr(mod, "_print_batch_leaderboard", lambda _out: None)
+
+    import concurrent.futures as futures
+
+    monkeypatch.setattr(futures, "ProcessPoolExecutor", FakeExecutor)
+    monkeypatch.setattr(futures, "as_completed", lambda fs: fs)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "batch_llm_eval.py",
+            "--output-dir", str(output_dir),
+            "--scenario-slice", "custom",
+            "--scenarios", *scenarios,
+            "--models", ",".join(models),
+            "--interaction-mode", "logical_stateless",
+            "--seeds", "42",
+        ],
+    )
+    return mod.main()
+
+
+def test_main_exits_two_when_all_rows_ok_but_batch_state_is_degraded(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """A degraded grid of status=ok rows is still not a clean measurement."""
+    assert _run_main_with_batch_state(
+        monkeypatch, tmp_path, batch_state=mod.BATCH_STATE_DEGRADED
+    ) == 2
+
+
+@pytest.mark.parametrize("contaminated,orphans", [(1, 0), (0, 2)])
+def test_main_exits_two_for_provider_or_orphan_residue(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+    contaminated: int, orphans: int,
+) -> None:
+    """Provider contamination / interrupted orphans fail even at state=final."""
+    assert _run_main_with_batch_state(
+        monkeypatch, tmp_path, batch_state=mod.BATCH_STATE_FINAL,
+        provider_contaminated=contaminated, orphan_interrupted_logs=orphans,
+    ) == 2
+
+
+def test_main_exits_two_for_prompt_budget_contamination_at_partial_state(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """A partially covered grid must not mask contaminated rows behind `partial`."""
+    assert _run_main_with_batch_state(
+        monkeypatch, tmp_path, batch_state=mod.BATCH_STATE_PARTIAL,
+        execution_coverage=0.5, prompt_budget_contaminated=2,
+    ) == 2
+
+
+def test_main_exits_two_when_a_configured_cell_was_not_measured(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """`partial` for the real reason (missing cells) must still fail."""
+    assert _run_main_with_batch_state(
+        monkeypatch, tmp_path, batch_state=mod.BATCH_STATE_PARTIAL,
+        execution_coverage=0.5,
+    ) == 2
+
+
+def test_main_exits_zero_for_clean_lite_style_blocked_suite_batch(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """The D3 contract: a genuinely clean Lite batch still exits 0.
+
+    Lite always runs a release-blocked suite, which demotes every row's formal
+    eligibility and therefore the *formal* coverage of an otherwise complete,
+    error-free grid to 0.0 — the state lands on `partial` even though every
+    promised episode was measured and every row is status=ok.
+    """
+    assert _run_main_with_batch_state(
+        monkeypatch, tmp_path, batch_state=mod.BATCH_STATE_PARTIAL,
+        execution_coverage=1.0,
+    ) == 0
+
+
+def test_main_exits_zero_for_clean_final_batch_state(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    assert _run_main_with_batch_state(
+        monkeypatch, tmp_path, batch_state=mod.BATCH_STATE_FINAL
+    ) == 0
+
+
+def test_batch_exit_code_uses_execution_components_not_formal_state() -> None:
+    """Direct contract for the exit decision: a blocked suite is not a failure."""
+    clean_row = {"status": "ok"}
+    full_coverage = {"per_model_execution_coverage": {"m": 1.0}}
+
+    def rc(**overrides) -> int:
+        kwargs = {
+            "batch_state": mod.BATCH_STATE_FINAL,
+            "coverage": full_coverage,
+            "provider_contaminated": 0,
+            "prompt_budget_contaminated": 0,
+            "orphan_interrupted_logs": 0,
+            "results": [clean_row],
+        }
+        kwargs.update(overrides)
+        return mod._batch_exit_code(**kwargs)
+
+    # A release-blocked suite lands on `partial` with full execution coverage.
+    assert rc(
+        batch_state=mod.BATCH_STATE_PARTIAL,
+        coverage={
+            "per_model_execution_coverage": {"m": 1.0},
+            "per_model_coverage": {"m": 0.0},
+        },
+    ) == 0
+    # Degraded, contamination and residue are unambiguous failures.
+    assert rc(batch_state=mod.BATCH_STATE_DEGRADED) == 2
+    assert rc(provider_contaminated=1) == 2
+    assert rc(prompt_budget_contaminated=1) == 2
+    assert rc(orphan_interrupted_logs=1) == 2
+    # A measured-but-incomplete grid fails even at a clean state.
+    assert rc(
+        coverage={"per_model_execution_coverage": {"m": 1.0, "n": 0.5}}
+    ) == 2
+    # Without finalize there is no state or coverage: the row status decides.
+    assert rc(batch_state=None, coverage=None) == 0
+    assert rc(
+        batch_state=None, coverage=None, results=[{"status": "error"}]
+    ) == 2
 
 
 def test_finalize_demotes_to_degraded_when_audit_raises(

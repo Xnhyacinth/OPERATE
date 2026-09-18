@@ -49,7 +49,7 @@ Lite and runtime artifacts. See the repository
 ## Benchmark scope
 
 The Core contains 769 scenarios over 502 physical sources and seven domains.
-OPERATE-Lite contains 144 exact Core-locked rows from 85 physical sources.
+OPERATE-Lite contains 141 exact Core-locked rows from 82 physical sources.
 It keeps hardness-eligible Core rows (open-headroom, Hy3-strict, discriminative)
 and drops saturated, LLM-easy, and unrankable cells. Families or domains with
 no hard row are omitted. This is a development/ablation subset, not a

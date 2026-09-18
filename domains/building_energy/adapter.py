@@ -23,7 +23,7 @@ from core import (
     ToolRegistry,
 )
 from core.difficulty_levels import canonical_difficulty_level
-from domains.registry import apply_supervisory_cadence
+from domains.registry import apply_supervisory_cadence, held_executor_position
 
 from .backends.citylearn import CityLearnBackend
 from .seeds.schema import BuildingEnergyScenarioSeed, rebuild_seed_from_dict
@@ -182,6 +182,16 @@ class BuildingEnergyEnvironment(POMDPEnvironment):
             backend=self._backend,
             extra={"evidence": self._evidence, "env": self},
         )
+        # Roadmap P1-1: a runner plan hold advances the simulation without a
+        # model control call, so re-assert the standing dispatch before the
+        # native step. Every other tick is untouched.
+        standing = held_executor_position(
+            action,
+            self._backend.backend_kind,
+            self._backend.standing_control_vector(),
+        )
+        if standing is not None:
+            self._backend.apply_standing_control(standing, tick=self._tick)
         tool_results = self._tools.execute_action(action, ctx)
         for result in tool_results:
             result.evidence_id = self._evidence.log(
