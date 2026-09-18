@@ -143,14 +143,14 @@ def main() -> int:
     p.add_argument("--model-context-window-tokens", type=int, default=None)
     p.add_argument("--model-max-output-tokens", type=int, default=None)
     p.add_argument("--timeout-s", type=float, default=None)
-    p.add_argument("--max-consecutive-provider-failures", type=int, default=5)
+    p.add_argument("--max-consecutive-provider-failures", type=int, default=None)
     p.add_argument("--provider-rpm-limit", type=int, default=0)
     p.add_argument("--provider-rpd-limit", type=int, default=0)
     p.add_argument("--provider-rate-limit-scope", default=None)
     p.add_argument(
         "--provider-failure-policy",
         choices=["compat_fallback", "abort"],
-        default="compat_fallback",
+        default=None,
     )
     p.add_argument(
         "--stream-chat-completions",
@@ -378,6 +378,14 @@ def main() -> int:
             "logical_persistent",
             "realtime_persistent",
         }
+        if args.provider_failure_policy is None:
+            args.provider_failure_policy = (
+                "abort" if is_persistent else "compat_fallback"
+            )
+        if args.max_consecutive_provider_failures is None:
+            args.max_consecutive_provider_failures = (
+                1 if args.provider_failure_policy == "abort" else 5
+            )
         configured_base_url = args.base_url or os.getenv(
             "OPERATE_API_BASE_URL"
         )

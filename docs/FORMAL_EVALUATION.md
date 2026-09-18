@@ -1,5 +1,10 @@
 # OPERATE formal evaluation
 
+Use this public `main` checkout. Lite evaluation is `run_lite.py`; Full uses
+the commands below. Quote `ranking.primary_score` (`wait_relative_outcome_v1`),
+not `score.total_score`. Diagnostic `batch_llm_eval.py` without `--formal-run`
+converts provider failures into `wait`.
+
 This runbook applies to the current 769-row public Core. The
 `benchmark/core_suite.json` and `benchmark/manifest.json` define the shard.
 

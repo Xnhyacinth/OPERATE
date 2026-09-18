@@ -6,7 +6,7 @@ The public command groups are:
 - `download_from_hf.py`: anonymous, manifest-backed public bundle download;
 - `verify_release_integrity.py`: verify `benchmark/` catalogs and scenario YAML;
 - `run_full.py`: current 769-row Core / Full evaluation;
-- `run_lite.py`: current 193-row Lite evaluation;
+- `run_lite.py`: current 141-row Lite evaluation;
 - `batch_llm_eval.py`: `logical_persistent` evaluation engine;
 - `batch_realtime_llm_eval.py`: independent `realtime_persistent` scorecard;
 - `merge_formal_llm_shards.py`: merge compatible complete shards;

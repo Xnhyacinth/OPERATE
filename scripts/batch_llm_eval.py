@@ -7903,6 +7903,13 @@ def _run_batch_main() -> int:
     except ValueError as exc:
         print(f"[FATAL] {exc}", file=sys.stderr)
         return 1
+    if provider_failure_profile["provider_failure_policy"] == "compat_fallback":
+        print(
+            "[WARN] provider_failure_policy=compat_fallback converts provider "
+            "failures into environment-advancing wait; use run_lite.py or "
+            "--formal-run for evaluation",
+            file=sys.stderr,
+        )
     persistent_treatment = args.interaction_mode == "logical_persistent"
     if args.temperature is None:
         args.temperature = 0.0 if persistent_treatment else 1.0

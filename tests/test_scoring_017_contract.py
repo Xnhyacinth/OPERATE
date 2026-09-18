@@ -55,7 +55,9 @@ def test_economic_cost_reanchor_maps_wait_parity_to_zero() -> None:
 
 def test_primary_prefers_counterfactual_and_ignores_economic_anchor() -> None:
     result = discriminative_core_total(
-        _dimensions(counterfactual_prevention=20.0, economic_cost=100.0, optimality_gap=90.0),
+        _dimensions(
+            counterfactual_prevention=20.0, economic_cost=100.0, optimality_gap=90.0
+        ),
         task_completion=1.0,
         completion_contract_kind="mitigation",
     )
@@ -86,7 +88,9 @@ def test_reanchored_economic_cost_beats_wait() -> None:
 
 def test_optimality_gap_does_not_pad_wait_relative_primary() -> None:
     result = discriminative_core_total(
-        _dimensions(counterfactual_prevention=0.0, optimality_gap=80.0, economic_cost=50.0),
+        _dimensions(
+            counterfactual_prevention=0.0, optimality_gap=80.0, economic_cost=50.0
+        ),
         task_completion=1.0,
     )
     assert result["total_score"] == 0.0
@@ -143,3 +147,27 @@ def test_missing_wait_relative_is_ineligible() -> None:
     assert result["formal_score_eligible"] is False
     assert result["total_score"] == 0.0
     assert result["wait_relative_source"] is None
+
+
+def test_episode_ranking_payload_quotes_wait_relative_not_composite() -> None:
+    from evaluation.scorer import episode_wait_relative_ranking
+
+    ranking = episode_wait_relative_ranking(
+        dimensions=_dimensions(counterfactual_prevention=0.0, economic_cost=50.0),
+        dimension_applicability={
+            name: {"applicable": True} for name in DISCRIMINATIVE_CORE_DIMENSIONS
+        },
+        task_completion={
+            "applicable": True,
+            "contract": "mitigation",
+            "contract_kind": "mitigation",
+            "completed": True,
+            "evidence": {"ok": True},
+        },
+        difficulty_level="basic",
+    )
+    assert ranking["aggregation"] == "wait_relative_outcome_v1"
+    assert ranking["wait_relative_source"] == "counterfactual_prevention"
+    assert ranking["wait_relative_score"] == 0.0
+    assert ranking["primary_score"] == 0.0
+    assert ranking["formal_score_eligible"] is True

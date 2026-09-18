@@ -5708,7 +5708,7 @@ class LLMAgent(BaselineAgent):
         persistent = self._uses_persistent_session()
         result_limit = None if persistent else 4
         payload_limit = None if persistent else 400
-        return {
+        payload = {
             "tick": observation.get("tick"),
             "horizon": observation.get("horizon"),
             "totals": observation.get("totals", {}),
@@ -5826,6 +5826,16 @@ class LLMAgent(BaselineAgent):
                 },
             },
         }
+        # Strict prompts keep tool/event receipts but omit the runner reward
+        # scalar so the model cannot chase the scoring signal.
+        if self.config.prompt_mode == "strict":
+            payload.pop("last_reward", None)
+            belief = payload.get("belief_summary")
+            if isinstance(belief, dict):
+                effects = belief.get("historical_action_effects")
+                if isinstance(effects, dict):
+                    effects.pop("last_reward", None)
+        return payload
 
     @staticmethod
     def _serialize_prompt_body(

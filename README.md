@@ -183,6 +183,10 @@ uv run python run_full.py \
   --save-trajectories --finalize
 ```
 
+Quote `ranking.primary_score` as the wait-relative headline;
+`score.total_score` is the 13-dimension composite. Persistent `run.py` LLM
+runs default to aborting provider failures rather than converting them to wait.
+
 ## Run OPERATE-Lite
 
 `OPERATE-Lite` contains 141 exact Core-locked rows from 82 physical sources.

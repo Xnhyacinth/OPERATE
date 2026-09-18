@@ -153,3 +153,6 @@ revision and verified Full/Lite artifact hashes.
 
 See [FORMAL_EVALUATION.md](FORMAL_EVALUATION.md) for provider commands and
 [AGENTIC_INTERACTION.md](AGENTIC_INTERACTION.md) for event-loop semantics.
+
+Launch evaluation only from this `main` tree. `.hl/` worktrees, detached
+snapshots, and historical branches are not current inputs.

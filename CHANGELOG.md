@@ -6,7 +6,9 @@
   remains `0.15.0` and is not rewritten.
 - OPERATE-Lite fail-closes provider failures (`abort`, threshold 1) and refuses
   a dirty git tree for execution and finalization. Provider failures are never
-  converted into environment-advancing `wait`.
+  converted into environment-advancing `wait`. Persistent `run.py` LLM runs
+  default to `abort`. Strict prompts omit the runner `last_reward` scalar.
+  Quote `ranking.primary_score` for wait-relative ranking.
 - Lite remains 141 Core rows from 82 physical sources. It is an efficiency
   track, not a Full leaderboard or long-horizon denominator. Headline ranking
   is wait-relative; harness compaction stays deterministic with no hidden
