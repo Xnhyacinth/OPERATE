@@ -8,7 +8,8 @@
   a dirty git tree for execution and finalization. Provider failures are never
   converted into environment-advancing `wait`. Persistent `run.py` LLM runs
   default to `abort`. Strict prompts omit the runner `last_reward` scalar.
-  Quote `ranking.primary_score` for wait-relative ranking.
+  Quote `ranking.primary_score` for wait-relative ranking. Invalid protocol
+  still advances the world and is not counted as a chosen `wait`.
 - Lite remains 141 Core rows from 82 physical sources. It is an efficiency
   track, not a Full leaderboard or long-horizon denominator. Headline ranking
   is wait-relative; harness compaction stays deterministic with no hidden
