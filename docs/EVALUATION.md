@@ -70,6 +70,8 @@ fixed weight denominator, and non-applicable dimensions contribute zero rather
 than leaving the denominator. Ranking uses the `discriminative_core` view
 instead, whose value is the wait-relative primary: counterfactual prevention
 when it is evidenced, otherwise `economic_cost` reanchored so wait-parity is 0.
+Each completed episode also emits `ranking.primary_score` /
+`ranking.wait_relative_score` with `aggregation=wait_relative_outcome_v1`.
 On the same row these can differ by several points, and a row whose primary is
 zero can still carry a positive `score.total_score`. Quote the primary and name
 its source (`wait_relative_score` / `wait_relative_source`) whenever a number

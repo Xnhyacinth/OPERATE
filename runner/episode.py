@@ -47,6 +47,7 @@ from evaluation import (
     ScoringInputs,
     classify_tool_semantic_histogram,
     domain_counterfactual_report,
+    episode_wait_relative_ranking,
     evaluate_foresight,
     evaluate_operational_agency,
     evaluate_task_completion,
@@ -3372,6 +3373,13 @@ def _run_one_with_environment_impl(
             }
         )
 
+    score_payload = score.to_dict()
+    ranking = episode_wait_relative_ranking(
+        dimensions=score_payload["dimensions"],
+        dimension_applicability=score.dimension_applicability,
+        task_completion=task_completion,
+        difficulty_level=score.difficulty_level,
+    )
     result = {
         "scenario_id": scenario.get("seed_id"),
         "scenario_signature": recompute_signature_with_seed(scenario, seed, spec),
@@ -3382,7 +3390,8 @@ def _run_one_with_environment_impl(
         "agent_config": _public_agent_config(agent_kwargs),
         "seed": seed,
         "n_ticks_ran": len(actions),
-        "score": score.to_dict(),
+        "score": score_payload,
+        "ranking": ranking,
         "counterfactual": cf.to_dict(),
         "foresight": foresight,
         "ground_truth_summary": ground_truth_summary,

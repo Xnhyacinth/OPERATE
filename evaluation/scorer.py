@@ -2389,6 +2389,58 @@ def discriminative_core_total(
     }
 
 
+def episode_wait_relative_ranking(
+    *,
+    dimensions: list[dict[str, Any]],
+    dimension_applicability: dict[str, Any],
+    task_completion: dict[str, Any] | None,
+    difficulty_level: str,
+) -> dict[str, Any]:
+    """Bind the wait-relative ranking view onto one completed episode.
+
+    ``score.total_score`` remains the 13-dimension composite. Ranking quotes
+    ``primary_score`` / ``wait_relative_score`` from this payload.
+    """
+
+    completion = task_completion if isinstance(task_completion, dict) else {}
+    evidence = completion.get("evidence")
+    has_evidence = isinstance(evidence, dict) and bool(evidence)
+    task_value = (
+        1.0
+        if (
+            completion.get("applicable") is True
+            and str(completion.get("contract") or "")
+            and has_evidence
+            and completion.get("completed") is True
+        )
+        else 0.0
+    )
+    kind = str(completion.get("contract_kind") or "unsupported")
+    if kind not in {"feasibility", "mitigation", "unsupported"}:
+        kind = "unsupported"
+    coverage = None
+    if isinstance(evidence, dict):
+        raw = evidence.get("schedule_coverage")
+        if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+            coverage = float(raw)
+    result = discriminative_core_total(
+        dimensions,
+        task_completion=task_value,
+        difficulty_level=difficulty_level,
+        dimension_applicability=dimension_applicability,
+        completion_contract_kind=kind,
+        schedule_coverage=coverage,
+    )
+    eligible = bool(result.get("formal_score_eligible"))
+    return {
+        "aggregation": result["aggregation"],
+        "wait_relative_score": result["wait_relative_score"],
+        "wait_relative_source": result["wait_relative_source"],
+        "primary_score": float(result["total_score"]) if eligible else 0.0,
+        "formal_score_eligible": eligible,
+    }
+
+
 def _survival_floor_violation(dimensions: list[dict[str, Any]]) -> bool:
     for item in dimensions:
         if not isinstance(item, dict):
