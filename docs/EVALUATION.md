@@ -17,7 +17,7 @@ public or leaderboard eligible.
   runs use `realtime_persistent.v3` / `native_dt_v1`: wall ticks equal the
   source-converted plant quantum, thinking time is real wall time, and the
   default scorecard is the 37-row speed-critical subset. Do not pool it into
-  the 0.18 primary.
+  the 0.20 wait-relative primary.
 - `logical_stateless` is a non-primary compatibility treatment.
 
 Treatments are never pooled. A shard is comparable only when its suite,
@@ -60,6 +60,24 @@ Missing required **outcome** evidence never improves a primary score. Formal
 ranking aggregates episodes within effective source, effective sources within
 backend, backends within domain, and then equal-weights domains. This
 prevents repeated variants or the largest domain from dominating the headline.
+
+## Two headline numbers
+
+Two different per-episode numbers are both called a "total" and they are not
+interchangeable. The 13-dimension composite is written to `score.total_score`
+(the `fixed_all_dimensions` view): every emitted dimension counts toward a
+fixed weight denominator, and non-applicable dimensions contribute zero rather
+than leaving the denominator. Ranking uses the `discriminative_core` view
+instead, whose value is the wait-relative primary: counterfactual prevention
+when it is evidenced, otherwise `economic_cost` reanchored so wait-parity is 0.
+On the same row these can differ by several points, and a row whose primary is
+zero can still carry a positive `score.total_score`. Quote the primary and name
+its source (`wait_relative_score` / `wait_relative_source`) whenever a number
+is presented as a ranking; cite `score.total_score` only as the composite
+diagnostic. `robustness_to_fog` and `adaptive_decision_making` remain reserved
+cross-batch analyses and are not emitted per episode. Realtime initiative,
+silence, delay, cancellation, supersession, and takeover stay on the independent
+supervision scorecard and are never pooled into the wait-relative primary.
 
 ## Evidence-linked diagnostics
 
@@ -114,9 +132,9 @@ acknowledgement is insufficient. The diagnostic scorecard separately reports:
 - tool efficiency and duplicate suppression;
 - context truncation, repair and provider failures.
 
-Those diagnostics, and the realtime supervision table, stay out of the 0.18
-primary. Long-horizon memory and proactive adaptation are not claimed by the
-headline.
+Those diagnostics, and the realtime supervision table, stay out of the 0.20
+wait-relative primary. Long-horizon memory and proactive adaptation are not
+claimed by the headline.
 
 ## Realtime clock and scorecard
 

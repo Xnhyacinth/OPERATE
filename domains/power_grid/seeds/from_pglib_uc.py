@@ -710,6 +710,11 @@ def build_reserve_stress_seed(
         "peak_demand_mw": peak_demand,
         "peak_reserves_mw": peak_reserves,
         "reserves_variant": case_path.stem,
+        # ``reserves_0`` variants ship a structurally zero requirement (max=0
+        # across all 48 published hours); the backend derives that declaration
+        # from the consumed schedule itself, so no seed-level key is written
+        # here (writing one would change ``ScenarioSeed.signature()`` and drift
+        # the released candidate identity for a diagnostic label).
     }
 
     provenance = Provenance(

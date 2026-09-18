@@ -210,6 +210,9 @@ class RouteDemandSimulator:
                 ),
                 backend_config=cfg,
                 repo_root=Path(__file__).resolve().parents[3],
+                provenance_notes=str(
+                    getattr(scenario_seed.provenance, "notes", "") or ""
+                ),
             )
             net = self._source_resolution["parser_representation"]["network"]
         self._has_time_windows = bool(cfg.get("has_time_windows", False))
@@ -1249,6 +1252,7 @@ class RouteDemandSimulator:
         }
         path = resolution["source_path"]
         declared_path = resolution["declared_source_path"]
+        source_slice = dict(resolution.get("source_slice") or {})
         return {
             "status": "passed",
             "proof_kind": "direct_runtime_files",
@@ -1258,6 +1262,13 @@ class RouteDemandSimulator:
             "consumed_source_hashes": {declared_path: resolution["source_sha256"]},
             "parser_output_digest": resolution["parser_output_digest"],
             "instance_kind": resolution["instance_kind"],
+            # The cited instance and the instantiated slice, side by side. A
+            # consumer can now tell that a row running 20 customers against a
+            # 32-node citation is a declared truncation, not the full instance.
+            "source_slice": source_slice,
+            "cited_clients": source_slice.get("cited_clients"),
+            "instantiated_customers": source_slice.get("instantiated_customers"),
+            "source_truncated": bool(source_slice.get("truncated")),
             "consumed_channels": [channel for channel in resolution["consumed_channels"]
                                   if channel not in {"service_duration", "time_window"}],
             "execution_contract": self.execution_contract(),

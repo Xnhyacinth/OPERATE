@@ -121,9 +121,21 @@ def write_rescore(source: Path, expected_sha256: str, output: Path) -> dict[str,
         raise ValueError("scoring snapshot scenario identity mismatch")
     from core.implementation_identity import implementation_identity
 
+    # Carry the snapshot's diagnostic-only label into the offline result so the
+    # retired recovery row is never read as a live pressure signal. Snapshots
+    # written before the label existed still carry the pair inside ``inputs``;
+    # no domain is recoverable from a scoring-input snapshot and the pair is
+    # discarded for every domain, so reconstruct the same block instead of
+    # dropping the label silently.
+    diagnostic_only_fields = payload.get("diagnostic_only_fields") or {
+        "adaptive_recovery_signal_key": inputs.adaptive_recovery_signal_key,
+        "adaptive_recovery_signal_name": inputs.adaptive_recovery_signal_name,
+        "diagnostic_only": True,
+    }
     result = {"schema_version": "offline_episode_rescore_v1",
               "source_snapshot_sha256": digest, "source_identity": payload["identity"],
               "scoring_implementation": implementation_identity(Path(__file__).resolve().parents[1]),
+              "diagnostic_only_fields": diagnostic_only_fields,
               "score": score_episode(inputs).to_dict(), "formal_completion_claimed": False}
     # Exclusive creation prevents replacing either a historical result or a
     # previous repair. The output is not merged into episodes.jsonl.

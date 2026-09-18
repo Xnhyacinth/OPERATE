@@ -637,26 +637,145 @@ PLOT_FILES = [
 
 FALLBACK_WAIT_RATIO_THRESHOLD = 0.5
 
+# Publish-only initiative / plan-review telemetry. These are derived from the
+# runner's `trajectory_summary` (`nested under event_adaptive_autonomy` for the
+# counters, a top-level key for the derived ones) and reported as per-model
+# means in the leaderboard payload, ANALYSIS.md, and stats_by_model.json; they
+# are deliberately absent from every scoring, coverage, and eligibility path.
+# ``initiative_lead_ticks`` is intentionally NOT published: its positive
+# (proactive) branch is structurally unreachable — measured 0 proactive /
+# 15 tied / 1457 reactive across all 1,472 archived non-empty
+# event_response_records — because the strict causal join binds a control to
+# the event it *consumed*, which necessarily fires at or after that event.
+# Publishing a mean over a signal with no variance would mislead; re-enable
+# only after the anchor is redefined against a genuinely exogenous+actionable
+# tick source (runner/episode.py ``_initiative_lead_ticks``).
+AUTONOMY_DIAGNOSTIC_FIELDS = (
+    "plan_review_honored_rate",
+    "review_offered",
+    "review_omitted",
+)
+
+
+def autonomy_diagnostics_from_rows(
+    rows: list[dict[str, Any]],
+) -> dict[str, dict[str, dict[str, float]]]:
+    """Per-model means of the publish-only initiative / plan-review telemetry.
+
+    A row is counted for a field only when it actually recorded one, so a
+    partial fleet cannot fabricate a 0 for a signal that was never emitted; a
+    model with no emitting row is omitted entirely. Nothing here is read by
+    scoring, coverage, resume, or eligibility.
+    """
+    sums: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for row in rows:
+        trajectory = row.get("trajectory_summary") or {}
+        autonomy = trajectory.get("event_adaptive_autonomy") or {}
+        model = _model_label(row)
+        for field in AUTONOMY_DIAGNOSTIC_FIELDS:
+            # The autonomy counters are nested under `event_adaptive_autonomy`;
+            # the derived diagnostics are published top-level. Accept either
+            # placement so a producer change cannot silently drop a signal.
+            value = autonomy.get(field, trajectory.get(field))
+            if value is None:
+                continue
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                continue
+            sums[model][field] += numeric
+            counts[model][field] += 1
+    return {
+        model: {
+            field: {"mean": sums[model][field] / count, "n": count}
+            for field, count in sorted(fields.items())
+            if count
+        }
+        for model, fields in sorted(counts.items())
+    }
+
+
+def autonomy_diagnostics_for_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Per-row view of the publish-only initiative / plan-review telemetry.
+
+    Values are read defensively from the row's ``trajectory_summary`` (the
+    same source ``autonomy_diagnostics_from_rows`` averages) and keep their
+    native units -- the counters stay ints, the derived diagnostics stay
+    floats.  A field the producer never emitted is ``None``, never a
+    fabricated ``0``; nothing here is read by scoring, coverage, resume, or
+    eligibility, so this can only add a publication surface.
+    """
+    trajectory = row.get("trajectory_summary") or {}
+    autonomy = trajectory.get("event_adaptive_autonomy") or {}
+    # The autonomy counters are nested under `event_adaptive_autonomy`; the
+    # derived diagnostics are published top-level. Accept either placement,
+    # matching `autonomy_diagnostics_from_rows`.
+    return {
+        field: _autonomy_diagnostic_value(
+            autonomy.get(field, trajectory.get(field))
+        )
+        for field in AUTONOMY_DIAGNOSTIC_FIELDS
+    }
+
+
+def _autonomy_diagnostic_value(value: Any) -> int | float | None:
+    """Coerce one published diagnostic to a JSON-safe number, else ``None``.
+
+    Non-finite floats are treated as missing rather than serialised into the
+    leaderboard, which keeps the payload valid JSON for every consumer.
+    """
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if math.isfinite(numeric) else None
+
 
 def _provider_failure_profile(
     *, formal_run: bool,
+    lite_lineage: bool = False,
     provider_failure_policy: str | None = None,
     max_consecutive_provider_failures: int | None = None,
 ) -> dict[str, Any]:
-    policy = provider_failure_policy or ("abort" if formal_run else "compat_fallback")
+    fail_closed = formal_run or lite_lineage
+    policy = provider_failure_policy or ("abort" if fail_closed else "compat_fallback")
     threshold = (
         max_consecutive_provider_failures
         if max_consecutive_provider_failures is not None
-        else (1 if formal_run else 5)
+        else (1 if fail_closed else 5)
     )
     if policy not in {"abort", "compat_fallback"} or threshold < 1:
         raise ValueError("provider failure policy requires a positive failure threshold")
-    if formal_run and (policy != "abort" or threshold != 1):
-        raise ValueError("formal runs require provider failure policy abort and threshold 1")
+    if fail_closed and (policy != "abort" or threshold != 1):
+        raise ValueError(
+            "formal runs and OPERATE-Lite lineage require provider failure "
+            "policy abort and threshold 1"
+        )
     return {
         "max_consecutive_provider_failures": threshold,
         "provider_failure_policy": policy,
     }
+
+
+def _lite_dirty_tree_execution_error(
+    *, dry_run: bool, finalize_only: bool, git_metadata: dict[str, Any],
+) -> str | None:
+    if dry_run or finalize_only:
+        return None
+    if (
+        git_metadata.get("git_metadata_available") is not True
+        or git_metadata.get("git_dirty") is not False
+    ):
+        return (
+            "OPERATE-Lite execution requires a clean git tree; "
+            "commit or stash before evaluation"
+        )
+    return None
 
 
 def _load_zhsrc_exports() -> dict[str, str]:
@@ -1292,6 +1411,7 @@ def _batch_llm_config(
         provider_retry_max_elapsed_s=float(getattr(args, "provider_retry_max_elapsed_s", 1800.0)),
         **_provider_failure_profile(
             formal_run=bool(getattr(args, "formal_run", False)),
+            lite_lineage=getattr(args, "lite_lineage_suite", None) is not None,
             provider_failure_policy=getattr(args, "provider_failure_policy", None),
             max_consecutive_provider_failures=getattr(
                 args, "max_consecutive_provider_failures", None
@@ -3877,11 +3997,16 @@ def _retryable_infrastructure_row(row: dict[str, Any]) -> bool:
         return True
     llm = (row.get("trajectory_summary") or {}).get("llm") or {}
     failures = llm.get("failed_tick_log") or []
+    last = failures[-1] if failures else None
     # Legacy circuit rows lack an explicit cause. Only their final failure
     # can explain termination; earlier recovered failures are not retry gates.
-    if row.get("error_type") != "ProviderCircuitOpenError" or row.get("error_cause_type"):
+    # A verified metadata amendment appends the audited terminal failure, so
+    # that evidence-linked entry still gates a retry despite the row's cause.
+    amended_final = isinstance(last, dict) and bool(last.get("metadata_amendment"))
+    if row.get("error_type") != "ProviderCircuitOpenError" or (
+        row.get("error_cause_type") and not amended_final
+    ):
         return False
-    last = failures[-1] if failures else None
     return isinstance(last, dict) and (
         last.get("reason") in {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
         or last.get("exc_type") in transient_types
@@ -5060,6 +5185,21 @@ LEGAL_BATCH_STATES = (
     BATCH_STATE_DEGRADED,
     BATCH_STATE_UNKNOWN,
 )
+# Batch states in which at least one configured episode failed to produce a
+# clean measurement (harness error, provider contamination, budget truncation,
+# superseded protocol, or failed formal row eligibility). These are the states
+# the process exit code must refuse to report as success.
+#
+# `partial` is deliberately absent: `_batch_state` shares that label between
+# two very different situations. A grid can be "partial" because episodes were
+# genuinely not measured (coverage < 1.0), or because the *suite* is
+# release-blocked, which demotes every row's formal eligibility and therefore
+# the formal coverage of an otherwise complete, error-free grid. Lite always
+# runs a release-blocked suite, so treating `partial` as a failure would make
+# every clean Lite batch exit non-zero, which the D3 contract forbids. The
+# uncovered-cell half of `partial` is still caught by the execution-coverage
+# check in `_batch_exit_code`.
+BATCH_STATE_EXIT_FAILURES = (BATCH_STATE_DEGRADED,)
 
 
 def _batch_state(
@@ -5284,6 +5424,7 @@ def _write_analysis(
     intersection_leaderboard: list[dict[str, Any]] | None = None,
     state: dict[str, Any] | None = None,
     pass_k_success: dict[str, Any] | None = None,
+    autonomy_diagnostics: dict[str, dict[str, dict[str, float]]] | None = None,
 ) -> None:
     """Emit ANALYSIS.md + per-model stats JSON from episode rows."""
     ok = [r for r in results if r.get("status") == "ok"]
@@ -5304,6 +5445,13 @@ def _write_analysis(
             "llm_fail": 0.0,
         }
     )
+    # Initiative/plan-review telemetry is diagnostic-only: it is published as a
+    # per-model mean next to the interaction stats and never enters scoring,
+    # coverage, or eligibility. The aggregation is shared with the leaderboard
+    # payload so both surfaces report byte-identical means.
+    if autonomy_diagnostics is None:
+        # Same row set (and therefore the same means) as the leaderboard payload.
+        autonomy_diagnostics = autonomy_diagnostics_from_rows(results)
     for r in clean_ok:
         model = str(r.get("model") or r.get("agent_name", "")).replace("llm_agent/", "")
         by_model[model].append(float(r["score"]["total_score"]))
@@ -5383,6 +5531,25 @@ def _write_analysis(
                 f"{st['n_wait'] / ep:.1f} | {st['llm_ok'] / ep:.1f} | "
                 f"{st['llm_fail'] / ep:.1f} |"
             )
+
+    if autonomy_diagnostics:
+        lines.extend(
+            [
+                "",
+                "## Initiative / plan-review diagnostics (publish-only)",
+                "",
+                "Per-model mean of runner telemetry; excluded from scoring and eligibility.",
+                "",
+                "| model | " + " | ".join(AUTONOMY_DIAGNOSTIC_FIELDS) + " |",
+                "|-------|" + "|".join(["---"] * len(AUTONOMY_DIAGNOSTIC_FIELDS)) + "|",
+            ]
+        )
+        for model in sorted(autonomy_diagnostics):
+            cells = []
+            for field in AUTONOMY_DIAGNOSTIC_FIELDS:
+                entry = autonomy_diagnostics[model].get(field)
+                cells.append(f"{entry['mean']:.2f}" if entry else "-")
+            lines.append(f"| {model} | " + " | ".join(cells) + " |")
 
     if err:
         lines.extend(["", "## Failures", ""])
@@ -5505,6 +5672,7 @@ def _write_analysis(
         "n_clean_ok": len(clean_ok),
         "n_dirty_ok": len(dirty_ok),
         "tool_stats": dict(tool_stats),
+        "autonomy_diagnostics": autonomy_diagnostics,
     }
     (out_dir / "stats_by_model.json").write_text(
         json.dumps(stats_export, indent=2), encoding="utf-8"
@@ -5902,7 +6070,8 @@ def _primary_leaderboard_payload(
                     "precomputed formal score mismatch"
                 )
             group_contracts.append({"scenario_signature": row.get("scenario_signature"),
-                                    "model": row.get("model"), **score_contract})
+                                    "model": row.get("model"), **score_contract,
+                                    "autonomy_diagnostics": autonomy_diagnostics_for_row(row)})
             prepared.append(
                 {
                     **row,
@@ -5931,7 +6100,8 @@ def _primary_leaderboard_payload(
                 )
             )
         group_contracts.append({"scenario_signature": row.get("scenario_signature"),
-                                "model": row.get("model"), **score_contract})
+                                "model": row.get("model"), **score_contract,
+                                "autonomy_diagnostics": autonomy_diagnostics_for_row(row)})
         prepared.append(
             {
                 "model": row.get("model", row.get("agent_name")),
@@ -6136,6 +6306,7 @@ def _write_leaderboard_json(
     required_implementation_tree_sha256: str | None = None,
     required_interaction_mode: str | None = None,
     batch_root: Path | None = None,
+    autonomy_diagnostics: dict[str, dict[str, dict[str, float]]] | None = None,
 ) -> list[dict[str, Any]]:
     leaderboard_views = {
         "fixed_all_dimensions": _leaderboard_for_view(results, "fixed_all_dimensions", batch_root=batch_root),
@@ -6334,6 +6505,12 @@ def _write_leaderboard_json(
             payload["comparability_warning"] = coverage["comparability_warning"]
     if intersection_leaderboard is not None:
         payload["intersection_leaderboard"] = intersection_leaderboard
+    if autonomy_diagnostics is None:
+        # A caller that already holds a finalized state must still publish the
+        # diagnostics, so derive them here rather than silently omitting the
+        # field; an empty batch publishes an empty (never absent) object.
+        autonomy_diagnostics = autonomy_diagnostics_from_rows(results)
+    payload["autonomy_diagnostics"] = autonomy_diagnostics
     if state is not None:
         payload["batch_state"] = state["batch_state"]
         payload["batch_state_reasons"] = state["reasons"]
@@ -7014,6 +7191,9 @@ def _finalize_outputs(
             state["batch_state"],
             state["reasons"],
         )
+    # Publish-only autonomy telemetry, computed once so the leaderboard payload
+    # and the ANALYSIS/stats writers report identical means.
+    autonomy_diagnostics = autonomy_diagnostics_from_rows(results)
 
     _write_summary_csv(out_dir, results)
     leaderboard = _write_leaderboard_json(
@@ -7035,6 +7215,7 @@ def _finalize_outputs(
             else None
         ),
         batch_root=out_dir if bool(meta.get("formal_run")) else None,
+        autonomy_diagnostics=autonomy_diagnostics,
     )
     leaderboard_path = out_dir / "leaderboard.json"
     leaderboard_payload = json.loads(leaderboard_path.read_text(encoding="utf-8"))
@@ -7058,6 +7239,7 @@ def _finalize_outputs(
         intersection_leaderboard=intersection_leaderboard,
         state=state,
         pass_k_success=pass_k_success,
+        autonomy_diagnostics=autonomy_diagnostics,
     )
     analysis_report = analyze_output_dir(out_dir, rows=results)
     (out_dir / "analysis_deep.json").write_text(
@@ -7151,6 +7333,15 @@ def _finalize_outputs(
         "batch_state": state["batch_state"],
         "batch_state_reasons": state["reasons"],
         "n_orphan_interrupted_logs": state["n_orphan_interrupted_logs"],
+        # Persisted so the process exit code can fail a partial grid that also
+        # carries contaminated rows (`partial` would otherwise mask them).
+        # `_batch_state` omits them on the `unknown` early return.
+        "n_provider_contaminated_episodes": state.get(
+            "n_provider_contaminated_episodes", 0
+        ),
+        "n_prompt_budget_contaminated_episodes": state.get(
+            "n_prompt_budget_contaminated_episodes", 0
+        ),
         "coverage": coverage_public,
         "pass_k_success": pass_k_success,
         "leaderboard_eligible": leaderboard_eligibility["eligible"],
@@ -7402,6 +7593,48 @@ def _build_jobs(
             encoding="utf-8",
         )
     return jobs
+
+
+def _batch_exit_code(
+    *,
+    batch_state: str | None,
+    coverage: dict[str, Any] | None,
+    provider_contaminated: int,
+    prompt_budget_contaminated: int,
+    orphan_interrupted_logs: int,
+    results: list[dict[str, Any]],
+) -> int:
+    """Decide the process exit code from execution-level cleanliness.
+
+    Returns 0 only when the batch actually measured what it promised and every
+    episode is usable. ``batch_state`` alone cannot carry this decision:
+
+    - ``partial`` is shared by "episodes were not measured" and "the suite is
+      release-blocked", and a release-blocked suite (Lite, custom) demotes the
+      formal coverage of an otherwise complete grid. Failing on it would make
+      every clean Lite batch exit non-zero.
+    - ``final`` requires every configured row to pass formal row eligibility,
+      which a release-blocked suite can never satisfy.
+
+    So we fail on the unambiguous state markers (degraded, provider/budget
+    contamination, orphan residue) plus a missing execution cell, and fall back
+    to the per-row status check.
+    """
+    if batch_state in BATCH_STATE_EXIT_FAILURES:
+        return 2
+    if (
+        provider_contaminated
+        or prompt_budget_contaminated
+        or orphan_interrupted_logs
+    ):
+        return 2
+    if coverage is not None:
+        execution_coverage = coverage.get("per_model_execution_coverage") or {}
+        if not execution_coverage or any(
+            float(value) < 1.0 for value in execution_coverage.values()
+        ):
+            return 2
+    return 0 if all(r.get("status") == "ok" for r in results) else 2
 
 
 def _run_batch_main() -> int:
@@ -7663,6 +7896,7 @@ def _run_batch_main() -> int:
     try:
         provider_failure_profile = _provider_failure_profile(
             formal_run=args.formal_run,
+            lite_lineage=args.lite_lineage_suite is not None,
             provider_failure_policy=args.provider_failure_policy,
             max_consecutive_provider_failures=args.max_consecutive_provider_failures,
         )
@@ -7914,6 +8148,15 @@ def _run_batch_main() -> int:
                 + ", ".join(formal_reasons),
                 file=sys.stderr,
             )
+            return 1
+    if args.lite_lineage_suite is not None:
+        lite_git_error = _lite_dirty_tree_execution_error(
+            dry_run=bool(args.dry_run),
+            finalize_only=bool(args.finalize_only),
+            git_metadata=git_metadata,
+        )
+        if lite_git_error is not None:
+            print(f"[FATAL] {lite_git_error}", file=sys.stderr)
             return 1
     if (
         not args.finalize_only
@@ -8789,7 +9032,8 @@ def _run_batch_main() -> int:
     meta["git_commit_end"] = git_metadata_end.get("git_commit")
     meta["git_dirty_end"] = git_metadata_end.get("git_dirty")
     meta["git_status_short_end"] = git_metadata_end.get("git_status_short") or []
-    if bool(meta.get("formal_run")) and (
+    require_clean_end = bool(meta.get("formal_run")) or args.lite_lineage_suite is not None
+    if require_clean_end and (
         git_metadata_end.get("git_metadata_available") is not True
         or git_metadata_end.get("git_dirty") is not False
         or not meta.get("git_commit")
@@ -8799,8 +9043,9 @@ def _run_batch_main() -> int:
             out_dir / "run_config.json",
             json.dumps(meta, indent=2, ensure_ascii=False),
         )
+        label = "formal" if meta.get("formal_run") else "lite"
         print(
-            "[FATAL] formal_git_state_changed_or_unavailable; refusing finalization",
+            f"[FATAL] {label}_git_state_changed_or_unavailable; refusing finalization",
             file=sys.stderr,
         )
         return 1
@@ -8844,11 +9089,34 @@ def _run_batch_main() -> int:
                 started_at_utc=invocation_started_at, status="completed",
             ), indent=2) + "\n",
         )
+    # `_finalize_outputs` already computed the batch state machine (coverage,
+    # errors, orphan residue, provider contamination) and persisted it in the
+    # manifest. A run whose episodes were not cleanly measured is not a usable
+    # result even when every row happened to record status=ok, so CI must not
+    # read exit 0 as success. This is evaluated before the formal eligibility
+    # gate so a non-formal batch reaches it too; without finalize there is no
+    # manifest and the per-row status check remains the fallback.
+    exit_code = _batch_exit_code(
+        batch_state=(manifest or {}).get("batch_state"),
+        coverage=(manifest or {}).get("coverage"),
+        provider_contaminated=int(
+            (manifest or {}).get("n_provider_contaminated_episodes") or 0
+        ),
+        prompt_budget_contaminated=int(
+            (manifest or {}).get("n_prompt_budget_contaminated_episodes") or 0
+        ),
+        orphan_interrupted_logs=int(
+            (manifest or {}).get("n_orphan_interrupted_logs") or 0
+        ),
+        results=results,
+    )
+    if exit_code != 0:
+        return exit_code
     if bool(meta.get("formal_run")) and not bool(
         (manifest or {}).get("leaderboard_eligible")
     ):
         return 2
-    return 0 if all(r.get("status") == "ok" for r in results) else 2
+    return 0
 
 
 def _print_batch_leaderboard(out_dir: Path) -> None:

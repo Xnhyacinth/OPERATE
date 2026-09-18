@@ -1431,6 +1431,12 @@ class PglibUcSyntheticBackend:
         arr = case.get("reserves", [])
         return float(arr[min(tick, len(arr) - 1)]) if arr else 0.0
 
+    def _published_reserve_max(self) -> float:
+        """Peak of the *consumed* published reserve schedule, or 0.0 if none."""
+        case = self._case or {}
+        arr = case.get("reserves") or []
+        return max((float(value) for value in arr), default=0.0)
+
     def _reserves_procured(self) -> float:
         # DC-7: cap effective headroom at `power_max * fuel_supply_factor`.
         # Previously the unloaded slack was computed against nameplate
@@ -1869,7 +1875,32 @@ class PglibUcSyntheticBackend:
         early), and the early-guard ``r.tick < self._horizon - 1`` would zero
         it regardless — kept in the same form as cigre/grid2op for contract
         symmetry.
+
+        The four power-flow keys carry the scoring contract's *honest-zero*
+        reading, and ``rho_max`` is additionally declared inapplicable
+        (``utilisation_inapplicable_reason``) so the scorer never mistakes "no
+        native loading limit on this backend" for a measured utilisation of 0.
+        The ``reserves_*`` pair is native spinning reserve only when the case
+        actually publishes one: the schedule is the requirement and committed
+        headroom is the procurement, both real per-tick quantities on this
+        aggregate model. Variants whose published schedule is structurally zero
+        (``reserves_0``) declare the dimension ``not_modelled`` — derived from
+        the consumed schedule itself, never from the family name — so the
+        honest zero is emitted here but never scored as a measured reserve
+        balance. An explicit ``backend_config['reserve_semantics']`` still wins.
         """
+        backend_config = getattr(self._seed_obj, "backend_config", None) or {}
+        utilisation_reason = str(
+            backend_config.get("native_utilisation_inapplicable_reason")
+            or "aggregate_uc_has_no_native_line_loading_limit"
+        )
+        declared_reserve_semantics = backend_config.get("reserve_semantics")
+        if declared_reserve_semantics:
+            reserve_semantics = str(declared_reserve_semantics)
+        elif self._published_reserve_max() > 0.0:
+            reserve_semantics = "native_reserve"
+        else:
+            reserve_semantics = "not_modelled"
         return [
             {
                 "tick": r.tick,
@@ -1882,12 +1913,14 @@ class PglibUcSyntheticBackend:
                 "balance_error_mw": r.balance_error_mw,
                 "reserves_required_mw": r.reserves_required_mw,
                 "reserves_procured_mw": r.reserves_procured_mw,
+                "reserve_semantics": reserve_semantics,
                 "production_cost": r.production_cost,
                 "startup_cost": r.startup_cost,
                 "shed_penalty": r.shed_penalty,
                 # Canonical safety keys — honest 0 on the aggregate UC backend
                 # (no power flow → no overload / voltage / topology signal).
                 "rho_max": 0.0,
+                "utilisation_inapplicable_reason": utilisation_reason,
                 "n_overloads": 0,
                 "n_voltage_violations": 0,
                 "n_disconnected_lines": 0,

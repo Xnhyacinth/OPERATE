@@ -90,6 +90,7 @@ def _synthetic_instance(
     return {
         "name": name,
         "type": "VRPTW" if with_tw else "CVRP",
+        "dimension": len(nodes),
         "capacity": cap,
         "n_vehicles": 4,
         "service_time": 10.0 if with_tw else 0.0,
@@ -265,6 +266,15 @@ def instance_is_anchored(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _int_or(value: Any, fallback: int) -> int:
+    """Coerce a header value to int, tolerating absent / array-shaped input."""
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return fallback
+    return parsed if parsed > 0 else fallback
+
+
 def _normalize_vrplib(inst: dict[str, Any]) -> dict[str, Any]:
     """Coerce a ``vrplib.read_instance`` dict (numpy arrays) to plain Python."""
     coords = inst.get("node_coord")
@@ -299,6 +309,9 @@ def _normalize_vrplib(inst: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": str(inst.get("name", "")),
         "type": str(inst.get("type", "CVRP")),
+        # Cited instance size (``DIMENSION`` header) — kept so provenance can
+        # compare what the file declares with what the runtime instantiates.
+        "dimension": _int_or(inst.get("dimension"), len(coords)),
         "capacity": int(inst.get("capacity", 0) or 0),
         "n_vehicles": int(inst.get("vehicles", 0) or 0),
         "service_time": service_time,
@@ -371,6 +384,9 @@ def _read_vrplib_pure(path: Path) -> dict[str, Any]:
     return {
         "name": header.get("NAME", path.stem),
         "type": header.get("TYPE", "CVRP"),
+        # Cited instance size (``DIMENSION`` header), re-read so provenance
+        # can compare the declared instance against the runtime slice.
+        "dimension": int(float(header.get("DIMENSION", "0") or 0)) or len(nodes),
         "capacity": int(float(header.get("CAPACITY", "0") or 0)),
         "n_vehicles": int(float(header.get("VEHICLES", "0") or 0)),
         "service_time": float(header.get("SERVICE_TIME", "0") or 0),
@@ -422,6 +438,9 @@ def _read_solomon_txt(path: Path) -> dict[str, Any]:
     return {
         "name": name,
         "type": "VRPTW",
+        # Solomon ``.txt`` carries no ``DIMENSION`` header; the parsed table
+        # length (depot included) is the cited instance size.
+        "dimension": len(nodes),
         "capacity": capacity,
         "n_vehicles": n_vehicles,
         "service_time": service_time,

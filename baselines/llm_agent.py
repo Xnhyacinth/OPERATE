@@ -216,6 +216,39 @@ _EVENT_PROMPT_BULKY_KEYS = frozenset(
         "materialized_signal_controls",
     }
 )
+# Evaluation-internal event fields. They drive admission/scoring in the episode
+# runner, so the ledger and the observations keep them verbatim; only the
+# model-visible prompt projection strips them. ``declared_event`` in particular
+# exposes a future shock's intensity/duration/trigger tick, and the bare
+# ``materiality`` dict carries the same metric/value/threshold the
+# ``materiality_*`` keys do.
+_EVENT_PROMPT_INTERNAL_KEYS = frozenset(
+    {
+        "materiality",
+        "materiality_threshold",
+        "materiality_value",
+        "before_state_digest",
+        "after_state_digest",
+        "response_opportunity_tick",
+        "response_window_required",
+        "response_window_end_tick",
+        "response_deadline_tick",
+        "mandatory_response_tick",
+        "terminal_response_window_missing",
+        "declared_event",
+        "declared_perturbation",
+        "hidden",
+        "surprise",
+    }
+)
+_EVENT_PROMPT_INTERNAL_KEY_PREFIXES = ("materiality_",)
+_EVENT_PROMPT_INTERNAL_KEY_SUFFIXES = ("_state_digest",)
+# Nesting depth explored when scrubbing an event-shaped mapping. Real payloads
+# (realtime ``payload``, canonicalized ``declared_event``) are one level deep,
+# but a projection is only as safe as its deepest wrapper: any event mapping
+# nested behind further wrapper dicts must not silently become a passthrough.
+# The scrub is therefore unbounded; JSON-able event dicts are finite and small.
+_EVENT_PROMPT_MAX_DEPTH = None
 _CORRIDOR_PROMPT_KEYS = (
     "queue",
     "vehicles",
@@ -689,6 +722,15 @@ def _is_prompt_provenance_key(key: str) -> bool:
     return key in _PROMPT_PROVENANCE_KEYS or key.endswith("_sha256")
 
 
+def _is_event_prompt_internal_key(key: str) -> bool:
+    """Whether an event key carries evaluation internals the model must not see."""
+    return (
+        key in _EVENT_PROMPT_INTERNAL_KEYS
+        or key.startswith(_EVENT_PROMPT_INTERNAL_KEY_PREFIXES)
+        or key.endswith(_EVENT_PROMPT_INTERNAL_KEY_SUFFIXES)
+    )
+
+
 def _prompt_safe_entity(entity: dict[str, Any]) -> dict[str, Any]:
     return {
         key: value
@@ -761,6 +803,31 @@ def _corridor_rank(row: object) -> tuple[float, float, float]:
     )
 
 
+def _scrub_event_prompt_internal(value: object, *, depth: int = 0) -> object:
+    """Recursively drop evaluation-internal keys from a nested event mapping.
+
+    ``_event_prompt_view`` only sees the top level of the event dict it is
+    handed, but realtime events nest the raw native event one level down in
+    ``payload`` (``runner/realtime_episode.py`` does ``payload={**native, ...}``)
+    and ``declared_event``/``materiality`` are themselves dicts. Without the
+    recursion the same internal keys would survive into the provider request.
+    A depth-bounded scrub would silently become a passthrough for any deeper
+    wrapper, so the recursion is unbounded (``_EVENT_PROMPT_MAX_DEPTH`` is
+    ``None``): event dicts are JSON-able and finite.
+    """
+    if _EVENT_PROMPT_MAX_DEPTH is not None and depth >= _EVENT_PROMPT_MAX_DEPTH:
+        return deepcopy(value)
+    if isinstance(value, dict):
+        return {
+            key: _scrub_event_prompt_internal(item, depth=depth + 1)
+            for key, item in value.items()
+            if not _is_event_prompt_internal_key(str(key))
+        }
+    if isinstance(value, (list, tuple)):
+        return [_scrub_event_prompt_internal(item, depth=depth + 1) for item in value]
+    return deepcopy(value)
+
+
 def _event_prompt_view(
     event: object, *, max_corridors: int = _MAX_EVENT_CORRIDORS
 ) -> object:
@@ -768,9 +835,10 @@ def _event_prompt_view(
     if not isinstance(event, dict):
         return event
     view: dict[str, Any] = {
-        key: value
+        key: _scrub_event_prompt_internal(value)
         for key, value in event.items()
         if key not in _EVENT_PROMPT_BULKY_KEYS
+        and not _is_event_prompt_internal_key(str(key))
     }
     per_corridor = event.get("per_corridor")
     if isinstance(per_corridor, dict) and per_corridor.get("_compacted") is True:
@@ -884,6 +952,19 @@ def _empty_interaction_stats() -> dict[str, Any]:
         "persistent_context_requested_max_chars": None,
         "persistent_context_effective_max_chars": None,
     }
+
+
+# Bucket order doubles as the retention priority under the global memory
+# budget: alarms before obligations before facts before commitments.
+_PERSISTENT_MEMORY_BUCKETS = (
+    "unresolved_alarms",
+    "open_obligations",
+    "confirmed_facts",
+    "active_commitments",
+    "forecast_ledger",
+    "state_trends",
+)
+_PERSISTENT_MEMORY_BUCKET_FLOOR = 4
 
 
 def _empty_persistent_memory() -> dict[str, Any]:
@@ -3147,6 +3228,17 @@ class LLMAgent(BaselineAgent):
                 **record,
             }
         )
+        # Mirror the compaction surrogate into the append-only ledger so the
+        # compacted_content_sha256 is independently recomputable from the
+        # recorded messages. The ledger entry keeps the message shape used by
+        # every other ledger row and adds the stable audit marker plus the hash.
+        self._session_ledger.append(
+            {
+                **deepcopy(summary),
+                "kind": "context_compaction",
+                "compacted_content_sha256": record["compacted_content_sha256"],
+            }
+        )
 
     def _append_persistent_message(self, message: dict[str, Any]) -> None:
         self._ensure_persistent_session()
@@ -3251,8 +3343,78 @@ class LLMAgent(BaselineAgent):
             if isinstance(row, dict) and str(row.get("id")) != item_id
         ]
         records.append(record)
-        limit = max(4, int(self.config.persistent_memory_max_items))
-        self._structured_memory[bucket] = records[-limit:]
+        self._structured_memory[bucket] = records
+        self._trim_persistent_memory()
+
+    def _trim_persistent_memory(self) -> None:
+        """Enforce the global structured-memory budget across all buckets.
+
+        ``persistent_memory_max_items`` is a HARD cap on the TOTAL number of
+        retained records, not a per-bucket count. The budget is spent in two
+        passes over ``_PERSISTENT_MEMORY_BUCKETS`` (priority order: unresolved
+        alarms, open obligations, confirmed facts, active commitments, ...):
+
+        1. every non-empty bucket keeps up to ``_PERSISTENT_MEMORY_BUCKET_FLOOR``
+           (4) of its newest records, until the budget runs out;
+        2. whatever is left is handed out one record at a time, newest first,
+           cycling the buckets in the same priority order.
+
+        A single busy bucket therefore cannot grow to ``budget`` records on its
+        own.
+
+        Documented limitation: the floor is a best-effort guarantee, not
+        unconditional. When ``budget < 4 * n_nonempty`` it is arithmetically
+        impossible to give every non-empty bucket four records (and impossible
+        even to keep one record in each, when ``budget < n_nonempty``); the
+        priority order decides which buckets are served, and the tail buckets
+        are truncated to empty. Small budgets are a real configuration
+        (``test_batch_llm_eval`` uses 7 and 11), and a naive
+        ``budget // n_nonempty`` split starved the alarm bucket - the one
+        bucket the model must act on - so alarms are served first instead.
+        """
+        budget = max(
+            _PERSISTENT_MEMORY_BUCKET_FLOOR,
+            int(self.config.persistent_memory_max_items),
+        )
+        retained = {
+            bucket: list(self._structured_memory.get(bucket, []) or [])
+            for bucket in _PERSISTENT_MEMORY_BUCKETS
+        }
+        nonempty = [bucket for bucket in _PERSISTENT_MEMORY_BUCKETS if retained[bucket]]
+        if not nonempty:
+            return
+        kept: dict[str, list[Any]] = {
+            bucket: [] for bucket in _PERSISTENT_MEMORY_BUCKETS
+        }
+        cursor = {
+            bucket: len(retained[bucket]) for bucket in _PERSISTENT_MEMORY_BUCKETS
+        }
+        remaining = budget
+        for bucket in _PERSISTENT_MEMORY_BUCKETS:
+            if remaining <= 0:
+                break
+            take = min(_PERSISTENT_MEMORY_BUCKET_FLOOR, len(retained[bucket]), remaining)
+            if take <= 0:
+                continue
+            kept[bucket] = retained[bucket][-take:]
+            cursor[bucket] = len(retained[bucket]) - take
+            remaining -= take
+        while remaining > 0:
+            progressed = False
+            for bucket in nonempty:
+                if remaining <= 0:
+                    break
+                index = cursor[bucket] - 1
+                if index < 0:
+                    continue
+                kept[bucket].insert(0, retained[bucket][index])
+                cursor[bucket] = index
+                remaining -= 1
+                progressed = True
+            if not progressed:
+                break
+        for bucket in _PERSISTENT_MEMORY_BUCKETS:
+            self._structured_memory[bucket] = kept[bucket]
 
     def _resolve_persistent_alarm(self, alarm_id: str) -> None:
         self._structured_memory["unresolved_alarms"] = [
@@ -3791,6 +3953,13 @@ class LLMAgent(BaselineAgent):
     ) -> Any:
         if not isinstance(record, dict):
             return _bounded_json_value(record, string_limit=string_limit)
+        # Alarm/obligation records are built as ``{"observed_at_tick": tick,
+        # **raw_event}``, so an internal event field would be re-emitted here
+        # even after ``_event_prompt_view`` scrubbed it. Memory records reach
+        # the prompt too, so apply the same blacklist on the way out.
+        record = _scrub_event_prompt_internal(record)
+        if not isinstance(record, dict):
+            return _bounded_json_value(record, string_limit=string_limit)
         state_keys = (
             "id",
             "memory_key",
@@ -3840,14 +4009,7 @@ class LLMAgent(BaselineAgent):
 
     def _persistent_memory_projection_candidates(self) -> list[dict[str, Any]]:
         memory = self._structured_memory
-        buckets = (
-            "unresolved_alarms",
-            "open_obligations",
-            "confirmed_facts",
-            "active_commitments",
-            "forecast_ledger",
-            "state_trends",
-        )
+        buckets = _PERSISTENT_MEMORY_BUCKETS
 
         def project(*, string_limit: int, identity_only: bool) -> dict[str, Any]:
             return {
@@ -3867,7 +4029,12 @@ class LLMAgent(BaselineAgent):
             }
 
         return [
-            deepcopy(memory),
+            # The first candidate is the raw memory, so it must pass through the
+            # same internal-key scrub as every projection: ingested records are
+            # already scrubbed at the boundary, but a candidate that bypasses
+            # the scrub would reintroduce evaluation-internal keys if any ingest
+            # path ever misses one. Candidate ordering is unchanged.
+            _scrub_event_prompt_internal(memory),
             *(
                 project(string_limit=limit, identity_only=False)
                 for limit in (256, 160, 96, 64, 32)

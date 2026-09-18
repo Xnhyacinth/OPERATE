@@ -95,6 +95,118 @@ def test_lite_runner_forwards_all_rows_as_scenario_slugs(monkeypatch) -> None:
     assert set(expand_scenarios(slugs)) == set(slugs)
 
 
+def _forwarded_argv(monkeypatch, runner, argv: list[str]) -> list[str]:
+    captured: list[str] = []
+
+    def fake_main() -> int:
+        captured.extend(sys.argv)
+        return 0
+
+    monkeypatch.setattr(runner.batch_llm_eval, "main", fake_main)
+    monkeypatch.setattr(sys, "argv", ["run_lite.py", *argv])
+    assert runner.main() == 0
+    return captured
+
+
+def _forwarded_option_value(argv: list[str], option: str) -> str | None:
+    for index, argument in enumerate(argv):
+        name, separator, value = argument.partition("=")
+        if name == option:
+            return value if separator else (argv[index + 1] if index + 1 < len(argv) else "")
+    return None
+
+
+def test_lite_runner_injects_documented_profile_when_caller_is_silent(monkeypatch) -> None:
+    runner = _runner_module()
+    captured = _forwarded_argv(monkeypatch, runner, ["--dry-run"])
+
+    assert _forwarded_option_value(captured, "--persistent-history-max-messages") == "64"
+    assert _forwarded_option_value(captured, "--persistent-context-max-chars") == "512000"
+    assert _forwarded_option_value(captured, "--persistent-memory-max-items") == "128"
+    assert _forwarded_option_value(captured, "--provider-failure-policy") == "abort"
+    assert _forwarded_option_value(captured, "--max-consecutive-provider-failures") == "1"
+    # Injected bounds must precede the fixed scope tail that redefines the
+    # scenario set, and must never appear after --scenarios.
+    assert captured.index("--persistent-history-max-messages") < captured.index("--scenarios")
+
+
+@pytest.mark.parametrize(
+    ("option", "value"),
+    [
+        ("--persistent-history-max-messages", "40"),
+        ("--persistent-context-max-chars", "64000"),
+        ("--persistent-memory-max-items", "80"),
+    ],
+)
+def test_lite_runner_keeps_explicit_profile_choice(
+    monkeypatch, option: str, value: str,
+) -> None:
+    runner = _runner_module()
+    captured = _forwarded_argv(monkeypatch, runner, ["--dry-run", option, value])
+
+    assert _forwarded_option_value(captured, option) == value
+    assert captured.count(option) == 1
+    # The two bounds the caller did not name are still filled in.
+    expected_missing = {
+        flag for flag, _ in runner.LITE_PROFILE_FLAGS if flag != option
+    }
+    for flag in expected_missing:
+        assert _forwarded_option_value(captured, flag) is not None
+
+
+def test_lite_runner_honors_flag_equals_form_and_leaves_other_bounds_defaulted(
+    monkeypatch,
+) -> None:
+    runner = _runner_module()
+    captured = _forwarded_argv(
+        monkeypatch, runner, ["--dry-run", "--persistent-context-max-chars=256000"]
+    )
+
+    assert _forwarded_option_value(captured, "--persistent-context-max-chars") == "256000"
+    assert captured.count("--persistent-context-max-chars=256000") == 1
+    assert not any(
+        argument == "--persistent-context-max-chars" for argument in captured
+    )
+    assert _forwarded_option_value(captured, "--persistent-history-max-messages") == "64"
+    assert _forwarded_option_value(captured, "--persistent-memory-max-items") == "128"
+
+
+def test_lite_runner_honors_caller_abbreviation_of_documented_bound(monkeypatch) -> None:
+    """Downstream argparse accepts unambiguous prefixes, so `--persistent-context`
+    is a legal caller declaration of `--persistent-context-max-chars`. Injecting
+    the default would be appended last and silently replace the caller's value."""
+    runner = _runner_module()
+    captured = _forwarded_argv(
+        monkeypatch, runner, ["--dry-run", "--persistent-context", "256000"]
+    )
+
+    assert captured.count("--persistent-context-max-chars") == 0
+    assert "--persistent-context" in captured
+    assert captured[captured.index("--persistent-context") + 1] == "256000"
+    # The two bounds the caller did not name are still filled in.
+    assert _forwarded_option_value(captured, "--persistent-history-max-messages") == "64"
+    assert _forwarded_option_value(captured, "--persistent-memory-max-items") == "128"
+
+
+def test_lite_runner_logs_profile_provenance_for_each_bound(
+    monkeypatch, capsys,
+) -> None:
+    """Roadmap P0-4 records where each bound came from; run_lite.py has no
+    run-metadata channel, so the provenance goes to the run log."""
+    runner = _runner_module()
+    _forwarded_argv(
+        monkeypatch, runner,
+        ["--dry-run", "--persistent-context-max-chars", "256000"],
+    )
+
+    stderr = capsys.readouterr().err
+    assert "--persistent-context-max-chars=caller" in stderr
+    assert "--persistent-history-max-messages=run_lite_default" in stderr
+    assert "--persistent-memory-max-items=run_lite_default" in stderr
+    assert "--provider-failure-policy=run_lite_default" in stderr
+    assert "efficiency/development track" in stderr
+
+
 def _row(
     tmp_path,
     name,

@@ -1,5 +1,17 @@
 # Updates
 
+## 2026-09-18
+
+- Live scoring is `0.20.0` (`wait_relative_outcome_v1`). Catalog qualification
+  remains `0.15.0` and is not rewritten.
+- OPERATE-Lite fail-closes provider failures (`abort`, threshold 1) and refuses
+  a dirty git tree for execution and finalization. Provider failures are never
+  converted into environment-advancing `wait`.
+- Lite remains 141 Core rows from 82 physical sources. It is an efficiency
+  track, not a Full leaderboard or long-horizon denominator. Headline ranking
+  is wait-relative; harness compaction stays deterministic with no hidden
+  summarizer.
+
 ## 2026-09-12
 
 - Lite v11 retains 141 Core rows from 82 physical sources. A routine 192-tick

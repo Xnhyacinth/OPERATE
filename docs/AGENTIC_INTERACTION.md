@@ -69,7 +69,7 @@ cancel-and-resume plus response supersession. Late responses are retained in
 the turn ledger but cannot reach the environment actor. This treatment emits a
 separate `realtime-diagnostics/1.6` scorecard. It is formal only within its own
 release-bound clock, supervisor, provider and concurrency stratum and is never
-merged with the 0.17 wait-relative logical primary leaderboard.
+merged with the 0.20 wait-relative logical primary leaderboard.
 
 The promoted `operate` release binds the complete realtime artifact stack:
 `realtime-formal-batch/1.1`, `realtime-formal-scorecard/1.1`,
@@ -165,7 +165,12 @@ Persistent sessions compile it into one of these event kinds:
 - `provider_retry`: an explicit retry after a recorded provider failure.
 
 Quiet, pending-action and standing-plan hold ticks advance the simulator using
-an empty action and do not resume the LLM. Hidden events never steer the agent.
+an empty action and do not resume the LLM. Because a hold carries no action, a
+held tick re-asserts the last accepted control only for backends whose control
+is a *standing setpoint*; that binding is CityLearn-only by design. Latched
+backends retain their own setpoint, and OR-Gym one-shot replenishment orders
+deliberately order nothing on a hold (`domains/registry.py`,
+`held_executor_position`). Hidden events never steer the agent.
 Successful state-changing control receipts do not create another turn. When
 several typed triggers share a transition, the coordinator dispatches them in
 descending priority and stable event-sequence order; lower-priority events are
@@ -228,7 +233,13 @@ Long-running context is divided into three layers:
    linear episode history into avoidable request growth.
 
 Compaction count, covered hashes and tick are recorded. No hidden evaluator LLM
-generates a privileged summary. Persistent observations use the session's
+generates a privileged summary. The model does not choose which messages to
+drop or restore: this treatment has no `retrieve_history` or `pin_memory` tool.
+Working state that must survive a compaction pass has to be written through
+`commit_to_plan` or the bounded structured-memory projection on the latest
+event. Dropped visible messages remain in the append-only ledger with their
+hashes. A future agent-owned retrieval treatment would be a new tool protocol
+and a new treatment hash, not an in-place change to this contract. Persistent observations use the session's
 configured character budget; the legacy 8,000-character observation limit
 applies only to the stateless compatibility treatment. The message-count cap
 and the provider's complete-request budget remain separate controls.

@@ -43,6 +43,10 @@ MASTER_FILE = "13Bus/IEEE13Nodeckt.dss"
 _NESTED_PREFIX = "Version8/Distrib/IEEETestCases"
 VOLTAGE_LOWER_PU = 0.95
 VOLTAGE_UPPER_PU = 1.05
+# This feeder family reports voltage-violation telemetry only; it does not
+# publish a native per-branch loading limit, so the utilisation dimension is
+# inapplicable rather than a measured zero.
+UTILISATION_INAPPLICABLE_REASON = "opendss_ieee13_has_no_native_branch_loading_limit"
 OPENDSS_IEEE13_EVENT_CLASS_REGISTRY = MappingProxyType(
     {
         "load_surge": "alarm",
@@ -817,6 +821,7 @@ class OpenDssIeee13Backend(OpenDssIeee13ProbeBackend):
             "startup_cost": 0.0,
             "shed_penalty": 0.0,
             "rho_max": 0.0,
+            "utilisation_inapplicable_reason": UTILISATION_INAPPLICABLE_REASON,
             "n_overloads": 0,
             "n_voltage_violations": int(snapshot.get("n_voltage_violations") or 0),
             "n_disconnected_lines": 0,
@@ -1237,6 +1242,7 @@ class OpenDssIeee13DraftEnvironment(POMDPEnvironment):
             "n_overloads": 0,
             "n_disconnected_lines": 0,
             "rho_max": 0.0,
+            "utilisation_inapplicable_reason": UTILISATION_INAPPLICABLE_REASON,
             "n_voltage_violations": int(snapshot.get("n_voltage_violations") or 0),
             "voltage_min_pu": snapshot.get("voltage_min_pu"),
             "voltage_max_pu": snapshot.get("voltage_max_pu"),

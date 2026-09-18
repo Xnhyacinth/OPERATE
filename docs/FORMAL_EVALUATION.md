@@ -7,7 +7,7 @@ This runbook applies to the current 769-row public Core. The
 
 - `logical_persistent` is the primary leaderboard treatment.
 - `realtime_persistent` is a separate supervision scorecard and is not pooled
-  into the 0.17 wait-relative primary.
+  into the 0.20 wait-relative primary.
 - One complete model shard is a valid formal unit. There is no fixed model
   roster or three-repeat gate; `pass_k` is an explicit reliability stratum.
 - The simulator advances state. A tick is a causal coordinate, not a repeated

@@ -61,10 +61,17 @@ class DomainSpec:
     #: reference optimum. ``None`` means the domain has no common objective
     #: contract and optimality scoring must remain inapplicable.
     objective_cost_component: str | None = None
-    #: Legacy scorer-row key carrying a lower-is-better native recovery burden.
+    #: Diagnostic replay-row key carrying a lower-is-better native recovery
+    #: burden. Retired from scoring: no scorer reads it (see
+    #: ``evaluation.scorer.score_adaptive_replanning``), so it is carried for
+    #: replay diagnostics only and archived snapshots keep serializing it.
     adaptive_recovery_signal_key: str = "balance_error_mw"
     #: Reader-facing native meaning; never describe non-grid values as MW.
     adaptive_recovery_signal_name: str = "native_operational_burden"
+    #: Pins both fields above as diagnostic-only. False would mean a scoring
+    #: path consumes the signal again; nothing may flip it without re-binding
+    #: the scoring contract, so the snapshot payload labels it.
+    adaptive_recovery_signal_diagnostic_only: bool = True
 
     def env_factory(self) -> Callable[[], Any]:
         """Return the ``<Domain>Environment`` class (lazy import)."""
@@ -757,6 +764,60 @@ def apply_supervisory_cadence(
         }
     )
     return merged
+
+
+#: Backends that clear their pending executor position on every native step and
+#: whose position is a *standing setpoint* a hold can safely re-assert.  Every
+#: other backend kind is an explicit no-op: latched backends (``ems_sim``,
+#: ``pandapower_lv``, …) already retain the setpoint themselves, and
+#: ``citylearn`` re-asserts its last dispatch through its own
+#: ``standing_control_vector`` / ``apply_standing_control`` pair — hold-sourced,
+#: so the environment position is restored without fabricating control
+#: evidence (``hold_reasserted_ticks`` in the citylearn control summary).
+#: ``orgym_invmgmt`` is deliberately NOT listed: an OR-Gym replenishment order
+#: is a one-shot per-period request (``works/OR-Gym/...inventory_management.py``
+#: issues ``R = clip(action, 0)`` each period into the pipeline), not a
+#: standing setpoint — re-asserting the last accepted quantity during a hold
+#: would place a *new* order the model never issued, and 78 of the 186
+#: recorded orgym hold ticks immediately follow a model ``wait``. Treating a
+#: hold as "no order" matches the simulator's own semantics of an absent
+#: action, so orgym holds intentionally order nothing.
+_STANDING_CONTROL_BACKEND_KINDS = frozenset({"citylearn"})
+
+#: The runner marks its scheduled "standing plan remains in force" ticks with
+#: this dominant.  Model-chosen waits carry ``dominant="wait"``/``None``.
+AUTONOMOUS_PLAN_HOLD_DOMINANT = "autonomous_plan_hold"
+
+
+def held_executor_position(
+    action: Any,
+    backend_kind: str | None,
+    last_committed: Any,
+) -> Any | None:
+    """Return the standing executor position to re-apply, or ``None``.
+
+    P1-1 (roadmap N2): a ``commit_to_plan`` review hold is a runner scheduling
+    decision — the runner dispatches an empty :class:`~core.pomdp.Action` and
+    no control reaches the backend.  For *clearing* backends that meant the
+    standing plan silently stopped acting, so "controls remain in force until
+    the scheduled review" was false.  This helper is the single place that
+    decides whether a tick is such a hold: the runner-owned dominant with no
+    tool call executed this tick.  Requiring the empty ``tool_calls`` makes the
+    predicate unspoofable — a model that emits a tool named
+    ``autonomous_plan_hold`` necessarily has a non-empty action.
+
+    The caller re-applies ``last_committed`` (its own last accepted executor
+    position), so nothing here fabricates state, evidence, or budget: a hold
+    re-asserts a position the backend already accepted.
+    """
+    if backend_kind not in _STANDING_CONTROL_BACKEND_KINDS:
+        return None
+    if last_committed is None:
+        return None
+    if getattr(action, "tool_calls", None):
+        return None
+    dominant = str(getattr(action, "dominant", "") or "")
+    return last_committed if dominant == AUTONOMOUS_PLAN_HOLD_DOMINANT else None
 
 
 def build_backend_records(env: Any) -> list[dict[str, Any]]:

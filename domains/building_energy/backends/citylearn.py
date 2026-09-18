@@ -846,6 +846,8 @@ class CityLearnBackend:
         self._last_reward = 0.0
         self._last_completed_source_tick: int | None = None
         self._opening_storage: dict[str, dict[str, float]] = {}
+        self._standing_control: np.ndarray | None = None
+        self._hold_reasserted_ticks: list[int] = []
 
     def reset(self, seed_obj: BuildingEnergyScenarioSeed) -> None:
         source_root = _resolve_repo_path(seed_obj.source_root, default=DEFAULT_SOURCE_ROOT)
@@ -914,6 +916,8 @@ class CityLearnBackend:
         self._records = []
         self._last_reward = 0.0
         self._last_completed_source_tick = None
+        self._standing_control = None
+        self._hold_reasserted_ticks = []
 
     def _verify_native_event_contracts(self) -> None:
         """Reject source events that are not exact locked native transitions."""
@@ -1861,7 +1865,12 @@ class CityLearnBackend:
             abs(after - before) > 1e-8
             for before, after in zip(before_balance, after_balance, strict=True)
         )
-        if control_state_effect_observed:
+        # ``_state_effect_ticks`` feeds ``effective_control_ticks`` (control
+        # attribution), so hold-sourced re-assertions are excluded even though
+        # their physical energy-balance change is real; the hold ticks are
+        # published separately as ``hold_reasserted_ticks``.
+        hold_sourced_effect = int(tick) in self._hold_reasserted_ticks
+        if control_state_effect_observed and not hold_sourced_effect:
             self._state_effect_ticks.append(int(tick))
         agent_caused_events: list[dict[str, Any]] = []
         for name, before, after in zip(
@@ -1925,7 +1934,11 @@ class CityLearnBackend:
                     },
                 }
             )
-        if np.any(np.abs(action) > 1e-8):
+        # Hold-sourced re-assertions execute in the environment but are runner
+        # scheduling artefacts: they must not enter the applied-control record
+        # (task milestones and control counts are model-issued evidence only).
+        hold_sourced = int(tick) in self._hold_reasserted_ticks
+        if not hold_sourced and np.any(np.abs(action) > 1e-8):
             nonzero = action[np.abs(action) > 1e-8]
             policy = (
                 "charge"
@@ -2006,7 +2019,40 @@ class CityLearnBackend:
         self._records.append(record)
         self._action_vector.fill(0.0)
         self._pending_control_evidence = {}
+        # CityLearn clears the pending dispatch every native step, so a runner
+        # plan hold (no control call this tick) would silently drop the
+        # standing setpoint. Retain the position this step actually executed;
+        # ``apply_standing_control`` re-asserts it on hold ticks. A zero action
+        # is also a position: an explicit stop must clear the latch so a later
+        # hold cannot resurrect a dispatch the model already cancelled.
+        self._standing_control = action.copy()
         return record
+
+    def standing_control_vector(self) -> np.ndarray | None:
+        """The last dispatch this backend actually executed (``None`` before)."""
+        return self._standing_control
+
+    def apply_standing_control(self, vector: np.ndarray, *, tick: int) -> None:
+        """Re-assert ``vector`` as this tick's pending action, hold-sourced.
+
+        Roadmap P1-1, corrected: the re-assertion writes the pending action
+        vector directly and marks the tick hold-sourced. It deliberately does
+        NOT go through the public ``queue_storage_rate`` receipt path: a
+        receipt-bearing control would be recorded into ``_applied_controls``
+        and ``_state_effect_ticks`` as model control evidence, letting a hold
+        satisfy task milestones the model never issued (measured: 1 dispatch +
+        71 holds lit all three ``ordered_tool_milestones``). The plan binding
+        is a runner scheduling artefact; the environment state is restored,
+        but no control-evidence trail is fabricated for it.
+        """
+        vector = np.asarray(vector, dtype=float)
+        indices = self._storage_indices or list(range(len(self._buildings)))
+        action = np.zeros_like(self._action_vector)
+        for _building_id, index in zip(self._buildings, indices, strict=False):
+            if index < len(action) and index < len(vector):
+                action[index] = float(vector[index])
+        self._action_vector[:] = action
+        self._hold_reasserted_ticks.append(int(tick))
 
     def _observation_source_tick(self) -> int:
         # Native step writes outputs at its input index, then advances the
@@ -2261,6 +2307,11 @@ class CityLearnBackend:
                     {int(control["tick"]) for control in effective_controls}
                 )
             },
+            # Hold re-assertions restore the plan's standing dispatch in the
+            # environment but are runner scheduling artefacts, not model
+            # control evidence: they are excluded from every control count
+            # above and published here for audit only.
+            "hold_reasserted_ticks": list(self._hold_reasserted_ticks),
             "response_windows": response_windows,
             "named_source_events": list(
                 self._realized_named_source_events.values()

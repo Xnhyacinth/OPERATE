@@ -519,9 +519,17 @@ def _build_event_response_records(
         consumes_parent_evidence = bool(
             set(parent_ids).intersection(edge.get("consumes_evidence_ids") or [])
         )
+        # Backends publish the response window under three historical names:
+        # ``response_deadline_tick``/``mandatory_response_tick`` (old protocol)
+        # and ``response_window_end_tick`` (13 current sites, e.g.
+        # job_shop/alibaba_trace/opendss/cigre).  Without the last fallback
+        # every event_response_record carried mandatory_response_tick=None.
         deadline = parent.get(
             "response_deadline_tick",
-            parent.get("mandatory_response_tick"),
+            parent.get(
+                "mandatory_response_tick",
+                parent.get("response_window_end_tick"),
+            ),
         )
         records.append(
             {
@@ -952,6 +960,24 @@ def _terminal_interrupt_reasons(
     )
 
 
+def _backend_declares_opportunity(observation: dict[str, Any]) -> bool:
+    """Whether the backend itself declares a decision opportunity this tick.
+
+    Unlike ``_native_decision_opportunity`` this primitive ignores the
+    runner's wake policy (initial tick, mandatory interrupts, agent-owned
+    review schedule).  Telemetry that must distinguish "the backend offered a
+    review" from "the wake policy asked for a model call" reads this helper.
+    """
+    explicit = observation.get("decision_opportunity")
+    if isinstance(explicit, bool):
+        return explicit
+    cadence = observation.get("decision_cadence") or {}
+    if not isinstance(cadence, dict):
+        return False
+    explicit = cadence.get("native_opportunity")
+    return explicit if isinstance(explicit, bool) else False
+
+
 def _native_decision_opportunity(
     observation: dict[str, Any],
     *,
@@ -968,13 +994,7 @@ def _native_decision_opportunity(
         or cadence.get("harness_periodic_supervisory_scan") is False
     ):
         return False
-    explicit = observation.get("decision_opportunity")
-    if isinstance(explicit, bool):
-        return explicit
-    if not isinstance(cadence, dict):
-        return False
-    explicit = cadence.get("native_opportunity")
-    return explicit if isinstance(explicit, bool) else False
+    return _backend_declares_opportunity(observation)
 
 
 def _cadence_contract_declared(observation: dict[str, Any]) -> bool:
@@ -992,6 +1012,100 @@ def _cadence_contract_declared(observation: dict[str, Any]) -> bool:
             or _positive_int(cadence.get("max_review_after_ticks")) is not None
         )
     )
+
+
+def _finite_tick(value: Any) -> int | None:
+    """Parse a runtime tick, fail-closed on bools/NaN/inf/non-numeric."""
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed != parsed or abs(parsed) == float("inf"):
+        return None
+    return int(parsed)
+
+
+def _initiative_lead_ticks(
+    event_response_records: list[dict[str, Any]],
+) -> int | None:
+    """``first_exogenous_actionable_tick - first_state_changing_control_tick``.
+
+    Positive means the agent's first control preceded the first exogenous
+    event (initiative); negative means it reacted.  ``None`` when either anchor
+    is missing.  Published only: this never enters a score.
+
+    Anchor caveat, so a reader does not over-trust the field: ``event_tick`` is
+    the causal parent event's applied/trigger tick and is not filtered for
+    exogeneity or actionability, and ``first_control_call_tick`` is the matched
+    effect edge's ``request_tick`` for any action that produced a proven state
+    change — it is state-changing, but the two minima may also come from
+    different records.  The roadmap's real-data distribution (93 先发 / 12 平 /
+    24 后发) therefore cannot be reproduced from this field alone; a strict
+    definition would need dedicated state-changing-only and
+    exogenous-actionable-only tick sources.
+    """
+    event_ticks: list[int] = []
+    control_ticks: list[int] = []
+    for record in event_response_records:
+        if not isinstance(record, dict):
+            continue
+        event_tick = _finite_tick(record.get("event_tick"))
+        if event_tick is not None:
+            event_ticks.append(event_tick)
+        control_tick = _finite_tick(record.get("first_control_call_tick"))
+        if control_tick is not None:
+            control_ticks.append(control_tick)
+    if not event_ticks or not control_ticks:
+        return None
+    return min(event_ticks) - min(control_ticks)
+
+
+def _plan_review_honored_rate(
+    *,
+    requested: int,
+    honored: int,
+) -> float | None:
+    """Fraction of committed-plan reviews that actually triggered a model call.
+
+    ``None`` when no committed plan requested a review.  Published only: this
+    never enters a score.
+    """
+    if requested <= 0:
+        return None
+    return round(min(max(honored, 0), requested) / requested, 4)
+
+
+def _initiative_diagnostics(
+    event_response_records: list[dict[str, Any]],
+    autonomy: dict[str, Any],
+) -> dict[str, Any]:
+    """Published-only initiative diagnostics (never scored)."""
+    return {
+        "initiative_lead_ticks": _initiative_lead_ticks(event_response_records),
+        "plan_review_honored_rate": _plan_review_honored_rate(
+            requested=int(autonomy.get("plan_review_requested") or 0),
+            honored=int(autonomy.get("plan_review_honored") or 0),
+        ),
+    }
+
+
+def _score_attribution_diagnostics(score: Any) -> dict[str, Any] | None:
+    """Return the scorer's publish-only masked-replay attribution digest.
+
+    Read from the ``counterfactual_prevention`` dimension the scorer annotates;
+    ``None`` when that dimension (or the optional field) is absent, e.g. an
+    older scoring snapshot.  Used only to mirror the value into the append-only
+    ledger, never to influence a score.
+    """
+    for dimension in getattr(score, "dimensions", None) or []:
+        if (
+            getattr(dimension, "name", None) == "counterfactual_prevention"
+            and getattr(dimension, "attribution_diagnostics", None) is not None
+        ):
+            return _canonical_json_value(dimension.attribution_diagnostics)
+    return None
 
 
 def _confirmed_autonomy_window(
@@ -1300,6 +1414,20 @@ def _run_episode_loop(
     delegated_plan_opportunities = 0
     delegated_plan_opportunity_ticks: list[int] = []
     deferred_pending_opportunities = 0
+    # Publish-only review telemetry. ``review_offered`` counts ticks on which
+    # the backend itself declared a decision opportunity, independent of the
+    # runner wake policy; it is a cadence/opportunity count, NOT a measure that
+    # the agent was handed a declinable choice, and on backends that declare an
+    # opportunity on every tick (job_shop ready-operations, orgym, sumo_ego,
+    # microgrid setpoints) it merely tracks the episode horizon. The
+    # discriminating counters are ``review_omitted`` (with its per-reason
+    # breakdown) and the N1 ``delegated_plan_opportunities``. None of these
+    # enter a score.
+    review_offered = 0
+    review_omitted = 0
+    review_omitted_by_reason: Counter[str] = Counter()
+    scheduled_plan_reviews_requested = 0
+    scheduled_plan_reviews_honored = 0
     pending_action_deadlines: dict[str, int] = {}
     known_tool_calls: dict[str, ToolCall] = {}
     known_tool_call_ticks: dict[str, int] = {}
@@ -1374,12 +1502,14 @@ def _run_episode_loop(
             and current_tick >= active_plan_expires_at_tick
         ):
             interrupt_reasons.append("plan_expiry")
-        if (
+        requested_plan_review = bool(
             requested_review_tick is not None
             and current_tick >= requested_review_tick
-        ):
+        )
+        if requested_plan_review:
             interrupt_reasons.append("scheduled_review")
         interrupt_reasons = sorted(set(interrupt_reasons))
+        scheduled_plan_reviews_requested += int(requested_plan_review)
         raw_decision_budget_exhausted = (
             model_decision_budget is not None
             and model_decision_ticks >= model_decision_budget
@@ -1444,11 +1574,48 @@ def _run_episode_loop(
             and not decision_budget_exhausted
             and not autonomous_hold
         )
+        # The backend's own review offer is independent of the runner wake
+        # policy: a persistent agent that owns its review schedule suppresses
+        # ``native_decision_opportunity`` even on ticks the backend declares
+        # actionable, so this telemetry must read the primitive directly.
+        backend_declares_opportunity = _backend_declares_opportunity(obs)
+        if backend_declares_opportunity:
+            review_offered += 1
+        # A held tick is a declined review: the wake policy (plan hold, pending
+        # asynchronous action, exhausted budget) or the agent-owned review
+        # schedule suppressed the model call the backend offered.  The four
+        # gates are the hold-side counterpart of the model-call gate below, so
+        # ``review_offered`` is at least ``model_decision_ticks +
+        # review_omitted`` in exact arithmetic, but a model call may also fire
+        # without a backend-declared opportunity (non-actionable or mandatory
+        # interrupts wake the model directly); only the per-reason breakdown
+        # distinguishes *which* hold declined the offer.
+        # ``native_idle_hold`` is the default when no other condition holds and
+        # therefore means "the runner's wake policy saw no native opportunity";
+        # for a persistent agent that owns its review schedule it is
+        # indistinguishable from "the agent-owned schedule declined", so it is
+        # reported separately rather than silently folded in.
+        if backend_declares_opportunity:
+            if pending_action_hold:
+                review_omitted_by_reason["pending_action_hold"] += 1
+            elif decision_budget_exhausted:
+                review_omitted_by_reason["decision_budget_exhausted"] += 1
+            elif autonomous_hold:
+                review_omitted_by_reason["autonomous_hold"] += 1
+            elif native_idle_hold:
+                review_omitted_by_reason["native_idle_hold"] += 1
+        if backend_declares_opportunity and (
+            pending_action_hold
+            or decision_budget_exhausted
+            or autonomous_hold
+            or native_idle_hold
+        ):
+            review_omitted += 1
         if native_decision_opportunity and decision_budget_exhausted:
             missed_actionable_opportunities += 1
         if native_decision_opportunity and pending_action_hold:
             deferred_pending_opportunities += 1
-        if native_decision_opportunity and autonomous_hold:
+        if backend_declares_opportunity and autonomous_hold:
             delegated_plan_opportunities += 1
             delegated_plan_opportunity_ticks.append(current_tick)
         if autonomy_plan_active and interrupt_reasons:
@@ -1764,6 +1931,7 @@ def _run_episode_loop(
             decision_reasons = prospective_decision_reasons
             if "scheduled_review" in decision_reasons:
                 scheduled_review_ticks.append(current_tick)
+                scheduled_plan_reviews_honored += int(requested_plan_review)
             if "periodic_scan" in decision_reasons:
                 periodic_scan_ticks.append(current_tick)
             if "provider_retry" in decision_reasons:
@@ -2433,6 +2601,11 @@ def _run_episode_loop(
             "delegated_plan_opportunities": delegated_plan_opportunities,
             "delegated_plan_opportunity_ticks": delegated_plan_opportunity_ticks,
             "deferred_pending_opportunities": deferred_pending_opportunities,
+            "review_offered": review_offered,
+            "review_omitted": review_omitted,
+            "review_omitted_by_reason": dict(review_omitted_by_reason),
+            "plan_review_requested": scheduled_plan_reviews_requested,
+            "plan_review_honored": scheduled_plan_reviews_honored,
             "hold_while_actions_pending": hold_while_pending,
             "records": autonomy_records,
         },
@@ -2966,6 +3139,19 @@ def _run_one_with_environment_impl(
     if logger is not None:
         scoring_inputs_artifact = logger.write_snapshot("scoring_inputs", {
             "identity": snapshot_identity, "inputs": snapshot_inputs(inputs),
+            # No scorer reads these; label them so an offline reader does not
+            # mistake the native recovery row for a live pressure signal.
+            # ``evaluation.scoring_snapshot.write_rescore`` forwards this block
+            # into the offline result. ``ScoringInputs`` itself must not gain a
+            # field: restore compares its exact field set against archived
+            # snapshots.
+            "diagnostic_only_fields": {
+                "adaptive_recovery_signal_key": spec.adaptive_recovery_signal_key,
+                "adaptive_recovery_signal_name": spec.adaptive_recovery_signal_name,
+                "diagnostic_only": getattr(
+                    spec, "adaptive_recovery_signal_diagnostic_only", True
+                ),
+            },
             "completed_runtime_artifact": completed_runtime_artifact,
         })
     try:
@@ -2976,6 +3162,32 @@ def _run_one_with_environment_impl(
                        "scoring_inputs_artifact": scoring_inputs_artifact})
         exc.episode_error_details = details
         raise
+
+    # Mirror the scorer's publish-only masked-replay attribution into the
+    # append-only evidence ledger so the number published on
+    # ``counterfactual_prevention`` stays independently recomputable. The
+    # scorer owns the field; copy it only when it emitted one and never invent
+    # it here.
+    attribution_diagnostics = _score_attribution_diagnostics(score)
+    if attribution_diagnostics is not None and env.evidence is not None:
+        # Scoring is only reachable after the environment has closed, so this
+        # entry necessarily lands *after* the fail-safe pre-scoring dump above
+        # (which is kept because ``score_episode`` may raise).  ``write_evidence``
+        # is a whole-file atomic replace rather than an append, so re-serialize
+        # the strict superset and rebind ``evidence_path``; otherwise the
+        # artifact hashed into ``evidence_ledger_artifact`` at finalize time
+        # would be the pre-mirror bytes and the mirror would never reach disk.
+        env.evidence.log(
+            kind="attribution_diagnostics",
+            tick=env.tick,
+            payload={
+                "dimension": "counterfactual_prevention",
+                "attribution_diagnostics": attribution_diagnostics,
+            },
+            source="engine",
+        )
+        if logger is not None:
+            evidence_path = logger.write_evidence(env.evidence.to_jsonable())
 
     llm_stats = (
         agent.get_interaction_stats()
@@ -3028,6 +3240,19 @@ def _run_one_with_environment_impl(
     if loop_result["multi_turn_records"]:
         trajectory_summary["multi_turn_records"] = loop_result["multi_turn_records"]
     trajectory_summary["event_response_records"] = event_response_records
+    # Initiative diagnostics: published (and ledger-recomputable) but never
+    # fed into any score dimension or the primary headline.  ``review_offered``
+    # warns that it is an opportunity-cadence count, not a handed-to-agent
+    # choice; see the counter's definition in ``_run_episode_loop``.
+    trajectory_summary.update(
+        _initiative_diagnostics(
+            event_response_records,
+            loop_result["event_adaptive_autonomy"],
+        )
+    )
+    trajectory_summary["initiative_lead_ticks_anchor"] = (
+        "first_event_tick_minus_first_proven_control_request_tick"
+    )
     trajectory_summary["operational_agency_valid_evidence_ids"] = sorted(
         valid_evidence_ids
     )

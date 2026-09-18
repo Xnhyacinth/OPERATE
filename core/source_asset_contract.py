@@ -99,16 +99,63 @@ def virtual_source_identity_sha256(raw: str) -> str | None:
     ).hexdigest()
 
 
+def _shortest_unique_suffixes(paths: list[str]) -> list[str]:
+    """Minimal trailing path components that keep same-basename paths distinct.
+
+    The canonical key reduces every asset path to its basename so the same
+    bytes remain one source wherever they are installed (e.g. ``works/`` vs
+    ``release/``). That reduction is ambiguous when one lock references two
+    *different* files that happen to share a basename (OpenDSS feeders ship
+    both ``34Bus/IEEELineCodes.DSS`` and ``IEEETestCases/IEEELineCodes.DSS``).
+    For those entries only, extend the basename by the shortest trailing
+    suffix that is unique inside the lock; every other entry keeps its bare
+    basename, so unaffected keys are byte-identical to the legacy form.
+    """
+    by_basename: dict[str, list[int]] = {}
+    for index, raw in enumerate(paths):
+        by_basename.setdefault(Path(raw).name, []).append(index)
+    out = [Path(raw).name for raw in paths]
+    for indices in by_basename.values():
+        if len(indices) < 2:
+            continue
+        groups = [Path(paths[index]).parts for index in indices]
+        width = 2
+        limit = max(len(parts) for parts in groups)
+        while width <= limit:
+            suffixes = [parts[-width:] for parts in groups]
+            if len(set(suffixes)) == len(suffixes):
+                for index, suffix in zip(indices, suffixes):
+                    out[index] = "/".join(suffix)
+                break
+            width += 1
+    return out
+
+
+def _normalized_asset_rows(rows: list[Any]) -> list[Any]:
+    """Basename-reduce asset rows, keeping same-basename rows distinguishable."""
+    if not all(isinstance(row, dict) for row in rows):
+        return [_normalized_physical_asset_value(row, field="asset") for row in rows]
+    declared = [str(row.get("declared_path") or "") for row in rows]
+    reduced = _shortest_unique_suffixes(declared)
+    normalized: list[Any] = []
+    for row, reduced_path in zip(rows, reduced, strict=True):
+        item = _normalized_physical_asset_value(row)
+        if str(item.get("declared_path") or "") != reduced_path:
+            item = {**item, "declared_path": reduced_path}
+        normalized.append(item)
+    return normalized
+
+
 def _normalized_physical_asset_value(value: Any, *, field: str = "") -> Any:
     if isinstance(value, dict):
         normalized = {
             str(key): _normalized_physical_asset_value(item, field=str(key))
             for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
         }
-        assets = normalized.get("required_source_assets")
+        assets = value.get("required_source_assets")
         if isinstance(assets, list):
             normalized["required_source_assets"] = sorted(
-                assets,
+                _normalized_asset_rows(assets),
                 key=lambda item: json.dumps(
                     item, sort_keys=True, separators=(",", ":")
                 ),
@@ -126,6 +173,12 @@ def canonical_physical_source_asset_key(lock: Any) -> str:
 
     A derived window remains part of row lineage and admission identity, but two
     windows over the same locked assets are not two physical sources.
+
+    ``declared_path`` is basename-reduced so portable installs still match the
+    same physical source; when one lock cites two distinct files sharing a
+    basename the entry is extended with its shortest unique trailing suffix so
+    the two are not conflated. Legacy keys (no collision) are unchanged, so old
+    rows and new rows still compare equal.
     """
     if not isinstance(lock, (dict, list)):
         return str(lock)
@@ -138,6 +191,66 @@ def canonical_physical_source_asset_key(lock: Any) -> str:
         separators=(",", ":"),
         ensure_ascii=False,
     )
+
+
+def _legacy_physical_source_asset_key(lock: Any) -> str:
+    """Pre-disambiguation key: every asset path reduced to its basename.
+
+    Kept so archived rows (written before collision-aware paths) still compare
+    equal to the same source graph recomputed today.
+    """
+    if not isinstance(lock, (dict, list)):
+        return str(lock)
+    if isinstance(lock, dict):
+        lock = {key: value for key, value in lock.items() if key != "derived_window"}
+
+    def reduce(value: Any, *, field: str = "") -> Any:
+        if isinstance(value, dict):
+            out = {str(k): reduce(v, field=str(k)) for k, v in value.items()}
+            assets = out.get("required_source_assets")
+            if isinstance(assets, list):
+                out["required_source_assets"] = sorted(
+                    assets,
+                    key=lambda item: json.dumps(
+                        item, sort_keys=True, separators=(",", ":")
+                    ),
+                )
+            return out
+        if isinstance(value, list):
+            return [reduce(item, field=field) for item in value]
+        if isinstance(value, str) and ("file" in field.lower() or "path" in field.lower()):
+            return Path(value).name
+        return value
+
+    return json.dumps(
+        reduce(lock), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+
+
+def physical_source_asset_key_aliases(lock: Any) -> frozenset[str]:
+    """Every canonical spelling this lock is accepted under.
+
+    Collision disambiguation only ever adds a distinguishing suffix, so an
+    archived row keeps its legacy key while new rows emit the disambiguated
+    one. Comparing either spelling for the same lock still matches.
+    """
+    current = canonical_physical_source_asset_key(lock)
+    legacy = _legacy_physical_source_asset_key(lock)
+    return frozenset({current, legacy})
+
+
+def physical_source_asset_keys_match(left: Any, right: Any) -> bool:
+    """True when two locks (or an accepted key and a lock) name one source."""
+    def spellings(value: Any) -> frozenset[str]:
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except (TypeError, ValueError):
+                return frozenset({value})
+            return physical_source_asset_key_aliases(parsed)
+        return physical_source_asset_key_aliases(value)
+
+    return bool(spellings(left) & spellings(right))
 
 
 @dataclass(frozen=True)
