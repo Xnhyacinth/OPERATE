@@ -6238,6 +6238,34 @@ def test_write_analysis_excludes_dirty_ok_from_score_means(tmp_path: Path) -> No
     assert stats["tool_stats"]["hy3-ioa"]["n_episodes"] == 2.0
 
 
+def test_write_analysis_quotes_ranking_primary_not_composite(tmp_path: Path) -> None:
+    row = _row("logistics/inv/basic", "hy3-ioa", 42, 80.0)
+    row["ranking"] = {
+        "aggregation": "wait_relative_outcome_v1",
+        "primary_score": 12.0,
+        "wait_relative_score": 12.0,
+        "wait_relative_source": "counterfactual_prevention",
+        "formal_score_eligible": True,
+    }
+    row["trajectory_summary"] = {
+        "n_tool_calls": 3,
+        "n_wait_actions": 2,
+        "decision_accounting": {
+            "n_deliberate_wait_actions": 1,
+            "n_invalid_model_decisions": 1,
+            "n_runner_hold_ticks": 0,
+        },
+        "llm": {"llm_calls_ok": 3, "llm_calls_failed": 0},
+    }
+    mod._write_analysis(tmp_path, [row])
+    analysis = (tmp_path / "ANALYSIS.md").read_text(encoding="utf-8")
+    assert "## Mean ranking.primary_score by model" in analysis
+    assert "| hy3-ioa | 12.00 | 1 |" in analysis
+    assert "invalid_protocol/ep" in analysis
+    stats = json.loads((tmp_path / "stats_by_model.json").read_text(encoding="utf-8"))
+    assert stats["by_model"]["hy3-ioa"] == {"mean": 12.0, "n": 1}
+
+
 def test_write_analysis_publishes_autonomy_diagnostics_as_present_only_means(
     tmp_path: Path,
 ) -> None:

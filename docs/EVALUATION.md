@@ -76,7 +76,16 @@ On the same row these can differ by several points, and a row whose primary is
 zero can still carry a positive `score.total_score`. Quote the primary and name
 its source (`wait_relative_score` / `wait_relative_source`) whenever a number
 is presented as a ranking; cite `score.total_score` only as the composite
-diagnostic. `robustness_to_fog` and `adaptive_decision_making` remain reserved
+diagnostic. `ANALYSIS.md`, `summary.csv` (`primary_score`), and score plots
+use that ranking number.
+
+An empty or illegal model protocol still calls `env.step`. Logical time is
+the simulator clock; freezing it would give the model extra thinking time.
+The plant outcome is wait-like, so wait-relative ranking remains the headline.
+Process accounting records those ticks as `n_invalid_model_decisions`, not
+`n_deliberate_wait_actions`. Runner holds (`native_idle_hold`, plan hold) are
+neither. Formal Lite/Full abort provider failures instead of converting them
+to `wait`. `robustness_to_fog` and `adaptive_decision_making` remain reserved
 cross-batch analyses and are not emitted per episode. Realtime initiative,
 silence, delay, cancellation, supersession, and takeover stay on the independent
 supervision scorecard and are never pooled into the wait-relative primary.

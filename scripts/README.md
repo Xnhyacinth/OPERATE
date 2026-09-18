@@ -14,3 +14,7 @@ The public command groups are:
 
 Candidate-mining, promotion, and historical-release utilities are not part of
 this public tree.
+
+Quote `ranking.primary_score` for wait-relative ranking. Invalid
+protocol still advances the world and is counted separately from a
+chosen `wait`.

@@ -2,8 +2,10 @@
 
 Use this public `main` checkout. Lite evaluation is `run_lite.py`; Full uses
 the commands below. Quote `ranking.primary_score` (`wait_relative_outcome_v1`),
-not `score.total_score`. Diagnostic `batch_llm_eval.py` without `--formal-run`
-converts provider failures into `wait`.
+not `score.total_score`. Quote `ANALYSIS.md` / `summary.csv` `primary_score`.
+Invalid or empty protocol still advances the world and is counted as
+`n_invalid_model_decisions`, not a deliberate `wait`. Diagnostic
+`batch_llm_eval.py` without `--formal-run` converts provider failures into `wait`.
 
 This runbook applies to the current 769-row public Core. The
 `benchmark/core_suite.json` and `benchmark/manifest.json` define the shard.

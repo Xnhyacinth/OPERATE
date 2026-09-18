@@ -25,6 +25,7 @@ from baselines.llm_agent import (
     public_provider_url,
     redact_provider_error,
 )
+
 from core import Action, EvidenceLogger, ToolCall
 from core.event_protocol import (
     EVENT_DECISION_CONTRACT_VERSION,
@@ -57,6 +58,15 @@ from evaluation import (
 )
 from runner.resume import recompute_signature_with_seed
 from runner.checkpoint import CheckpointIntegrityError
+
+RUNNER_HOLD_DOMINANTS = frozenset(
+    {
+        "native_idle_hold",
+        "autonomous_plan_hold",
+        "pending_action_hold",
+        "decision_budget_hold",
+    }
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LOGGER = logging.getLogger(__name__)
@@ -3470,6 +3480,52 @@ def _maybe_lp_optimum(scenario: dict[str, Any]) -> float | None:
         return None
 
 
+def _decision_accounting(actions: list[Action]) -> dict[str, Any]:
+    """Split invalid protocol, runner holds, and chosen wait.
+
+    World time still advances on empty or illegal protocol. Those ticks are
+    wait-like outcomes, not deliberate ``wait`` tool choices.
+    """
+
+    n_invalid = 0
+    n_deliberate_wait = 0
+    n_runner_hold = 0
+    n_fallback_wait = 0
+    n_control = 0
+    invalid_hist: Counter[str] = Counter()
+    for action in actions:
+        dominant = str(action.dominant or "")
+        wait_like_tools = [
+            call for call in action.tool_calls if call.name in {"wait", "noop"}
+        ]
+        if dominant in INVALID_MODEL_DECISION_DOMINANTS:
+            n_invalid += 1
+            invalid_hist[dominant] += 1
+            if wait_like_tools:
+                n_fallback_wait += 1
+            continue
+        if dominant in RUNNER_HOLD_DOMINANTS:
+            n_runner_hold += 1
+            continue
+        if action.tool_calls and all(
+            call.name in {"wait", "noop"} for call in action.tool_calls
+        ):
+            n_deliberate_wait += 1
+            continue
+        if action.tool_calls:
+            n_control += 1
+    return {
+        "n_invalid_model_decisions": n_invalid,
+        "n_deliberate_wait_actions": n_deliberate_wait,
+        "n_runner_hold_ticks": n_runner_hold,
+        "n_fallback_wait_actions": n_fallback_wait,
+        "n_control_actions": n_control,
+        "invalid_model_decision_histogram": dict(invalid_hist),
+        "world_advances_on_invalid_protocol": True,
+        "invalid_protocol_is_not_deliberate_wait": True,
+    }
+
+
 def _summarize_trajectory(
     actions: list[Action],
     llm_stats: dict[str, Any] | None,
@@ -3487,6 +3543,7 @@ def _summarize_trajectory(
         "n_ticks": len(actions),
         "n_tool_calls": n_tools,
         "n_wait_actions": n_wait,
+        "decision_accounting": _decision_accounting(actions),
         "tool_histogram": dict(hist),
     }
     if llm_stats:

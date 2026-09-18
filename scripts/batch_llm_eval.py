@@ -5162,9 +5162,7 @@ def _intersection_leaderboard(
             if pass_unit in seen_pass_units:
                 continue
             seen_pass_units.add(pass_unit)
-        per_model[m].append(
-            float((r.get("score") or {}).get("total_score", 0.0) or 0.0)
-        )
+        per_model[m].append(_ranking_primary_for_analysis(r))
         per_fatal[m].append(
             bool((r.get("ground_truth_summary") or {}).get("chose_fatal_option", False))
         )
@@ -5441,6 +5439,9 @@ def _write_analysis(
             "n_episodes": 0,
             "n_tool_calls": 0.0,
             "n_wait": 0.0,
+            "n_deliberate_wait": 0.0,
+            "n_invalid_model_decisions": 0.0,
+            "n_runner_hold": 0.0,
             "llm_ok": 0.0,
             "llm_fail": 0.0,
         }
@@ -5454,9 +5455,9 @@ def _write_analysis(
         autonomy_diagnostics = autonomy_diagnostics_from_rows(results)
     for r in clean_ok:
         model = str(r.get("model") or r.get("agent_name", "")).replace("llm_agent/", "")
-        by_model[model].append(float(r["score"]["total_score"]))
+        by_model[model].append(_ranking_primary_for_analysis(r))
         fam = str(r.get("family", ""))
-        by_model_family[model][fam].append(float(r["score"]["total_score"]))
+        by_model_family[model][fam].append(_ranking_primary_for_analysis(r))
     for r in ok:
         model = str(r.get("model") or r.get("agent_name", "")).replace("llm_agent/", "")
         traj = r.get("trajectory_summary") or {}
@@ -5464,6 +5465,14 @@ def _write_analysis(
         st["n_episodes"] += 1
         st["n_tool_calls"] += float(traj.get("n_tool_calls", 0) or 0)
         st["n_wait"] += float(traj.get("n_wait_actions", 0) or 0)
+        accounting = traj.get("decision_accounting") or {}
+        st["n_deliberate_wait"] += float(
+            accounting.get("n_deliberate_wait_actions", 0) or 0
+        )
+        st["n_invalid_model_decisions"] += float(
+            accounting.get("n_invalid_model_decisions", 0) or 0
+        )
+        st["n_runner_hold"] += float(accounting.get("n_runner_hold_ticks", 0) or 0)
         llm = traj.get("llm") or {}
         st["llm_ok"] += float(llm.get("llm_calls_ok", 0) or 0)
         st["llm_fail"] += float(llm.get("llm_calls_failed", 0) or 0)
@@ -5499,7 +5508,7 @@ def _write_analysis(
     lines.extend(
         [
             "",
-            "## Mean total_score by model",
+            "## Mean ranking.primary_score by model",
             "",
             "| model | mean | n |",
             "|-------|------|---|",
@@ -5522,13 +5531,21 @@ def _write_analysis(
     if tool_stats:
         lines.extend(["", "## Interaction stats (trajectory_summary)", ""])
         lines.append("")
-        lines.append("| model | ep | tools/ep | wait/ep | llm_ok/ep | llm_fail/ep |")
-        lines.append("|-------|-----|----------|---------|-----------|------------|")
+        lines.append(
+            "| model | ep | tools/ep | wait_tools/ep | deliberate_wait/ep | "
+            "invalid_protocol/ep | runner_hold/ep | llm_ok/ep | llm_fail/ep |"
+        )
+        lines.append(
+            "|-------|-----|----------|---------------|--------------------|"
+            "--------------------|----------------|-----------|------------|"
+        )
         for model, st in sorted(tool_stats.items()):
             ep = max(int(st["n_episodes"]), 1)
             lines.append(
                 f"| {model} | {ep} | {st['n_tool_calls'] / ep:.1f} | "
-                f"{st['n_wait'] / ep:.1f} | {st['llm_ok'] / ep:.1f} | "
+                f"{st['n_wait'] / ep:.1f} | {st['n_deliberate_wait'] / ep:.1f} | "
+                f"{st['n_invalid_model_decisions'] / ep:.1f} | "
+                f"{st['n_runner_hold'] / ep:.1f} | {st['llm_ok'] / ep:.1f} | "
                 f"{st['llm_fail'] / ep:.1f} |"
             )
 
@@ -5755,6 +5772,11 @@ def _write_summary_csv(out_dir: Path, results: list[dict[str, Any]]) -> None:
                 "scenario_signature",
                 "temperature",
                 "total_score",
+                "primary_score",
+                "wait_relative_score",
+                "wait_relative_source",
+                "n_invalid_model_decisions",
+                "n_deliberate_wait_actions",
                 "raw_total",
                 "prevented_loss",
                 "n_control_calls",
@@ -5785,6 +5807,15 @@ def _write_summary_csv(out_dir: Path, results: list[dict[str, Any]]) -> None:
                     r.get("scenario_signature"),
                     r.get("temperature"),
                     score.get("total_score"),
+                    (r.get("ranking") or {}).get("primary_score"),
+                    (r.get("ranking") or {}).get("wait_relative_score"),
+                    (r.get("ranking") or {}).get("wait_relative_source"),
+                    (traj.get("decision_accounting") or {}).get(
+                        "n_invalid_model_decisions"
+                    ),
+                    (traj.get("decision_accounting") or {}).get(
+                        "n_deliberate_wait_actions"
+                    ),
                     score.get("raw_total"),
                     cf.get("prevented_loss"),
                     impact.get("n_control_calls"),
@@ -5881,6 +5912,23 @@ def _is_discriminative(row: dict[str, Any]) -> bool:
         }:
             return False
     return True
+
+
+def _ranking_primary_for_analysis(row: dict[str, Any]) -> float:
+    """Quote wait-relative ranking; fall back only when ranking was not bound."""
+
+    ranking = row.get("ranking")
+    if isinstance(ranking, dict) and "primary_score" in ranking:
+        try:
+            return float(ranking["primary_score"])
+        except (TypeError, ValueError):
+            pass
+    score = row.get("score") or {}
+    if score.get("dimensions"):
+        value = _score_for_leaderboard_view(row, "discriminative_core")
+        if value is not None:
+            return float(value)
+    return float(score.get("total_score", 0.0) or 0.0)
 
 
 def _score_for_leaderboard_view(row: dict[str, Any], view_name: str) -> float | None:
@@ -6736,7 +6784,7 @@ def _plot_score_by_model(rows: list[dict[str, Any]], path: Path) -> None:
     grouped: dict[str, list[float]] = defaultdict(list)
     for r in ok:
         grouped[str(r.get("model") or r.get("agent_name", "?"))].append(
-            float((r.get("score") or {}).get("total_score", 0.0) or 0.0)
+            _ranking_primary_for_analysis(r)
         )
     items = sorted(
         ((m, sum(v) / len(v), len(v)) for m, v in grouped.items()),
@@ -6748,7 +6796,7 @@ def _plot_score_by_model(rows: list[dict[str, Any]], path: Path) -> None:
     plot_h = height - top - bottom
     max_val = max([v for _, v, _ in items], default=1.0)
     scale = plot_h / max(max_val, 1.0)
-    body = [f'<text x="{left}" y="40" class="title">Mean total score by model</text>']
+    body = [f'<text x="{left}" y="40" class="title">Mean ranking.primary_score by model</text>']
     for i in range(6):
         y = top + plot_h - (plot_h * i / 5)
         val = max_val * i / 5
@@ -6806,7 +6854,7 @@ def _plot_score_by_family_model(rows: list[dict[str, Any]], path: Path) -> None:
                 str(r.get("family") or "unknown"),
                 str(r.get("model") or r.get("agent_name", "?")),
             )
-        ].append(float((r.get("score") or {}).get("total_score", 0.0) or 0.0))
+        ].append(_ranking_primary_for_analysis(r))
     means = {k: sum(v) / len(v) for k, v in scores.items()}
     vals = list(means.values()) or [0.0]
     min_v, max_v = min(vals), max(vals)
@@ -6815,7 +6863,7 @@ def _plot_score_by_family_model(rows: list[dict[str, Any]], path: Path) -> None:
     left, top = 180, 80
     cell_w, cell_h = 160, 50
     body = [
-        '<text x="40" y="40" class="title">Mean total score by family × model</text>'
+        '<text x="40" y="40" class="title">Mean ranking.primary_score by family × model</text>'
     ]
     for j, model in enumerate(models):
         x = left + j * cell_w + cell_w / 2
@@ -6892,11 +6940,11 @@ def _plot_tool_calls_vs_score(rows: list[dict[str, Any]], path: Path) -> None:
         float((r.get("trajectory_summary") or {}).get("n_tool_calls", 0) or 0)
         for r in ok
     ]
-    ys = [float((r.get("score") or {}).get("total_score", 0.0) or 0.0) for r in ok]
+    ys = [_ranking_primary_for_analysis(r) for r in ok]
     max_x = max(xs, default=1.0)
     min_y = min(ys, default=0.0)
     max_y = max(ys, default=1.0)
-    body = [f'<text x="{left}" y="40" class="title">Tool calls vs total score</text>']
+    body = [f'<text x="{left}" y="40" class="title">Tool calls vs ranking.primary_score</text>']
     body.append(
         f'<line x1="{left}" y1="{top + plot_h}" x2="{left + plot_w}" y2="{top + plot_h}" class="axis"/>'
     )
@@ -6935,7 +6983,7 @@ def _plot_tool_calls_vs_score(rows: list[dict[str, Any]], path: Path) -> None:
         )
     for r in ok:
         x_val = float((r.get("trajectory_summary") or {}).get("n_tool_calls", 0) or 0)
-        y_val = float((r.get("score") or {}).get("total_score", 0.0) or 0.0)
+        y_val = _ranking_primary_for_analysis(r)
         model = str(r.get("model") or r.get("agent_name", "?"))
         x = left + (0 if max_x <= 0 else plot_w * x_val / max_x)
         y = (
