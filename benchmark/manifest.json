@@ -3,7 +3,7 @@
   "name": "OPERATE",
   "version": "0.62.0",
   "scoring_version": "0.15.0",
-  "live_scoring_version": "0.20.0",
+  "live_scoring_version": "0.21.0",
   "n_scenarios": 769,
   "n_physical_sources": 502,
   "n_lite_scenarios": 141,

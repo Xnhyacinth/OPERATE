@@ -420,8 +420,18 @@ class OracleOfflineAgent(BaselineAgent):
             did = dilemma["dilemma_id"]
             if did in self._chose_for:
                 continue
+            # Oracle privilege belongs here, never in the model-visible
+            # option projection shared with ordinary agents.
+            manager = getattr(self._env, "dilemmas", None)
+            safe_option_ids = {
+                option.option_id
+                for definition in (manager.record.dilemmas_triggered if manager else [])
+                if definition.dilemma_id == did
+                for option in definition.options
+                if not option.fatal
+            }
             non_fatal = next(
-                (o for o in dilemma["options"] if not o.get("fatal")),
+                (o for o in dilemma["options"] if o["option_id"] in safe_option_ids),
                 dilemma["options"][0] if dilemma["options"] else None,
             )
             if non_fatal is None:

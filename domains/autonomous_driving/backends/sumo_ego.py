@@ -71,7 +71,9 @@ def _native_source_event_evidence_ready(evidence: dict[str, Any]) -> bool:
     observed = evidence.get("observed_source_event_ids")
     material = evidence.get("material_source_event_ids")
     rows = evidence.get("source_event_materiality")
-    if not all(isinstance(value, list) for value in (expected, observed, material, rows)):
+    if not all(
+        isinstance(value, list) for value in (expected, observed, material, rows)
+    ):
         return False
     if (
         not expected
@@ -199,7 +201,9 @@ class _RuntimeAssuranceBridge:
 
     def __init__(self, config: dict[str, Any]) -> None:
         try:
-            module = importlib.import_module("domains.autonomous_driving.runtime_assurance")
+            module = importlib.import_module(
+                "domains.autonomous_driving.runtime_assurance"
+            )
         except (ImportError, AttributeError) as exc:
             raise RuntimeAssuranceUnavailable(
                 "autonomous_driving runtime assurance is mandatory"
@@ -224,7 +228,11 @@ class _RuntimeAssuranceBridge:
     @staticmethod
     def _construct(factory: Any, values: dict[str, Any]) -> Any:
         signature = inspect.signature(factory)
-        accepted = {name: value for name, value in values.items() if name in signature.parameters}
+        accepted = {
+            name: value
+            for name, value in values.items()
+            if name in signature.parameters
+        }
         return factory(**accepted)
 
     @property
@@ -243,10 +251,14 @@ class _RuntimeAssuranceBridge:
     def authorize_recovery(self, token: str) -> None:
         authorize = getattr(self._impl, "authorize_recovery", None)
         if not callable(authorize):
-            raise RuntimeAssuranceUnavailable("runtime assurance does not support guarded recovery")
+            raise RuntimeAssuranceUnavailable(
+                "runtime assurance does not support guarded recovery"
+            )
         accepted = authorize(token=token)
         if accepted is False:
-            raise RuntimeAssuranceUnavailable("runtime assurance rejected recovery authorization")
+            raise RuntimeAssuranceUnavailable(
+                "runtime assurance rejected recovery authorization"
+            )
 
     def set_recovery_token(self, token: str) -> None:
         """Rotate the configured token without resetting the latched mode."""
@@ -487,7 +499,9 @@ class SumoEgoBackend:
             if isinstance(row, dict) and row.get("actor_id")
         }
         self._source_events = [
-            dict(row) for row in fixture.get("source_events") or [] if isinstance(row, dict)
+            dict(row)
+            for row in fixture.get("source_events") or []
+            if isinstance(row, dict)
         ]
         initial_maximum = min(
             self._speed_limit_mps,
@@ -506,7 +520,9 @@ class SumoEgoBackend:
                 ),
             ),
             target_speed_max_mps=initial_maximum,
-            min_time_headway_s=float(self._config.get("initial_min_time_headway_s") or 2.0),
+            min_time_headway_s=float(
+                self._config.get("initial_min_time_headway_s") or 2.0
+            ),
         )
         self._initialize_assurance()
         if self._source_paths:
@@ -554,8 +570,12 @@ class SumoEgoBackend:
             self._diagnostic_shield_mode != "active"
             and self._config.get("unsafe_diagnostic_acknowledged") is not True
         ):
-            raise ValueError("non-enforcing shield mode requires unsafe diagnostic acknowledgement")
-        self._physics_dt_s = max(0.01, float(self._config.get("physics_step_seconds") or 0.1))
+            raise ValueError(
+                "non-enforcing shield mode requires unsafe diagnostic acknowledgement"
+            )
+        self._physics_dt_s = max(
+            0.01, float(self._config.get("physics_step_seconds") or 0.1)
+        )
         default_interval = max(0.01, float(getattr(seed_obj, "tick_seconds", 5.0)))
         self._decision_interval_s = max(
             self._physics_dt_s,
@@ -581,7 +601,9 @@ class SumoEgoBackend:
             rel_tol=0.0,
             abs_tol=1e-9,
         ):
-            raise ValueError("sumo_ego physics substeps do not span one decision interval")
+            raise ValueError(
+                "sumo_ego physics substeps do not span one decision interval"
+            )
         requirements = dict(self._config.get("task_requirements") or {})
         declared_review_interval = requirements.get(
             "required_review_interval_ticks",
@@ -592,7 +614,9 @@ class SumoEgoBackend:
         except (TypeError, ValueError) as exc:
             raise ValueError("sumo_ego review interval must be an integer") from exc
         if self._max_review_after_ticks < 1 or self._max_review_after_ticks > 2:
-            raise ValueError("sumo_ego review interval must be between one and two ticks")
+            raise ValueError(
+                "sumo_ego review interval must be between one and two ticks"
+            )
         self._validate_clock_contract(seed_obj)
 
     def _validate_clock_contract(self, seed_obj: Any) -> None:
@@ -629,7 +653,9 @@ class SumoEgoBackend:
         if source_bundle:
             return self._load_source_bundle(Path(source_bundle).expanduser().resolve())
         source = str(
-            self._config.get("generated_fixture_path") or self._config.get("fixture_path") or ""
+            self._config.get("generated_fixture_path")
+            or self._config.get("fixture_path")
+            or ""
         ).strip()
         if not source:
             raise ValueError(
@@ -639,7 +665,9 @@ class SumoEgoBackend:
         payload = path.read_bytes()
         observed = hashlib.sha256(payload).hexdigest()
         expected = str(
-            self._config.get("generated_fixture_sha256") or self._config.get("fixture_sha256") or ""
+            self._config.get("generated_fixture_sha256")
+            or self._config.get("fixture_sha256")
+            or ""
         ).removeprefix("sha256:")
         if not expected:
             raise ValueError("sumo_ego fixture_path requires fixture_sha256")
@@ -682,10 +710,16 @@ class SumoEgoBackend:
             if phase_complete:
                 raise ValueError("sumo_ego phase-complete candidate override rejected")
             raise ValueError("sumo_ego runtime fixture candidate identity mismatch")
-        if derivation.get("source_window_sha256") != selected.get("source_window_sha256"):
+        if derivation.get("source_window_sha256") != selected.get(
+            "source_window_sha256"
+        ):
             raise ValueError("sumo_ego runtime fixture source window mismatch")
-        locked_actor_ids = tuple(str(value) for value in selected.get("actor_ids") or [])
-        requested_actor_ids = tuple(str(value) for value in self._config.get("actor_ids") or [])
+        locked_actor_ids = tuple(
+            str(value) for value in selected.get("actor_ids") or []
+        )
+        requested_actor_ids = tuple(
+            str(value) for value in self._config.get("actor_ids") or []
+        )
         if requested_actor_ids and requested_actor_ids != locked_actor_ids:
             raise ValueError("sumo_ego source bundle actor_ids override rejected")
         actor_ids = locked_actor_ids
@@ -725,8 +759,12 @@ class SumoEgoBackend:
                 None,
                 selected.get("source_window_sha256"),
             }:
-                raise ValueError("sumo_ego phase-complete source_window_sha256 override rejected")
-            fixture_ego_actor_id = str((runtime_fixture.get("ego") or {}).get("vehicle_id") or "")
+                raise ValueError(
+                    "sumo_ego phase-complete source_window_sha256 override rejected"
+                )
+            fixture_ego_actor_id = str(
+                (runtime_fixture.get("ego") or {}).get("vehicle_id") or ""
+            )
             if (
                 derivation.get("candidate_hazard_context_bound") is not True
                 or str(derivation.get("ego_actor_id") or "") != hazard_ego_actor_id
@@ -739,7 +777,9 @@ class SumoEgoBackend:
         else:
             diagnostic_ego_actor_id = str(derivation.get("ego_actor_id") or "")
             if explicit_ego_actor_id != diagnostic_ego_actor_id:
-                raise ValueError("sumo_ego diagnostic source bundle requires declared fixture ego")
+                raise ValueError(
+                    "sumo_ego diagnostic source bundle requires declared fixture ego"
+                )
             ego_actor_id = explicit_ego_actor_id
         if ego_actor_id not in initial_rows:
             raise ValueError("sumo_ego source bundle ego missing at window start")
@@ -747,13 +787,24 @@ class SumoEgoBackend:
         if phase_complete:
             if str(derivation.get("conflict_actor_id") or "") != conflict_actor_id:
                 raise ValueError("sumo_ego phase-complete conflict actor lock mismatch")
-            explicit_conflict_actor_id = str(self._config.get("conflict_actor_id") or "")
-            if explicit_conflict_actor_id and explicit_conflict_actor_id != conflict_actor_id:
-                raise ValueError("sumo_ego phase-complete conflict actor override rejected")
+            explicit_conflict_actor_id = str(
+                self._config.get("conflict_actor_id") or ""
+            )
+            if (
+                explicit_conflict_actor_id
+                and explicit_conflict_actor_id != conflict_actor_id
+            ):
+                raise ValueError(
+                    "sumo_ego phase-complete conflict actor override rejected"
+                )
         if phase_complete and conflict_actor_id not in actor_ids:
-            raise ValueError("sumo_ego phase-complete conflict actor missing from candidate")
+            raise ValueError(
+                "sumo_ego phase-complete conflict actor missing from candidate"
+            )
         if phase_complete and conflict_actor_id not in initial_rows:
-            raise ValueError("sumo_ego source bundle conflict actor missing at window start")
+            raise ValueError(
+                "sumo_ego source bundle conflict actor missing at window start"
+            )
         fixture_events = [
             dict(event)
             for event in runtime_fixture.get("source_events") or []
@@ -766,11 +817,15 @@ class SumoEgoBackend:
             source_event_ids = event.get("source_event_ids")
             provenance = dict(event.get("source_provenance") or {})
             if event_actor_id not in actor_ids:
-                raise ValueError("sumo_ego source event actor is outside locked candidate")
+                raise ValueError(
+                    "sumo_ego source event actor is outside locked candidate"
+                )
             if (
                 not isinstance(source_event_ids, list)
                 or not source_event_ids
-                or not all(isinstance(value, str) and value for value in source_event_ids)
+                or not all(
+                    isinstance(value, str) and value for value in source_event_ids
+                )
             ):
                 raise ValueError("sumo_ego source event ids are missing")
             if provenance.get("candidate_id") != requested_id or provenance.get(
@@ -791,14 +846,17 @@ class SumoEgoBackend:
 
         ego_row = initial_rows[ego_actor_id]
         reactive_ids = {
-            str(value) for value in derivation.get("reactive_actor_ids") or [] if str(value)
+            str(value)
+            for value in derivation.get("reactive_actor_ids") or []
+            if str(value)
         }
         if phase_complete:
             reactive_ids.update({ego_actor_id, conflict_actor_id})
         candidate_rows = [
             (actor_id, row)
             for actor_id, row in sorted(initial_rows.items())
-            if actor_id != ego_actor_id and (not reactive_ids or actor_id in reactive_ids)
+            if actor_id != ego_actor_id
+            and (not reactive_ids or actor_id in reactive_ids)
         ]
         # A naturalistic log can contain two vehicles whose projected source
         # boxes overlap at the selected timestamp even though the log is not
@@ -822,7 +880,10 @@ class SumoEgoBackend:
                     float(ego_geometry.get("route_position_m") or 0.0),
                     float(ego_geometry.get("length_m") or 4.8),
                 ),
-                *[(lane_map[int(other[6])], float(other[3]), float(other[7])) for _, other in kept],
+                *[
+                    (lane_map[int(other[6])], float(other[3]), float(other[7]))
+                    for _, other in kept
+                ],
             ]
             if any(
                 lane == other_lane
@@ -842,7 +903,8 @@ class SumoEgoBackend:
         self._source_sha256s = {str(path): file_sha256(path) for path in source_files}
         raw_contract = dict(bundle_payload.get("source_contract") or {})
         lineage_paths = [
-            bundle_dir / str(path) for path in raw_contract.get("derivation_input") or []
+            bundle_dir / str(path)
+            for path in raw_contract.get("derivation_input") or []
         ]
         self._lineage_source_sha256s = {
             str(path): file_sha256(path) for path in lineage_paths
@@ -877,7 +939,9 @@ class SumoEgoBackend:
             raise ValueError("sumo_ego runtime assurance step must match physics step")
         assurance_config.setdefault("step_s", self._physics_dt_s)
         assurance_config.setdefault("physics_step_seconds", self._physics_dt_s)
-        assurance_config.setdefault("min_time_headway_s", self._envelope.min_time_headway_s)
+        assurance_config.setdefault(
+            "min_time_headway_s", self._envelope.min_time_headway_s
+        )
         assurance_config.setdefault("recovery_token", self._recovery_token)
         self._assurance = _RuntimeAssuranceBridge(assurance_config)
 
@@ -886,7 +950,9 @@ class SumoEgoBackend:
 
     def record_investigation(self, tool_name: str) -> None:
         """Record paid supervisory inspection without exposing engine truth."""
-        self._investigation_trace.append({"tool_name": str(tool_name), "tick": self._tick})
+        self._investigation_trace.append(
+            {"tool_name": str(tool_name), "tick": self._tick}
+        )
 
     def inspect_local_scene(self) -> dict[str, Any]:
         return {
@@ -910,15 +976,15 @@ class SumoEgoBackend:
             "estimate_kind": "current_observation_derived",
             "future_trajectory_included": False,
             "mode": self.assurance_mode if shield_enforcing else "nominal",
-            "shadow_assurance_mode": (None if shield_enforcing else self.assurance_mode),
+            "shadow_assurance_mode": (
+                None if shield_enforcing else self.assurance_mode
+            ),
             "shield_active": shield_enforcing,
             "shield_mode": self._diagnostic_shield_mode,
             "min_ttc_seconds": self._minimum_ttc(),
             "collision_count": len(self._collision_ids),
             "road_departure_count": self._road_departures,
-            "recovery_ready": bool(
-                self._assurance and self._assurance.recovery_ready
-            ),
+            "recovery_ready": bool(self._assurance and self._assurance.recovery_ready),
             "low_level_control_owner": (
                 "backend_runtime_assurance"
                 if shield_enforcing
@@ -936,7 +1002,9 @@ class SumoEgoBackend:
                 legacy_target if legacy_target is not None else math.nan,
             )
         )
-        headway = float(args.get("min_time_headway_s", self._envelope.min_time_headway_s))
+        headway = float(
+            args.get("min_time_headway_s", self._envelope.min_time_headway_s)
+        )
         max_acceleration = float(
             args.get("max_acceleration_mps2", self._envelope.max_acceleration_mps2)
         )
@@ -969,11 +1037,18 @@ class SumoEgoBackend:
             max_deceleration_mps2=max(0.1, max_deceleration),
             expires_at_tick=int(args["expires_at_tick"]),
         )
-        return self._queue_effect("set_driving_envelope", args, before, _jsonable(self._envelope))
+        return self._queue_effect(
+            "set_driving_envelope", args, before, _jsonable(self._envelope)
+        )
 
     def request_tactical_maneuver(self, args: dict[str, Any]) -> dict[str, Any]:
         maneuver = str(args.get("maneuver") or "")
-        allowed = {"keep_lane", "change_lane_left", "change_lane_right", "slow_for_hazard"}
+        allowed = {
+            "keep_lane",
+            "change_lane_left",
+            "change_lane_right",
+            "slow_for_hazard",
+        }
         if maneuver not in allowed:
             return {"_status": "error", "error": "unknown_tactical_maneuver"}
         validation = self._validate_supervisory_command(args)
@@ -986,7 +1061,9 @@ class SumoEgoBackend:
             "requested_at_tick": self._tick,
             "expires_at_tick": int(args["expires_at_tick"]),
         }
-        return self._queue_effect("request_tactical_maneuver", args, before, self._pending_maneuver)
+        return self._queue_effect(
+            "request_tactical_maneuver", args, before, self._pending_maneuver
+        )
 
     def request_minimal_risk_maneuver(self, args: dict[str, Any]) -> dict[str, Any]:
         if self._assurance is None:
@@ -1037,6 +1114,7 @@ class SumoEgoBackend:
             or self._recovery_token_expires_tick is None
             or self._tick > self._recovery_token_expires_tick
             or self._recovery_token_state_digest != self._recovery_state_digest()
+            or not self._assurance.recovery_ready
         ):
             return {"_status": "error", "error": "recovery_token_not_issued"}
         try:
@@ -1097,7 +1175,9 @@ class SumoEgoBackend:
                 "ego": _jsonable(self._require_ego()),
                 "actors": [
                     _jsonable(actor)
-                    for actor in sorted(self._actors.values(), key=lambda value: value.actor_id)
+                    for actor in sorted(
+                        self._actors.values(), key=lambda value: value.actor_id
+                    )
                 ],
                 "mode": self.assurance_mode,
                 "collision_ids": sorted(self._collision_ids),
@@ -1124,6 +1204,11 @@ class SumoEgoBackend:
         ego = self._require_ego()
         if self._assurance is None:
             raise RuntimeAssuranceUnavailable("runtime assurance not initialized")
+        recovery_binding_valid = bool(
+            self._recovery_token_issued
+            and self._recovery_token_state_digest == self._recovery_state_digest()
+            and self._assurance.recovery_ready
+        )
         self._tick = int(current_tick)
         self._expire_supervisory_commands()
         source_events: list[dict[str, Any]] = []
@@ -1146,6 +1231,9 @@ class SumoEgoBackend:
                 steering_rad=requested_steering,
                 sequence=self._tick * self._substeps + substep,
                 simulation_time_seconds=self._simulation_time_seconds,
+            )
+            recovery_binding_valid = (
+                recovery_binding_valid and self._assurance.recovery_ready
             )
             original_intervention = str(
                 assurance.get("intervention_kind")
@@ -1185,7 +1273,9 @@ class SumoEgoBackend:
                     "ego_id": ego.vehicle_id,
                     "hazard_actor_ids": [
                         actor.actor_id
-                        for actor in sorted(self._actors.values(), key=lambda item: item.actor_id)
+                        for actor in sorted(
+                            self._actors.values(), key=lambda item: item.actor_id
+                        )
                         if abs(actor.route_position_m - ego.route_position_m) <= 100.0
                     ][:64],
                     "lane_index": ego.lane_index,
@@ -1194,7 +1284,9 @@ class SumoEgoBackend:
                     "applied_acceleration_mps2": applied_acceleration,
                     "requested_steering_rad": requested_steering,
                     "applied_steering_rad": applied_steering,
-                    "candidate_trajectory_digest": _digest(assurance.get("evidence") or assurance),
+                    "candidate_trajectory_digest": _digest(
+                        assurance.get("evidence") or assurance
+                    ),
                     "state_digest_before": state_digest_before,
                 }
                 assurance_rows.append(assurance_record)
@@ -1204,7 +1296,9 @@ class SumoEgoBackend:
             self._simulation_time_seconds += self._physics_dt_s
             if assurance_record is not None:
                 assurance_record["state_digest_after"] = _digest(self._source_state())
-                assurance_record["effect_simulation_time_seconds"] = self._simulation_time_seconds
+                assurance_record["effect_simulation_time_seconds"] = (
+                    self._simulation_time_seconds
+                )
             current_ttc = self._minimum_ttc()
             if current_ttc is not None:
                 min_ttc = current_ttc if min_ttc is None else min(min_ttc, current_ttc)
@@ -1214,7 +1308,9 @@ class SumoEgoBackend:
         route_progress = min(1.0, ego.route_position_m / self._route_length_m)
         ttc_threshold = max(0.1, self._envelope.min_time_headway_s)
         ttc_deficit = (
-            max(0.0, ttc_threshold - min_ttc) / ttc_threshold if min_ttc is not None else 0.0
+            max(0.0, ttc_threshold - min_ttc) / ttc_threshold
+            if min_ttc is not None
+            else 0.0
         )
         severity = 1.0 if self._collision_ids or self._road_departures else ttc_deficit
         route_delay = (
@@ -1223,9 +1319,18 @@ class SumoEgoBackend:
             / max(self._speed_limit_mps, 0.1)
         )
         catastrophic = bool(self._collision_ids or self._road_departures)
+        if self._recovery_token_issued:
+            if recovery_binding_valid and not catastrophic:
+                # Bind the normal native transition after every physics step
+                # revalidates health; do not extend the token's original TTL.
+                self._recovery_token_state_digest = self._recovery_state_digest()
+            else:
+                self._invalidate_recovery_token_issue()
         done = catastrophic or route_progress >= 1.0 or self._tick + 1 >= self._horizon
         physical_assurance_mode = (
-            self.assurance_mode.lower() if self._diagnostic_shield_mode == "active" else "nominal"
+            self.assurance_mode.lower()
+            if self._diagnostic_shield_mode == "active"
+            else "nominal"
         )
         record = SumoEgoTickRecord(
             tick=self._tick,
@@ -1312,7 +1417,11 @@ class SumoEgoBackend:
             kind = str(raw.get("kind") or "actor_state_change")
             actor_id = str(raw.get("actor_id") or "")
             actor: ActorState | EgoState | None = self._actors.get(actor_id)
-            if actor is None and self._ego is not None and actor_id == self._ego.vehicle_id:
+            if (
+                actor is None
+                and self._ego is not None
+                and actor_id == self._ego.vehicle_id
+            ):
                 actor = self._ego
             before = _jsonable(actor) if actor is not None else {}
             if kind == "cut_in" and actor is not None:
@@ -1337,7 +1446,9 @@ class SumoEgoBackend:
                 }
                 and actor is not None
             ):
-                actor.route_position_m = float(raw.get("route_position_m", actor.route_position_m))
+                actor.route_position_m = float(
+                    raw.get("route_position_m", actor.route_position_m)
+                )
                 actor.lateral_position_m = float(
                     raw.get(
                         "lateral_position_m",
@@ -1403,7 +1514,8 @@ class SumoEgoBackend:
                         row["before_state_digest"] != row["after_state_digest"]
                     ),
                     "materiality_threshold": 1,
-                    "materiality_passed": row["before_state_digest"] != row["after_state_digest"],
+                    "materiality_passed": row["before_state_digest"]
+                    != row["after_state_digest"],
                     "call_id": call_id,
                     "tool_name": row["tool_name"],
                     "requested_action": row["requested_action"],
@@ -1449,7 +1561,9 @@ class SumoEgoBackend:
             steering,
         )
 
-    def _validate_supervisory_command(self, args: dict[str, Any]) -> dict[str, Any] | None:
+    def _validate_supervisory_command(
+        self, args: dict[str, Any]
+    ) -> dict[str, Any] | None:
         sequence = args.get("command_sequence")
         expires_at = args.get("expires_at_tick")
         if not isinstance(sequence, int) or isinstance(sequence, bool):
@@ -1489,7 +1603,9 @@ class SumoEgoBackend:
             ),
         )
         ego.route_position_m += ego.speed_mps * self._physics_dt_s
-        ego.lateral_position_m += ego.speed_mps * math.tan(steering_rad) * self._physics_dt_s
+        ego.lateral_position_m += (
+            ego.speed_mps * math.tan(steering_rad) * self._physics_dt_s
+        )
         if abs(steering_rad) > 1e-9:
             ego.lane_index = max(
                 0,
@@ -1590,7 +1706,9 @@ class SumoEgoBackend:
             for actor in self._actors.values()
         }
         snapshot["cost_components"] = self.ground_truth_costs()
-        snapshot["road_user_harm"] = {actor_id: 1.0 for actor_id in sorted(self._collision_ids)}
+        snapshot["road_user_harm"] = {
+            actor_id: 1.0 for actor_id in sorted(self._collision_ids)
+        }
         snapshot["runtime_assurance"] = self.runtime_assurance_summary()
         snapshot["investigation_trace"] = list(self._investigation_trace)
         snapshot["tactical_action_trace"] = list(self._tactical_action_trace)
@@ -1603,9 +1721,13 @@ class SumoEgoBackend:
             * max((row.collision_count for row in self._records), default=0),
             "road_departure_cost": 10000.0
             * max((row.road_departure_count for row in self._records), default=0),
-            "risk_exposure_cost": sum(row.residual_risk_burden * 20.0 for row in self._records),
+            "risk_exposure_cost": sum(
+                row.residual_risk_burden * 20.0 for row in self._records
+            ),
             "route_delay_cost": sum(row.route_delay_seconds for row in self._records),
-            "comfort_cost": sum(row.comfort_jerk_burden * 0.01 for row in self._records),
+            "comfort_cost": sum(
+                row.comfort_jerk_burden * 0.01 for row in self._records
+            ),
             "mrm_cost": sum(5.0 for row in self._records if row.mrm_active),
             "mrm_failure_cost": 10000.0
             * int(
@@ -1624,7 +1746,8 @@ class SumoEgoBackend:
     def runtime_assurance_summary(self) -> dict[str, Any]:
         shield_enforcing = self._diagnostic_shield_mode == "active"
         mode_trace = [
-            {"tick": record.tick, "mode": record.assurance_mode} for record in self._records
+            {"tick": record.tick, "mode": record.assurance_mode}
+            for record in self._records
         ]
         mrm_ticks = [record.tick for record in self._records if record.mrm_active]
         mrc_ticks = [
@@ -1633,7 +1756,9 @@ class SumoEgoBackend:
             if record.assurance_mode == "minimal_risk_condition"
         ]
         recovery_ticks = [
-            record.tick for record in self._records if record.assurance_mode == "recovery_pending"
+            record.tick
+            for record in self._records
+            if record.assurance_mode == "recovery_pending"
         ]
         nominal_after_mrm = bool(
             mrm_ticks
@@ -1657,7 +1782,9 @@ class SumoEgoBackend:
             "shadow_assurance_mode": None if shield_enforcing else self.assurance_mode,
             "physics_step_seconds": self._physics_dt_s,
             "physics_substeps_per_tick": self._substeps,
-            "intervention_count": sum(record.shield_intervention_count for record in self._records),
+            "intervention_count": sum(
+                record.shield_intervention_count for record in self._records
+            ),
             "mrm_ticks": mrm_ticks,
             "mrc_ticks": mrc_ticks,
             "recovery_pending_ticks": recovery_ticks,
@@ -1666,7 +1793,11 @@ class SumoEgoBackend:
             "recovery_completed": nominal_after_mrm,
             "recovery_ready": bool(self._assurance and self._assurance.recovery_ready),
             "recovery_health_steps": int(
-                getattr(getattr(self._assurance, "_impl", None), "_healthy_recovery_steps", 0)
+                getattr(
+                    getattr(self._assurance, "_impl", None),
+                    "_healthy_recovery_steps",
+                    0,
+                )
             ),
             "recovery_healthy_steps_required": int(
                 getattr(
@@ -1799,7 +1930,9 @@ def build_sumo_ego_backend(config: dict[str, Any] | None = None) -> SumoEgoBacke
     if mode not in {"auto", "live", "emulated_source_initialized"}:
         raise ValueError(f"unsupported sumo_ego execution_mode: {mode}")
     if cfg.get("allow_live_lateral_maneuvers") is True:
-        raise ValueError("live lateral maneuvers are held pending lane-geometry validation")
+        raise ValueError(
+            "live lateral maneuvers are held pending lane-geometry validation"
+        )
     config_declared = bool(cfg.get("sumo_config_path"))
     ego_declared = bool(cfg.get("ego_vehicle_id"))
     if mode == "auto" and config_declared != ego_declared:
@@ -1818,5 +1951,7 @@ def build_sumo_ego_backend(config: dict[str, Any] | None = None) -> SumoEgoBacke
         if available:
             return live_module.LiveSumoEgoBackend(cfg)
         if mode == "live" or live_ready:
-            raise RuntimeError("live sumo_ego requested but no native SUMO transport is available")
+            raise RuntimeError(
+                "live sumo_ego requested but no native SUMO transport is available"
+            )
     return SumoEgoBackend(cfg)

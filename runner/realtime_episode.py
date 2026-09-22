@@ -25,6 +25,7 @@ from urllib.parse import parse_qsl, urlsplit, urlunsplit
 from baselines import make_agent
 from baselines.llm_agent import (
     INVALID_MODEL_DECISION_DOMINANTS,
+    frozen_model_response_aliases,
     prompt_contract_sha256,
 )
 from core import Action
@@ -61,7 +62,7 @@ EPISODE_END_DISPATCH_SUPPRESSION_REASONS = frozenset(
 )
 SEMANTIC_SESSION_LEDGER_SCHEMA_VERSION = "semantic_session_ledger_v1"
 REALTIME_EPISODE_SCHEMA_VERSION = "realtime-episode/1.1"
-REALTIME_TREATMENT_SCHEMA_VERSION = "realtime-treatment/1.1"
+REALTIME_TREATMENT_SCHEMA_VERSION = "realtime-treatment/1.2"
 
 
 def _tool_protocol_delay_ticks(env: Any) -> dict[str, int]:
@@ -79,7 +80,7 @@ def _tool_protocol_delay_ticks(env: Any) -> dict[str, int]:
 def _explicit_deadline_tick(payload: dict[str, Any]) -> int | None:
     values = [
         int(payload[key])
-        for key in ("deadline_tick", "response_deadline_tick", "mandatory_response_tick")
+        for key in ("deadline_tick", "response_deadline_tick", "mandatory_response_tick", "response_window_end_tick")
         if payload.get(key) is not None
     ]
     return min(values) if values else None
@@ -227,7 +228,7 @@ def _continuation_tool_results(
 
 
 def _annotate_terminal_unanswerable(
-    record: dict[str, Any], event: RealtimeEvent
+    record: dict[str, Any], event: RealtimeEvent, *, at_emission: bool = False
 ) -> None:
     """Separate intrinsic terminal contamination from model capability outcomes."""
 
@@ -237,6 +238,7 @@ def _annotate_terminal_unanswerable(
         and event.payload.get("causal_origin") == "model_action_feedback"
     )
     record["terminal_unanswerable"] = True
+    record["terminal_at_emission"] = at_emission
     record["terminal_trigger_origin"] = (
         "model_action_feedback" if model_feedback else "environment_or_harness"
     )
@@ -352,7 +354,9 @@ def is_valid_zero_request_cancellation(row: dict[str, Any]) -> bool:
     )
 
 
-def recovered_provider_retry_sequences(row: dict[str, Any]) -> set[int]:
+def recovered_provider_retry_sequences(
+    row: dict[str, Any], *, accepted_response_models: tuple[str, ...] = ()
+) -> set[int]:
     """Prove bounded identical-wire retry chains from raw request/response bytes.
 
     Only intermediate typed transient failures are exempted; quota, preflight,
@@ -437,7 +441,7 @@ def recovered_provider_retry_sequences(row: dict[str, Any]) -> set[int]:
                     and identity.get("requested_model") == envelope.get("model")
                     and bool(envelope.get("model"))
                     and isinstance(identity.get("observed_models"), list)
-                    and all(model == envelope["model"] for model in identity["observed_models"])
+                    and all(model in {envelope["model"], *frozen_model_response_aliases(envelope["model"]), *accepted_response_models} for model in identity["observed_models"])
                     and payload.get("model_identity_closure") == identity
                 ):
                     valid = False
@@ -461,13 +465,15 @@ def recovered_provider_retry_sequences(row: dict[str, Any]) -> set[int]:
         return set()
 
 
-def _provider_turn_audit_violations(row: dict[str, Any]) -> set[str]:
+def _provider_turn_audit_violations(
+    row: dict[str, Any], *, accepted_response_models: tuple[str, ...] = ()
+) -> set[str]:
     """Validate one settled provider turn without trusting summary counters."""
 
     if row.get("provider_turn_settled") is not True:
         return {"PROVIDER_TURN_UNSETTLED"}
     violations: set[str] = set()
-    recovered_retries = recovered_provider_retry_sequences(row)
+    recovered_retries = recovered_provider_retry_sequences(row, accepted_response_models=accepted_response_models)
     if (
         row.get("behavioral_transaction_consistent") is not True
         or row.get("behavioral_transaction_status")
@@ -576,9 +582,14 @@ def _provider_turn_audit_violations(row: dict[str, Any]) -> set[str]:
         ):
             violations.add("PROVIDER_MODEL_IDENTITY_CLOSURE_INCONSISTENT")
             continue
+        accepted_models = {
+            requested_model,
+            *frozen_model_response_aliases(requested_model),
+            *accepted_response_models,
+        }
         if closure == "request_failed":
             if observed_models and any(
-                str(model) != requested_model for model in observed_models
+                str(model) not in accepted_models for model in observed_models
             ):
                 violations.add("PROVIDER_MODEL_IDENTITY_MISMATCH")
             else:
@@ -595,7 +606,7 @@ def _provider_turn_audit_violations(row: dict[str, Any]) -> set[str]:
         elif closure == "missing" or not observed_models:
             violations.add("PROVIDER_MODEL_IDENTITY_MISSING")
         elif closure == "mismatch" or any(
-            str(model) != requested_model for model in observed_models
+            str(model) not in accepted_models for model in observed_models
         ):
             violations.add("PROVIDER_MODEL_IDENTITY_MISMATCH")
         elif closure != "exact":
@@ -612,7 +623,10 @@ def build_realtime_treatment_identity(
     safety_supervisor: SafetySupervisor,
     tool_specs: list[dict[str, Any]] | None = None,
     runtime_capabilities: dict[str, Any] | None = None,
+    response_delivery_delay_s: float = 0.0,
 ) -> tuple[dict[str, Any], str]:
+    if not math.isfinite(response_delivery_delay_s) or response_delivery_delay_s < 0:
+        raise ValueError("response_delivery_delay_s must be finite and non-negative")
     provider_config = _public_provider_config(agent_kwargs)
     interaction_mode = str(
         provider_config.get("interaction_mode") or ""
@@ -632,7 +646,7 @@ def build_realtime_treatment_identity(
             "implementation_tree_sha256": code_identity[
                 "implementation_tree_sha256"
             ],
-            "realtime_coordinator": "realtime_episode_v5",
+            "realtime_coordinator": "realtime_episode_v6",
             "event_decision_contract": EVENT_DECISION_CONTRACT_VERSION,
             "prompt_context_compiler": "persistent_event_compiler_v3",
             "prompt_contract_sha256": prompt_contract_sha256(
@@ -666,6 +680,7 @@ def build_realtime_treatment_identity(
             "kind": "soft_realtime_monotonic_single_writer",
             "tick_interval_s": float(tick_interval_s),
             "episode_timeout_s": float(episode_timeout_s),
+            "response_delivery_delay_s": float(response_delivery_delay_s),
             "provider_turn_hard_timeout_enforced": False,
             "environment_progress_during_provider_turn": True,
             "environment_progress_during_investigation": False,
@@ -675,6 +690,8 @@ def build_realtime_treatment_identity(
             "schema_version": "realtime-action-validity/1.0",
             "default": "tool_protocol_delay_plus_effect_boundary",
             "explicit_deadlines_preserved": True,
+            "response_deadline_policy": "domain_declared_only",
+            "queue_wait_consumes_domain_window": True,
             "tool_delay_ticks": dict(runtime_capabilities.get("tool_delay_ticks") or {}),
         },
         "safety_supervisor": _safety_treatment_identity(safety_supervisor),
@@ -822,7 +839,15 @@ def _build_evidence_closure(env: Any, artifact: dict[str, Any]) -> dict[str, Any
                 continue
             call_id = str(call.get("call_id") or "")
             if call_id:
-                execution_visibility_by_call_id.setdefault(call_id, visible_ids)
+                # A model may reuse an idempotency key across turns; each
+                # submission is a separate decision with its own visibility
+                # snapshot. Accumulate the union so a delayed or
+                # conflict-settled result is validated against the evidence
+                # its submitting decision actually saw, not only the first
+                # registration. Execution order keeps the first position.
+                execution_visibility_by_call_id.setdefault(
+                    call_id, set()
+                ).update(visible_ids)
                 execution_order_by_call_id.setdefault(
                     call_id, (transition_index, call_index)
                 )
@@ -959,9 +984,24 @@ def _build_evidence_closure(env: Any, artifact: dict[str, Any]) -> dict[str, Any
             }
             referenced.update(result_consumed)
             consumed.update(result_consumed)
+            # A tool result materializes on the transition that received it.
+            # When a model reuses an idempotency key across turns, the protocol
+            # answers the newer call with IDEMPOTENCY_KEY_CONFLICT while
+            # ``execution_visibility_by_call_id`` still holds the visibility
+            # snapshot of the *first* registration — where evidence produced
+            # in between did not exist yet. Keying the check to the first
+            # registration would then flag evidence the model legitimately
+            # saw when it decided. For a registered call, the materializing
+            # transition is an equally valid visibility witness. An orphan
+            # result (call never registered) keeps the strict empty baseline
+            # and is reported through ``orphan_result_call_ids``.
+            result_visibility = set(
+                execution_visibility_by_call_id.get(result_call_id, set())
+            )
+            if result_call_id in known_call_ids:
+                result_visibility.update(visible_ids)
             invisible_consumed.update(
-                result_consumed
-                - execution_visibility_by_call_id.get(result_call_id, set())
+                result_consumed - result_visibility
             )
             result_dependencies = {
                 str(value)
@@ -1127,9 +1167,20 @@ def _build_evidence_closure(env: Any, artifact: dict[str, Any]) -> dict[str, Any
             transition.get("effect_observed") is True
             and action_id not in proven_effect_action_ids
         ):
-            invalid_effect_action_ids.add(
-                action_id
+            # A deferred effect settles on whichever transition the clock had
+            # advanced to, not the action that caused it. The settling
+            # transition carries ``deferred_action_outcomes`` pointing at the
+            # originating action; if that origin's own transition proved the
+            # effect, the settlement is bookkeeping, not an unproven claim.
+            deferred_origins_proven = any(
+                isinstance(row, dict)
+                and row.get("effect_observed") is True
+                and row.get("action_id")
+                in proven_effect_action_ids
+                for row in transition.get("deferred_action_outcomes") or []
             )
+            if not deferred_origins_proven:
+                invalid_effect_action_ids.add(action_id)
     available = {
         str(row.get("evidence_id"))
         for row in ledger
@@ -1182,10 +1233,62 @@ def _build_evidence_closure(env: Any, artifact: dict[str, Any]) -> dict[str, Any
     }
 
 
+def response_delivery_delay_violations(artifact: dict[str, Any]) -> list[str]:
+    """Verify injected delivery waits against settled provider-turn timestamps."""
+
+    delay = ((artifact.get("treatment_identity") or {}).get("clock") or {}).get(
+        "response_delivery_delay_s"
+    )
+    if (
+        isinstance(delay, bool) or not isinstance(delay, (int, float))
+        or not math.isfinite(delay) or delay < 0
+        or isinstance((artifact.get("clock") or {}).get("response_delivery_delay_s"), bool)
+        or (artifact.get("clock") or {}).get("response_delivery_delay_s") != delay
+    ):
+        return ["response_delivery_evidence_invalid"]
+    rows = artifact.get("provider_audit")
+    if not isinstance(rows, list) or not rows:
+        return ["response_delivery_evidence_invalid"]
+    for row in rows:
+        if (not isinstance(row, dict) or isinstance(row.get("response_delivery_delay_s"), bool)
+                or row.get("response_delivery_delay_s") != delay):
+            return ["response_delivery_evidence_invalid"]
+        ready = row.get("response_ready_monotonic_ns")
+        settled = row.get("response_delivery_settled_monotonic_ns")
+        responses = row.get("provider_responses") or []
+        successful_response = bool(
+            responses and isinstance(responses[-1], dict)
+            and (responses[-1].get("response") or {}).get("status") == "success"
+        )
+        if ready is None and settled is None and not successful_response:
+            # Failed/canceled transport has no completed decision to delay.
+            continue
+        canceled = row.get("response_delivery_canceled")
+        if not (
+            type(ready) is int and type(settled) is int and 0 < ready <= settled
+            and type(canceled) is bool
+        ):
+            return ["response_delivery_evidence_invalid"]
+        if canceled:
+            if not (
+                row.get("cancel_requested") is True
+                and row.get("turn_status") == "superseded"
+                and row.get("execution_fence") == "late_response_audit_only"
+                and row.get("late_response_discarded") is True
+            ):
+                return ["response_delivery_evidence_invalid"]
+        elif settled - ready < delay * 1e9:
+            return ["response_delivery_evidence_invalid"]
+    return []
+
+
 def _apply_realtime_artifact_validation(
     artifact: dict[str, Any], *, behavioral_state_settled: bool
 ) -> None:
     validation_blockers: list[str] = []
+    if "response_delivery_delay_s" in ((artifact.get("treatment_identity") or {}).get("clock") or {}):
+        if response_delivery_delay_violations(artifact):
+            validation_blockers.append("RESPONSE_DELIVERY_EVIDENCE_INVALID")
     if artifact.get("episode_status") != "complete":
         validation_blockers.append("EPISODE_NOT_COMPLETE")
     if artifact.get("evidence_closure", {}).get("closure_complete") is not True:
@@ -1279,7 +1382,14 @@ class RealtimeTurnDriver(Protocol):
 class AgentTurnDriver:
     """Adapt a synchronous benchmark agent to cancellable real-time turns."""
 
-    def __init__(self, agent: Any, tool_specs: list[dict[str, Any]]) -> None:
+    def __init__(
+        self, agent: Any, tool_specs: list[dict[str, Any]], *,
+        response_delivery_delay_s: float = 0.0,
+    ) -> None:
+        if not math.isfinite(response_delivery_delay_s) or response_delivery_delay_s < 0:
+            raise ValueError("response_delivery_delay_s must be finite and non-negative")
+        self._response_delivery_delay_s = float(response_delivery_delay_s)
+        self._delivery_cancellations: dict[str, threading.Event] = {}
         self._agent = agent
         self._tool_specs = deepcopy(tool_specs)
         self._lock = threading.Lock()
@@ -1342,12 +1452,17 @@ class AgentTurnDriver:
         }
         provider_stats = self._interaction_stats()
         with self._lock:
+            self._delivery_cancellations[turn_id] = threading.Event()
             self._turn_provider_ranges[turn_id] = {
                 "request_start": None,
                 "response_start": None,
                 "request_end": None,
                 "response_end": None,
                 "provider_started": 0,
+                "response_delivery_delay_s": self._response_delivery_delay_s,
+                "response_ready_monotonic_ns": None,
+                "response_delivery_settled_monotonic_ns": None,
+                "response_delivery_canceled": False,
                 "status": "queued",
                 "queued_request_cursor": len(
                     provider_stats.get("provider_request_records") or []
@@ -1398,7 +1513,20 @@ class AgentTurnDriver:
                 self._execution_complete.add(turn_id)
             return Action()
         try:
-            return self._agent.act(observation, tool_specs)
+            action = self._agent.act(observation, tool_specs)
+            ready_ns = time.monotonic_ns()
+            with self._lock:
+                cancellation = self._delivery_cancellations[turn_id]
+                self._turn_provider_ranges[turn_id]["response_ready_monotonic_ns"] = ready_ns
+            # The provider worker, never the environment actor, owns this wait.
+            # Cancellation ends delivery without authorizing the stale response.
+            canceled = cancellation.wait(self._response_delivery_delay_s)
+            with self._lock:
+                self._turn_provider_ranges[turn_id].update({
+                    "response_delivery_settled_monotonic_ns": time.monotonic_ns(),
+                    "response_delivery_canceled": canceled,
+                })
+            return action
         finally:
             provider_stats = self._interaction_stats()
             with self._lock:
@@ -1466,6 +1594,7 @@ class AgentTurnDriver:
     def _forget_turn(self, turn_id: str) -> None:
         with self._lock:
             self._turn_futures.pop(turn_id, None)
+            self._delivery_cancellations.pop(turn_id, None)
             should_close = (
                 self._close_requested
                 and not self._behavioral_work_pending_locked()
@@ -1493,6 +1622,9 @@ class AgentTurnDriver:
         self.rollback_turn(turn_id)
         with self._lock:
             future = self._turn_futures.get(turn_id)
+            delivery_cancellation = self._delivery_cancellations.get(turn_id)
+            if delivery_cancellation is not None:
+                delivery_cancellation.set()
         future_canceled = bool(future.cancel()) if future is not None else False
         if future_canceled:
             provider_stats = self._interaction_stats()
@@ -1627,6 +1759,10 @@ class AgentTurnDriver:
                     "provider_turn_settled": request_end is not None,
                     "provider_started": bool(provider_range["provider_started"]),
                     "provider_audit_status": str(provider_range.get("status") or "unknown"),
+                    **{key: provider_range.get(key) for key in (
+                        "response_delivery_delay_s", "response_ready_monotonic_ns",
+                        "response_delivery_settled_monotonic_ns", "response_delivery_canceled",
+                    )},
                 }
             )
         return records
@@ -1768,13 +1904,15 @@ class RealtimeEpisodeCoordinator:
         if not isinstance(observation, dict):
             return
         with self._lock:
-            if self._pending_behavioral_turn_id is not None:
+            if self._pending_behavioral_turn_id is not None or self._current_turn_id is not None:
                 self._deferred_observations.append(deepcopy(observation))
                 return
         self._submit_observation_ingest(observation)
 
     def _flush_deferred_observations(self) -> None:
         with self._lock:
+            if self._current_turn_id is not None or self._pending_behavioral_turn_id is not None:
+                return
             observations, self._deferred_observations = (
                 self._deferred_observations,
                 [],
@@ -1798,9 +1936,10 @@ class RealtimeEpisodeCoordinator:
         payload: dict[str, Any] | None = None,
         evidence_ids: list[str] | None = None,
         deadline_tick: int | None = None,
+        occurred_monotonic_ns: int | None = None,
     ) -> RealtimeEvent:
         self._event_seq += 1
-        now_ns = time.monotonic_ns()
+        now_ns = occurred_monotonic_ns if occurred_monotonic_ns is not None else time.monotonic_ns()
         event = RealtimeEvent(
             event_id=f"event-{self._event_seq}",
             event_seq=self._event_seq,
@@ -1846,6 +1985,7 @@ class RealtimeEpisodeCoordinator:
                 self._turn_seq += 1
                 turn_id = f"turn-{self._turn_seq}"
                 observation_version, observation = self._actor.snapshot()
+                admitted_ns = time.monotonic_ns()
                 record = {
                     "turn_id": turn_id,
                     "decision_id": event.decision_id,
@@ -1880,8 +2020,14 @@ class RealtimeEpisodeCoordinator:
                             ]
                         )
                     ),
-                    "started_tick": event.simulator_tick,
-                    "started_monotonic_ns": time.monotonic_ns(),
+                    "started_tick": int(observation.get("tick", event.simulator_tick)),
+                    "origin_event_tick": event.simulator_tick,
+                    "started_monotonic_ns": admitted_ns,
+                    "queue_wait_ns": max(0, admitted_ns - event.monotonic_ns),
+                    "response_budget_remaining_ns_at_admission": (
+                        max(0, event.deadline_monotonic_ns - admitted_ns)
+                        if event.deadline_monotonic_ns is not None else None
+                    ),
                     "decision_tick": None,
                     "decision_monotonic_ns": None,
                     "active_deadline_tick": event.deadline_tick,
@@ -1953,7 +2099,12 @@ class RealtimeEpisodeCoordinator:
         )
         record["decision_overrun_ticks"] = tick_overrun
         record["decision_overrun_ns"] = wall_overrun_ns
-        record["deadline_met"] = tick_overrun == 0 and wall_overrun_ns == 0
+        record["deadline_met"] = (
+            tick_overrun == 0 and wall_overrun_ns == 0
+            if deadline_tick is not None or deadline_ns is not None else None
+        )
+        record["decision_latency_ticks"] = max(0, simulator_tick - int(record.get("started_tick", simulator_tick)))
+        record["decision_latency_ns"] = max(0, monotonic_ns - int(record.get("started_monotonic_ns", monotonic_ns)))
 
     def _record_cancel_audit(
         self,
@@ -2074,6 +2225,17 @@ class RealtimeEpisodeCoordinator:
                 monotonic_ns=time.monotonic_ns(),
             )
             self._current_turn_id = None
+            for event_id in current.get("delivered_event_ids") or []:
+                previous = next(row for row in self._events if row["event_id"] == event_id)
+                if previous.get("kind") == "session_start":
+                    continue
+                pending = RealtimeEvent(**{
+                    key: deepcopy(previous[key])
+                    for key in RealtimeEvent.__dataclass_fields__ if key in previous
+                })
+                if not any(item.event_id == event_id for item in self._pending_events):
+                    self._queue_pending_event(pending, reason="TURN_SUPERSEDED", queued_behind_event_id=event.event_id)
+            self._flush_deferred_observations()
             self._start_turn(event)
 
     @staticmethod
@@ -2219,29 +2381,9 @@ class RealtimeEpisodeCoordinator:
                 and simulator_tick > event.deadline_tick
             ):
                 event_record["pending_expired"] = True
-                continuation = self._new_event(
-                    kind=event.kind,
-                    state_version=state_version,
-                    simulator_tick=simulator_tick,
-                    decision_required=event.decision_required,
-                    priority=event.priority,
-                    payload={
-                        **deepcopy(event.payload),
-                        "original_event_id": event.event_id,
-                        "original_event_monotonic_ns": event.monotonic_ns,
-                        "original_event_state_version": event.state_version,
-                    },
-                    evidence_ids=list(event.evidence_ids),
-                    deadline_tick=simulator_tick + 1,
-                )
-                event_record["continued_as_event_id"] = continuation.event_id
-                event = continuation
-                event_record = next(
-                    row
-                    for row in self._events
-                    if row["event_id"] == event.event_id
-                )
-                event_record["current_state_continuation"] = True
+                event_record["dispatch_suppressed_reason"] = "DOMAIN_RESPONSE_WINDOW_EXPIRED"
+                self._dispatch_next_pending()
+                return
             self._start_turn(event)
             if event not in self._pending_events:
                 event_record["dispatched_from_pending"] = True
@@ -2291,6 +2433,7 @@ class RealtimeEpisodeCoordinator:
                 self._rollback_driver_turn(turn_id)
                 record["behavioral_transaction_status"] = "rolled_back"
                 record["behavioral_transaction_reason"] = "PROVIDER_TURN_FAILED"
+                self._flush_deferred_observations()
                 self._dispatch_next_pending()
             return
         with self._lock:
@@ -2326,6 +2469,9 @@ class RealtimeEpisodeCoordinator:
             if record["deadline_met"] is False:
                 record["status"] = "superseded"
                 record["invalidated_reason"] = "DECISION_DEADLINE_EXCEEDED"
+                record["cancel_requested"] = True
+                record["cancel_acknowledged"] = False
+                record["cancellation_mode"] = "logical_supersession"
                 record["receipt_status"] = "deadline_exceeded"
                 record["late_response_discarded"] = True
                 record["hard_cancel_performed"] = False
@@ -2375,8 +2521,9 @@ class RealtimeEpisodeCoordinator:
                         ],
                     },
                     evidence_ids=[],
-                    deadline_tick=simulator_tick + 1,
+                    deadline_tick=None,
                 )
+                self._flush_deferred_observations()
                 self._end_standing_plan_for_event(event)
                 self._interrupt_or_steer(event)
                 self._dispatch_next_pending()
@@ -2416,6 +2563,7 @@ class RealtimeEpisodeCoordinator:
                 )
                 self._rollback_driver_turn(turn_id)
                 self._current_turn_id = None
+                self._flush_deferred_observations()
                 self._dispatch_next_pending()
                 return
             self._action_seq += 1
@@ -2430,13 +2578,13 @@ class RealtimeEpisodeCoordinator:
                 default=0,
             )
             action_expiry = max(
-                int(record["active_deadline_tick"]), simulator_tick + tool_delay + 1
+                int(record["active_deadline_tick"] or simulator_tick), simulator_tick + tool_delay + 1
             )
             explicit_expiries = [
                 call.args["expires_at_tick"]
                 if isinstance(call.args["expires_at_tick"], int)
                 and not isinstance(call.args["expires_at_tick"], bool)
-                else int(record["active_deadline_tick"])
+                else simulator_tick
                 for call in action.tool_calls
                 if call.args.get("expires_at_tick") is not None
             ]
@@ -2904,7 +3052,7 @@ class RealtimeEpisodeCoordinator:
                     ],
                 },
                 evidence_ids=[],
-                deadline_tick=simulator_tick + 1,
+                deadline_tick=None,
             )
             self._end_standing_plan_for_event(event)
             self._interrupt_or_steer(event)
@@ -2976,10 +3124,11 @@ class RealtimeEpisodeCoordinator:
                             "decision_interrupt_reason": interrupt_reason,
                         },
                         evidence_ids=list(native.get("evidence_ids") or []),
+                        occurred_monotonic_ns=transition.get("monotonic_ns"),
                         deadline_tick=(
                             int(deadline)
                             if deadline is not None
-                            else simulator_tick + 1
+                            else None
                         ),
                     )
                 )
@@ -3012,7 +3161,7 @@ class RealtimeEpisodeCoordinator:
                         in (turn.get("delivered_event_ids") or [])
                         and turn.get("status") == "completed"
                         and turn.get("decision_valid") is True
-                        and turn.get("deadline_met") is True
+                        and turn.get("deadline_met") is not False
                         and turn.get("late_response_discarded") is not True
                         and turn.get("decision_tick")
                         == transition.get("simulator_tick_before")
@@ -3058,7 +3207,7 @@ class RealtimeEpisodeCoordinator:
                         evidence_ids=list(
                             transition.get("visible_evidence_ids_after") or []
                         ),
-                        deadline_tick=simulator_tick + 1,
+                        deadline_tick=None,
                     )
                 )
         if transition.get("forecast_updates"):
@@ -3081,7 +3230,7 @@ class RealtimeEpisodeCoordinator:
                         evidence_ids=list(
                             transition.get("visible_evidence_ids_after") or []
                         ),
-                        deadline_tick=simulator_tick + 1,
+                        deadline_tick=None,
                     )
                 )
         raw_tool_results = [
@@ -3214,7 +3363,7 @@ class RealtimeEpisodeCoordinator:
                             priority=120 if failed else 70,
                             payload=native,
                             evidence_ids=evidence_ids,
-                            deadline_tick=simulator_tick + 1,
+                            deadline_tick=None,
                         )
                     )
         if environment_done:
@@ -3227,7 +3376,7 @@ class RealtimeEpisodeCoordinator:
                     )
                     record["terminal_dispatch_suppressed"] = True
                     record["dispatch_suppressed_reason"] = "ENVIRONMENT_DONE"
-                    _annotate_terminal_unanswerable(record, event)
+                    _annotate_terminal_unanswerable(record, event, at_emission=True)
             elif not transition.get("early_stop_warnings"):
                 quiet_event = self._new_event(
                     kind="quiet_window",
@@ -3276,7 +3425,7 @@ class RealtimeEpisodeCoordinator:
                     decision_required=True,
                     priority=50,
                     payload={"requested_review_tick": min(due_reviews)},
-                    deadline_tick=simulator_tick + 1,
+                    deadline_tick=None,
                 )
                 candidates.append(review)
             ordered = sorted(
@@ -3344,7 +3493,7 @@ class RealtimeEpisodeCoordinator:
                 decision_required=True,
                 priority=50,
                 payload={"requested_review_tick": min(due_reviews)},
-                deadline_tick=simulator_tick + 1,
+                deadline_tick=None,
             )
             self._end_standing_plan_for_event(event)
             self._interrupt_or_steer(event)
@@ -3366,7 +3515,7 @@ class RealtimeEpisodeCoordinator:
             decision_required=True,
             priority=50,
             payload={"semantic_prompt_once": True},
-            deadline_tick=initial_tick + 1,
+            deadline_tick=None,
         )
         self._start_turn(start_event)
         deadline = time.monotonic() + float(timeout_s)
@@ -3589,7 +3738,10 @@ class RealtimeEpisodeCoordinator:
             if row.get("provider_turn_settled") is not True:
                 continue
             turn_id = str(row.get("turn_id"))
-            violations = _provider_turn_audit_violations(row)
+            config = getattr(getattr(self._driver, "_agent", None), "config", None)
+            violations = _provider_turn_audit_violations(
+                row, accepted_response_models=tuple(getattr(config, "accepted_response_models", ()))
+            )
             if violations:
                 provider_audit_invalid_turn_ids.append(turn_id)
                 row["validation_blocker_codes"] = sorted(violations)
@@ -3779,9 +3931,12 @@ def run_realtime(
     timeout_s: float,
     safety_supervisor: SafetySupervisor,
     trajectory_dir: Path | None = None,
+    response_delivery_delay_s: float = 0.0,
 ) -> dict[str, Any]:
     """Instantiate a real backend and agent for one realtime scorecard episode."""
 
+    if not math.isfinite(response_delivery_delay_s) or response_delivery_delay_s < 0:
+        raise ValueError("response_delivery_delay_s must be finite and non-negative")
     if not math.isfinite(tick_interval_s) or tick_interval_s < 1e-9:
         raise ValueError("tick_interval_s must be finite and at least 1ns")
     if not math.isfinite(timeout_s) or timeout_s <= 0:
@@ -3841,6 +3996,7 @@ def run_realtime(
             agent_kwargs=agent_kwargs,
             tick_interval_s=tick_interval_s,
             episode_timeout_s=timeout_s,
+            response_delivery_delay_s=response_delivery_delay_s,
             safety_supervisor=safety_supervisor,
             tool_specs=tool_specs,
             runtime_capabilities={
@@ -3853,7 +4009,7 @@ def run_realtime(
                 ),
             },
         )
-        driver = AgentTurnDriver(agent, tool_specs)
+        driver = AgentTurnDriver(agent, tool_specs, response_delivery_delay_s=response_delivery_delay_s)
         coordinator = RealtimeEpisodeCoordinator(
             env=env,
             turn_driver=driver,
@@ -3861,6 +4017,7 @@ def run_realtime(
             tick_interval_s=tick_interval_s,
         )
         artifact = coordinator.run(timeout_s=timeout_s)
+        artifact["clock"]["response_delivery_delay_s"] = float(response_delivery_delay_s)
         session_ledger = getattr(agent, "get_session_ledger", None)
         structured_memory = getattr(agent, "get_structured_memory", None)
         interaction_stats = getattr(agent, "get_interaction_stats", None)

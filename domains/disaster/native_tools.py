@@ -217,7 +217,7 @@ def register_disaster_tools(
             description=(
                 "Assign a START-style triage priority (RED / YELLOW / "
                 "GREEN / BLACK) to a zone's casualties. Drives downstream "
-                "ambulance routing priority and feeds the equity scorer."
+                "ambulance routing priority."
             ),
             parameters={
                 "type": "object",
@@ -359,9 +359,8 @@ def register_disaster_tools(
         ToolSpec(
             name="commit_to_plan",
             description=(
-                "Record a multi-tick plan with predicted events. Used by "
-                "the foresight scorer to verify the agent followed "
-                "through on declared intent."
+                "Record or revise a multi-tick response plan with a rationale "
+                "and predicted events."
             ),
             parameters={
                 "type": "object",

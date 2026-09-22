@@ -51,3 +51,10 @@ consumer/packaging boundary remains untested. Do not repeatedly run the same
 review for a cleaner banner, or treat smoke success as model performance.
 Keep complete maintenance history privately; publish only the current task
 data, runtime assets and compact bindings that the public readers require.
+
+## Evaluation recovery
+
+Use [Evaluation deadlines and postprocessing recovery](EVALUATION_RECOVERY.md)
+for bounded native workers and provider-free scoring recovery. Preserve the
+original snapshot and identities; timeout or diagnostic recovery never grants
+formal eligibility to incomplete or incompatible evidence.

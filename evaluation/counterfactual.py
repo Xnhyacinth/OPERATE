@@ -66,7 +66,7 @@ def power_grid_counterfactual_report(
     environment that declared itself unsupported.
     """
     probe_env = env_factory()
-    readonly_tool_names: set[str] | None = None
+    replay_owns_probe = False
     try:
         probe_env.reset(copy.deepcopy(scenario_config), seed)
         if not probe_env.supports_counterfactual():
@@ -84,22 +84,27 @@ def power_grid_counterfactual_report(
         else:
             raise ValueError(f"unknown masking policy: {masking_policy}")
         readonly_tool_names = probe_env.readonly_tool_names()
+        # The actual replay consumes and closes this reset backend before any
+        # masked backend is allocated; do not initialize an unused probe.
+        replay_owns_probe = True
+        return run_counterfactual(
+            env_factory=env_factory,
+            scenario_config=scenario_config,
+            seed=seed,
+            actual_actions=actual_actions,
+            cost_extractor=power_grid_cost_extractor,
+            masking_policy=mask_fn,
+            masking_label=masking_policy,
+            per_action=per_action,
+            per_action_cap=per_action_cap,
+            per_action_groups=per_action_groups,
+            per_action_group_cap=per_action_group_cap,
+            readonly_tool_names=readonly_tool_names,
+            initialized_actual_env=probe_env,
+        )
     finally:
-        probe_env.close()
-    return run_counterfactual(
-        env_factory=env_factory,
-        scenario_config=scenario_config,
-        seed=seed,
-        actual_actions=actual_actions,
-        cost_extractor=power_grid_cost_extractor,
-        masking_policy=mask_fn,
-        masking_label=masking_policy,
-        per_action=per_action,
-        per_action_cap=per_action_cap,
-        per_action_groups=per_action_groups,
-        per_action_group_cap=per_action_group_cap,
-        readonly_tool_names=readonly_tool_names,
-    )
+        if not replay_owns_probe:
+            probe_env.close()
 
 
 # ── Domain-neutral aliases (T0) ──────────────────────────────────────────────

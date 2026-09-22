@@ -13,6 +13,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import random
 import sys
 from collections import Counter, defaultdict
@@ -50,7 +51,35 @@ def _load_episodes_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def _ok_row_cleanliness(row: dict[str, Any]) -> tuple[bool, str | None]:
+    checkpoint = row.get("checkpoint_progress") or (row.get("trajectory_summary") or {}).get("checkpoint_progress") or {}
+    if checkpoint.get("replayed_boundaries", 0) and not (
+        row.get("recovery_audit") or (row.get("trajectory_summary") or {}).get("recovery_audit")
+    ):
+        return False, "recovery_audit_unclosed_or_ineligible"
+    # Report-only negative gate: honor declared recovery failures. A positive
+    # metadata flag is not a substitute for the formal artifact validator.
+    for source in (row, row.get("trajectory_summary") or {}):
+        recovery = source.get("recovery_audit")
+        if recovery is not None and (
+            not isinstance(recovery, dict)
+            or recovery.get("closed") is not True
+            or recovery.get("eligible") is not True
+        ):
+            return False, "recovery_audit_unclosed_or_ineligible"
+    from scripts.batch_llm_eval import (
+        _causal_response_contract_reasons,
+        _llm_call_failure_eligibility_reasons,
+    )
+
+    trajectory = row.get("trajectory_summary") or {}
+    if "event_response_records" in trajectory:
+        causal_reasons = _causal_response_contract_reasons(trajectory)
+        if causal_reasons:
+            return False, causal_reasons[0]
     llm = (row.get("trajectory_summary") or {}).get("llm") or {}
+    failure_reasons = _llm_call_failure_eligibility_reasons(llm)
+    if failure_reasons:
+        return False, failure_reasons[0]
     if int(llm.get("llm_calls_failed", 0) or 0) > 0:
         return False, "llm_failure_or_fallback_wait"
     if int(llm.get("ticks_wait_fallback", 0) or 0) > 0:
@@ -59,16 +88,24 @@ def _ok_row_cleanliness(row: dict[str, Any]) -> tuple[bool, str | None]:
         return False, "llm_failure_or_fallback_wait"
     return True, None
 
-DEFAULT_RELEASE = REPO_ROOT / "benchmark"
+def _default_catalog_dir(repo_root: Path) -> Path:
+    private = repo_root / "release" / "operate_v0_62_0"
+    if (private / "manifest.json").is_file() or (private / "core_suite.json").is_file():
+        return private
+    return repo_root / "benchmark"
+
+
+DEFAULT_RELEASE = _default_catalog_dir(REPO_ROOT)
 DEFAULT_SUMMARY_CSV = (
     REPO_ROOT
     / "batch_results"
+    / "operate_v0_62_0"
     / "formal"
     / "logical_persistent"
     / "summary.csv"
 )
-DEFAULT_OUTPUT_JSON = REPO_ROOT / "output/leaderboard_results.json"
-DEFAULT_OUTPUT_MARKDOWN = REPO_ROOT / "output/leaderboard_results.md"
+DEFAULT_OUTPUT_JSON = REPO_ROOT / ".hl/artifacts/operate_v062_leaderboard_results.json"
+DEFAULT_OUTPUT_MARKDOWN = REPO_ROOT / ".hl/artifacts/operate_v062_leaderboard_results.md"
 DEFAULT_BOOTSTRAP_SAMPLES = 2000
 DEFAULT_BOOTSTRAP_SEED = 1729
 DEFAULT_CONFIDENCE_LEVEL = 0.95
@@ -113,10 +150,13 @@ def _as_float(value: object, default: float = 0.0) -> float:
 def _maybe_float(value: object) -> float | None:
     if value is None or value == "":
         return None
+    if isinstance(value, bool):
+        return None
     try:
-        return float(value)
+        numeric = float(value)
     except (TypeError, ValueError):
         return None
+    return numeric if math.isfinite(numeric) else None
 
 
 def _as_int(value: object, default: int = 0) -> int:
@@ -232,6 +272,7 @@ def _summarize_rows(
         return {
             "model": model,
             "clean_cells": 0,
+            "composite_measured_cells": 0,
             "mean_total_score": None,
             "median_total_score": None,
             "min_total_score": None,
@@ -247,7 +288,8 @@ def _summarize_rows(
             "outcome_changed_rate": None,
             "zero_control_call_rate": None,
         }
-    scores = [_as_float(row.get("total_score")) for row in rows]
+    scores = [value for row in rows
+              if (value := _maybe_float(row.get("total_score"))) is not None]
     raw_totals = [_as_float(row.get("raw_total")) for row in rows]
     prevented = [_as_float(row.get("prevented_loss")) for row in rows]
     foresight = [_as_float(row.get("foresight_score")) for row in rows]
@@ -258,11 +300,12 @@ def _summarize_rows(
     total_controls = sum(control_calls)
     out: dict[str, Any] = {
         "clean_cells": len(rows),
-        "mean_total_score": _round(mean(scores)),
-        "median_total_score": _round(median(scores)),
-        "min_total_score": _round(min(scores)),
-        "max_total_score": _round(max(scores)),
-        "std_total_score": _round(pstdev(scores) if len(scores) > 1 else 0.0),
+        "composite_measured_cells": len(scores),
+        "mean_total_score": _round(mean(scores)) if scores else None,
+        "median_total_score": _round(median(scores)) if scores else None,
+        "min_total_score": _round(min(scores)) if scores else None,
+        "max_total_score": _round(max(scores)) if scores else None,
+        "std_total_score": _round(pstdev(scores) if len(scores) > 1 else 0.0) if scores else None,
         "mean_raw_total": _round(mean(raw_totals)),
         "mean_prevented_loss": _round(mean(prevented)),
         "mean_foresight_score": _round(mean(foresight)),
@@ -645,7 +688,7 @@ def _capability_macro_leaderboard(
         )
     rows.sort(
         key=lambda item: (
-            -(item["macro_mean_total_score"] or -1),
+            -(item["macro_mean_total_score"] if item["macro_mean_total_score"] is not None else -1),
             str(item["model"]),
         )
     )
@@ -674,8 +717,9 @@ def _hierarchical_domain_backend_macro_leaderboard(
                 continue
             domain = str(row.get("domain") or "")
             backend = str(row.get("backend_kind") or "")
-            if domain and backend:
-                cells[(domain, backend)].append(_as_float(row.get("total_score")))
+            value = _maybe_float(row.get("total_score"))
+            if domain and backend and value is not None:
+                cells[(domain, backend)].append(value)
         backend_scores = {
             (domain, backend): mean(scores)
             for (domain, backend), scores in cells.items()
@@ -713,7 +757,7 @@ def _hierarchical_domain_backend_macro_leaderboard(
     output.sort(
         key=lambda item: (
             not item["headline_eligible"],
-            -(item["macro_mean_total_score"] or -1),
+            -(item["macro_mean_total_score"] if item["macro_mean_total_score"] is not None else -1),
             str(item["model"]),
         )
     )
@@ -867,10 +911,9 @@ def _statistical_ranking(
     score_by_model_unit: dict[str, dict[tuple[str, int], float]] = {}
     for model, rows in per_model_rows.items():
         score_by_model_unit[model] = {
-            (str(row.get("scenario_id") or ""), _as_int(row.get("seed"))): _as_float(
-                row.get("total_score")
-            )
+            (str(row.get("scenario_id") or ""), _as_int(row.get("seed"))): value
             for row in rows
+            if (value := _maybe_float(row.get("total_score"))) is not None
         }
 
     model_rank_rows: list[dict[str, Any]] = []
@@ -941,6 +984,10 @@ def _statistical_ranking(
     current_group = 1
     group_anchor = model_rank_rows[0] if model_rank_rows else None
     for index, row in enumerate(model_rank_rows):
+        if row["n_clean_units"] == 0:
+            row["rank"] = None
+            row["rank_reason_code"] = "no_composite_measurements"
+            continue
         if index == 0:
             row["significance_group"] = current_group
             row["group_label"] = _group_label(current_group)
@@ -1024,6 +1071,8 @@ def _aggregate_base_cell_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
     out = dict(rows[-1])
     numeric_fields = (
         "total_score",
+        "primary_score",
+        "task_completion_raw",
         "raw_total",
         "prevented_loss",
         "foresight_score",
@@ -1034,8 +1083,12 @@ def _aggregate_base_cell_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         values = [
             value for row in rows if (value := _maybe_float(row.get(field))) is not None
         ]
-        if values:
+        if field in {"total_score", "primary_score", "task_completion_raw"} and len(values) != len(rows):
+            out[field] = None
+        elif values:
             out[field] = mean(values)
+    # Native costs cannot be averaged across distinct replay samples here.
+    out.pop("counterfactual", None)
     out["outcome_changed"] = any(_as_bool(row.get("outcome_changed")) for row in rows)
     out["_pass_unit_count"] = len(rows)
     out["_pass_unit_ids"] = sorted(_pass_id(row) or "" for row in rows)
@@ -1125,10 +1178,11 @@ def _build_pass_k_reliability(
         observed_pass_units += len(pass_unit_rows)
         for row in pass_unit_rows:
             row_pass_id = _pass_id(row)
-            if row_pass_id is not None:
+            value = _maybe_float(row.get("total_score"))
+            if row_pass_id is not None and value is not None:
                 score_by_model_pass_unit.setdefault(model, {})[
                     (scenario_id, seed, row_pass_id)
-                ] = _as_float(row.get("total_score"))
+                ] = value
         clean_by_key[key] = _aggregate_base_cell_rows(pass_unit_rows)
         by_model_cells.setdefault(model, []).append(
             {
@@ -1142,15 +1196,17 @@ def _build_pass_k_reliability(
         cells = by_model_cells.get(model, [])
         pass_counts = [len(cell["pass_unit_rows"]) for cell in cells]
         pass_scores = [
-            _as_float(row.get("total_score"))
+            value
             for cell in cells
             for row in cell["pass_unit_rows"]
+            if (value := _maybe_float(row.get("total_score"))) is not None
         ]
         cell_stddevs: list[float] = []
         flaky_cells = 0
         for cell in cells:
             scores = [
-                _as_float(row.get("total_score")) for row in cell["pass_unit_rows"]
+                value for row in cell["pass_unit_rows"]
+                if (value := _maybe_float(row.get("total_score"))) is not None
             ]
             if len(scores) >= 2:
                 cell_stddevs.append(pstdev(scores))
@@ -1161,6 +1217,9 @@ def _build_pass_k_reliability(
             "n_base_cells": len(cells),
             "n_replicated_base_cells": replicated_cells,
             "n_pass_units": sum(pass_counts),
+            "n_scored_pass_units": len(pass_scores),
+            "n_missing_composite_pass_units": sum(pass_counts) - len(pass_scores),
+            "n_scored_replicated_cells": len(cell_stddevs),
             "mean_passes_per_cell": _round(mean(pass_counts)) if pass_counts else None,
             "min_passes_per_cell": min(pass_counts) if pass_counts else 0,
             "max_passes_per_cell": max(pass_counts) if pass_counts else 0,
@@ -1174,10 +1233,10 @@ def _build_pass_k_reliability(
             else None,
             "mean_cell_score_stddev": _round(mean(cell_stddevs))
             if cell_stddevs
-            else 0.0,
-            "flaky_cell_rate": _round(flaky_cells / replicated_cells)
-            if replicated_cells
-            else 0.0,
+            else None,
+            "flaky_cell_rate": _round(flaky_cells / len(cell_stddevs))
+            if cell_stddevs
+            else None,
         }
 
     rng = random.Random(bootstrap_seed)
@@ -1260,6 +1319,182 @@ def _seeds_from_summary(rows: list[dict[str, Any]]) -> list[int]:
     return sorted({_as_int(row.get("seed")) for row in rows if row.get("seed") != ""})
 
 
+def _capability_measurement(dim: dict[str, Any], *, score_key: str = "calibrated_score") -> float | None:
+    value = dim.get(score_key)
+    score = None if isinstance(value, bool) else _maybe_float(value)
+    evidence = dim.get("evidence_ids")
+    if (dim.get("applicable") is True and score is not None and 0 <= score <= 100
+            and isinstance(evidence, list) and evidence
+            and all(isinstance(item, str) and item for item in evidence)):
+        return score
+    return None
+
+
+def _support_counts(states: list[tuple[bool | None, bool]]) -> dict[str, Any]:
+    applicable = sum(state is True for state, _ in states)
+    supported = sum(valid for _, valid in states)
+    non_applicable = sum(state is False for state, _ in states)
+    return {
+        "n_input": len(states), "n_applicable": applicable, "n_supported": supported,
+        "n_not_applicable": non_applicable,
+        "n_unknown_applicability": sum(state is None for state, _ in states),
+        "n_missing": len(states) - supported - non_applicable,
+        "support_coverage": supported / applicable if applicable else None,
+    }
+
+
+def _capability_diagnostics(rows: list[dict[str, Any]], models: list[str]) -> dict[str, Any]:
+    """Report support on shared clean primary pass units, never infer opportunity rates."""
+
+    from evaluation.scorer import HEADLINE_SCORE_GROUPS
+
+    names = [name for name in CANONICAL_DIMENSION_WEIGHTS if any(
+        name in group["dimensions"] for group in HEADLINE_SCORE_GROUPS.values()
+    )]
+    agency_names = ("outcome_influence", "initiative", "surprise_adaptation",
+                    "epistemic_control", "temporal_planning", "trade_off_quality")
+    indexed: dict[str, dict[tuple[str, int, str], list[dict[str, Any]]]] = {
+        model: defaultdict(list) for model in models
+    }
+    for row in rows:
+        model = _model_label(row)
+        if model in indexed:
+            unit = (str(row["scenario_id"]), _as_int(row["seed"]), _pass_id(row) or "single_pass")
+            indexed[model][unit].append(row)
+    common = set.intersection(*[
+        {unit for unit, items in indexed[model].items() if len(items) == 1}
+        for model in models
+    ]) if models else set()
+    units = sorted(common)
+    episodes = {model: [indexed[model][unit][0].get("_capability_episode") or {} for unit in units]
+                for model in models}
+    dimensions = {model: [] for model in models}
+    for model in models:
+        for episode in episodes[model]:
+            grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+            for dim in (episode.get("score") or {}).get("dimensions") or []:
+                if isinstance(dim, dict):
+                    grouped[str(dim.get("name"))].append(dim)
+            dimensions[model].append({name: items[0] for name, items in grouped.items() if len(items) == 1})
+    common_support = {
+        name: [index for index in range(len(units)) if all(
+            _capability_measurement(dimensions[model][index].get(name, {})) is not None
+            for model in models
+        )] for name in names
+    }
+    output = {}
+    for model in models:
+        samples = episodes[model]
+        dimension_report = {}
+        for name in names:
+            states = []
+            for dims in dimensions[model]:
+                dim = dims.get(name, {})
+                applicability = dim.get("applicable")
+                states.append((applicability if type(applicability) is bool else None,
+                               _capability_measurement(dim) is not None))
+            values = [_capability_measurement(dimensions[model][index][name]) for index in common_support[name]]
+            dimension_report[name] = {
+                **_support_counts(states), "n_common_supported": len(values),
+                "mean_score": mean(values) if values else None,
+            }
+        groups = {}
+        for group, contract in HEADLINE_SCORE_GROUPS.items():
+            states = []
+            member_counts: Counter[str] = Counter()
+            for index, episode in enumerate(samples):
+                if group == "task_completion":
+                    task = episode.get("task_completion") or {}
+                    applicable = task.get("applicable")
+                    supported = (applicable is True and type(task.get("completed")) is bool
+                                 and bool(task.get("evidence")))
+                    members = ["task_completion"] if supported else []
+                else:
+                    dims = [dimensions[model][index].get(name, {}) for name in contract["dimensions"]]
+                    flags = [dim.get("applicable") for dim in dims]
+                    applicable = True if any(value is True for value in flags) else (
+                        False if all(value is False for value in flags) else None
+                    )
+                    supported = applicable is True and all(
+                        dim.get("applicable") is False or _capability_measurement(dim) is not None for dim in dims
+                    )
+                    members = [name for name, dim in zip(contract["dimensions"], dims, strict=True)
+                               if _capability_measurement(dim) is not None]
+                states.append((applicable if type(applicable) is bool else None, supported))
+                member_counts.update(members)
+            groups[group] = {**_support_counts(states), "supported_member_counts": dict(member_counts)}
+        agency = {}
+        for name in agency_names:
+            count = 0
+            supported_episodes = 0
+            measured_profiles = 0
+            numerator = 0.0
+            for episode in samples:
+                profile = (episode.get("trajectory_summary") or {}).get("operational_agency_profile") or {}
+                if not all(profile.get(key) is True for key in (
+                    "runtime_binding_verified", "runtime_evidence_binding_verified", "masked_replay_binding_verified"
+                )):
+                    continue
+                dim = (profile.get("dimensions") or {}).get(name) or {}
+                score = _capability_measurement(dim, score_key="score")
+                support = dim.get("support_count")
+                if score is not None and type(support) is int and support > 0:
+                    count += support
+                    numerator += score * support
+                    supported_episodes += 1
+                    measured_profiles += 1
+                elif dim.get("applicable") is False and type(support) is int and support == 0:
+                    measured_profiles += 1
+            agency[name] = {
+                "n_supported_episodes": supported_episodes, "n_unavailable_episodes": len(samples) - measured_profiles,
+                "n_profile_measurements": measured_profiles,
+                "successful_support_count": count if measured_profiles else None,
+                "successful_chain_score_mean": numerator / count if count else None,
+                "opportunity_count": None, "success_rate": None,
+                "opportunity_reason": "per_dimension_opportunity_denominator_not_recorded",
+            }
+        process_values: dict[str, list[float]] = {name: [] for name in (
+            "tool_calls", "model_calls", "invalid_model_decisions", "provider_retries", "protocol_repairs",
+            "provider_total_tokens", "provider_response_latency_ms_sum",
+        )}
+        for episode in samples:
+            trajectory = episode.get("trajectory_summary") or {}
+            llm = trajectory.get("llm") or {}
+            values = {
+                "tool_calls": trajectory.get("n_tool_calls"), "model_calls": llm.get("llm_calls_ok"),
+                "invalid_model_decisions": (trajectory.get("action_accounting") or {}).get("n_invalid_model_decisions"),
+                "provider_retries": llm.get("retry_attempts_total"), "protocol_repairs": llm.get("protocol_repair_attempts"),
+            }
+            responses = llm.get("provider_response_records") or []
+            if responses and len(responses) == llm.get("provider_model_identity_request_count"):
+                tokens = [_maybe_float((((item.get("response") or {}).get("provider_metadata") or {}).get("usage") or {}).get("total_tokens")) for item in responses]
+                latency = [_maybe_float((item.get("response") or {}).get("latency_ms")) for item in responses]
+                values["provider_total_tokens"] = sum(tokens) if all(value is not None and value >= 0 for value in tokens) else None
+                values["provider_response_latency_ms_sum"] = sum(latency) if all(value is not None and value >= 0 for value in latency) else None
+            for metric, value in values.items():
+                numeric = None if isinstance(value, bool) else _maybe_float(value)
+                if numeric is not None and numeric >= 0:
+                    process_values[metric].append(numeric)
+        output[model] = {
+            "n_input": len(samples), "n_episode_metadata_available": sum(bool(row) for row in samples),
+            "dimensions": dimension_report, "groups": groups, "operational_agency": agency,
+            "process_resources": {name: {"n_measured": len(values), "n_missing": len(samples) - len(values),
+                "mean": mean(values) if values else None} for name, values in process_values.items()},
+        }
+    return {
+        "schema_version": "operate-capability-diagnostics/1.0",
+        "scope": "common_clean_measured_primary_pass_units",
+        "support_basis": "persisted_evidence_linked_fields; authoritative_artifacts_not_revalidated_by_this_report",
+        "score_aggregation": "diagnostic_flat_mean_on_dimension_specific_common_evidenced_support",
+        "n_common_primary_pass_units": len(units),
+        "common_pass_units": [{"scenario_id": case, "seed": seed, "pass_id": pid} for case, seed, pid in units],
+        "by_model": output,
+        "limitations": ["agency_successful_support_is_not_opportunity_coverage",
+                        "provider_latency_sum_is_not_episode_wall_time", "currency_cost_not_inferred",
+                        "backend_capability_buckets_are_not_cognitive_ability_scores"],
+    }
+
+
 def build_leaderboard_results_summary(
     *,
     release_dir: Path = DEFAULT_RELEASE,
@@ -1298,12 +1533,24 @@ def build_leaderboard_results_summary(
         raise ValueError("no model identity was supplied or observed in summary rows")
     if not configured_seeds:
         raise ValueError("no scenario seed was supplied or observed in summary rows")
-    expected_keys = {
-        (scenario_id, model, seed)
-        for scenario_id in core_by_id
-        for model in configured_models
-        for seed in configured_seeds
-    }
+    config_path = summary_csv.parent / "run_config.json"
+    run_config = _load_json(config_path) if config_path.exists() else {}
+    seed_mode = str(run_config.get("seed_mode") or "fixed") if seeds is None else "fixed"
+    if seed_mode == "scenario":
+        if any(row.get("seed") is None for row in core_by_id.values()):
+            raise ValueError("scenario seed mode requires a seed on every core row")
+        expected_keys = {
+            (scenario_id, model, int(row["seed"]))
+            for scenario_id, row in core_by_id.items()
+            for model in configured_models
+        }
+    else:
+        expected_keys = {
+            (scenario_id, model, seed)
+            for scenario_id in core_by_id
+            for model in configured_models
+            for seed in configured_seeds
+        }
 
     if episodes_jsonl is None:
         sibling = summary_csv.parent / "episodes.jsonl"
@@ -1311,6 +1558,11 @@ def build_leaderboard_results_summary(
     episode_cleanliness = _build_episode_cleanliness(episodes_jsonl)
     episode_score_views = _build_episode_score_views(episodes_jsonl)
     episode_pass_ids = _build_episode_pass_ids(episodes_jsonl)
+    episode_rows = _load_episodes_jsonl(episodes_jsonl) if episodes_jsonl else []
+    episodes_by_key: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(list)
+    for episode in episode_rows:
+        if (episode_key := _episode_key(episode)) is not None:
+            episodes_by_key[episode_key].append(episode)
     episode_pass_offsets: Counter[tuple[str, str, int]] = Counter()
 
     clean_rows_by_key: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(
@@ -1337,7 +1589,8 @@ def build_leaderboard_results_summary(
             row["backend_kind"], "unknown_backend_capability"
         )
         row["source_denominator_key"] = str(
-            (metadata.get("case_ledger") or {}).get("source_denominator_key") or ""
+            metadata.get("source_denominator_key")
+            or (metadata.get("case_ledger") or {}).get("source_denominator_key") or ""
         )
         row["independence_axis"] = str(
             (metadata.get("case_ledger") or {}).get("independence_axis") or ""
@@ -1358,6 +1611,30 @@ def build_leaderboard_results_summary(
             score_view_item = episode_score_views[key]
             row["_score_views"] = score_view_item["views"]
             row["_score_view_source"] = score_view_item["source"]
+        # CSV scores are persisted measurements, not recomputed with today's scorer.
+        # Use matching episode metadata only when the CSV lacks a primary column.
+        candidates = [episode for episode in episodes_by_key.get(key, [])
+                      if _pass_id(row) is None or _pass_id(episode) == _pass_id(row)]
+        if len(candidates) == 1:
+            episode = candidates[0]
+            row["counterfactual"] = episode.get("counterfactual")
+            row["_capability_episode"] = episode
+            # Preserve persisted CSV scores; attach native evidence and execution
+            # identity only from the unique matching episode.
+            for field in (
+                "task_completion", "ground_truth_summary", "score", "trajectory_summary",
+                "scenario_signature", "seed", "implementation_tree_sha256", "suite_manifest_sha256",
+                "interaction_mode", "evaluation_protocol", "evaluation_implementation_fingerprint",
+            ):
+                row[field] = episode.get(field)
+            ranking = episode.get("ranking") or {}
+            if "primary_score" not in row:
+                row["primary_score"] = ranking.get("primary_score")
+            if ranking.get("formal_score_eligible") is False:
+                row["primary_score"] = None
+            completion = episode.get("task_completion") or {}
+            if completion.get("applicable") is True and completion.get("evidence"):
+                row["task_completion_raw"] = float(completion.get("completed") is True)
         clean_rows_by_key[key].append(row)
 
     pass_k_reliability, clean_by_key, duplicate_items = _build_pass_k_reliability(
@@ -1384,7 +1661,7 @@ def build_leaderboard_results_summary(
     ]
     leaderboard.sort(
         key=lambda item: (
-            -(item["mean_total_score"] or -1),
+            -(item["mean_total_score"] if item["mean_total_score"] is not None else -1),
             str(item["model"]),
         )
     )
@@ -1445,9 +1722,10 @@ def build_leaderboard_results_summary(
 
     largest_gaps: list[dict[str, Any]] = []
     for scenario_id, rows in rows_by_scenario.items():
-        if len(rows) < 2:
+        measured_rows = [row for row in rows if _maybe_float(row.get("total_score")) is not None]
+        if len(measured_rows) < 2:
             continue
-        ordered = sorted(rows, key=lambda item: _as_float(item.get("total_score")))
+        ordered = sorted(measured_rows, key=lambda item: float(item["total_score"]))
         worst = ordered[0]
         best = ordered[-1]
         gap = _as_float(best.get("total_score")) - _as_float(worst.get("total_score"))
@@ -1474,12 +1752,13 @@ def build_leaderboard_results_summary(
                 "scenario_id": str(row.get("scenario_id") or ""),
                 "backend_kind": str(row.get("backend_kind") or ""),
                 "family": str(row.get("family") or ""),
-                "total_score": _round(_as_float(row.get("total_score"))),
+                "total_score": _round(_maybe_float(row.get("total_score"))),
             }
             for row in sorted(
-                per_model_rows[model],
+                [row for row in per_model_rows[model]
+                 if _maybe_float(row.get("total_score")) is not None],
                 key=lambda item: (
-                    _as_float(item.get("total_score")),
+                    float(item["total_score"]),
                     str(item.get("scenario_id") or ""),
                 ),
             )[:EXAMPLE_LIMIT]
@@ -1492,7 +1771,7 @@ def build_leaderboard_results_summary(
             "backend_kind": str(row.get("backend_kind") or ""),
             "family": str(row.get("family") or ""),
             "n_tool_calls": _as_int(row.get("n_tool_calls")),
-            "total_score": _round(_as_float(row.get("total_score"))),
+            "total_score": _round(_maybe_float(row.get("total_score"))),
         }
         for row in sorted(
             clean_rows,
@@ -1509,12 +1788,50 @@ def build_leaderboard_results_summary(
             "scenario_id": str(row.get("scenario_id") or ""),
             "backend_kind": str(row.get("backend_kind") or ""),
             "family": str(row.get("family") or ""),
-            "total_score": _round(_as_float(row.get("total_score"))),
+            "total_score": _round(_maybe_float(row.get("total_score"))),
         }
         for row in clean_rows
         if _as_int(row.get("n_control_calls")) == 0
     ][:EXAMPLE_LIMIT]
 
+    from evaluation.outcome_diagnostics import summarize_native_outcomes
+
+    primary_rows: list[dict[str, Any]] = []
+    primary_outcome_rows: list[dict[str, Any]] = []
+    missing_primary_keys = []
+    for key, row in clean_by_key.items():
+        value = _maybe_float(row.get("primary_score"))
+        completion = _maybe_float(row.get("task_completion_raw"))
+        if (value is None or not 0 <= value <= 100
+                or completion is None or not 0 <= completion <= 1
+                or not row.get("source_denominator_key")):
+            missing_primary_keys.append(key)
+            continue
+        primary_outcome_rows.extend(clean_rows_by_key[key])
+        primary_rows.append({
+            "model": _model_label(row),
+            "domain": row["domain"],
+            "backend_kind": row["backend_kind"],
+            "source_denominator_key": row["source_denominator_key"],
+            "discriminative_core_score": value,
+            "task_completion_raw": completion,
+        })
+    primary = _primary_leaderboard_payload(primary_rows)
+    scoring_versions = sorted({
+        str((episode.get("score") or {}).get("scoring_version"))
+        for episode in episode_rows if (episode.get("score") or {}).get("scoring_version")
+    })
+    for item in primary["leaderboard"]:
+        item["scoring_version"] = scoring_versions[0] if len(scoring_versions) == 1 else None
+    primary["measurement_scope"] = "diagnostic_persisted_primary_scores"
+    primary["input_scoring_versions"] = scoring_versions
+    primary_complete = not blockers and not missing_primary_keys and bool(primary_rows)
+    if missing_primary_keys:
+        blockers.append({
+            "code": "missing_primary_measurements",
+            "message": "Primary score, completion or source lineage is unavailable; no zero substitution.",
+            "count": len(missing_primary_keys),
+        })
     status = "ready" if not blockers else "not_ready"
     by_capability_bucket = _group_summary(
         clean_rows,
@@ -1598,8 +1915,22 @@ def build_leaderboard_results_summary(
         "release_id": str(manifest.get("release_id")),
         "scoring_version": str(manifest.get("scoring_version")),
         "status": status,
-        "release_ready": status == "ready",
-        "release_reentry_ready": status == "ready",
+        "release_ready": False,
+        "release_reentry_ready": False,
+        "leaderboard_eligible": False,
+        "eligibility_note": "Report-only aggregation does not certify formal artifacts or release readiness.",
+        "primary_leaderboard": primary["leaderboard"] if primary_complete else [],
+        "native_outcome_diagnostics": summarize_native_outcomes(primary_outcome_rows),
+        "capability_diagnostics": _capability_diagnostics(primary_outcome_rows, configured_models),
+        "native_outcome_scope": "same clean primary cells; native outcomes counted per pass unit",
+        "primary_coverage": {
+            "complete": primary_complete,
+            "expected_model_cells": len(expected_keys),
+            "measured_model_cells": len(primary_rows),
+            "missing_primary_cells": len(missing_primary_keys),
+            "missing_or_unclean_cells": len(missing_keys),
+        },
+        "diagnostic_partial_primary": primary if not primary_complete else None,
         "proceed_commands": [],
         "inputs": {
             "release_dir": str(release_dir),
@@ -1619,6 +1950,7 @@ def build_leaderboard_results_summary(
             "suite_id": core.get("suite_id"),
             "models": configured_models,
             "seeds": configured_seeds,
+            "seed_mode": seed_mode,
             "n_core_scenarios": len(core_by_id),
         },
         "coverage": {
@@ -1718,6 +2050,42 @@ def build_leaderboard_results_summary(
     }
 
 
+def _capability_markdown(panel: dict[str, Any]) -> list[str]:
+    def display(value: Any) -> str:
+        return "N/A" if value is None else str(_round(value))
+
+    lines = ["", "## Multidimensional evidence coverage", "",
+             f"Shared clean measured-primary pass units per model: {panel['n_common_primary_pass_units']}.",
+             "Dimension means use the same evidenced support across models for that dimension; they are diagnostic flat means, not a new ranking.",
+             "Missing includes unknown applicability. N/A is not zero. Persisted evidence links are reported; this table does not re-certify authoritative artifacts.", "",
+             "| model | dimension | common-support mean | common supported | supported/applicable | missing | not applicable |",
+             "|---|---|---:|---:|---:|---:|---:|"]
+    for model, item in panel["by_model"].items():
+        for name, metric in item["dimensions"].items():
+            lines.append(f"| {model} | {name} | {display(metric['mean_score'])} | {metric['n_common_supported']} | {metric['n_supported']}/{metric['n_applicable']} | {metric['n_missing']} | {metric['n_not_applicable']} |")
+    lines.extend(["", "### Five-group support coverage", "",
+                  "Supported means all applicable members are evidenced and no member has unknown applicability. These are support counts, not additional primary weights.", "",
+                  "| model | group | fully supported/applicable | support coverage | missing | not applicable |",
+                  "|---|---|---:|---:|---:|---:|"])
+    for model, item in panel["by_model"].items():
+        for name, metric in item["groups"].items():
+            lines.append(f"| {model} | {name} | {metric['n_supported']}/{metric['n_applicable']} | {display(metric['support_coverage'])} | {metric['n_missing']} | {metric['n_not_applicable']} |")
+    lines.extend(["", "### Operational-agency successful-chain diagnostics", "",
+                  "Successful support is not an opportunity denominator. Current profiles do not record per-dimension opportunity counts, so success rates are N/A; conditional scores are not capability rankings.", "",
+                  "| model | dimension | successful support | supported episodes | conditional score | opportunity denominator | success rate |",
+                  "|---|---|---:|---:|---:|---:|---:|"])
+    for model, item in panel["by_model"].items():
+        for name, metric in item["operational_agency"].items():
+            lines.append(f"| {model} | {name} | {display(metric['successful_support_count'])} | {metric['n_supported_episodes']}/{item['n_input']} | {display(metric['successful_chain_score_mean'])} | {display(metric['opportunity_count'])} | {display(metric['success_rate'])} |")
+    lines.extend(["", "### Process and resource diagnostics on the same shared cells", "",
+                  "Each metric reports its own measured/input count. Provider response latency sums are not episode wall time; currency cost is not inferred. Other composite/backend tables below may use a larger clean-cell denominator.", "",
+                  "| model | metric | mean | measured/input |", "|---|---|---:|---:|"])
+    for model, item in panel["by_model"].items():
+        for name, metric in item["process_resources"].items():
+            lines.append(f"| {model} | {name} | {display(metric['mean'])} | {metric['n_measured']}/{item['n_input']} |")
+    return lines
+
+
 def write_leaderboard_results_markdown(report: dict[str, Any], path: Path) -> None:
     lines = [
         f"# {report['release_id']} Leaderboard Results",
@@ -1739,27 +2107,68 @@ def write_leaderboard_results_markdown(report: dict[str, Any], path: Path) -> No
         ".venv/bin/python scripts/summarize_leaderboard_results.py "
         f"--release-dir {report['inputs']['release_dir']} "
         f"--summary-csv {report['inputs']['summary_csv']} "
-        "--output-json output/leaderboard_results.json "
-        "--output-markdown output/leaderboard_results.md",
+        f"--output-json {DEFAULT_OUTPUT_JSON.relative_to(REPO_ROOT)} "
+        f"--output-markdown {DEFAULT_OUTPUT_MARKDOWN.relative_to(REPO_ROOT)}",
         "```",
         "",
-        "## Leaderboard",
+        "## Primary leaderboard (diagnostic macro)",
         "",
-        "| rank | model | clean cells | mean | median | min | max | tools/cell | controls/cell | outcome changed |",
-        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "Source → backend → domain macro; formal eligibility is not certified by this report.",
+        "",
+        "| rank | model | primary macro | measured cells |",
+        "|---:|---|---:|---:|",
     ]
+    for rank, item in enumerate(report["primary_leaderboard"], 1):
+        lines.append(f"| {rank} | `{item['model']}` | {item['primary_leaderboard_score']:.4f} | {item['n_samples']} |")
+    if not report["primary_coverage"]["complete"]:
+        lines.append("Primary ranking withheld: incomplete measurements or result-integrity blockers. Partial macro values remain diagnostic JSON only.")
+    lines.extend([
+        "", "## Native outcome harm (same clean primary cells)", "",
+        "| model | sample harm rate | macro harm rate | macro signed gain | macro harm severity | measured/input pass units | ratio measured/input |",
+        "|---|---:|---:|---:|---:|---:|---:|",
+    ])
+    def measured(value: Any) -> str:
+        return "N/A" if value is None else str(value)
+
+    for model, item in report["native_outcome_diagnostics"].items():
+        lines.append(
+            f"| {model} | {measured(item['sample_harm_rate'])} | {measured(item['macro_harm_rate'])} | "
+            f"{measured(item['macro_wait_relative_change'])} | {measured(item['macro_harm_severity'])} | "
+            f"{item['n_measured']}/{item['n_input']} | {item['n_ratio_measured']}/{item['n_input']} |"
+        )
+    lines.extend([
+        "", "### Completed DynaSched quality", "",
+        "Native makespans remain per-task in JSON; the dimensionless gap compares a matched executed policy, not an optimum. Positive gap is worse. Missing references are N/A.", "",
+        "| model | completed evidenced schedules | unavailable schedules | matched reference/applicable | reference coverage | macro relative makespan gap |",
+        "|---|---:|---:|---:|---:|---:|",
+    ])
+    for model, item in report["native_outcome_diagnostics"].items():
+        lines.append(
+            f"| {model} | {item['n_schedule_quality_applicable']} | {item['n_schedule_quality_unavailable']} | "
+            f"{item['n_matched_reference']}/{item['n_schedule_quality_applicable']} | "
+            f"{measured(item['reference_coverage'])} | {measured(item['macro_relative_makespan_gap'])} |"
+        )
+    if report.get("capability_diagnostics"):
+        lines.extend(_capability_markdown(report["capability_diagnostics"]))
+    lines.extend([
+        "", "## Composite diagnostics (flat episode mean)", "",
+        "The following composite and capability tables are historical diagnostics, not primary rankings.",
+        "Missing composite measurements are excluded from means, intervals and comparisons; real zeros remain measured.", "",
+        "| rank | model | scored/clean cells | mean | median | min | max | tools/cell | controls/cell | outcome changed |",
+        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ])
     diagnostic_leaderboard = report["diagnostic_sample_weighted_leaderboard"]
     for rank, item in enumerate(diagnostic_leaderboard, start=1):
         lines.append(
             "| "
-            f"{rank} | `{item['model']}` | {item['clean_cells']} | "
+            f"{rank} | `{item['model']}` | {item['composite_measured_cells']}/{item['clean_cells']} | "
             f"{item['mean_total_score']} | {item['median_total_score']} | "
             f"{item['min_total_score']} | {item['max_total_score']} | "
             f"{item['mean_n_tool_calls']} | {item['mean_n_control_calls']} | "
             f"{item['outcome_changed_rate']} |"
         )
 
-    lines.extend(["", "## Statistical Ranking", ""])
+    lines.extend(["", "## Composite statistical diagnostics", ""])
     lines.extend(
         [
             "| group | rank | model | mean | 95% CI | reason |",
@@ -1779,7 +2188,7 @@ def write_leaderboard_results_markdown(report: dict[str, Any], path: Path) -> No
             f"`{item['rank_reason_code']}` |"
         )
 
-    lines.extend(["", "## Capability Macro Statistical Ranking", ""])
+    lines.extend(["", "## Composite capability macro statistical diagnostics", ""])
     lines.extend(
         [
             "| group | rank | model | macro mean | 95% CI | buckets | reason |",
@@ -1878,10 +2287,10 @@ def write_leaderboard_results_markdown(report: dict[str, Any], path: Path) -> No
             f"delta=`{item['total_score_delta']}`"
         )
 
-    lines.extend(["", "## Capability Macro Leaderboard", ""])
+    lines.extend(["", "## Composite capability macro diagnostics", ""])
     lines.extend(
         [
-            "| rank | model | macro mean | buckets | headline mean |",
+            "| rank | model | composite macro mean | buckets | composite flat mean |",
             "|---:|---|---:|---:|---:|",
         ]
     )

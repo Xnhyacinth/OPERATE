@@ -33,7 +33,7 @@ code lives at [Xnhyacinth/OPERATE](https://github.com/Xnhyacinth/OPERATE).
 
 The current catalog contains 769 Full scenarios across 502 physical sources
 and 141 Lite scenarios across 82 sources. Qualification scoring is `0.15.0`.
-Live evaluations use scoring `0.20.0` (`wait_relative_outcome_v1`). Live
+Live evaluations use scoring `0.21.0` (`wait_relative_outcome_v1`). Live
 realtime uses `native_dt_v1`; the default speed card is 37 Core rows whose
 native tick is at most 60s and whose plant wall is at most 30 minutes.
 

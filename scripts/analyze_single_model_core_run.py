@@ -26,7 +26,7 @@ DEFAULT_SUITE = (
 DEFAULT_EPISODES = (
     REPO_ROOT
     / "batch_results"
-    / "v0_52_apiyi_deepseek_flash_full_1pass"
+    / "v0_52_deepseek_flash_full_1pass"
     / "episodes.jsonl"
 )
 DEFAULT_OUTPUT = DEFAULT_SUITE.with_name("deepseek_single_model_calibration.json")

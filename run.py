@@ -37,7 +37,7 @@ sys.path.insert(0, str(REPO_ROOT))
 import yaml  # type: ignore[import]  # noqa: E402
 
 from baselines import LLMConfig  # noqa: E402
-from baselines.llm_agent import frozen_model_capabilities  # noqa: E402
+from baselines.llm_agent import frozen_model_capabilities, frozen_model_response_aliases  # noqa: E402
 
 # Import the public API plus helper names used by the batch and test runners.
 from runner.batch import _episode_file_logging  # noqa: E402, F401
@@ -129,6 +129,10 @@ def main() -> int:
         choices=["openai", "azure", "openai_compatible", "anthropic", "google"],
     )
     p.add_argument("--model", default="gpt-4o-mini")
+    p.add_argument("--accepted-response-model", action="append", default=None)
+    p.add_argument("--provider-retry-max-attempts", type=int, default=LLMConfig.provider_retry_max_attempts)
+    p.add_argument("--provider-retry-max-elapsed-s", type=float, default=LLMConfig.provider_retry_max_elapsed_s)
+    p.add_argument("--tool-choice-supported", action=argparse.BooleanOptionalAction, default=None)
     p.add_argument("--base-url", default=None)
     p.add_argument("--api-version", default=None, help="Azure API version")
     p.add_argument("--api-key-env", default="OPENAI_API_KEY")
@@ -241,6 +245,8 @@ def main() -> int:
             "does not match the scenario backend or native tool surface."
         ),
     )
+    p.add_argument("--context-ablation-mode", choices=["none", "matched_transcript_v1"], default="none")
+    p.add_argument("--response-delivery-delay-s", type=float, choices=[0.0, 1.0, 5.0], default=0.0)
     p.add_argument("--output", type=str, default=None)
     p.add_argument("--trajectory-dir", type=str, default=None)
     p.add_argument(
@@ -286,6 +292,10 @@ def main() -> int:
     )
     args = p.parse_args()
 
+    if args.context_ablation_mode != "none" and args.interaction_mode == "realtime_persistent":
+        p.error("--context-ablation-mode is a logical treatment only")
+    if args.response_delivery_delay_s and args.interaction_mode != "realtime_persistent":
+        p.error("--response-delivery-delay-s requires realtime_persistent")
     if args.interaction_mode == "realtime_persistent" and args.agent != "llm_agent":
         p.error("realtime_persistent currently requires --agent llm_agent")
     if args.interaction_mode == "realtime_persistent" and args.output:
@@ -377,7 +387,7 @@ def main() -> int:
         is_persistent = args.interaction_mode in {
             "logical_persistent",
             "realtime_persistent",
-        }
+        } or args.context_ablation_mode == "matched_transcript_v1"
         if args.provider_failure_policy is None:
             args.provider_failure_policy = (
                 "abort" if is_persistent else "compat_fallback"
@@ -423,6 +433,14 @@ def main() -> int:
         agent_kwargs["config"] = LLMConfig(
             provider=args.provider,
             model=args.model,
+            accepted_response_models=tuple(
+                args.accepted_response_model
+                if args.accepted_response_model is not None
+                else frozen_model_response_aliases(args.model)
+            ),
+            provider_retry_max_attempts=args.provider_retry_max_attempts,
+            provider_retry_max_elapsed_s=args.provider_retry_max_elapsed_s,
+            tool_choice_supported=args.tool_choice_supported,
             api_key_env=args.api_key_env,
             base_url=configured_base_url,
             api_version=args.api_version
@@ -464,6 +482,7 @@ def main() -> int:
                 else None
             ),
             prompt_mode=args.prompt_mode,
+            context_ablation_mode=args.context_ablation_mode,
             interaction_mode=(
                 "logical_persistent"
                 if args.interaction_mode == "realtime_persistent"
@@ -526,6 +545,7 @@ def main() -> int:
             agent_kwargs=agent_kwargs,
             seed_override=args.seed,
             tick_interval_s=tick_interval_s,
+            response_delivery_delay_s=args.response_delivery_delay_s,
             timeout_s=realtime_timeout_s,
             safety_supervisor=make_realtime_safety_supervisor(
                 args.realtime_safety_profile

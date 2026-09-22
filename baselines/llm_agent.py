@@ -65,11 +65,17 @@ LOGGER = logging.getLogger(__name__)
 _CONSUMES_EVIDENCE_KEY = "_consumes_evidence_ids"
 _DEPENDS_ON_CALLS_KEY = "_depends_on_call_ids"
 _OPENAI_SDK_MAX_RETRIES = 0
-_PROVIDER_TRANSIENT_MAX_RETRIES = 4
+_PROVIDER_TRANSIENT_MAX_RETRIES = 8
 _PROVIDER_TRANSIENT_BACKOFF_BASE_S = 5.0
 _PROVIDER_TRANSIENT_BACKOFF_MAX_S = 60.0
 _PROVIDER_TRANSIENT_RETRY_REASONS = frozenset(
-    {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
+    {
+        "provider_rate_limit",
+        "provider_server_error",
+        "provider_transport_error",
+        # the streaming gateway intermittent 400 "model serving" (see classify_provider_error)
+        "provider_serving_error",
+    }
 )
 
 
@@ -239,10 +245,16 @@ _EVENT_PROMPT_INTERNAL_KEYS = frozenset(
         "declared_perturbation",
         "hidden",
         "surprise",
+        # The canonicalized world-evolution record (``core/
+        # world_evolution_contract.py``) labels hidden events ``visibility:
+        # "hidden"``; an observation carrying it would announce which
+        # events the agent was not supposed to see.
+        "visibility",
     }
 )
 _EVENT_PROMPT_INTERNAL_KEY_PREFIXES = ("materiality_",)
-_EVENT_PROMPT_INTERNAL_KEY_SUFFIXES = ("_state_digest",)
+# Future ``visibility_*`` companions of the same label.
+_EVENT_PROMPT_INTERNAL_KEY_SUFFIXES = ("_state_digest", "_visibility")
 # Nesting depth explored when scrubbing an event-shaped mapping. Real payloads
 # (realtime ``payload``, canonicalized ``declared_event``) are one level deep,
 # but a projection is only as safe as its deepest wrapper: any event mapping
@@ -272,8 +284,85 @@ STATIC_MODEL_TOOL_CHOICE_SUPPORT: dict[str, bool] = {
     "dots-studio/dots-3-note-preview:free": True,
     # The OpenRouter route accepts native tools but rejects tool_choice.
     "thinkingmachines/inkling:free": False,
+    # DeepSeek v4 reasoning routes run in thinking mode, which the gateway
+    # rejects with 400 ``Thinking mode does not support this tool_choice`` for
+    # ``tool_choice=required``. The protocol-repair request unconditionally
+    # raises tool_choice to required, so without this the repair path fails
+    # closed and aborts the episode. Verified 2026-09-19: the same request
+    # succeeds with ``auto``/omitted and fails with ``required``.
+    "deepseek-ai/deepseek-v4.1-flash": False,
+    "deepseek-ai/deepseek-v4-flash-0731": False,
+    # Thinking-mode routes reject ``tool_choice=required``. Verified 2026-09-19
+    # against the the streaming gateway gateway: qwen3.8-max returns 400 "The tool_choice
+    # parameter does not support being set to required or object in thinking
+    # mode"; deepseek-v4-pro-0813 accepts the field but silently returns no
+    # tool call, which would otherwise read as a model declining to act rather
+    # than as a rejected request. Suppressing the field makes the protocol
+    # repair fall back to ``auto``; the repair prompt still instructs the model
+    # to emit exactly one call, and an unanswered repair is already handled.
+    "qwen/qwen3.8-max": False,
+    "deepseek-ai/deepseek-v4-pro-0813": False,
+    # Qwen3.6-27B accepts tool_choice=required with plain schemas, but the
+    # gateway's strict grammar compiler rejects uniqueItems under required
+    # mode (400 "Grammar error", verified 2026-09-20 with commit_to_plan's
+    # wake_if schema; auto mode accepts the same schema). Omitting the field
+    # keeps the repair path on auto.
+    "Qwen/Qwen3.6-27B": False,
     "hy3-ioa": True,
 }
+
+
+# Some gateways echo an internal/upstream name in the response ``model`` field
+# instead of the requested route id. The identity gate below still has to tell a
+# genuine substitution (a different model answering) from a gateway rename, so a
+# route may declare the extra spellings it accepts. Keyed by the *requested*
+# route id; absent means the id must match exactly, which is what every route
+# did before this existed.
+#
+# the streaming gateway rewrites streaming responses only: a non-streaming request echoes the
+# exact route id, a streaming one returns the upstream name. Verified 2026-09-19
+# against the live gateway.
+STATIC_MODEL_RESPONSE_ALIASES: dict[str, frozenset[str]] = {
+    "deepseek-ai/deepseek-v4.1-flash": frozenset(
+        {
+            "deepseek-flash",
+            "deepseek-v4.1-flash",
+            # The gateway also echoes the org/model spelling without the
+            # custom-ai prefix on some stream turns (verified 2026-09-21 in
+            # the E3 delay arms). Register every observed spelling.
+            "deepseek/deepseek-v4.1-flash",
+        }
+    ),
+    "deepseek-ai/deepseek-v4-flash-0731": frozenset({"deepseek-v4-flash-0731"}),
+    "zai-org/glm-5.3": frozenset({"glm-5.3"}),
+    # Verified 2026-09-20 against the the streaming gateway gateway: these routes rename the
+    # model on streaming responses but echo the exact route id on
+    # non-streaming requests. The last two spellings are not derivable from
+    # the requested id, so they must be declared rather than normalized.
+    "deepseek-ai/deepseek-v4-pro-0813": frozenset(
+        # The gateway rotates this route across backend pools and echoes the
+        # pool's own spelling: "-0813" and "-pro" verified 2026-09-20, and
+        # "-0817" started appearing 2026-09-21. All are the same served
+        # model; register every observed spelling.
+        {
+            "deepseek-v4-pro-0813",
+            "deepseek-v4-pro",
+            "deepseek-v4-pro-0817",
+        }
+    ),
+    "qwen/qwen3.8-max": frozenset({"qwen3.8-max"}),
+    # kimi-k3 renames differently per mode: non-stream echoes "FW-Kimi-K3",
+    # stream echoes "kimi-k3" (verified 2026-09-20). It also hard-rejects
+    # temperature 0.0 on streaming requests, so run it at temperature 1.0.
+    "moonshotai/kimi-k3": frozenset({"FW-Kimi-K3", "kimi-k3"}),
+    "qwen/qwen3.8-27b": frozenset({"Qwen/Qwen3.8-27B-FP8"}),
+}
+
+
+def frozen_model_response_aliases(model: str) -> frozenset[str]:
+    """Return the declared response spellings for a route (empty = exact only)."""
+
+    return STATIC_MODEL_RESPONSE_ALIASES.get(str(model).strip(), frozenset())
 
 
 def frozen_model_capabilities(model: str) -> tuple[int, int] | None:
@@ -695,6 +784,23 @@ def classify_provider_error(text: object) -> str:
             return "provider_transport_error"
     if _is_provider_tool_schema_error(raw):
         return "provider_tool_schema_error"
+    # The streaming gateway intermittently answers 400 "An error occurred in model serving"
+    # (or "[Invalid request parameters]") for byte-identical requests that
+    # succeed on retry — measured 2026-09-20: the same recorded envelope
+    # replayed 7/7 OK after an in-run 400. Treat it as transient so the
+    # bounded retry loop absorbs it instead of failing the episode closed.
+    if (
+        "an error occurred in model serving" in raw
+        or (
+            "invalid request parameters" in raw
+            and "model serving" in raw
+        )
+        # Gateway-side transient stream failure; observed 2026-09-21 as a 400
+        # "upstream stream error, please retry later" on a route whose next
+        # request succeeded. Retryable for the same bounded-retry reasons.
+        or "upstream stream error" in raw
+    ):
+        return "provider_serving_error"
     if any(marker in raw for marker in _TOOL_CALL_FAILURE_MARKERS):
         return "provider_tool_call_failure"
     if status is not None:
@@ -1303,13 +1409,14 @@ SCENARIO_BRIEFING_TEMPLATE = SCENARIO_BRIEFING_TEMPLATE_STRICT
 def prompt_contract_sha256(
     interaction_mode: str,
     prompt_mode: str,
+    context_ablation_mode: str = "none",
 ) -> str:
     """Bind the exact prompt templates selected by an agent treatment."""
     interaction = str(interaction_mode or "logical_persistent").lower()
     prompt = str(prompt_mode or "strict").lower()
     system_template = (
         PERSISTENT_SYSTEM_PROMPT + PERSISTENT_SESSION_ADDENDUM
-        if interaction == "logical_persistent"
+        if interaction == "logical_persistent" or context_ablation_mode == "matched_transcript_v1"
         else SYSTEM_PROMPT
     )
     briefing_template = (
@@ -1345,7 +1452,7 @@ class LLMConfig:
     extra_headers: dict[str, str] = field(default_factory=dict)
     timeout_s: float = 60.0
     provider_retry_max_attempts: int = _PROVIDER_TRANSIENT_MAX_RETRIES + 1
-    provider_retry_max_elapsed_s: float = 1800.0
+    provider_retry_max_elapsed_s: float = 7200.0
     max_consecutive_provider_failures: int = 5
     provider_failure_policy: str = "compat_fallback"  # compat_fallback | abort
     provider_rpm_limit: int = 0
@@ -1363,6 +1470,9 @@ class LLMConfig:
     # still replay this transcript on the wire. Historical stateless runs must
     # opt in explicitly so callers cannot silently select the old treatment.
     interaction_mode: str = "logical_persistent"
+    # Explicit E1 treatment: identical current event/memory and wake cadence;
+    # interaction_mode controls only provider-visible transcript retention.
+    context_ablation_mode: str = "none"  # none | matched_transcript_v1
     persistent_history_max_messages: int = 24
     persistent_context_max_chars: int = 16_000
     persistent_memory_max_items: int = 32
@@ -1370,6 +1480,10 @@ class LLMConfig:
     # a function call, including an explicit ``wait`` when no intervention is due.
     tool_choice: str = "auto"  # auto | required
     tool_choice_supported: bool | None = None
+    # Extra response ``model`` spellings this route accepts as itself, e.g. a
+    # gateway that echoes the upstream name when streaming. Empty means the
+    # requested id must match exactly. Declared, never inferred from an error.
+    accepted_response_models: tuple[str, ...] = ()
     reasoning_effort: str | None = None
     # Chat Completions dialect; auto retains the historical provider mapping.
     reasoning_effort_format: str = "auto"  # auto | native | openrouter
@@ -1426,6 +1540,8 @@ class LLMAgent(BaselineAgent):
                 f"Invalid interaction_mode: {interaction_mode!r}. Must be "
                 "'logical_stateless' or 'logical_persistent'."
             )
+        if self.config.context_ablation_mode not in {"none", "matched_transcript_v1"}:
+            raise ValueError("invalid context_ablation_mode")
         self._tick = 0
         self._consecutive_provider_failures = 0
         self._last_provider_outcome = {"status": "not_called"}
@@ -1556,7 +1672,7 @@ class LLMAgent(BaselineAgent):
                 "model_context_window_tokens and model_max_output_tokens must "
                 "be configured together"
             )
-        if interaction_mode == "logical_persistent" and context_window is None:
+        if self._uses_persistent_session() and context_window is None:
             raise ValueError(
                 "logical_persistent requires explicit treatment-bound model "
                 "context/output capabilities"
@@ -1624,7 +1740,7 @@ class LLMAgent(BaselineAgent):
             raise ValueError("protocol_repair_max_tokens must be positive")
         system_prompt_template = (
             PERSISTENT_SYSTEM_PROMPT
-            if interaction_mode == "logical_persistent"
+            if self._uses_persistent_session()
             else SYSTEM_PROMPT
         )
         self._system_prompt = (
@@ -1637,7 +1753,7 @@ class LLMAgent(BaselineAgent):
             + "\n"
             + briefing
         )
-        if interaction_mode == "logical_persistent":
+        if self._uses_persistent_session():
             self._system_prompt += PERSISTENT_SESSION_ADDENDUM
         self._session_messages = []
         self._session_ledger = []
@@ -2482,7 +2598,7 @@ class LLMAgent(BaselineAgent):
         if (
             self.config.provider_failure_policy == "abort"
             and response_model not in (None, "")
-            and str(response_model) != self.config.model
+            and not self._response_model_is_accepted(response_model)
         ):
             raise ProviderModelIdentityError(
                 "provider model identity mismatch: "
@@ -3054,6 +3170,7 @@ class LLMAgent(BaselineAgent):
         return (
             str(self.config.interaction_mode or "logical_persistent").lower()
             == "logical_persistent"
+            or self.config.context_ablation_mode == "matched_transcript_v1"
         )
 
     def _ensure_persistent_session(self) -> None:
@@ -3242,6 +3359,13 @@ class LLMAgent(BaselineAgent):
 
     def _append_persistent_message(self, message: dict[str, Any]) -> None:
         self._ensure_persistent_session()
+        if (
+            self.config.context_ablation_mode == "matched_transcript_v1"
+            and self.config.interaction_mode == "logical_stateless"
+            and message.get("role") == "user"
+        ):
+            # The authoritative ledger remains append-only in both arms.
+            self._session_messages = self._session_messages[:1]
         self._session_messages.append(deepcopy(message))
         self._session_ledger.append(deepcopy(message))
         self._compact_persistent_context()
@@ -3913,6 +4037,9 @@ class LLMAgent(BaselineAgent):
                 key: body.get(key) for key in context_keys if key in body
             }
             event_context["realtime_event"] = realtime_event
+        if self.config.context_ablation_mode == "matched_transcript_v1":
+            # Event typing must not remove current decision state in an E1 arm.
+            event_context = deepcopy(body)
         if "allowed_tool_names" not in body:
             event_context.pop("allowed_tool_names", None)
         memory_before = deepcopy(self._structured_memory)
@@ -4653,9 +4780,7 @@ class LLMAgent(BaselineAgent):
             int(max_tokens) if max_tokens is not None else self.config.max_tokens
         )
         effective_wire_stream = self._effective_wire_stream()
-        effective_temperature = (
-            0.0 if request_kind == "protocol_repair" else self.config.temperature
-        )
+        effective_temperature = self.config.temperature
         preflight_error: RequestBudgetPreflightError | None = None
         quota_error: ProviderQuotaExhaustedError | None = None
         limiter_state_error: ProviderLimiterStateError | None = None
@@ -4767,6 +4892,7 @@ class LLMAgent(BaselineAgent):
                 or os.getenv(self.config.responses_base_url_env)
             ),
             "interaction_mode": self.config.interaction_mode,
+            "context_ablation_mode": self.config.context_ablation_mode,
             "request_kind": request_kind,
             "request_reason": request_reason,
             "messages": deepcopy(messages),
@@ -4867,6 +4993,22 @@ class LLMAgent(BaselineAgent):
             raise recovery_error
         return sequence
 
+    def _response_model_is_accepted(self, observed: Any) -> bool:
+        """True when a response ``model`` names this route or a declared alias.
+
+        A declared alias is the route telling us which upstream spellings are
+        still this same model; anything else stays a mismatch, so the gate keeps
+        catching a genuine substitution.
+        """
+        text = str(observed or "").strip()
+        if not text:
+            return True
+        if text == str(self.config.model).strip():
+            return True
+        return text in {
+            str(alias).strip() for alias in self.config.accepted_response_models
+        }
+
     def _resolved_tool_choice_capability(self) -> tuple[bool | None, str]:
         if self.config.tool_choice_supported is not None:
             return bool(self.config.tool_choice_supported), "treatment_snapshot"
@@ -4922,6 +5064,25 @@ class LLMAgent(BaselineAgent):
         max_output = self.config.model_max_output_tokens
         if context_window is None or max_output is None:
             return messages, None
+
+        history_messages_dropped = 0
+        if self.config.context_ablation_mode == "matched_transcript_v1":
+            # Retained transcript may use spare capacity but must not force
+            # asymmetric current-state compaction. The ledger keeps its bytes.
+            wire = self._provider_wire_projection(
+                messages=messages, tools=tools, max_tokens=max_tokens,
+                effective_tool_choice=effective_tool_choice,
+                effective_wire_stream=effective_wire_stream,
+                effective_temperature=effective_temperature,
+            )
+            wire_bytes = len(json.dumps(
+                wire, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), default=str,
+            ).encode("utf-8"))
+            if wire_bytes + int(max_tokens) > int(context_window):
+                history_messages_dropped = max(0, len(messages) - 2)
+                messages = [messages[0], messages[-1]]
+                self._session_messages = deepcopy(messages)
 
         before_messages = len(messages)
         before_chars = sum(
@@ -5013,7 +5174,8 @@ class LLMAgent(BaselineAgent):
             "model_context_window_tokens": int(context_window),
             "model_max_output_tokens": int(max_output),
             "request_output_token_reserve": int(max_tokens),
-            "messages_before": before_messages,
+            "messages_before": before_messages + history_messages_dropped,
+            "matched_history_messages_dropped": history_messages_dropped,
             "messages_after": len(projected),
             "content_chars_before": before_chars,
             "content_chars_after": after_chars,
@@ -5317,8 +5479,9 @@ class LLMAgent(BaselineAgent):
                 continue
             if record.get("closure") == "open":
                 observed = list(record.get("observed_models") or [])
-                requested = str(record.get("requested_model") or "")
-                if any(str(model) != requested for model in observed):
+                if any(
+                    not self._response_model_is_accepted(model) for model in observed
+                ):
                     closure = "mismatch"
                 elif request_failed:
                     closure = "request_failed"
@@ -5705,9 +5868,10 @@ class LLMAgent(BaselineAgent):
         control_receipts = observation.get("__control_receipts__") or []
         control_calls = observation.get("__control_calls__") or []
         realtime_event = observation.get("__realtime_event__")
-        persistent = self._uses_persistent_session()
-        result_limit = None if persistent else 4
-        payload_limit = None if persistent else 400
+        # Current feedback must not depend on transcript retention. The shared
+        # provider-budget projection below decides whether payloads must shrink.
+        result_limit = None
+        payload_limit = None
         payload = {
             "tick": observation.get("tick"),
             "horizon": observation.get("horizon"),
@@ -5726,19 +5890,19 @@ class LLMAgent(BaselineAgent):
                 last_results,
                 max_items=result_limit,
                 max_payload_chars=payload_limit,
-                include_cost_units=persistent,
+                include_cost_units=True,
             ),
             "within_tick_tool_results": _prompt_safe_tool_results(
                 within_tick_results,
                 max_items=result_limit,
                 max_payload_chars=payload_limit,
-                include_cost_units=persistent,
+                include_cost_units=True,
             ),
             "control_receipts": _prompt_safe_tool_results(
                 control_receipts,
                 max_items=max(1, self._max_tools),
                 max_payload_chars=payload_limit,
-                include_cost_units=persistent,
+                include_cost_units=True,
             ),
             "control_calls": deepcopy(
                 list(control_calls)[: max(1, self._max_tools)]
@@ -6220,7 +6384,12 @@ class LLMAgent(BaselineAgent):
         kwargs: dict[str, Any] = {
             "model": self.config.model,
             "messages": messages,
-            "temperature": 0.0,
+            # Use the treatment temperature, not a hardcoded 0.0: some routes
+            # (moonshotai/kimi-k3 via the streaming gateway) intermittently reject
+            # temperature 0.0 with 400 "only 1 is allowed for this model",
+            # which aborted otherwise-sound repair requests. The repair still
+            # asks for one deterministic tool call via the prompt.
+            "temperature": self.config.temperature,
             "max_tokens": self.config.protocol_repair_max_tokens,
             "timeout": self._effective_provider_timeout_s(),
             "tools": self._compiled_wire_tools(tools),

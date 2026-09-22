@@ -47,6 +47,7 @@ from core import (
     arm_dilemmas,
     safe_dataclass_to_dict,
 )
+from core.common_tools import public_moral_option
 from core.evidence import control_summary_from_evidence
 from core.world_evolution_contract import (
     canonicalize_runtime_events,
@@ -887,7 +888,7 @@ class TrafficEnvironment(POMDPEnvironment):
                     "dilemma_id": d.dilemma_id,
                     "description": d.description,
                     "options": [
-                        {"option_id": o.option_id, "label": o.label, "fatal": o.fatal}
+                        public_moral_option(o)
                         for o in d.options
                     ],
                     "deadline_tick": d.trigger_tick + d.resolution_deadline_ticks,

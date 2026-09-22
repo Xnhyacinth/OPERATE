@@ -42,10 +42,15 @@ from baselines.llm_agent import (  # noqa: E402
     TOKEN_COUNT_METHOD_UTF8_BYTES,
     TOKEN_COUNT_VERSION_V1,
     frozen_model_capabilities,
+    frozen_model_response_aliases,
     frozen_model_tool_choice_support,
     parse_tencent_quota_reset,
     prompt_contract_sha256,
     public_provider_url,
+)
+from runner.worker_deadline import (  # noqa: E402
+    DEFAULT_EPISODE_TIMEOUT_S,
+    DEFAULT_POSTPROCESSING_TIMEOUT_S,
 )
 from core.event_protocol import EVENT_DECISION_CONTRACT_VERSION  # noqa: E402
 from core.implementation_identity import implementation_identity  # noqa: E402
@@ -847,11 +852,13 @@ def _llm_config_to_dict(cfg: LLMConfig) -> dict[str, Any]:
         # routing both broke without surface markers.
         "prompt_mode": cfg.prompt_mode,
         "interaction_mode": cfg.interaction_mode,
+        "context_ablation_mode": cfg.context_ablation_mode,
         "persistent_history_max_messages": cfg.persistent_history_max_messages,
         "persistent_context_max_chars": cfg.persistent_context_max_chars,
         "persistent_memory_max_items": cfg.persistent_memory_max_items,
         "tool_choice": cfg.tool_choice,
         "tool_choice_supported": cfg.tool_choice_supported,
+        "accepted_response_models": list(cfg.accepted_response_models),
         "reasoning_effort": cfg.reasoning_effort,
         "reasoning_effort_format": cfg.reasoning_effort_format,
         "thinking_type": cfg.thinking_type,
@@ -909,6 +916,7 @@ def _llm_config_from_dict(d: dict[str, Any]) -> LLMConfig:
         ),
         prompt_mode=str(d.get("prompt_mode", "strict")),
         interaction_mode=str(d.get("interaction_mode", "logical_stateless")),
+        context_ablation_mode=str(d.get("context_ablation_mode", "none")),
         persistent_history_max_messages=int(
             d.get("persistent_history_max_messages", 24)
         ),
@@ -919,6 +927,10 @@ def _llm_config_from_dict(d: dict[str, Any]) -> LLMConfig:
             bool(d["tool_choice_supported"])
             if d.get("tool_choice_supported") is not None
             else None
+        ),
+        accepted_response_models=tuple(
+            str(alias)
+            for alias in (d.get("accepted_response_models") or [])
         ),
         reasoning_effort=(
             str(d["reasoning_effort"])
@@ -1149,6 +1161,9 @@ def _write_quota_sentinel(job: dict[str, Any], row: dict[str, Any]) -> Path | No
 def _apply_llm_job_metadata(job: dict[str, Any], r: dict[str, Any]) -> dict[str, Any]:
     model = job["model"]
     r["model"] = model
+    for field in ("episode_timeout_s", "postprocessing_timeout_s"):
+        if field in job:
+            r[field] = job[field]
     if job.get("implementation_policy") is not None:
         r["implementation_policy"] = job["implementation_policy"]
     r["scenario_slug"] = job["scenario_slug"]
@@ -1168,6 +1183,9 @@ def _apply_llm_job_metadata(job: dict[str, Any], r: dict[str, Any]) -> dict[str,
     r["agent_profile_sha256"] = job.get("agent_profile_sha256")
     r["interaction_mode"] = str(
         (job.get("llm_config") or {}).get("interaction_mode", "logical_stateless")
+    )
+    r["context_ablation_mode"] = str(
+        (job.get("llm_config") or {}).get("context_ablation_mode", "none")
     )
     r["suite_scenario_signature"] = job.get(
         "suite_scenario_signature", job.get("scenario_signature")
@@ -1327,13 +1345,20 @@ def _agent_treatment_identity(cfg: LLMConfig) -> dict[str, Any]:
         "prompt_contract_sha256": prompt_contract_sha256(
             cfg.interaction_mode,
             cfg.prompt_mode,
+            cfg.context_ablation_mode,
         ),
         "interaction_mode": cfg.interaction_mode,
+        "context_ablation_mode": cfg.context_ablation_mode,
         "persistent_history_max_messages": cfg.persistent_history_max_messages,
         "persistent_context_max_chars": cfg.persistent_context_max_chars,
         "persistent_memory_max_items": cfg.persistent_memory_max_items,
         "tool_choice": cfg.tool_choice,
         "tool_choice_supported": cfg.tool_choice_supported,
+        **(
+            {"accepted_response_models": list(cfg.accepted_response_models)}
+            if cfg.accepted_response_models
+            else {}
+        ),
         "reasoning_effort": cfg.reasoning_effort,
         **({"reasoning_effort_format": cfg.reasoning_effort_format}
            if cfg.reasoning_effort_format != "auto" else {}),
@@ -1366,7 +1391,11 @@ def _batch_llm_config(
     interaction_mode = (
         getattr(args, "interaction_mode", "logical_stateless") or "logical_stateless"
     )
-    persistent = interaction_mode == "logical_persistent"
+    context_ablation_mode = getattr(args, "context_ablation_mode", "none")
+    persistent = (
+        interaction_mode == "logical_persistent"
+        or context_ablation_mode == "matched_transcript_v1"
+    )
     configured_max_tokens = getattr(args, "max_tokens", None)
     max_tokens = int(
         configured_max_tokens
@@ -1419,6 +1448,7 @@ def _batch_llm_config(
         ),
         prompt_mode=getattr(args, "prompt_mode", "strict") or "strict",
         interaction_mode=interaction_mode,
+        context_ablation_mode=context_ablation_mode,
         persistent_history_max_messages=int(
             persistent_history_max_messages
             if persistent_history_max_messages is not None
@@ -1440,6 +1470,9 @@ def _batch_llm_config(
         # that require an executable action.
         tool_choice="auto",
         tool_choice_supported=frozen_model_tool_choice_support(model),
+        accepted_response_models=tuple(
+            sorted(frozen_model_response_aliases(model))
+        ),
         reasoning_effort=getattr(args, "reasoning_effort", None),
         reasoning_effort_format=getattr(args, "reasoning_effort_format", "auto"),
         thinking_type=getattr(args, "thinking_type", None),
@@ -1626,14 +1659,16 @@ def _run_semantics_fingerprint(
     interaction_mode: str = "logical_stateless",
     *,
     episode_checkpoint: bool = False,
+    context_ablation_mode: str = "none",
 ) -> str:
+    ablation = "" if context_ablation_mode == "none" else f":context-{context_ablation_mode}"
     recovery = ":recovery-logical_episode_checkpoint_v1" if episode_checkpoint else ""
     output_budget = "" if max_tokens is None else f":max-tokens-{int(max_tokens)}"
     return (
         f"{EVALUATION_IMPLEMENTATION_FINGERPRINT}:"
         f"prompt-{str(prompt_mode or 'strict').lower()}"
         f":interaction-{str(interaction_mode or 'logical_stateless').lower()}"
-        f"{output_budget}{recovery}"
+        f"{output_budget}{recovery}{ablation}"
     )
 
 
@@ -1818,6 +1853,7 @@ def _run_config_treatment_compatibility_reasons(
         "tool_choice_supported_by_model",
         "token_count_method",
         "token_count_version",
+        "context_ablation_mode",
         "persistent_history_max_messages",
         "persistent_context_max_chars",
         "persistent_memory_max_items",
@@ -1849,6 +1885,8 @@ def _run_config_treatment_compatibility_reasons(
         "save_trajectories",
         "resume_policy",
         "episode_checkpoint",
+        "episode_timeout_s",
+        "postprocessing_timeout_s",
         "job_order",
         "native_runtime_binding",
         "agent_profile_schema_version",
@@ -1858,7 +1896,9 @@ def _run_config_treatment_compatibility_reasons(
         *(meta_field for meta_field, _ in _FORMAL_RUNTIME_BINDING_FIELDS),
     )
     if existing.get("implementation_policy") == requested.get("implementation_policy") == "provenance":
-        immutable_fields = tuple(field for field in immutable_fields if field != "implementation_tree_sha256")
+        immutable_fields = tuple(field for field in immutable_fields if field not in {
+            "implementation_tree_sha256", "episode_timeout_s", "postprocessing_timeout_s",
+        })
     if any(
         existing.get(field) != requested.get(field)
         for field in immutable_fields
@@ -2294,12 +2334,17 @@ def _native_runtime_binding(
 ) -> dict[str, Any]:
     """Resolve native runtime prerequisites before any provider request."""
 
-    requires_real_sumo = any(
-        str(scenario_bodies[slug].get("backend_kind") or "").strip().lower() == "sumo"
+    kinds = {
+        str(scenario_bodies[slug].get("backend_kind") or "").strip().lower()
         for slug in scenarios
-    )
+    }
+    requires_real_sumo = "sumo" in kinds
+    requires_real_sumo_ego = "sumo_ego" in kinds
     traffic_real_enabled = requires_real_sumo and (
         os.environ.get("OPERATE_TRAFFIC_BACKEND_REAL") == "1"
+    )
+    autonomous_driving_real_enabled = requires_real_sumo_ego and (
+        os.environ.get("OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL") == "1"
     )
     forced_transport = (
         str(os.environ.get("OPERATE_TRAFFIC_FORCE_TRANSPORT") or "").strip()
@@ -2307,15 +2352,21 @@ def _native_runtime_binding(
         else ""
     )
     resolved_transport = (
-        probe_sumo_transport() if requires_real_sumo and traffic_real_enabled else None
+        probe_sumo_transport()
+        if traffic_real_enabled or autonomous_driving_real_enabled
+        else None
     )
     blockers: list[str] = []
     if requires_real_sumo and not traffic_real_enabled:
         blockers.append("real_sumo_gate_missing")
     elif requires_real_sumo and resolved_transport is None:
         blockers.append("sumo_transport_unavailable")
+    if requires_real_sumo_ego and not autonomous_driving_real_enabled:
+        blockers.append("real_autonomous_driving_sumo_gate_missing")
+    elif requires_real_sumo_ego and resolved_transport is None:
+        blockers.append("autonomous_driving_sumo_transport_unavailable")
     if (
-        requires_real_sumo
+        (requires_real_sumo or requires_real_sumo_ego)
         and scheduler_mode == "global"
         and int(max_workers) > 1
         and resolved_transport == "libsumo"
@@ -2324,7 +2375,9 @@ def _native_runtime_binding(
     return {
         "ok": not blockers,
         "requires_real_sumo": requires_real_sumo,
+        "requires_real_autonomous_driving_sumo": requires_real_sumo_ego,
         "traffic_real_enabled": traffic_real_enabled,
+        "autonomous_driving_real_enabled": autonomous_driving_real_enabled,
         "forced_transport": forced_transport or None,
         "resolved_transport": resolved_transport,
         "blockers": blockers,
@@ -2824,6 +2877,8 @@ def _validate_protocol21_formal_run(
 ) -> list[str]:
     """Return stable fail-closed reasons for a formal Protocol-2.1 run."""
     reasons: list[str] = []
+    if config.get("context_ablation_mode", "none") != "none":
+        reasons.append("formal_context_ablation_is_supplementary_only")
     if (
         config.get("scenario_slice") not in PROTOCOL21_FORMAL_SLICES
         and config.get("formal_manifest_bound") is not True
@@ -3648,6 +3703,35 @@ def _formal_row_eligibility(
     remains a model capability signal and is scored as a failed tool call.
     """
     reasons: list[str] = []
+    postprocessing = row.get("postprocessing_recovery")
+    if postprocessing is not None:
+        tree = row.get("implementation_tree_sha256")
+        if (not isinstance(postprocessing, dict) or postprocessing.get("diagnostic_only")
+                or postprocessing.get("same_contract_recovery") is not True
+                or postprocessing.get("legacy_context_reconstructed")
+                or not tree
+                or not isinstance(postprocessing.get("source_identity"), dict)
+                or not isinstance(postprocessing["source_identity"].get("implementation"), dict)
+                or not isinstance(postprocessing.get("recompute_identity"), dict)
+                or ((postprocessing.get("source_identity") or {}).get("implementation") or {}).get("implementation_tree_sha256") != tree
+                or (postprocessing.get("recompute_identity") or {}).get("implementation_tree_sha256") != tree):
+            reasons.append("postprocessing_recovery_diagnostic_only")
+        elif verify_artifact_bytes:
+            try:
+                from evaluation.scoring_snapshot import decode_json
+
+                binding = row["postprocessing_recovery_artifact"]
+                raw = resolve_batch_path(binding["path"], batch_root=batch_root).read_bytes()
+                repaired = decode_json(json.loads(raw))
+                if (hashlib.sha256(raw).hexdigest() != binding["sha256"]
+                        or len(raw) != binding["byte_count"]
+                        or repaired.get("same_contract_recovery") is not True
+                        or repaired.get("source_identity") != postprocessing["source_identity"]
+                        or repaired.get("recompute_identity") != postprocessing["recompute_identity"]
+                        or repaired["result"].get("score") != row.get("score")):
+                    reasons.append("postprocessing_recovery_artifact_mismatch")
+            except (OSError, ValueError, KeyError, TypeError):
+                reasons.append("postprocessing_recovery_artifact_invalid")
     recovery = row.get("recovery_audit")
     checkpoint = row.get("checkpoint_progress") or (row.get("trajectory_summary") or {}).get("checkpoint_progress")
     if recovery is not None or (checkpoint or {}).get("replayed_boundaries", 0):
@@ -3714,6 +3798,13 @@ def _formal_row_eligibility(
         if row.get("agent_treatment_sha256"):
             requested_model = str(row.get("model") or "")
             provider_models = llm.get("provider_models")
+            # A gateway may echo an upstream spelling of the same route; the
+            # row's own declared alias set is authoritative for that model, and
+            # an undeclared name is still a substitution.
+            accepted_models = {
+                requested_model,
+                *frozen_model_response_aliases(requested_model),
+            }
             if (
                 not requested_model
                 or not isinstance(provider_models, list)
@@ -3721,7 +3812,7 @@ def _formal_row_eligibility(
                 or any(model in (None, "") for model in provider_models)
             ):
                 reasons.append("provider_model_identity_missing")
-            elif any(str(model) != requested_model for model in provider_models):
+            elif any(str(model) not in accepted_models for model in provider_models):
                 reasons.append("provider_model_identity_mismatch")
             identity_records = llm.get("provider_model_identity_records")
             if not isinstance(identity_records, list) or not identity_records:
@@ -3764,7 +3855,8 @@ def _formal_row_eligibility(
                         if not observed_models:
                             reasons.append("provider_model_identity_missing")
                         elif any(
-                            str(model) != requested_model for model in observed_models
+                            str(model) not in accepted_models
+                            for model in observed_models
                         ):
                             reasons.append("provider_model_identity_mismatch")
                     elif closure == "missing":
@@ -3981,6 +4073,8 @@ def _retryable_infrastructure_row(row: dict[str, Any]) -> bool:
     if row.get("status") == "ok":
         return False
     if row.get("status") == "in_flight" or _row_is_quota_exhausted(row):
+        return True
+    if row.get("error_type") == "WorkerDeadlineError":
         return True
     if row.get("termination_category") in {"harness_error", "model_failure", "provider_configuration_error"}:
         return False
@@ -4266,6 +4360,23 @@ def _filter_pending_jobs(
     return pending
 
 
+def _resume_skip_counts(before, pending, rows, policy):
+    pending_ids = {id(job) for job in pending}
+    terminal = {_terminal_attempt_key(row): row for row in rows
+                if row.get("status") in {"ok", "error"}}
+    counts = Counter()
+    for job in before:
+        if id(job) in pending_ids:
+            continue
+        if job.get("artifact_needs_repair"):
+            counts["repair"] += 1
+        elif policy == "clean":
+            counts["ok"] += 1
+        else:
+            counts[terminal.get(_terminal_attempt_key(job), {}).get("status", "repair")] += 1
+    return counts
+
+
 def _invocation_summary(
     scope_jobs: list[dict[str, Any]], dispatched_jobs: list[dict[str, Any]],
     rows: list[dict[str, Any]], *, pending_before: int, resume_policy: str,
@@ -4344,10 +4455,150 @@ def _invocation_summary(
     }
 
 
+def _has_pending_postprocessing(job: dict[str, Any]) -> bool:
+    """Quota parking applies to new provider calls, not saved scoring work."""
+    if not job.get("resume_postprocessing") or not job.get("trajectory_dir"):
+        return False
+    directory = Path(job["trajectory_dir"])
+    if any(directory.glob("*.completed_runtime.json")):
+        return True
+    prior = job.get("prior_attempt_for_archive") or {}
+    if prior.get("completed_runtime_artifact") or (prior.get("trajectory_summary") or {}).get("completed_runtime_artifact"):
+        return True
+    return any('"completed_runtime_artifact"' in path.read_text(encoding="utf-8")
+               for path in directory.glob("*.summary.json"))
+
+
+def _recover_pending_postprocessing(job, cfg, start_tree, checkpoint_identity):
+    """Prefer a hash-bound completed runtime over another paid interaction run."""
+    if not job.get("resume_postprocessing") or not job.get("trajectory_dir"):
+        return None
+    directory = Path(job["trajectory_dir"]).resolve()
+    snapshots = list(directory.glob("*.completed_runtime.json"))
+    bindings = []
+    for path in directory.glob("*.summary.json"):
+        summary = json.loads(path.read_text(encoding="utf-8"))
+        binding = (summary.get("trajectory_summary") or {}).get("completed_runtime_artifact")
+        if binding is not None:
+            bindings.append(binding)
+    prior = job.get("prior_attempt_for_archive") or {}
+    for holder in (prior, prior.get("trajectory_summary") or {}):
+        if holder.get("completed_runtime_artifact") is not None:
+            bindings.append(holder["completed_runtime_artifact"])
+    if not snapshots and not bindings:
+        return None
+    if not bindings:
+        raise ValueError("completed runtime exists without an independent hash binding")
+    from evaluation.scoring_snapshot import decode_json
+    from runner.episode import _public_agent_config
+    from runner.postprocessing import recover_completed_episode
+
+    root = Path(job["batch_output_dir"])
+    paths = {resolve_batch_path(binding["path"], batch_root=root) for binding in bindings}
+    digests = {binding["sha256"] for binding in bindings}
+    if len(paths) != 1 or len(digests) != 1:
+        raise ValueError("completed runtime bindings are ambiguous")
+    source = paths.pop()
+    digest = digests.pop()
+    if not source.is_relative_to(directory) or set(snapshots) != {source}:
+        raise ValueError("completed runtime binding escapes or differs from episode snapshots")
+    raw = source.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != digest:
+        raise ValueError("completed runtime hash mismatch")
+    if any(binding.get("byte_count", len(raw)) != len(raw) for binding in bindings):
+        raise ValueError("completed runtime byte count mismatch")
+    payload = decode_json(json.loads(raw)["payload"])
+    expected_settings = {
+        "masking_policy": "wait_only", "per_action": True, "per_action_cap": None,
+        "per_action_groups": True, "per_action_group_cap": None,
+    }
+    if _canonical_json_sha256(payload.get("counterfactual_settings")) != _canonical_json_sha256(expected_settings):
+        raise ValueError("completed runtime counterfactual settings mismatch")
+    context = payload.get("postprocessing_context")
+    if context is not None and context.get("within_tick_interaction") is not True:
+        raise ValueError("completed runtime within-tick interaction mismatch")
+    identity = payload["identity"]
+    if (identity.get("scenario_signature") != job["scenario_signature"]
+            or identity.get("seed") != int(job["seed"])
+            or identity.get("agent_name") != "llm_agent"
+            or _canonical_json_sha256(identity.get("agent_config")) != _canonical_json_sha256(
+                _public_agent_config({"config": cfg}))
+            or identity.get("checkpoint_identity") != checkpoint_identity):
+        raise ValueError("completed runtime agent/scenario/checkpoint identity mismatch")
+    source_tree = (identity.get("implementation") or {}).get("implementation_tree_sha256")
+    if not source_tree:
+        raise ValueError("completed runtime implementation identity is missing")
+    cross_tree = source_tree != start_tree
+    if cross_tree and (job.get("implementation_policy") != "provenance"
+                       or job.get("formal_run") or job.get("episode_checkpoint")):
+        raise ValueError("completed runtime implementation mismatch requires separate diagnostic recovery")
+    output = directory / f"postprocessing-recovery-{uuid.uuid4().hex}.json"
+    repaired = recover_completed_episode(source, digest, expected_identity=identity, output=output)
+    row = repaired["result"]
+    row["status"] = "ok"
+    row["postprocessing_recovery"] = {
+        "source_identity": repaired["source_identity"],
+        "recompute_identity": repaired["recompute_identity"],
+        "source_snapshot_sha256": digest,
+        "formal_completion_claimed": False,
+        "diagnostic_only": cross_tree or repaired.get("same_contract_recovery") is not True,
+        "same_contract_recovery": repaired.get("same_contract_recovery") is True,
+        "cross_implementation": cross_tree,
+        "legacy_context_reconstructed": repaired["legacy_context_reconstructed"],
+    }
+    row["postprocessing_recovery_artifact"] = {
+        "path": str(output), "sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+        "schema_version": repaired["schema_version"], "byte_count": output.stat().st_size,
+    }
+    row["provider_request_accounting_scope"] = "retained_completed_runtime"
+    return row
+
+
+def _run_llm_episode_job_with_deadline(job: dict[str, Any]) -> dict[str, Any]:
+    """Supervise native work without terminating the scheduling pool itself."""
+    from runner.worker_deadline import (
+        WorkerDeadlineError,
+        WorkerProcessError,
+        run_with_deadline,
+    )
+
+    if "episode_timeout_s" not in job:
+        return _run_llm_episode_job(job)
+    attempt_job = {**job, "execution_attempt_id": uuid.uuid4().hex}
+    try:
+        return run_with_deadline(
+            _run_llm_episode_job,
+            attempt_job,
+            episode_timeout_s=job["episode_timeout_s"],
+            postprocessing_timeout_s=job["postprocessing_timeout_s"],
+        )
+    except WorkerProcessError as exc:
+        row = {
+            "status": "error",
+            "error": str(exc),
+            "error_type": type(exc).__name__,
+            "termination_category": "harness_error",
+            "needs_repair": True,
+            "execution_started": True,
+            "execution_attempt_id": attempt_job["execution_attempt_id"],
+            "invocation_started_at_utc": job.get("invocation_started_at_utc"),
+            "implementation_tree_sha256": job.get("implementation_tree_sha256"),
+        }
+        if isinstance(exc, WorkerDeadlineError):
+            row.update(
+                {
+                    "timeout_stage": exc.phase,
+                    "timeout_budget_s": exc.budget_s,
+                    "reason_code": "worker_wall_clock_timeout",
+                }
+            )
+        return _apply_llm_job_metadata(job, row)
+
+
 def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     """Process-pool worker: one episode with optional trajectory + log file."""
     sentinel = _active_quota_sentinel(job)
-    if sentinel is not None:
+    if sentinel is not None and not _has_pending_postprocessing(job):
         return _quota_parked_result(job, reset_at=sentinel.get("reset_at"))
 
     slug = job["scenario_slug"]
@@ -4395,10 +4646,8 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
             "error": "implementation_tree_changed_before_episode",
         }
     else:
-        if job.get("trajectory_dir"):
-            _quarantine_retry_trajectory(job)
         if job.get("batch_output_dir"):
-            execution_attempt_id = uuid.uuid4().hex
+            execution_attempt_id = job.get("execution_attempt_id") or uuid.uuid4().hex
             _append_jsonl_atomic(Path(job["batch_output_dir"]) / "worker_starts.jsonl", {
                 "schema_version": "worker_execution_start_v1",
                 "execution_attempt_id": execution_attempt_id,
@@ -4410,7 +4659,20 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
                     "run_semantics_fingerprint", "suite_manifest_sha256", "suite_eligibility_sha256",
                 )},
             })
-        r = _run_one_safe((slug, "llm_agent", seed, kwargs, run_options))
+        try:
+            r = _recover_pending_postprocessing(
+                job, cfg, start_tree, run_options.get("checkpoint_identity"),
+            )
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            r = {
+                "status": "error", "error": f"completed runtime recovery rejected: {type(exc).__name__}",
+                "error_type": "CompletedRuntimeRecoveryError", "termination_category": "harness_error",
+                "needs_repair": True, "error_stage": "postprocessing_recovery",
+            }
+        if r is None:
+            if job.get("trajectory_dir"):
+                _quarantine_retry_trajectory(job)
+            r = _run_one_safe((slug, "llm_agent", seed, kwargs, run_options))
     r["execution_started"] = start_tree == expected_tree
     if execution_attempt_id is not None:
         r["execution_attempt_id"] = execution_attempt_id
@@ -4428,7 +4690,7 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
         r["needs_repair"] = True
     r = _apply_llm_job_metadata(job, r)
     r["temperature"] = float(job.get("temperature", cfg.temperature))
-    if job.get("episode_checkpoint") and r["execution_started"]:
+    if job.get("episode_checkpoint") and r["execution_started"] and not r.get("postprocessing_recovery"):
         from runner.recovery_audit import build_recovery_audit
 
         root = Path(job["batch_output_dir"]).resolve()
@@ -4469,8 +4731,10 @@ def _portabilize_formal_trajectory_json_sidecars(job: dict[str, Any]) -> None:
         raise ValueError("formal trajectory directory escapes batch root") from exc
     for path in sorted(trajectory_dir.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
-        if payload.get("schema_version") == "episode_scoring_snapshot_v1":
-            # Snapshot bytes are immutable scorer inputs; only outer locators move.
+        if payload.get("schema_version") in {
+            "episode_scoring_snapshot_v1", "offline_completed_episode_recovery_v1",
+        }:
+            # Snapshot/recovery bytes are immutable; only outer locators move.
             continue
         portable = canonicalize_repo_owned_paths(payload, repo_root=batch_root)
         _atomic_write_text(
@@ -4581,7 +4845,7 @@ def _run_llm_model_lane(lane: dict[str, Any]) -> dict[str, Any]:
     n_completed = 0
     parked_reset_at: str | None = None
     for job in jobs:
-        if parked_reset_at is not None or _active_quota_sentinel(job):
+        if (parked_reset_at is not None or _active_quota_sentinel(job)) and not _has_pending_postprocessing(job):
             if parked_reset_at is None:
                 sentinel = _active_quota_sentinel(job) or {}
                 parked_reset_at = sentinel.get("reset_at")
@@ -4594,7 +4858,7 @@ def _run_llm_model_lane(lane: dict[str, Any]) -> dict[str, Any]:
             _quarantine_log_file(job["episode_log_path"], tag="stale")
         if episodes_path:
             _append_jsonl_atomic(episodes_path, _in_flight_placeholder_row(job))
-        row = _run_llm_episode_job(job)
+        row = _run_llm_episode_job_with_deadline(job)
         if _row_is_quota_exhausted(row):
             parked_reset_at = row.get("quota_reset_at") or _quota_reset_text(
                 row.get("error")
@@ -4628,7 +4892,7 @@ def _run_global_jobs(
                 job = jobs[job_offset]
                 job_offset += 1
                 model = str(job["model"])
-                if model in parked_models:
+                if model in parked_models and not _has_pending_postprocessing(job):
                     row = _quota_parked_result(job, reset_at=parked_models[model])
                     ep_f.write(json.dumps(row, ensure_ascii=False) + "\n")
                     ep_f.flush()
@@ -4645,7 +4909,7 @@ def _run_global_jobs(
                     + "\n"
                 )
                 ep_f.flush()
-                pending[pool.submit(_run_llm_episode_job, job)] = job
+                pending[pool.submit(_run_llm_episode_job_with_deadline, job)] = job
 
         def record_completed(future: Any) -> None:
             nonlocal completed
@@ -5143,6 +5407,7 @@ def _intersection_leaderboard(
     per_model: dict[str, list[float]] = {m: [] for m in configured_models}
     per_fatal: dict[str, list[bool]] = {m: [] for m in configured_models}
     seen_pass_units: set[tuple[str, str, int, str]] = set()
+    measured_pairs: dict[tuple[str, int], list[tuple[str, float, bool]]] = defaultdict(list)
     for r in results:
         if r.get("status") != "ok":
             continue
@@ -5162,11 +5427,24 @@ def _intersection_leaderboard(
             if pass_unit in seen_pass_units:
                 continue
             seen_pass_units.add(pass_unit)
-        per_model[m].append(_ranking_primary_for_analysis(r))
-        per_fatal[m].append(
-            bool((r.get("ground_truth_summary") or {}).get("chose_fatal_option", False))
-        )
-    rows = build_leaderboard(per_model, fatal_flags=per_fatal)
+        value = _ranking_primary_for_analysis(r)
+        if value is None:
+            continue
+        measured_pairs[(slug, int(seed))].append((
+            m, value,
+            bool((r.get("ground_truth_summary") or {}).get("chose_fatal_option", False)),
+        ))
+    for measurements in measured_pairs.values():
+        counts = Counter(model for model, _, _ in measurements)
+        if any(counts[model] != pass_k for model in configured_models):
+            continue
+        for model, value, fatal in measurements:
+            per_model[model].append(value)
+            per_fatal[model].append(fatal)
+    rows = build_leaderboard(
+        {model: values for model, values in per_model.items() if values},
+        fatal_flags=per_fatal,
+    )
     return [row.to_dict() for row in rows]
 
 
@@ -5423,6 +5701,7 @@ def _write_analysis(
     state: dict[str, Any] | None = None,
     pass_k_success: dict[str, Any] | None = None,
     autonomy_diagnostics: dict[str, dict[str, dict[str, float]]] | None = None,
+    primary_payload: dict[str, Any] | None = None,
 ) -> None:
     """Emit ANALYSIS.md + per-model stats JSON from episode rows."""
     ok = [r for r in results if r.get("status") == "ok"]
@@ -5455,9 +5734,12 @@ def _write_analysis(
         autonomy_diagnostics = autonomy_diagnostics_from_rows(results)
     for r in clean_ok:
         model = str(r.get("model") or r.get("agent_name", "")).replace("llm_agent/", "")
-        by_model[model].append(_ranking_primary_for_analysis(r))
+        value = _ranking_primary_for_analysis(r)
+        if value is None:
+            continue
+        by_model[model].append(value)
         fam = str(r.get("family", ""))
-        by_model_family[model][fam].append(_ranking_primary_for_analysis(r))
+        by_model_family[model][fam].append(value)
     for r in ok:
         model = str(r.get("model") or r.get("agent_name", "")).replace("llm_agent/", "")
         traj = r.get("trajectory_summary") or {}
@@ -5477,12 +5759,18 @@ def _write_analysis(
         st["llm_ok"] += float(llm.get("llm_calls_ok", 0) or 0)
         st["llm_fail"] += float(llm.get("llm_calls_failed", 0) or 0)
 
+    from evaluation.outcome_diagnostics import summarize_native_outcomes
+
+    native_outcomes = summarize_native_outcomes([
+        r for r in clean_ok if _ranking_primary_for_analysis(r) is not None
+    ])
     lines = [
         "# OPERATE LLM Eval Analysis",
         "",
         f"- Output directory: `{out_dir}`",
         f"- Episodes OK: {len(ok)} / {len(results)}",
-        f"- Clean OK used for score means: {len(clean_ok)}",
+        f"- Clean OK used for score means: {sum(map(len, by_model.values()))}",
+        f"- Clean OK without primary measurement: {len(clean_ok) - sum(map(len, by_model.values()))}",
         f"- Dirty OK excluded from score means: {len(dirty_ok)}",
         f"- Execution errors: {execution_counts['n_episodes_error']}",
         f"- Provider quota unavailable: {execution_counts['n_episodes_quota_unavailable']} (not task failures)",
@@ -5505,10 +5793,22 @@ def _write_analysis(
         )
         for reason in state.get("reasons") or []:
             lines.append(f"  - {reason}")
+    if primary_payload is not None:
+        lines.extend(["", "## Primary leaderboard (source/backend/domain macro)", ""])
+        if primary_payload.get("leaderboard_eligible") is True:
+            lines.extend(["| model | primary macro | n |", "|---|---:|---:|"])
+            for item in primary_payload.get("primary_leaderboard") or []:
+                lines.append(
+                    f"| {item['model']} | {item['primary_leaderboard_score']:.2f} | {item['n_samples']} |"
+                )
+        else:
+            lines.append("Formal primary leaderboard unavailable: batch eligibility is not satisfied.")
     lines.extend(
         [
             "",
             "## Mean ranking.primary_score by model",
+            "",
+            "Diagnostic flat episode means; not the source/backend/domain macro leaderboard.",
             "",
             "| model | mean | n |",
             "|-------|------|---|",
@@ -5518,6 +5818,16 @@ def _write_analysis(
         mean = sum(scores) / len(scores)
         lines.append(f"| {model} | {mean:.2f} | {len(scores)} |")
 
+    lines.extend([
+        "", "## Native outcome harm (same clean measured-primary rows)", "",
+        "| model | sample harm rate | macro harm rate | measured/input |",
+        "|---|---:|---:|---:|",
+    ])
+    for model, item in native_outcomes.items():
+        lines.append(
+            f"| {model} | {item['sample_harm_rate']} | {item['macro_harm_rate']} | "
+            f"{item['n_measured']}/{item['n_input']} |"
+        )
     lines.extend(["", "## Mean score by model × family", ""])
     for model in sorted(by_model_family):
         lines.append(f"### {model}")
@@ -5687,6 +5997,9 @@ def _write_analysis(
         },
         "n_ok": len(ok),
         "n_clean_ok": len(clean_ok),
+        "n_missing_primary": len(clean_ok) - sum(map(len, by_model.values())),
+        "score_aggregation": "diagnostic_flat_episode_primary_mean",
+        "native_outcome_diagnostics": native_outcomes,
         "n_dirty_ok": len(dirty_ok),
         "tool_stats": dict(tool_stats),
         "autonomy_diagnostics": autonomy_diagnostics,
@@ -5914,21 +6227,24 @@ def _is_discriminative(row: dict[str, Any]) -> bool:
     return True
 
 
-def _ranking_primary_for_analysis(row: dict[str, Any]) -> float:
-    """Quote wait-relative ranking; fall back only when ranking was not bound."""
-
+def _ranking_primary_for_analysis(row: dict[str, Any]) -> float | None:
+    """Read an available primary measurement; never substitute the composite."""
     ranking = row.get("ranking")
     if isinstance(ranking, dict) and "primary_score" in ranking:
-        try:
-            return float(ranking["primary_score"])
-        except (TypeError, ValueError):
-            pass
-    score = row.get("score") or {}
-    if score.get("dimensions"):
+        if ranking.get("formal_score_eligible") is False:
+            return None
+        value = ranking["primary_score"]
+    elif (row.get("score") or {}).get("dimensions"):
         value = _score_for_leaderboard_view(row, "discriminative_core")
-        if value is not None:
-            return float(value)
-    return float(score.get("total_score", 0.0) or 0.0)
+    else:
+        return None
+    if isinstance(value, bool):
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if math.isfinite(numeric) and 0.0 <= numeric <= 100.0 else None
 
 
 def _score_for_leaderboard_view(row: dict[str, Any], view_name: str) -> float | None:
@@ -6610,6 +6926,7 @@ def _formal_leaderboard_eligibility(
         "temperature": meta.get("temperature"),
         "prompt_mode": meta.get("prompt_mode"),
         "interaction_mode": meta.get("interaction_mode"),
+        "context_ablation_mode": meta.get("context_ablation_mode", "none"),
         "seed_mode": meta.get("seed_mode"),
         "scheduler_mode": meta.get("scheduler_mode"),
         "save_trajectories": meta.get("save_trajectories"),
@@ -6783,9 +7100,9 @@ def _plot_score_by_model(rows: list[dict[str, Any]], path: Path) -> None:
     ok = [r for r in rows if r.get("status") == "ok"]
     grouped: dict[str, list[float]] = defaultdict(list)
     for r in ok:
-        grouped[str(r.get("model") or r.get("agent_name", "?"))].append(
-            _ranking_primary_for_analysis(r)
-        )
+        value = _ranking_primary_for_analysis(r)
+        if value is not None:
+            grouped[str(r.get("model") or r.get("agent_name", "?"))].append(value)
     items = sorted(
         ((m, sum(v) / len(v), len(v)) for m, v in grouped.items()),
         key=lambda x: -x[1],
@@ -6849,12 +7166,15 @@ def _plot_score_by_family_model(rows: list[dict[str, Any]], path: Path) -> None:
     families = sorted({str(r.get("family") or "unknown") for r in ok})
     scores: dict[tuple[str, str], list[float]] = defaultdict(list)
     for r in ok:
+        value = _ranking_primary_for_analysis(r)
+        if value is None:
+            continue
         scores[
             (
                 str(r.get("family") or "unknown"),
                 str(r.get("model") or r.get("agent_name", "?")),
             )
-        ].append(_ranking_primary_for_analysis(r))
+        ].append(value)
     means = {k: sum(v) / len(v) for k, v in scores.items()}
     vals = list(means.values()) or [0.0]
     min_v, max_v = min(vals), max(vals)
@@ -6936,11 +7256,14 @@ def _plot_tool_calls_vs_score(rows: list[dict[str, Any]], path: Path) -> None:
     left, right, top, bottom = 100, 40, 80, 90
     plot_w = width - left - right
     plot_h = height - top - bottom
-    xs = [
-        float((r.get("trajectory_summary") or {}).get("n_tool_calls", 0) or 0)
-        for r in ok
+    measured = [
+        (r, value) for r in ok
+        if (value := _ranking_primary_for_analysis(r)) is not None
     ]
-    ys = [_ranking_primary_for_analysis(r) for r in ok]
+    ok = [r for r, _ in measured]
+    xs = [float((r.get("trajectory_summary") or {}).get("n_tool_calls", 0) or 0)
+          for r in ok]
+    ys = [value for _, value in measured]
     max_x = max(xs, default=1.0)
     min_y = min(ys, default=0.0)
     max_y = max(ys, default=1.0)
@@ -6981,9 +7304,8 @@ def _plot_tool_calls_vs_score(rows: list[dict[str, Any]], path: Path) -> None:
         body.append(
             f'<text x="{lx + 12}" y="{legend_y + 4}" class="small">{_svg_escape(model)}</text>'
         )
-    for r in ok:
+    for r, y_val in measured:
         x_val = float((r.get("trajectory_summary") or {}).get("n_tool_calls", 0) or 0)
-        y_val = _ranking_primary_for_analysis(r)
         model = str(r.get("model") or r.get("agent_name", "?"))
         x = left + (0 if max_x <= 0 else plot_w * x_val / max_x)
         y = (
@@ -7288,6 +7610,7 @@ def _finalize_outputs(
         state=state,
         pass_k_success=pass_k_success,
         autonomy_diagnostics=autonomy_diagnostics,
+        primary_payload=leaderboard_payload,
     )
     analysis_report = analyze_output_dir(out_dir, rows=results)
     (out_dir / "analysis_deep.json").write_text(
@@ -7556,6 +7879,7 @@ def _build_jobs(
                                 cfg.prompt_mode,
                                 cfg.max_tokens,
                                 cfg.interaction_mode,
+                                context_ablation_mode=cfg.context_ablation_mode,
                                 episode_checkpoint=bool(getattr(args, "episode_checkpoint", False)),
                             )
                             + f":agent-{agent_treatment_sha256}"
@@ -7596,6 +7920,9 @@ def _build_jobs(
                     job["batch_output_dir"] = str(out_dir)
                     job["formal_run"] = bool(getattr(args, "formal_run", False))
                     job["episode_checkpoint"] = bool(getattr(args, "episode_checkpoint", False))
+                    job["resume_postprocessing"] = bool(getattr(args, "resume", False))
+                    job["episode_timeout_s"] = getattr(args, "episode_timeout_s", DEFAULT_EPISODE_TIMEOUT_S)
+                    job["postprocessing_timeout_s"] = getattr(args, "postprocessing_timeout_s", DEFAULT_POSTPROCESSING_TIMEOUT_S)
                     if args.save_trajectories:
                         job["trajectory_dir"] = str(
                             _fit_fs_component(
@@ -7752,6 +8079,14 @@ def _run_batch_main() -> int:
         help="Structured persistent-memory item bound (default: 64).",
     )
     p.add_argument("--provider-timeout-s", type=float, default=None)
+    p.add_argument(
+        "--episode-timeout-s", type=float, default=DEFAULT_EPISODE_TIMEOUT_S,
+        help="Kill isolated episode and native subprocesses after this wall-clock budget (default: 6h).",
+    )
+    p.add_argument(
+        "--postprocessing-timeout-s", type=float, default=DEFAULT_POSTPROCESSING_TIMEOUT_S,
+        help="Wall-clock budget for scoring and all counterfactual replays (default: 3h); expiry fails the attempt.",
+    )
     p.add_argument("--provider-retry-max-attempts", type=int, default=5)
     p.add_argument("--provider-retry-max-elapsed-s", type=float, default=1800.0)
     p.add_argument(
@@ -7802,6 +8137,10 @@ def _run_batch_main() -> int:
             "eligible batch runs MUST use 'strict' (Hard Red Line #6); "
             "'debug' triggers a warning below."
         ),
+    )
+    p.add_argument(
+        "--context-ablation-mode", choices=["none", "matched_transcript_v1"],
+        default="none", help="Explicit matched E1 transcript-retention treatment.",
     )
     p.add_argument(
         "--interaction-mode",
@@ -7958,7 +8297,10 @@ def _run_batch_main() -> int:
             "--formal-run for evaluation",
             file=sys.stderr,
         )
-    persistent_treatment = args.interaction_mode == "logical_persistent"
+    persistent_treatment = (
+        args.interaction_mode == "logical_persistent"
+        or args.context_ablation_mode == "matched_transcript_v1"
+    )
     if args.temperature is None:
         args.temperature = 0.0 if persistent_treatment else 1.0
     if args.max_tokens is None:
@@ -8000,8 +8342,10 @@ def _run_batch_main() -> int:
             or args.provider_retry_max_elapsed_s <= 0):
         print("[FATAL] provider retry budgets must be finite and positive", file=sys.stderr)
         return 1
-    if args.provider_timeout_s <= 0:
-        print("[FATAL] --provider-timeout-s must be positive", file=sys.stderr)
+    if any(not math.isfinite(value) or value <= 0 for value in (
+        args.provider_timeout_s, args.episode_timeout_s, args.postprocessing_timeout_s,
+    )):
+        print("[FATAL] provider and worker timeouts must be finite and positive", file=sys.stderr)
         return 1
     if any(
         limit is not None and limit <= 0
@@ -8153,6 +8497,7 @@ def _run_batch_main() -> int:
                 "temperature": args.temperature,
                 "prompt_mode": args.prompt_mode,
                 "interaction_mode": args.interaction_mode,
+                "context_ablation_mode": args.context_ablation_mode,
                 "seed_mode": args.seed_mode,
                 "scheduler_mode": args.scheduler_mode,
                 "save_trajectories": args.save_trajectories,
@@ -8637,28 +8982,44 @@ def _run_batch_main() -> int:
             ).tool_choice_supported
             for model in models
         },
+        "accepted_response_models_by_model": {
+            model: list(
+                _batch_llm_config(
+                    model=model,
+                    temperature=args.temperature,
+                    args=args,
+                    base_url=base_url,
+                    api_version=api_version,
+                    responses_base_url=responses_base_url,
+                ).accepted_response_models
+            )
+            for model in models
+        },
         "token_count_method": TOKEN_COUNT_METHOD_UTF8_BYTES,
         "token_count_version": TOKEN_COUNT_VERSION_V1,
         "prompt_mode": args.prompt_mode,
         "interaction_mode": args.interaction_mode,
+        "context_ablation_mode": args.context_ablation_mode,
         "wakeup_policy": deepcopy(CANONICAL_WAKEUP_POLICY),
         "persistent_history_max_messages": (
             args.persistent_history_max_messages
             if args.persistent_history_max_messages is not None
-            else (32 if args.interaction_mode == "logical_persistent" else 24)
+            else (32 if persistent_treatment else 24)
         ),
         "persistent_context_max_chars": (
             args.persistent_context_max_chars
             if args.persistent_context_max_chars is not None
-            else (48_000 if args.interaction_mode == "logical_persistent" else 16_000)
+            else (48_000 if persistent_treatment else 16_000)
         ),
         "persistent_memory_max_items": (
             args.persistent_memory_max_items
             if args.persistent_memory_max_items is not None
-            else (64 if args.interaction_mode == "logical_persistent" else 32)
+            else (64 if persistent_treatment else 32)
         ),
         "harness": "direct_api",
         "episode_checkpoint": args.episode_checkpoint,
+        "episode_timeout_s": args.episode_timeout_s,
+        "postprocessing_timeout_s": args.postprocessing_timeout_s,
         "provider_timeout_s": (args.provider_timeout_s),
         "provider_retry_max_attempts": args.provider_retry_max_attempts,
         "provider_retry_max_elapsed_s": args.provider_retry_max_elapsed_s,
@@ -8697,6 +9058,7 @@ def _run_batch_main() -> int:
             args.prompt_mode,
             args.max_tokens,
             args.interaction_mode,
+            context_ablation_mode=args.context_ablation_mode,
             episode_checkpoint=args.episode_checkpoint,
         ),
         "within_tick_interaction": True,
@@ -8829,6 +9191,12 @@ def _run_batch_main() -> int:
             "any leaderboard/report artifacts built from it are NOT "
             "leaderboard-eligible (Hard Red Line #6)."
         )
+    if args.finalize_only and existing_run_config is not None:
+        for field in ("episode_timeout_s", "postprocessing_timeout_s"):
+            if field in existing_run_config:
+                meta[field] = existing_run_config[field]
+            else:
+                meta.pop(field, None)
     if existing_run_config is not None:
         treatment_reasons = _run_config_treatment_compatibility_reasons(
             existing_run_config, meta
@@ -8929,6 +9297,7 @@ def _run_batch_main() -> int:
         _load_episodes_jsonl(episodes_path, repair_trailing=not args.dry_run) if args.resume else []
     )
     if args.resume and jobs:
+        before_jobs = list(jobs)
         before = len(jobs)
         try:
             jobs = _filter_pending_jobs(
@@ -8940,10 +9309,10 @@ def _run_batch_main() -> int:
             raise
         skipped = before - len(jobs)
         if skipped:
+            counts = _resume_skip_counts(before_jobs, jobs, prior_rows, args.resume_policy)
             LOGGER.info(
-                "resume: skipping %d completed episodes (%d remaining)",
-                skipped,
-                len(jobs),
+                "resume: skipping %d prior attempts (ok=%d, terminal_error=%d, held_for_repair=%d; %d remaining)",
+                skipped, counts["ok"], counts["error"], counts["repair"], len(jobs),
             )
     pending_before = len(jobs)
     if args.held_cells:

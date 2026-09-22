@@ -282,8 +282,8 @@ def register_logistics_tools(
         ToolSpec(
             name="commit_to_plan",
             description=(
-                "Record foresight predictions about late orders / congestion "
-                "(used by the foresight scorer to verify follow-through)."
+                "Record or revise a standing plan with anticipated late orders / "
+                "congestion and review timing."
             ),
             parameters={
                 "type": "object",

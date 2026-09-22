@@ -67,15 +67,15 @@ path concurrently. The
 coordinator uses native steer when a harness advertises it and otherwise uses
 cancel-and-resume plus response supersession. Late responses are retained in
 the turn ledger but cannot reach the environment actor. This treatment emits a
-separate `realtime-diagnostics/1.6` scorecard. It is formal only within its own
+separate `realtime-diagnostics/1.7` scorecard. It is formal only within its own
 release-bound clock, supervisor, provider and concurrency stratum and is never
-merged with the 0.20 wait-relative logical primary leaderboard.
+merged with the 0.21 wait-relative logical primary leaderboard.
 
-The promoted `operate` release binds the complete realtime artifact stack:
+New executions against `operate` bind the realtime artifact stack:
 `realtime-formal-batch/1.1`, `realtime-formal-scorecard/1.1`,
-`realtime-episode/1.1`, `realtime-treatment/1.1`,
-`realtime-provider-audit-contract/1.0`, diagnostics 1.6, and coordinator
-`realtime_episode_v5`. Any missing or older component fails closed and cannot
+`realtime-episode/1.1`, `realtime-treatment/1.2`,
+`realtime-provider-audit-contract/1.0`, diagnostics 1.7, and coordinator
+`realtime_episode_v6`. Any missing or older component fails closed and cannot
 be resumed into this treatment.
 
 ## Formal publication strata
@@ -176,8 +176,8 @@ several typed triggers share a transition, the coordinator dispatches them in
 descending priority and stable event-sequence order; lower-priority events are
 queued with their full payload and later replayed, not silently discarded. If
 a queued deadline passes, the original trigger is recorded as expired/missed
-and a new current-state continuation preserves its original event identity and
-timestamp. Repeated typed event keys coalesce to the latest pending update.
+without granting a fresh response window. Superseded turns requeue their
+original event payloads, identities and deadlines. Repeated typed event keys coalesce to the latest pending update.
 Read-only investigations preserve the actor's authoritative monotonic
 simulator tick even if a backend snapshot contains a staged tick. An action
 submitted in the final pre-terminal interval can execute only through an
@@ -255,7 +255,7 @@ resending irrelevant schemas.
 
 The current formal profile fixes temperature 0, an 8,192-
 token protocol-repair budget, 64 visible history messages, a 512,000-character
-context projection, 128 items per structured-memory bucket, a 300-second provider timeout,
+context projection, 128 items across structured-memory buckets, a 300-second provider timeout,
 `tool_choice=auto`, streamed Chat Completions, and fail-closed provider handling
 with a one-failure circuit threshold. A provider/tool-calling failure terminates
 the formal episode before a tool-less retry can synthesize `wait`, after at most
@@ -299,7 +299,8 @@ actions bounded; they are not applied retroactively to frozen
 Provider-budget projection also reduces detail in the latest event's structured
 memory, which cannot be made smaller by removing older messages alone. Memory
 identities, statuses and pending-call references survive that projection;
-the full memory and semantic ledger remain unchanged. The bound is conservative
+the authoritative evidence and semantic ledger remain unchanged. Structured
+working memory is bounded and may be trimmed. The bound is conservative
 UTF-8 byte accounting, not a model tokenizer measurement. Under the formal
 `abort` policy, an irreducible local prompt/context error terminates the episode
 with its recorded error in decision, investigation and receipt-reconciliation
@@ -372,7 +373,13 @@ fallback: every tick without a valid model command carries a typed
 `SafetyDecision`, supervisor identity, mode, and reason.
 
 The provider response deadline and the accepted action's effect lifetime are
-separate. Under `realtime-action-validity/1.0`, a generic harness response
+separate. Only a native declared deadline creates a response deadline; absent
+one, deadline compliance is unmeasured rather than evaluated against an invented
+one-tick window. Queueing consumes the existing physical window and is reported
+separately from decision latency. The actor continues advancing, and episode
+bounds, state-version checks, action expiry and safety arbitration still apply.
+Observation ingestion is deferred throughout a provider transaction and action
+arbitration, then flushed after commit/rollback before the next turn. Under `realtime-action-validity/1.0`, a generic harness response
 window allows a timely command its registered ToolProtocol delay plus one
 effect boundary, capped by the episode horizon. For example, a command
 submitted at tick 0 with a one-tick deferred handler can materialize during
@@ -432,7 +439,7 @@ model-only ranking.
 
 ## Independent real-time scorecard axes
 
-`realtime-diagnostics/1.6` currently reports:
+`realtime-diagnostics/1.7` currently reports:
 
 - actionable trigger counts split by typed kind, plus delivered,
   acknowledged, decided, acted and effected stages;
@@ -489,8 +496,8 @@ has terminated. They remain in the artifact with
 `terminal_dispatch_suppressed=true` and
 `dispatch_suppressed_reason=ENVIRONMENT_DONE`, so missed terminal work is
 auditable without creating an unanswerable post-episode decision. Those
-episode-end suppressions stay on the supervision scorecard; they do not void
-`evaluation_ready`.
+episode-end suppressions stay in separate unanswerable counts and are excluded
+from response/alarm opportunity denominators; they do not void `evaluation_ready`.
 
 An in-flight streamed turn is execution-fenced and canceled when the episode
 ends. If the simulator finished inside the episode budget, the direct driver

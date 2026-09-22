@@ -31,6 +31,7 @@ _RUNTIME_SCRIPT_PATHS = (
     "scripts/build_operational_agency_readiness_bundle.py",
     "scripts/build_protocol21_core_readiness.py",
     "scripts/merge_formal_llm_shards.py",
+    "scripts/recover_completed_episode.py",
     "scripts/run_operational_agency_known_groups_calibration.py",
 )
 _CORE_RELEASE_PIPELINE_SCRIPT_PATHS = (

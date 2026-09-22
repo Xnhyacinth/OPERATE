@@ -214,7 +214,12 @@ def read_instance(path: str | Path) -> dict[str, Any]:
         return _read_solomon_txt(path)
     if VRPLIB_AVAILABLE:
         try:
-            return _normalize_vrplib(_vrplib.read_instance(str(path)))  # type: ignore[union-attr]
+            # Normalization keeps node data, not the quadratic distance matrix.
+            return _normalize_vrplib(
+                _vrplib.read_instance(  # type: ignore[union-attr]
+                    str(path), compute_edge_weights=False
+                )
+            )
         except Exception:
             # Fall through to the pure-Python parser on any vrplib hiccup.
             pass

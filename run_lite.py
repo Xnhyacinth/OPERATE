@@ -12,7 +12,17 @@ from scripts import batch_llm_eval
 
 
 REPO_ROOT = Path(__file__).resolve().parent
-LITE_SUITE = REPO_ROOT / "release/operate_v0_62_0/lite_suite.json"
+
+
+def _default_lite_suite() -> Path:
+    """Maintenance layout first; the versionless public tree ships ``benchmark/``."""
+    maintained = REPO_ROOT / "release/operate_v0_62_0/lite_suite.json"
+    if maintained.is_file():
+        return maintained
+    return REPO_ROOT / "benchmark/lite_suite.json"
+
+
+LITE_SUITE = _default_lite_suite()
 
 # Documented OPERATE-Lite persistent working-context profile (64 messages /
 # 512000 chars / 128 memory items). The batch applies these bounds only under
@@ -25,6 +35,7 @@ LITE_PROFILE_FLAGS = (
     ("--persistent-history-max-messages", "64"),
     ("--persistent-context-max-chars", "512000"),
     ("--persistent-memory-max-items", "128"),
+    ("--provider-timeout-s", "300"),
     ("--provider-failure-policy", "abort"),
     ("--max-consecutive-provider-failures", "1"),
 )
