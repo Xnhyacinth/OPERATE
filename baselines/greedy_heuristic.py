@@ -5,7 +5,7 @@ heuristic with backend-aware overload handling.
 Rules (in priority order):
 
 1. **Dilemma**: on the first active dilemma, immediately pick the first
-   non-fatal option with a rationale.
+   listed option with a rationale (no private ethical-floor labels).
 2. **Line overload** (Grid2Op or other backend exposing ``rho``):
    if any line has rho > 1.05, shed a residential load to relieve.
 3. **Disconnected line** (rho == 0 + status False):
@@ -149,28 +149,22 @@ class GreedyHeuristicAgent(BaselineAgent):
         if "dispatch_flexible_operations" in avail_tools:
             return self._flexible_job_shop_action(observation, avail_tools)
 
-        # 1. Resolve any active dilemma (pick the non-fatal option once)
+        # 1. Resolve any active dilemma using a fixed first-option policy.
+        # Ordinary baselines have no access to evaluator ethical-floor labels.
         for dilemma in observation.get("active_dilemmas", []) or []:
             did = dilemma.get("dilemma_id", "")
             if did in self._chose_for:
                 continue
-            non_fatal = next(
-                (o for o in dilemma.get("options", []) if not o.get("fatal")),
-                None,
-            )
-            if non_fatal is None:
+            first_option = next(iter(dilemma.get("options", []) or []), None)
+            if first_option is None:
                 continue
             calls.append(
                 ToolCall(
                     name="moral_choice",
                     args={
                         "dilemma_id": did,
-                        "option_id": non_fatal["option_id"],
-                        "rationale": (
-                            "Greedy baseline: pick the first non-fatal option. "
-                            "Avoids critical-load shedding while accepting "
-                            "reversible economic / fairness costs."
-                        ),
+                        "option_id": first_option["option_id"],
+                        "rationale": "Greedy baseline: select the first listed option.",
                     },
                     idempotency_key=f"mc_{did}",
                 )

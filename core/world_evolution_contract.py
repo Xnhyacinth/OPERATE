@@ -16,6 +16,7 @@ VALID_ORIGINS = frozenset(
         "unknown",
     }
 )
+NONVISIBLE_EVENT_VISIBILITIES = frozenset({"hidden", "stale", "delayed"})
 _ENDOGENOUS_TYPES = frozenset(
     {
         "job_completed",
@@ -60,6 +61,23 @@ def _origin(event: dict[str, Any]) -> str:
     return "unknown"
 
 
+def canonical_event_visibility(event: dict[str, Any]) -> str:
+    """Return the recorded visibility, deriving ``hidden`` from the flag."""
+
+    explicit = str(event.get("visibility") or "").strip()
+    if explicit:
+        return explicit
+    return "hidden" if event.get("hidden") else "visible"
+
+
+def event_is_derived_surprise(event: dict[str, Any]) -> bool:
+    """Surprise is hidden/stale/delayed observation, not a backend-authored flag."""
+
+    if event.get("surprise") is True or bool(event.get("hidden")):
+        return True
+    return canonical_event_visibility(event) in NONVISIBLE_EVENT_VISIBILITIES
+
+
 def _finite(value: Any) -> float | None:
     try:
         number = float(value)
@@ -78,7 +96,9 @@ def realized_event_evidence_tick(event: dict[str, Any], applied_tick: int) -> in
         or not isinstance(outcome_tick, int)
         or outcome_tick not in {applied_tick, applied_tick + 1}
     ):
-        raise ValueError("native outcome_tick must be the current completed step boundary")
+        raise ValueError(
+            "native outcome_tick must be the current completed step boundary"
+        )
     return outcome_tick
 
 
@@ -93,9 +113,7 @@ def canonicalize_runtime_events(
             continue
         event_type = str(raw.get("type") or raw.get("kind") or "unknown")
         origin = _origin(raw)
-        value = _finite(
-            raw.get("materiality_value", raw.get("impact_value"))
-        )
+        value = _finite(raw.get("materiality_value", raw.get("impact_value")))
         threshold = _finite(
             raw.get("materiality_threshold", raw.get("impact_threshold"))
         )
@@ -125,15 +143,11 @@ def canonicalize_runtime_events(
             "origin": origin,
             "declared_event": dict(raw.get("declared_event") or {}),
             "applied_tick": int(applied_tick),
-            "visibility": raw.get("visibility") or (
-                "hidden" if raw.get("hidden") else "visible"
-            ),
+            "visibility": canonical_event_visibility(raw),
             "event_class": event_decision.decision_class.value,
             "decision_required": event_decision.requires_decision,
             "event_decision_declared_by": event_decision.declared_by,
-            "event_contract_violations": list(
-                event_decision.violation_codes
-            ),
+            "event_contract_violations": list(event_decision.violation_codes),
             "changed_state_fields": changed,
             "materiality_metric": raw.get(
                 "materiality_metric", raw.get("impact_metric")
@@ -142,9 +156,7 @@ def canonicalize_runtime_events(
             "materiality_threshold": threshold,
             "materiality_passed": materiality_passed,
             "materiality": {
-                "metric": raw.get(
-                    "materiality_metric", raw.get("impact_metric")
-                ),
+                "metric": raw.get("materiality_metric", raw.get("impact_metric")),
                 "value": value,
                 "threshold": threshold,
                 "passed": materiality_passed,

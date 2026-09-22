@@ -35,6 +35,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from baselines.llm_agent import (  # noqa: E402
+    LLMConfig,
+    frozen_model_response_aliases,
     parse_tencent_quota_reset,
     prompt_contract_sha256,
 )
@@ -56,6 +58,7 @@ from runner.realtime_episode import (  # noqa: E402
     is_terminal_actionable_validation_blocker,
     is_valid_zero_request_cancellation,
     recovered_provider_retry_sequences,
+    response_delivery_delay_violations,
 )
 from runner.native_supervision import (  # noqa: E402
     DOMAIN_NEUTRAL_HOLD_PROFILE,
@@ -69,11 +72,11 @@ from scripts.batch_llm_eval import (  # noqa: E402
 
 BATCH_SCHEMA_VERSION = "realtime-formal-batch/1.1"
 SCORECARD_SCHEMA_VERSION = "realtime-formal-scorecard/1.1"
-DIAGNOSTIC_SCHEMA_VERSION = "realtime-diagnostics/1.6"
+DIAGNOSTIC_SCHEMA_VERSION = "realtime-diagnostics/1.7"
 EPISODE_SCHEMA_VERSION = "realtime-episode/1.1"
-TREATMENT_SCHEMA_VERSION = "realtime-treatment/1.1"
+TREATMENT_SCHEMA_VERSION = "realtime-treatment/1.2"
 PROVIDER_AUDIT_CONTRACT_SCHEMA_VERSION = "realtime-provider-audit-contract/1.0"
-REALTIME_COORDINATOR_VERSION = "realtime_episode_v5"
+REALTIME_COORDINATOR_VERSION = "realtime_episode_v6"
 REALTIME_HARNESS_VERSION = "direct_api_transactional_v3"
 PROMPT_CONTEXT_COMPILER_VERSION = "persistent_event_compiler_v3"
 EPISODE_TIMEOUT_POLICY = "horizon_ticks_x_tick_plus_provider_timeout_plus_tick"
@@ -383,9 +386,12 @@ def build_batch_treatment_identity(
     provider_rpd_limit: int | None = None,
     provider_rate_limit_scope: str | None = None,
     safety_profile: str = DOMAIN_NEUTRAL_HOLD_PROFILE,
+    response_delivery_delay_s: float = 0.0,
 ) -> dict[str, Any]:
     """Bind every batch-level choice that can change realtime behavior."""
 
+    if isinstance(response_delivery_delay_s, bool) or response_delivery_delay_s not in {0.0, 1.0, 5.0}:
+        raise ValueError("response_delivery_delay_s must be 0, 1 or 5 seconds")
     if reasoning_effort_format not in {"auto", "native", "openrouter"}:
         raise ValueError("unsupported reasoning_effort_format")
     if thinking_type not in {None, "enabled", "disabled"}:
@@ -436,6 +442,7 @@ def build_batch_treatment_identity(
             "termination_grace_s": float(termination_grace_s),
             "process_exit_hard_deadline": True,
         }
+    clock_fields["response_delivery_delay_s"] = float(response_delivery_delay_s)
     for name, value in (
         ("provider_timeout_s", provider_timeout_s),
         ("process_hard_timeout_overhead_s", process_hard_timeout_overhead_s),
@@ -520,6 +527,10 @@ def build_batch_treatment_identity(
         "wakeup_policy": deepcopy(CANONICAL_WAKEUP_POLICY),
         "model_shard": {
             "model": model,
+            "accepted_response_models": list(frozen_model_response_aliases(model)),
+            "provider_retry_max_attempts": LLMConfig.provider_retry_max_attempts,
+            "provider_retry_max_elapsed_s": LLMConfig.provider_retry_max_elapsed_s,
+            "tool_choice_supported": None,
             "model_count": 1,
             "provider": provider,
             "base_url": _public_base_url(base_url),
@@ -1075,6 +1086,13 @@ def _provider_evidence_reasons(
     reasons: list[str] = []
     model_shard = model_shard or {}
     requested_model = str(requested_model or model_shard.get("model") or "")
+    # A gateway may echo an upstream spelling of the same route while the
+    # request asked for the route id. The declared alias set is authoritative;
+    # an undeclared name stays a substitution.
+    accepted_models = {
+        requested_model,
+        *model_shard.get("accepted_response_models", frozen_model_response_aliases(requested_model)),
+    }
     rpm_limit = int(model_shard.get("provider_rpm_limit") or 0)
     rpd_limit = int(model_shard.get("provider_rpd_limit") or 0)
     rate_limit_scope = str(model_shard.get("provider_rate_limit_scope") or "").strip()
@@ -1092,7 +1110,7 @@ def _provider_evidence_reasons(
         requests = list(row.get("provider_requests") or [])
         responses = list(row.get("provider_responses") or [])
         identities = list(row.get("provider_model_identities") or [])
-        recovered_sequences = recovered_provider_retry_sequences(row)
+        recovered_sequences = recovered_provider_retry_sequences(row, accepted_response_models=tuple(accepted_models))
         if row.get("provider_turn_settled") is not True:
             reasons.append("provider_turn_unsettled")
         if row.get("provider_audit_status") == "canceled_before_provider_call":
@@ -1210,7 +1228,7 @@ def _provider_evidence_reasons(
                 reasons.append("provider_model_identity_closure_inconsistent")
             elif closure == "request_failed":
                 if observed_models and any(
-                    str(model) != requested_model for model in observed_models
+                    str(model) not in accepted_models for model in observed_models
                 ):
                     reasons.append("provider_model_identity_mismatch")
                 else:
@@ -1227,7 +1245,7 @@ def _provider_evidence_reasons(
             elif closure == "missing" or not observed_models:
                 reasons.append("provider_model_identity_missing")
             elif closure == "mismatch" or any(
-                str(model) != requested_model for model in observed_models
+                str(model) not in accepted_models for model in observed_models
             ):
                 reasons.append("provider_model_identity_mismatch")
             elif closure != "exact":
@@ -1335,6 +1353,12 @@ def _episode_treatment_reasons(
     model_shard = batch_identity.get("model_shard") or {}
     required_provider_fields = {
         "model": model_shard.get("model"),
+        "accepted_response_models": model_shard.get("accepted_response_models"),
+        "provider_retry_max_attempts": model_shard.get("provider_retry_max_attempts"),
+        "provider_retry_max_elapsed_s": model_shard.get("provider_retry_max_elapsed_s"),
+        "tool_choice_supported": model_shard.get("tool_choice_supported"),
+        "provider_failure_policy": model_shard.get("provider_failure_policy"),
+        "max_consecutive_provider_failures": model_shard.get("max_consecutive_provider_failures"),
         "provider": model_shard.get("provider"),
         "base_url": model_shard.get("base_url"),
         "api_version": model_shard.get("api_version"),
@@ -1367,11 +1391,14 @@ def _episode_treatment_reasons(
         "thinking_type": model_shard.get("thinking_type"),
     }
     if any(
-        provider.get(key) != value for key, value in required_provider_fields.items()
+        _canonical_json(provider.get(key)) != _canonical_json(value)
+        for key, value in required_provider_fields.items()
     ):
         reasons.append("episode_provider_treatment_mismatch")
     clock = identity.get("clock") or {}
     batch_clock = batch_identity.get("clock") or {}
+    if clock.get("response_delivery_delay_s") != batch_clock.get("response_delivery_delay_s"):
+        reasons.append("episode_response_delivery_delay_mismatch")
     if batch_clock.get("tick_interval_policy") == NATIVE_DT_POLICY:
         interval = clock.get("tick_interval_s")
         if (
@@ -1416,6 +1443,7 @@ def realtime_artifact_eligibility(
     """Return stable fail-closed row reasons for a realtime artifact."""
 
     reasons = _episode_treatment_reasons(artifact, job, run_config)
+    reasons.extend(response_delivery_delay_violations(artifact))
     if artifact.get("schema_version") != EPISODE_SCHEMA_VERSION:
         reasons.append("episode_schema_mismatch")
     if artifact.get("interaction_mode") != "realtime_persistent":
@@ -1486,6 +1514,11 @@ def realtime_artifact_eligibility(
     ):
         reasons.append("unsafe_or_incomplete_teardown")
     clock = artifact.get("clock") or {}
+    treatment_clock = (artifact.get("treatment_identity") or {}).get("clock") or {}
+    if clock.get("response_delivery_delay_s") != treatment_clock.get("response_delivery_delay_s"):
+        reasons.append("artifact_response_delivery_delay_mismatch")
+    if clock.get("tick_interval_s") != treatment_clock.get("tick_interval_s"):
+        reasons.append("artifact_tick_interval_mismatch")
     if clock.get("timed_out") is True or clock.get("actor_failed") is True:
         reasons.append("episode_clock_failure")
     if int(clock.get("outstanding_provider_turns_at_return") or 0):
@@ -1668,6 +1701,7 @@ def _job_row_identity(job: dict[str, Any]) -> dict[str, Any]:
             "scenario_signature",
             "seed",
             "horizon_ticks",
+            "tick_interval_s",
             "episode_timeout_s",
             "process_hard_timeout_s",
             "pass_id",
@@ -1929,6 +1963,7 @@ def aggregate_realtime_scorecard(
             diagnostics.get("trigger_response") or {},
             (
                 "actionable",
+                "terminal_unanswerable",
                 "acknowledged",
                 "decided",
                 "acted",
@@ -1942,6 +1977,7 @@ def aggregate_realtime_scorecard(
             diagnostics.get("alarm_response") or {},
             (
                 "actionable_alarms",
+                "terminal_unanswerable",
                 "missed",
                 "quiet_windows",
                 "agent_silence_opportunities",
@@ -2072,6 +2108,7 @@ def aggregate_realtime_scorecard(
         },
         "trigger_response": {
             "actionable": trigger["actionable"],
+            "terminal_unanswerable": trigger["terminal_unanswerable"],
             "transport_acknowledged": trigger["acknowledged"],
             "decided": trigger["decided"],
             "acted": trigger["acted"],
@@ -2090,6 +2127,7 @@ def aggregate_realtime_scorecard(
         },
         "alarm_response": {
             "actionable_alarms": alarm["actionable_alarms"],
+            "terminal_unanswerable": alarm["terminal_unanswerable"],
             "missed": alarm["missed"],
             "response_rate": _bounded_response_rate(
                 alarm["actionable_alarms"], alarm["missed"]
@@ -2120,6 +2158,8 @@ def aggregate_realtime_scorecard(
         },
         "harness_environment": dict(sorted(harness_environment.items())),
         "latency": {
+            "queue_wait_wall_ms": _weighted_latency(eligible, "queue_wait_wall_ms"),
+            "decision_wall_ms": _weighted_latency(eligible, "decision_wall_ms"),
             "alarm_to_decision_wall_ms": _weighted_latency(
                 eligible, "alarm_to_decision_wall_ms"
             ),
@@ -2744,6 +2784,8 @@ def _command_for_job(
         "strict",
         "--realtime-tick-interval-s",
         str(job["tick_interval_s"]),
+        "--response-delivery-delay-s",
+        str(identity["clock"]["response_delivery_delay_s"]),
         "--realtime-episode-timeout-s",
         str(job["episode_timeout_s"]),
         "--realtime-safety-profile",
@@ -2751,6 +2793,12 @@ def _command_for_job(
         "--trajectory-dir",
         str(job["trajectory_dir"]),
     ]
+    for alias in model.get("accepted_response_models") or []:
+        command.extend(["--accepted-response-model", str(alias)])
+    for field in ("provider_retry_max_attempts", "provider_retry_max_elapsed_s"):
+        command.extend(["--" + field.replace("_", "-"), str(model[field])])
+    if model.get("tool_choice_supported") is not None:
+        command.append("--tool-choice-supported" if model["tool_choice_supported"] else "--no-tool-choice-supported")
     if job.get("lite_core_lineage"):
         binding = {key: job[key] for key in (
             "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
@@ -3177,9 +3225,8 @@ def load_formal_contract(path: Path) -> dict[str, Any]:
         raise ValueError("formal manifest realtime interaction mode mismatch")
     if contract.get("leaderboard") != "realtime_supervision":
         raise ValueError("formal manifest realtime leaderboard mismatch")
-    if contract.get("scorecard_version") != DIAGNOSTIC_SCHEMA_VERSION:
-        raise ValueError("formal manifest realtime scorecard mismatch")
     expected_contract_versions = {
+        "scorecard_version": DIAGNOSTIC_SCHEMA_VERSION,
         "batch_schema_version": BATCH_SCHEMA_VERSION,
         "scorecard_schema_version": SCORECARD_SCHEMA_VERSION,
         "episode_schema_version": EPISODE_SCHEMA_VERSION,
@@ -3187,9 +3234,30 @@ def load_formal_contract(path: Path) -> dict[str, Any]:
         "diagnostic_schema_version": DIAGNOSTIC_SCHEMA_VERSION,
         "realtime_coordinator": REALTIME_COORDINATOR_VERSION,
     }
-    for field, expected in expected_contract_versions.items():
-        if contract.get(field) != expected:
-            raise ValueError(f"formal manifest realtime {field} mismatch")
+    # Released qualification bytes keep their historical runtime contract.
+    # New executions derive a distinct treatment after validating that complete
+    # frozen tuple; partial migrations and unknown versions remain errors.
+    qualification_versions = {
+        **expected_contract_versions,
+        "scorecard_version": "realtime-diagnostics/1.6",
+        "diagnostic_schema_version": "realtime-diagnostics/1.6",
+        "treatment_schema_version": "realtime-treatment/1.1",
+        "realtime_coordinator": "realtime_episode_v5",
+    }
+    observed_versions = {key: contract.get(key) for key in expected_contract_versions}
+    if observed_versions not in (expected_contract_versions, qualification_versions):
+        mismatched = [key for key, value in observed_versions.items()
+                      if value not in (expected_contract_versions[key], qualification_versions[key])]
+        raise ValueError("formal manifest realtime " + ",".join(mismatched or ["version tuple"]) + " mismatch")
+    qualification_contract_sha256 = canonical_sha256(contract)
+    contract = {**deepcopy(contract), **expected_contract_versions}
+    runtime_contract_derivation = {
+        "schema_version": "realtime-live-contract-derivation/1.0",
+        "qualification_contract_sha256": qualification_contract_sha256,
+        "live_contract_sha256": canonical_sha256(contract),
+        "qualification_versions": observed_versions,
+        "live_versions": expected_contract_versions,
+    }
     if contract.get("merge_with_primary_leaderboard") is not False:
         raise ValueError("realtime and logical leaderboards must remain separate")
     if contract.get("aggregation_version") != "realtime-scorecard-micro-v1":
@@ -3272,6 +3340,7 @@ def load_formal_contract(path: Path) -> dict[str, Any]:
         "formal_runtime_binding": formal_runtime_binding,
         "agentic_profile": deepcopy(agentic_profile),
         "realtime_contract": deepcopy(contract),
+        "runtime_contract_derivation": runtime_contract_derivation,
     }
 
 
@@ -3329,6 +3398,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--provider-rpd-limit", type=int, default=None)
     parser.add_argument("--provider-rate-limit-scope", default=None)
     parser.add_argument("--tick-interval-s", type=float, default=None)
+    parser.add_argument("--response-delivery-delay-s", type=float, choices=[0.0, 1.0, 5.0], default=0.0)
     parser.add_argument("--episode-timeout-s", type=float, default=None)
     parser.add_argument("--process-hard-timeout-s", type=float, default=None)
     parser.add_argument("--termination-grace-s", type=float, default=None)
@@ -3509,6 +3579,7 @@ def main(argv: list[str] | None = None) -> int:
             persistent_memory_max_items=memory_items,
             provider_timeout_s=provider_timeout_s,
             tick_interval_policy=tick_interval_policy,
+            response_delivery_delay_s=args.response_delivery_delay_s,
             episode_timeout_policy=clock_profile["episode_timeout_policy"],
             process_hard_timeout_overhead_s=clock_profile[
                 "process_hard_timeout_overhead_s"
@@ -3528,6 +3599,7 @@ def main(argv: list[str] | None = None) -> int:
             provider_rate_limit_scope=args.provider_rate_limit_scope,
             safety_profile=formal_safety_profile,
         )
+        identity["runtime_contract_derivation"] = deepcopy(formal["runtime_contract_derivation"])
         if args.suite_kind == "lite" or selection_contract.get("clock_policy"):
             identity["selection_contract"] = selection_contract
         out_dir, run_config = resolve_run_directory(
@@ -3549,6 +3621,8 @@ def main(argv: list[str] | None = None) -> int:
                         "output_dir": str(out_dir),
                         "batch_treatment_sha256": run_config["batch_treatment_sha256"],
                         "job_count": len(jobs),
+                        "response_delivery_delay_s": identity["clock"]["response_delivery_delay_s"],
+                        "runtime_contract_derivation": identity["runtime_contract_derivation"],
                     },
                     ensure_ascii=False,
                 )

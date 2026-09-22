@@ -1,5 +1,34 @@
 # Updates
 
+## 2026-09-22
+
+- Live scoring is `0.21.0` (`wait_relative_outcome_v1`). Catalog
+  qualification remains `0.15.0`; frozen release identities and historical
+  results are not rewritten.
+- The offline evaluation 0.22 stack is now part of the public tree: evidence
+  `evaluation/` modules for agency measurements, capability evidence/reports,
+  native objectives/quality/reference, operate quality, fixed targets, target
+  attainment, task quality, and the legacy adapters. Entrypoints are
+  `scripts/evaluate_*.py`, `scripts/compile_*.py`, and
+  `scripts/calibrate_native_quality_references.py`, with runner
+  postprocessing (`runner/postprocessing.py`, `runner/worker_deadline.py`)
+  and the realtime evidence-closure repair tool. See
+  `docs/EVALUATION_022.md`, `docs/EVALUATION_023.md`, and
+  `docs/EVALUATION_023_TARGETS.md` for the contracts.
+- Streaming routes whose gateway renames the served model may declare the
+  accepted response spellings (`accepted_response_models`); an undeclared
+  name still fails the identity gate closed. Thinking-mode routes that
+  reject `tool_choice=required` are declared unable to take it. Intermittent
+  gateway serving/stream failures are classified transient and absorbed by
+  the bounded retry loop.
+
+## 2026-09-19
+
+- Live scoring is `0.21.0` (`wait_relative_outcome_v1`). Quote
+  `ranking.primary_score`; missing primary results remain unavailable.
+  Catalog qualification remains `0.15.0`; frozen release identities and
+  historical results are not rewritten.
+
 ## 2026-09-18
 
 - Live scoring is `0.20.0` (`wait_relative_outcome_v1`). Catalog qualification

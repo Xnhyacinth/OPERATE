@@ -48,6 +48,7 @@ from core import (
     arm_dilemmas,
     safe_dataclass_to_dict,
 )
+from core.common_tools import public_moral_option
 from core.difficulty_levels import canonical_difficulty_level
 from core.evidence import control_summary_from_evidence
 from core.world_evolution_contract import (
@@ -1144,6 +1145,13 @@ class PowerGridEnvironment(POMDPEnvironment):
             parent = self._agency_parent_by_call.get(call_id)
             if str(event.get("origin") or "") == "agent_caused" and parent is not None:
                 event["causal_parent_event_id"] = parent["event_id"]
+                reveal_ids = [
+                    str(value)
+                    for value in (parent.get("reveal_evidence_ids") or [])
+                    if value
+                ]
+                if reveal_ids:
+                    event["reveal_evidence_ids"] = reveal_ids
         world_evolution_records = canonicalize_runtime_events(
             realized_events,
             applied_tick=self._tick,
@@ -1400,7 +1408,7 @@ class PowerGridEnvironment(POMDPEnvironment):
                     "dilemma_id": d.dilemma_id,
                     "description": d.description,
                     "options": [
-                        {"option_id": o.option_id, "label": o.label, "fatal": o.fatal}
+                        public_moral_option(o)
                         for o in d.options
                     ],
                     "deadline_tick": d.trigger_tick + d.resolution_deadline_ticks,

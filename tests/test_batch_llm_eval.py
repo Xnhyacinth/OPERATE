@@ -1852,6 +1852,7 @@ def _fake_episode_result(
         "seed": seed,
         "temperature": 1.0,
         "status": status,
+        "ranking": {"primary_score": total_score},
         "score": {
             "total_score": total_score,
             "raw_total": total_score * 1.2,
@@ -6197,6 +6198,7 @@ def _row(slug: str, model: str, seed: int, score: float, status: str = "ok") -> 
         "seed": seed,
         "status": status,
         "interaction_mode": "logical_stateless",
+        "ranking": {"primary_score": score},
         "score": {"total_score": score},
         "ground_truth_summary": {"chose_fatal_option": False},
     }
@@ -6264,6 +6266,30 @@ def test_write_analysis_quotes_ranking_primary_not_composite(tmp_path: Path) -> 
     assert "invalid_protocol/ep" in analysis
     stats = json.loads((tmp_path / "stats_by_model.json").read_text(encoding="utf-8"))
     assert stats["by_model"]["hy3-ioa"] == {"mean": 12.0, "n": 1}
+
+
+def test_ranking_primary_does_not_use_composite_when_wait_relative_ineligible() -> None:
+    row = {
+        "status": "ok",
+        "difficulty_level": "basic",
+        "score": {
+            "total_score": 88.0,
+            "dimensions": [
+                {
+                    "name": "system_survival",
+                    "applicable": True,
+                    "calibrated_score": 100.0,
+                    "evidence_ids": ["surv-1"],
+                }
+            ],
+            "dimension_applicability": {
+                "counterfactual_prevention": True,
+                "economic_cost": True,
+            },
+        },
+    }
+
+    assert mod._ranking_primary_for_analysis(row) is None
 
 
 def test_write_analysis_publishes_autonomy_diagnostics_as_present_only_means(
@@ -8572,7 +8598,9 @@ def test_native_runtime_binding_accepts_parallel_traci(monkeypatch) -> None:
     assert binding == {
         "ok": True,
         "requires_real_sumo": True,
+        "requires_real_autonomous_driving_sumo": False,
         "traffic_real_enabled": True,
+        "autonomous_driving_real_enabled": False,
         "forced_transport": "traci",
         "resolved_transport": "traci",
         "blockers": [],
@@ -8595,11 +8623,49 @@ def test_native_runtime_binding_ignores_sumo_env_for_unrelated_suites(
     assert binding == {
         "ok": True,
         "requires_real_sumo": False,
+        "requires_real_autonomous_driving_sumo": False,
         "traffic_real_enabled": False,
+        "autonomous_driving_real_enabled": False,
         "forced_transport": None,
         "resolved_transport": None,
         "blockers": [],
     }
+
+
+def test_native_runtime_binding_fails_closed_without_sumo_ego_gate(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL", raising=False)
+
+    binding = mod._native_runtime_binding(
+        {"driving/case": {"backend_kind": "sumo_ego"}},
+        ["driving/case"],
+        max_workers=8,
+        scheduler_mode="global",
+    )
+
+    assert binding["ok"] is False
+    assert binding["requires_real_autonomous_driving_sumo"] is True
+    assert binding["blockers"] == ["real_autonomous_driving_sumo_gate_missing"]
+
+
+def test_native_runtime_binding_accepts_sumo_ego_with_native_transport(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL", "1")
+    monkeypatch.setattr(mod, "probe_sumo_transport", lambda: "traci")
+
+    binding = mod._native_runtime_binding(
+        {"driving/case": {"backend_kind": "sumo_ego"}},
+        ["driving/case"],
+        max_workers=8,
+        scheduler_mode="global",
+    )
+
+    assert binding["ok"] is True
+    assert binding["autonomous_driving_real_enabled"] is True
+    assert binding["resolved_transport"] == "traci"
+    assert binding["blockers"] == []
 
 
 def test_persistent_batch_cli_uses_agentic_defaults(

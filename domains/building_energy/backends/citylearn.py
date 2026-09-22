@@ -71,6 +71,7 @@ CITYLEARN_NATIVE_EVENT_REGISTRY = MappingProxyType(
     }
 )
 _RUNTIME_OPEN_LOCK = threading.RLock()
+_NATIVE_STEP_LOCK = threading.RLock()
 
 
 class CityLearnSourceLockError(RuntimeError):
@@ -628,6 +629,29 @@ def _current_value(building: Any, attribute: str, index: int) -> float:
     if not len(values):
         return 0.0
     return float(values[min(max(index, 0), len(values) - 1)])
+
+
+def _step_native_env(env: Any, action: np.ndarray) -> Any:
+    """Bound the tiny native LSTM workloads without leaking thread settings.
+
+    Neighborhoods execute one small recurrent model per building. The host's
+    default PyTorch CPU pool can spend far more time synchronizing threads
+    than computing these models, especially across concurrent replay workers.
+    Keep the native computation unchanged and restore the caller's setting,
+    including when a native step fails. Serialize CityLearn thread overrides.
+    """
+
+    import torch
+
+    with _NATIVE_STEP_LOCK:
+        previous_threads = torch.get_num_threads()
+        try:
+            if previous_threads != 1:
+                torch.set_num_threads(1)
+            return env.step([action])
+        finally:
+            if previous_threads != 1:
+                torch.set_num_threads(previous_threads)
 
 
 def _opening_storage_inventory(buildings: list[Any], index: int) -> dict[str, dict[str, float]]:
@@ -1309,7 +1333,7 @@ class CityLearnBackend:
                         for building in replay_env.buildings
                     ]
                     next_observation, reward, terminated, truncated, _ = (
-                        replay_env.step([action])
+                        _step_native_env(replay_env, action)
                     )
                     after_balance = [
                         _current_value(
@@ -1840,7 +1864,7 @@ class CityLearnBackend:
             _current_value(building.electrical_storage, "energy_balance", source_tick)
             for building in self._env.buildings
         ]
-        observation, reward, terminated, truncated, _ = self._env.step([action])
+        observation, reward, terminated, truncated, _ = _step_native_env(self._env, action)
         del observation
         self._last_completed_source_tick = source_tick
         after_balance = [

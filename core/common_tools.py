@@ -41,6 +41,7 @@ __all__ = [
     "moral_choice_handler",
     "noop_tool_spec",
     "plan_autonomy_properties",
+    "public_moral_option",
     "safe_dataclass_to_dict",
     "wait_tool_spec",
 ]
@@ -49,6 +50,11 @@ __all__ = [
 # ─────────────────────────────────────────────────────────────────────────────
 # Serialization
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def public_moral_option(option: MoralOption) -> dict[str, str]:
+    """Expose the choice text, not the evaluator's ethical-floor label."""
+    return {"option_id": option.option_id, "label": option.label}
 
 
 def safe_dataclass_to_dict(obj: Any, *, dict_fallback: bool = False) -> Any:

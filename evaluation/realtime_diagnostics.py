@@ -13,7 +13,7 @@ from collections import Counter
 from statistics import fmean
 from typing import Any
 
-SCHEMA_VERSION = "realtime-diagnostics/1.6"
+SCHEMA_VERSION = "realtime-diagnostics/1.7"
 RUNTIME_ASSURANCE_EVIDENCE_KINDS = frozenset(
     {
         "runtime_assurance_initialized",
@@ -366,11 +366,21 @@ def evaluate_realtime_diagnostics(
         int(provider_stats.get("native_tool_protocol_invalid_responses") or 0),
     ) if has_native_counts else repair_dependent_calls
 
-    actionable_triggers = [
+    all_actionable_triggers = [
         event
         for event in events
         if event.get("kind") in ACTIONABLE_TRIGGER_KINDS
         and event.get("decision_required") is True
+    ]
+    terminal_triggers = [
+        event for event in all_actionable_triggers
+        if event.get("terminal_unanswerable") is True
+        and event.get("terminal_at_emission") is True
+    ]
+    actionable_triggers = [
+        event for event in all_actionable_triggers
+        if not (event.get("terminal_unanswerable") is True
+                and event.get("terminal_at_emission") is True)
     ]
     trigger_ids = {str(event.get("event_id")) for event in actionable_triggers}
     alarm_triggers = [
@@ -749,6 +759,7 @@ def evaluate_realtime_diagnostics(
                 "completed_valid_transport_acknowledgement"
             ),
             "semantic_detection_supported": False,
+            "terminal_unanswerable_excluded_from_response_denominator": True,
             "correct_silence_semantics": (
                 "model_confirmed_standing_plan_or_explicit_delegated_hold_"
                 "without_attempting_state_change"
@@ -779,6 +790,7 @@ def evaluate_realtime_diagnostics(
         },
         "trigger_response": {
             "actionable": len(actionable_triggers),
+            "terminal_unanswerable": len(terminal_triggers),
             "detected": len(acknowledged_ids),
             "delivered": len(delivered_ids),
             "acknowledged": len(acknowledged_ids),
@@ -794,6 +806,9 @@ def evaluate_realtime_diagnostics(
         },
         "alarm_response": {
             "actionable_alarms": len(alarm_triggers),
+            "terminal_unanswerable": sum(
+                event.get("kind") in ALARM_TRIGGER_KINDS for event in terminal_triggers
+            ),
             "detected": len(alarm_ids & acknowledged_ids),
             "missed": len(alarm_ids - responded_ids),
             "delivery_missed": len(alarm_ids - delivered_ids),
@@ -831,6 +846,15 @@ def evaluate_realtime_diagnostics(
             "unattributed_quiet_windows": len(unattributed_quiet_ticks),
         },
         "latency": {
+            "queue_wait_wall_ms": _summary([
+                float(turn["queue_wait_ns"]) / 1e6 for turn in turns
+                if turn.get("queue_wait_ns") is not None
+            ]),
+            "decision_wall_ms": _summary([
+                float(turn["decision_latency_ns"]) / 1e6 for turn in turns
+                if turn.get("decision_tick") is not None
+                and turn.get("decision_latency_ns") is not None
+            ]),
             "alarm_to_decision_ticks": _summary(alarm_to_decision_ticks),
             "alarm_to_decision_wall_ms": _summary(alarm_to_decision_wall_ms),
             "alarm_to_effect_ticks": _summary(alarm_to_effect_ticks),

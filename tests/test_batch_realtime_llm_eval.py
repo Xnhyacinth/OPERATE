@@ -174,6 +174,10 @@ def _artifact(identity: dict, *, treatment_sha256: str | None = None) -> dict:
                 "provider_turn_settled": True,
                 "provider_started": True,
                 "provider_audit_status": "completed",
+                "response_delivery_delay_s": 0.0,
+                "response_ready_monotonic_ns": 100,
+                "response_delivery_settled_monotonic_ns": 100,
+                "response_delivery_canceled": False,
             }
         ],
         "provider_audit_contract": {
@@ -198,6 +202,7 @@ def _artifact(identity: dict, *, treatment_sha256: str | None = None) -> dict:
         },
         "clock": {
             "tick_interval_s": 0.25,
+            "response_delivery_delay_s": 0.0,
             "timed_out": False,
             "actor_failed": False,
             "outstanding_provider_turns_at_return": 0,
@@ -301,13 +306,13 @@ def _artifact(identity: dict, *, treatment_sha256: str | None = None) -> dict:
 
 def _episode_identity() -> dict:
     return {
-        "schema_version": "realtime-treatment/1.1",
+        "schema_version": "realtime-treatment/1.2",
         "interaction_mode": "realtime_persistent",
         "agent_name": "llm_agent",
         "harness": "direct_api_transactional_v3",
         "implementation_contract": {
             "implementation_tree_sha256": "c" * 64,
-            "realtime_coordinator": "realtime_episode_v5",
+            "realtime_coordinator": "realtime_episode_v6",
             "event_decision_contract": "1.0",
             "prompt_context_compiler": "persistent_event_compiler_v3",
             "prompt_contract_sha256": batch.prompt_contract_sha256(
@@ -315,7 +320,7 @@ def _episode_identity() -> dict:
             ),
             "tool_schema_sha256": "a" * 64,
         },
-        "clock": {"tick_interval_s": 0.25, "episode_timeout_s": 301.25},
+        "clock": {"tick_interval_s": 0.25, "episode_timeout_s": 301.25, "response_delivery_delay_s": 0.0},
         "safety_supervisor": {
             "implementation": "runner.realtime_actor.HoldSafetySupervisor",
             "public_config": {},
@@ -323,6 +328,12 @@ def _episode_identity() -> dict:
         "provider_public_config": {
             "provider": "openai_compatible",
             "model": "hy3-ioa",
+            "accepted_response_models": list(batch.frozen_model_response_aliases("hy3-ioa")),
+            "provider_retry_max_attempts": batch.LLMConfig.provider_retry_max_attempts,
+            "provider_retry_max_elapsed_s": batch.LLMConfig.provider_retry_max_elapsed_s,
+            "tool_choice_supported": None,
+            "provider_failure_policy": "abort",
+            "max_consecutive_provider_failures": 1,
             "base_url": "https://copilot.tencent.com/v2",
             "api_version": None,
             "effective_api_version": None,
@@ -744,13 +755,13 @@ def test_formal_manifest_supplies_canonical_agentic_and_clock_profiles(
         "contract_version": "realtime_persistent.v3",
         "interaction_mode": "realtime_persistent",
         "leaderboard": "realtime_supervision",
-        "scorecard_version": "realtime-diagnostics/1.6",
+        "scorecard_version": "realtime-diagnostics/1.7",
         "batch_schema_version": "realtime-formal-batch/1.1",
         "scorecard_schema_version": "realtime-formal-scorecard/1.1",
         "episode_schema_version": "realtime-episode/1.1",
-        "treatment_schema_version": "realtime-treatment/1.1",
-        "diagnostic_schema_version": "realtime-diagnostics/1.6",
-        "realtime_coordinator": "realtime_episode_v5",
+        "treatment_schema_version": "realtime-treatment/1.2",
+        "diagnostic_schema_version": "realtime-diagnostics/1.7",
+        "realtime_coordinator": "realtime_episode_v6",
         "wakeup_policy": deepcopy(EXPECTED_WAKEUP_POLICY),
         "aggregation_version": "realtime-scorecard-micro-v1",
         "merge_with_primary_leaderboard": False,
@@ -2108,6 +2119,10 @@ def test_concurrent_runner_fails_before_opening_formal_journal(
         "selection_sha256": batch.file_sha256(suite_path),
         "formal_runtime_binding": formal_binding,
         "agentic_profile": deepcopy(batch.CANONICAL_AGENTIC_PROFILE),
+        "runtime_contract_derivation": {
+            "qualification_contract_sha256": "a" * 64,
+            "live_contract_sha256": "b" * 64,
+        },
         "realtime_contract": {
             "suite_manifest_sha256": suite_sha,
             "clock_profile": dict(batch.NATIVE_DT_CLOCK_PROFILE),
@@ -2249,6 +2264,10 @@ def test_dry_run_preflights_without_key_output_provider_or_quota_claim(
                 "backend_runtime_closure_identity_sha256": "f" * 64,
             },
             "agentic_profile": deepcopy(batch.CANONICAL_AGENTIC_PROFILE),
+            "runtime_contract_derivation": {
+                "qualification_contract_sha256": "a" * 64,
+                "live_contract_sha256": "b" * 64,
+            },
             "realtime_contract": {
                 "suite_manifest_sha256": suite_sha,
                 "clock_profile": dict(batch.NATIVE_DT_CLOCK_PROFILE),
@@ -2461,7 +2480,7 @@ def test_formal_episode_row_uses_relative_subprocess_log_path(
         job,
         config,
         SimpleNamespace(
-            api_key_env="T_KEY",
+            api_key_env="API_KEY",
             base_url="https://copilot.tencent.com/v2",
             responses_base_url=None,
         ),
@@ -2730,7 +2749,7 @@ def test_native_thinking_controls_bind_namespace_runner_and_resume(tmp_path):
     out_dir, config = batch.initialize_run_directory(tmp_path, identity)
     job = _job(config["batch_treatment_sha256"])
     job["trajectory_dir"] = str(out_dir / "episode")
-    command = batch._command_for_job(job, config, SimpleNamespace(api_key_env="T_KEY", base_url=None, responses_base_url=None))
+    command = batch._command_for_job(job, config, SimpleNamespace(api_key_env="API_KEY", base_url=None, responses_base_url=None))
     assert command[command.index("--reasoning-effort-format") + 1] == "native"
     assert command[command.index("--thinking-type") + 1] == "enabled"
     changed = _identity(reasoning_effort_format="openrouter", thinking_type="enabled")

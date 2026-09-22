@@ -257,6 +257,7 @@ def _causal(
     delta = _number(record, "masked_action_group_delta")
     event_tick = _tick(record, "event_tick")
     control_tick = _tick(record, "first_control_call_tick")
+    observed_tick = _tick(record, "first_observed_tick")
     effect_tick = _tick(record, "first_effect_tick")
     effect_ids = _ids(
         record,
@@ -271,6 +272,7 @@ def _causal(
         _ids(
             record,
             "trigger_evidence_ids",
+            "reveal_evidence_ids",
             valid_evidence_ids=valid_evidence_ids,
         )
     )
@@ -278,6 +280,7 @@ def _causal(
         _ids(
             record,
             "action_consumes_evidence_ids",
+            "resolved_action_consumes_evidence_ids",
             valid_evidence_ids=valid_evidence_ids,
         )
     )
@@ -303,6 +306,9 @@ def _causal(
         and event_tick is not None
         and control_tick is not None
         and event_tick <= control_tick
+        and observed_tick is not None
+        and event_tick <= observed_tick <= control_tick
+        and bool(trigger_ids.intersection(consumed_ids))
         and effect_tick is not None
         and effect_tick >= control_tick
         and effect_ids

@@ -320,8 +320,8 @@ def register_microgrid_tools(
         ToolSpec(
             name="commit_to_plan",
             description=(
-                "Record foresight predictions about ramps / islanding so the "
-                "foresight scorer can verify follow-through."
+                "Record or revise a standing plan with anticipated ramps / "
+                "islanding and review timing."
             ),
             parameters={
                 "type": "object",

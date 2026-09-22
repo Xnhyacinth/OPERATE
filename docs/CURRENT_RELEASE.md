@@ -1,7 +1,7 @@
 # Current release
 
 The promoted input namespace is `operate`. Qualification artifacts stay
-bound to scoring `0.15.0`. Live evaluations use scoring `0.20.0`. Core remains
+bound to scoring `0.15.0`. Live evaluations use scoring `0.21.0`. Core remains
 769 rows across 502 physical sources, with 141 Lite rows across 82 sources.
 Native qualification is bound to its recorded implementation identity. Later
 verified maintenance changes bind their actual new execution identity; resume
@@ -26,7 +26,7 @@ not valid inputs to a current formal run.
 - matching formal manifest at `benchmark/manifest.json`
 - replay and provenance suite at `benchmark/core_suite.json`
 - promoted qualification scoring version `0.15.0`
-- live evaluation scoring version `0.20.0` (`wait_relative_outcome_v1`)
+- live evaluation scoring version `0.21.0` (`wait_relative_outcome_v1`)
 - live realtime contract `realtime_persistent.v3` / `native_dt_v1`; default
   supervision scorecard is the 37-row speed-critical subset in
   `benchmark/realtime_speed_suite.json`
@@ -128,7 +128,7 @@ default formal profile uses:
 - provider timeout `300` seconds
 - projected history `64` messages
 - projected context `512000` characters
-- structured memory `128` items per semantic bucket
+- structured memory `128` items across semantic buckets
 - strict prompt mode, streaming, `tool_choice=auto`, action-required protocol
   validation, and global scheduling
 

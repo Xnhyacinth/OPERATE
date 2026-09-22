@@ -63,7 +63,18 @@ from .task_completion import (
     task_completion_contract,
 )
 
+from .native_objectives import extract_native_objective
+from .native_quality import (
+    VERSION as NATIVE_QUALITY_VERSION,
+    aggregate_native_rows,
+    score_native_quality,
+)
+
 __all__ = [
+    "NATIVE_QUALITY_VERSION",
+    "extract_native_objective",
+    "aggregate_native_rows",
+    "score_native_quality",
     "CONTROL_TOOL_NAMES",
     "INVESTIGATION_TOOL_NAMES",
     "classify_tool_histogram",

@@ -34,7 +34,7 @@ selectable historical datasets.
 
 ## Current qualification and provider status
 
-The current Core qualifies at scoring `0.15.0` and scores live runs at `0.20.0`,
+The current Core qualifies at scoring `0.15.0` and scores live runs at `0.21.0`,
 769 Core rows across 502 physical sources and 141 Lite rows across 82 sources.
 Qualification records describe the code used for their original checks. Public
 users can run their own checkout; ordinary resume preserves completed cells

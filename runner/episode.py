@@ -33,7 +33,11 @@ from core.event_protocol import (
     audit_event_decision_contract,
     resolve_event_decision,
 )
-from core.world_evolution_contract import canonicalize_runtime_events
+from core.world_evolution_contract import (
+    canonical_event_visibility,
+    canonicalize_runtime_events,
+    event_is_derived_surprise,
+)
 from core.tool_protocol import is_infrastructure_tool_failure
 from data import EpisodeHeader, TrajectoryLogger, analyze_trajectory_steps
 from domains.registry import (
@@ -72,7 +76,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LOGGER = logging.getLogger(__name__)
 EVALUATION_PROTOCOL_VERSION = "2.1"
 EVALUATION_IMPLEMENTATION_FINGERPRINT = (
-    "protocol-2.1-v22-native-evidence-scoring-v18"
+    "protocol-2.1-v22-native-evidence-scoring-v19"
 )
 MAX_WITHIN_TICK_INVESTIGATION_CALLS = 2
 WITHIN_TICK_COMMIT_CALL_RESERVE = 1
@@ -527,8 +531,24 @@ def _build_event_response_records(
         )
         request_tick = edge.get("request_tick")
         request_tick = int(action_tick if request_tick is None else request_tick)
-        consumes_parent_evidence = bool(
-            set(parent_ids).intersection(edge.get("consumes_evidence_ids") or [])
+        consumed = {
+            str(value) for value in (edge.get("consumes_evidence_ids") or []) if value
+        }
+        consumes_parent_evidence = bool(set(parent_ids).intersection(consumed))
+        reveal_ids = list(
+            dict.fromkeys(
+                str(value)
+                for value in [
+                    *(parent.get("reveal_evidence_ids") or []),
+                    *(effect.get("reveal_evidence_ids") or []),
+                ]
+                if value
+            )
+        )
+        consumes_reveal = bool(set(reveal_ids).intersection(consumed))
+        observed_response = bool(
+            (consumes_parent_evidence or consumes_reveal)
+            and event_tick <= request_tick <= effect_tick
         )
         # Backends publish the response window under three historical names:
         # ``response_deadline_tick``/``mandatory_response_tick`` (old protocol)
@@ -552,22 +572,24 @@ def _build_event_response_records(
                     str(parent.get("origin") or "") == "declared_perturbation"
                 ),
                 "event_tick": event_tick,
-                "visibility": parent.get("visibility") or (
-                    "hidden" if parent.get("hidden") else "visible"
-                ),
-                "surprise": bool(parent.get("surprise", False)),
-                "first_observed_tick": (
-                    request_tick if consumes_parent_evidence else None
-                ),
+                "visibility": canonical_event_visibility(parent),
+                "surprise": event_is_derived_surprise(parent),
+                "first_observed_tick": (request_tick if observed_response else None),
                 "first_investigation_tick": None,
-                "reveal_evidence_ids": list(parent.get("reveal_evidence_ids") or []),
+                "reveal_evidence_ids": reveal_ids,
                 "first_control_call_tick": request_tick,
                 "first_effect_tick": effect_tick,
                 "mandatory_response_tick": (
                     int(deadline) if deadline is not None else None
                 ),
-                "response_status": "causal",
-                "observation_evidence_ids": parent_ids,
+                "response_status": (
+                    "causal" if observed_response else "backend_effect_only"
+                ),
+                "observation_evidence_ids": (
+                    [value for value in [*parent_ids, *reveal_ids] if value in consumed]
+                    if observed_response
+                    else []
+                ),
                 "trigger_evidence_ids": parent_ids,
                 "action_consumes_evidence_ids": list(
                     edge.get("consumes_evidence_ids") or []
@@ -608,14 +630,18 @@ def _enrich_event_response_records(
         if control is None:
             continue
         consumed = set(control.payload.get("consumes_evidence_ids") or [])
+        if "action_consumes_evidence_ids" in record:
+            consumed.intersection_update(record["action_consumes_evidence_ids"])
+        request_tick = record.get("first_control_call_tick", control.tick)
         resolved: dict[str, Any] = {}
-        pending = list(consumed)
+        pending = sorted(consumed)
         while pending:
             evidence_id = pending.pop()
             item = by_id.get(evidence_id)
             if (
-                item is None or evidence_id in resolved
-                or item.tick > control.tick
+                item is None
+                or evidence_id in resolved
+                or item.tick > request_tick
                 or order[evidence_id] >= order[control.evidence_id]
             ):
                 continue
@@ -624,6 +650,7 @@ def _enrich_event_response_records(
             if (item.kind == "tool_call"
                     and _completed_successful_tool_payload(item.payload) and linked):
                 pending.append(linked)
+        record["resolved_action_consumes_evidence_ids"] = list(resolved)
         investigations = [
             item for item in resolved.values()
             if item.kind in {"investigation", "forecast_requested"}
@@ -642,6 +669,8 @@ def _enrich_event_response_records(
                 record["first_observed_tick"] = min(
                     [*reveals, *([] if previous is None else [previous])]
                 )
+                if record.get("response_status") == "backend_effect_only":
+                    record["response_status"] = "causal"
         plans = [item for item in resolved.values() if item.kind == "commit_to_plan"]
         if plans:
             latest = max(plans, key=lambda item: order[item.evidence_id])
@@ -1255,6 +1284,26 @@ def _public_agent_config(agent_kwargs: dict[str, Any] | None) -> dict[str, Any] 
     if (
         isinstance(public_config, dict)
         and isinstance(config, LLMConfig)
+        and config.context_ablation_mode == "matched_transcript_v1"
+    ):
+        public_config["session_context_contract"] = {
+            "schema_version": "session-context-contract/1.0",
+            "context_ablation_mode": config.context_ablation_mode,
+            "interaction_mode": config.interaction_mode,
+            "provider_transcript": (
+                "carried_bounded_history"
+                if config.interaction_mode == "logical_persistent"
+                else "system_plus_current_event_only"
+            ),
+            "benchmark_managed_episode_projection": [
+                "decision_ledger", "plan_state", "structured_memory",
+            ],
+            "cross_decision_memoryless": False,
+            "intended_use": "supplementary_e1_matched_transcript",
+        }
+    elif (
+        isinstance(public_config, dict)
+        and isinstance(config, LLMConfig)
         and config.interaction_mode == "logical_stateless"
     ):
         public_config["session_context_contract"] = {
@@ -1364,6 +1413,58 @@ def _finalize_failed_episode_audit(
     return details
 
 
+def _validated_initial_tool_results(
+    env: Any, results: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Bind prefix feedback to successful read-only calls in this environment."""
+    from evaluation.scorer import _completed_successful_tool_payload
+
+    if not isinstance(results, list):
+        raise ValueError("initial tool receipt list is required")
+    if not results:
+        return [], []
+    evidence = getattr(env, "evidence", None)
+    items = list(evidence.items()) if evidence is not None else []
+    ledger_ids = {item.evidence_id for item in items}
+    readonly = set(env.readonly_tool_names() or []) - {"wait", "noop", "commit_to_plan"}
+    validated: list[dict[str, Any]] = []
+    visible_ids: list[str] = []
+    for result in results:
+        if not isinstance(result, dict) or not (
+            result.get("call_id")
+            and result.get("name") in readonly
+            and result.get("state_changing") is False
+            and _completed_successful_tool_payload(result)
+        ):
+            raise ValueError("initial tool receipt must be successful, read-only and completed")
+        result_id = result.get("evidence_id")
+        produced = result.get("produces_evidence_ids") or []
+        claimed_ids = [result_id, *produced] if isinstance(produced, list) else []
+        if not claimed_ids or any(
+            not isinstance(value, str) or value not in ledger_ids for value in claimed_ids
+        ):
+            raise ValueError("initial tool receipt evidence is absent from this ledger")
+        matched = any(
+            item.kind == "tool_call" and item.source == "tool"
+            and item.tick <= int(env.tick)
+            and item.payload.get("name") == result["name"]
+            and item.payload.get("call_id") == result["call_id"]
+            and item.payload.get("state_changing") is False
+            and _completed_successful_tool_payload(item.payload)
+            and item.payload.get("payload") == result.get("payload")
+            and item.payload.get("cost_units") == result.get("cost_units")
+            and set(claimed_ids).issubset({
+                item.evidence_id, item.payload.get("linked_result_evidence_id"),
+            })
+            for item in items
+        )
+        if not matched:
+            raise ValueError("initial tool receipt does not match authoritative call evidence")
+        validated.append(_canonical_json_value(result))
+        visible_ids.extend(claimed_ids)
+    return validated, list(dict.fromkeys(visible_ids))
+
+
 def _run_episode_loop(
     *,
     env: Any,
@@ -1373,6 +1474,7 @@ def _run_episode_loop(
     multi_turn_rounds: int = 3,
     within_tick_interaction: bool = True,
     baseline_scan_interval: int | None = None,
+    initial_tool_results: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Run the env <-> agent tick loop.
 
@@ -1467,6 +1569,14 @@ def _run_episode_loop(
     obs["__last_tool_results__"] = []
     obs["__last_realized_events__"] = []
     obs["__last_evidence_ids__"] = []
+    if initial_tool_results is not None:
+        initial_results, initial_ids = _validated_initial_tool_results(env, initial_tool_results)
+        # A restored backend snapshot can carry the last native record's tick;
+        # the environment owns the next decision coordinate after the prefix.
+        obs["tick"] = int(env.tick)
+        obs["__last_tool_results__"] = initial_results
+        obs["__last_evidence_ids__"] = initial_ids
+        agent_visible_evidence_ids.update(initial_ids)
     obs["__last_reward__"] = 0.0
     obs["__last_early_stop_warnings__"] = []
     obs["__last_forecast_updates__"] = {}
@@ -1834,6 +1944,8 @@ def _run_episode_loop(
                     investigation_results,
                     applied_tick=current_tick,
                     request_tick=current_tick,
+                    known_calls=known_tool_calls,
+                    known_call_ticks=known_tool_call_ticks,
                     visible_evidence_ids=agent_visible_evidence_ids,
                     evidence_logger=getattr(env, "evidence", None),
                 )
@@ -2922,76 +3034,11 @@ def _run_one_with_environment_impl(
         exc.episode_error_details = details  # type: ignore[attr-defined]
         raise
     actions = loop_result["actions"]
-    tool_results_ok = loop_result["tool_results_ok"]
-    tool_results_failed = loop_result["tool_results_failed"]
     stale_observation_records = loop_result["stale_observation_records"]
 
     gt, foresight, backend_records, realized = (
         _snapshot_and_close_completed_environment(env)
     )
-    snapshot_identity = None
-    completed_runtime_artifact = None
-    if logger is not None:
-        from core.implementation_identity import implementation_identity
-        from evaluation.scoring_snapshot import snapshot_inputs
-
-        memory, ledger_binding, provider_binding = _collect_agent_session_artifacts(agent=agent, logger=logger)
-        if env.evidence is not None:
-            logger.write_evidence(env.evidence.to_jsonable())
-        snapshot_identity = {
-            "scenario_signature": recompute_signature_with_seed(scenario, seed, spec),
-            "seed": seed, "agent_config": _public_agent_config(agent_kwargs),
-            "agent_name": agent_name, "implementation": implementation_identity(REPO_ROOT),
-            "checkpoint_identity": checkpoint_identity,
-        }
-        completed_runtime_artifact = logger.write_snapshot("completed_runtime", {
-            "identity": snapshot_identity, "scenario": scenario, "ground_truth": gt,
-            "backend_tick_records": backend_records, "realized_events": realized,
-            "foresight": foresight, "actions": [action.to_dict() for action in actions],
-            "analysis_steps": loop_result["analysis_steps"],
-            "stale_observation_records": stale_observation_records,
-            "manager_inputs": snapshot_inputs(ScoringInputs([], [], {}, {}, {}, env.evidence,
-                                                            env.stakeholders, env.dilemmas)),
-            "structured_memory": memory, "semantic_ledger_artifact": ledger_binding,
-            "provider_audit_artifact": provider_binding,
-            "counterfactual_settings": {"masking_policy": counterfactual_masking,
-                "per_action": per_action_attribution, "per_action_cap": per_action_cap,
-                "per_action_groups": per_action_group_attribution,
-                "per_action_group_cap": per_action_group_cap},
-        })
-        logger.finalize(final_score=None, trajectory_summary={
-            "status": "postprocessing_pending", "completed_runtime_artifact": completed_runtime_artifact})
-    try:
-        cf = domain_counterfactual_report(
-            env_factory=spec.env_factory(),
-            scenario_config=scenario,
-            seed=seed,
-            actual_actions=actions,
-            masking_policy=counterfactual_masking,
-            per_action=per_action_attribution,
-            per_action_cap=per_action_cap,
-            per_action_groups=per_action_group_attribution,
-            per_action_group_cap=per_action_group_cap,
-        )
-    except Exception as exc:
-        details = _finalize_failed_episode_audit(agent=agent, logger=logger, error=exc, error_stage="counterfactual",
-                                               artifacts={"completed_runtime_artifact": completed_runtime_artifact})
-        exc.episode_error_details = details
-        raise
-
-    # T0: ``load_assignments`` is the cross-domain stakeholder-class field
-    # name (kept identical across all 5 domains, see each seeds/schema.py),
-    # so this extraction stays domain-agnostic.
-    load_classes = {
-        la["load_id"]: la["stakeholder_class"]
-        for la in scenario.get("load_assignments", [])
-    }
-    load_criticalities = {
-        la["load_id"]: float(la["criticality"])
-        for la in scenario.get("load_assignments", [])
-        if la.get("criticality") is not None
-    }
-
     # T0: optimality-gap reference (``ScoringInputs.lp_optimum``) is
     # dispatched by domain. power_grid keeps the in-runner LP / AC-OPF
     # oracle; the v0.7 domains read the oracle envelope cached on
@@ -3029,6 +3076,171 @@ def _run_one_with_environment_impl(
             env,
             default=spec.objective_cost_component,
         )
+    snapshot_identity = None
+    completed_runtime_artifact = None
+    if logger is not None:
+        from core.implementation_identity import implementation_identity
+        from evaluation.scoring_snapshot import snapshot_inputs
+
+        memory, ledger_binding, provider_binding = _collect_agent_session_artifacts(agent=agent, logger=logger)
+        if env.evidence is not None:
+            logger.write_evidence(env.evidence.to_jsonable())
+        runtime_summary = logger.finalize(final_score=None, trajectory_summary={})
+        snapshot_identity = {
+            "scenario_signature": recompute_signature_with_seed(scenario, seed, spec),
+            "seed": seed, "agent_config": _public_agent_config(agent_kwargs),
+            "agent_name": agent_name, "implementation": implementation_identity(REPO_ROOT),
+            "checkpoint_identity": checkpoint_identity,
+        }
+        completed_runtime_artifact = logger.write_snapshot("completed_runtime", {
+            "trajectory_artifact": runtime_summary["trajectory_summary"]["trajectory_artifact"],
+            "trajectory_header": logger.header.to_dict(),
+            "postprocessing_context": _completed_postprocessing_context(
+                env, agent, loop_result, agent_extras, within_tick_interaction,
+                checkpoint_path, lp_optimum, optimality_objective_component),
+            "identity": snapshot_identity, "scenario": scenario, "ground_truth": gt,
+            "backend_tick_records": backend_records, "realized_events": realized,
+            "foresight": foresight, "actions": [action.to_dict() for action in actions],
+            "analysis_steps": loop_result["analysis_steps"],
+            "stale_observation_records": stale_observation_records,
+            "manager_inputs": snapshot_inputs(ScoringInputs([], [], {}, {}, {}, env.evidence,
+                                                            env.stakeholders, env.dilemmas)),
+            "structured_memory": memory, "semantic_ledger_artifact": ledger_binding,
+            "provider_audit_artifact": provider_binding,
+            "counterfactual_settings": {"masking_policy": counterfactual_masking,
+                "per_action": per_action_attribution, "per_action_cap": per_action_cap,
+                "per_action_groups": per_action_group_attribution,
+                "per_action_group_cap": per_action_group_cap},
+        })
+        logger.finalize(final_score=None, trajectory_summary={
+            "status": "postprocessing_pending", "completed_runtime_artifact": completed_runtime_artifact})
+    return _postprocess_completed_episode(
+        scenario=scenario,
+        agent_name=agent_name,
+        env=env,
+        spec=spec,
+        seed=seed,
+        agent_kwargs=agent_kwargs,
+        trajectory_dir=trajectory_dir,
+        counterfactual_masking=counterfactual_masking,
+        per_action_attribution=per_action_attribution,
+        per_action_cap=per_action_cap,
+        per_action_group_attribution=per_action_group_attribution,
+        per_action_group_cap=per_action_group_cap,
+        within_tick_interaction=within_tick_interaction,
+        checkpoint_path=checkpoint_path,
+        agent=agent,
+        agent_extras=agent_extras,
+        logger=logger,
+        loop_result=loop_result,
+        gt=gt,
+        foresight=foresight,
+        backend_records=backend_records,
+        realized=realized,
+        snapshot_identity=snapshot_identity,
+        completed_runtime_artifact=completed_runtime_artifact,
+        lp_optimum=lp_optimum,
+        optimality_objective_component=optimality_objective_component,
+    )
+
+
+def _completed_postprocessing_context(env, agent, loop_result, agent_extras,
+                                      within_tick_interaction, checkpoint_path,
+                                      lp_optimum, optimality_objective_component):
+    registry = getattr(env, "_tools", None)
+    return {
+        "schema_version": "completed_postprocessing_context_v1",
+        "loop_result": {key: value for key, value in loop_result.items() if key != "actions"},
+        "tick": env.tick,
+        "agent_extras": agent_extras,
+        "llm_stats": agent.get_interaction_stats() if hasattr(agent, "get_interaction_stats") else None,
+        "checkpoint_progress": agent.progress() if checkpoint_path is not None else None,
+        "within_tick_interaction": within_tick_interaction,
+        "lp_optimum": lp_optimum,
+        "optimality_objective_component": optimality_objective_component,
+        "tool_specs": env.get_tool_specs() if registry is not None else [],
+        "readonly_tool_names": sorted(env.readonly_tool_names()) if registry is not None else [],
+        "tool_registry": None if registry is None else [
+            {key: getattr(registry.get(name), key) for key in (
+                "name", "description", "parameters", "state_changing", "semantic_role",
+                "native_target_kind", "actuator_family", "cost_units")}
+            for name in registry.names()
+        ],
+    }
+
+
+def _postprocess_completed_episode(
+    *,
+    scenario,
+    agent_name,
+    env,
+    spec,
+    seed,
+    agent_kwargs,
+    trajectory_dir,
+    counterfactual_masking,
+    per_action_attribution,
+    per_action_cap,
+    per_action_group_attribution,
+    per_action_group_cap,
+    within_tick_interaction,
+    checkpoint_path,
+    agent,
+    agent_extras,
+    logger,
+    loop_result,
+    gt,
+    foresight,
+    backend_records,
+    realized,
+    snapshot_identity,
+    completed_runtime_artifact,
+    lp_optimum,
+    optimality_objective_component,
+    session_artifacts=None,
+    recovery_metadata=None,
+    unavailable_trajectory_fields=(),
+) -> dict[str, Any]:
+    """Shared live and provider-free recovery scoring path."""
+    from runner.worker_deadline import mark_postprocessing_started
+    from evaluation.scoring_snapshot import snapshot_inputs
+
+    mark_postprocessing_started()
+    actions = loop_result["actions"]
+    tool_results_ok = loop_result["tool_results_ok"]
+    tool_results_failed = loop_result["tool_results_failed"]
+    stale_observation_records = loop_result["stale_observation_records"]
+    try:
+        cf = domain_counterfactual_report(
+            env_factory=spec.env_factory(),
+            scenario_config=scenario,
+            seed=seed,
+            actual_actions=actions,
+            masking_policy=counterfactual_masking,
+            per_action=per_action_attribution,
+            per_action_cap=per_action_cap,
+            per_action_groups=per_action_group_attribution,
+            per_action_group_cap=per_action_group_cap,
+        )
+    except Exception as exc:
+        details = _finalize_failed_episode_audit(agent=agent, logger=logger, error=exc, error_stage="counterfactual",
+                                               artifacts={"completed_runtime_artifact": completed_runtime_artifact})
+        exc.episode_error_details = details
+        raise
+
+    # T0: ``load_assignments`` is the cross-domain stakeholder-class field
+    # name (kept identical across all 5 domains, see each seeds/schema.py),
+    # so this extraction stays domain-agnostic.
+    load_classes = {
+        la["load_id"]: la["stakeholder_class"]
+        for la in scenario.get("load_assignments", [])
+    }
+    load_criticalities = {
+        la["load_id"]: float(la["criticality"])
+        for la in scenario.get("load_assignments", [])
+        if la.get("criticality") is not None
+    }
+
     # v0.2.1: log evidence so audit can verify scoring traceability.
     if env.evidence is not None:
         env.evidence.log(
@@ -3045,6 +3257,21 @@ def _run_one_with_environment_impl(
                 "per_action": cf.per_action,
                 "per_action_group_status": cf.per_action_group_status,
                 "per_action_groups": cf.per_action_groups,
+                # Pass counters: with these the published attribution digest
+                # is recomputable from the ledger entry alone (the digest
+                # publishes only what the ledger carries).
+                "per_action_expected": int(cf.per_action_expected),
+                "per_action_attempted": int(cf.per_action_attempted),
+                "per_action_completed": int(cf.per_action_completed),
+                "per_action_failures": list(cf.per_action_failures),
+                "per_action_group_expected": int(cf.per_action_group_expected),
+                "per_action_group_attempted": int(
+                    cf.per_action_group_attempted
+                ),
+                "per_action_group_completed": int(cf.per_action_group_completed),
+                "per_action_group_failures": list(
+                    cf.per_action_group_failures
+                ),
             },
             source="engine",
         )
@@ -3150,6 +3377,7 @@ def _run_one_with_environment_impl(
     if logger is not None:
         scoring_inputs_artifact = logger.write_snapshot("scoring_inputs", {
             "identity": snapshot_identity, "inputs": snapshot_inputs(inputs),
+            **(recovery_metadata or {}),
             # No scorer reads these; label them so an offline reader does not
             # mistake the native recovery row for a live pressure signal.
             # ``evaluation.scoring_snapshot.write_rescore`` forwards this block
@@ -3290,7 +3518,8 @@ def _run_one_with_environment_impl(
         structured_memory,
         semantic_ledger_artifact,
         provider_audit_artifact,
-    ) = _collect_agent_session_artifacts(agent=agent, logger=logger)
+    ) = (session_artifacts if session_artifacts is not None else
+         _collect_agent_session_artifacts(agent=agent, logger=logger))
     if structured_memory is not None:
         trajectory_summary["structured_memory"] = structured_memory
     if semantic_ledger_artifact is not None:
@@ -3326,6 +3555,10 @@ def _run_one_with_environment_impl(
         ),
         scenario=scenario,
     )
+    if unavailable_trajectory_fields:
+        for key in unavailable_trajectory_fields:
+            trajectory_summary[key] = None
+        trajectory_summary["recovery_unavailable_fields"] = list(unavailable_trajectory_fields)
     if logger is not None:
         logger.finalize(
             final_score=score.total_score,

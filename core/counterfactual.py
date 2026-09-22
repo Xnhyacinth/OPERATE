@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import copy
 import math
+import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
@@ -176,11 +177,19 @@ class CounterfactualReport:
 REASON_CODE_CF_BASELINE_UNUSABLE = "cf_baseline_produced_no_usable_cost"
 REASON_CODE_BACKEND_OPTED_OUT = "backend_declared_supports_counterfactual_false"
 REASON_CODE_REPLAY_SCHEDULE_UNPROVEN = "counterfactual_replay_schedule_unproven"
+REASON_CODE_REPLAY_WALL_BUDGET = "counterfactual_replay_exceeded_wall_budget"
+# Optional cooperative diagnostic budget, disabled for ordinary evaluation.
+# Each recorded tick invokes env.step once; native work per step is owned by
+# the backend. Checks between ticks cannot interrupt reset or a blocked native
+# step. Formal batch execution uses the process supervisor's explicit deadlines
+# rather than silently replacing a slow replay with an inapplicable score.
+_REPLAY_WALL_BUDGET_S: float | None = None
 COUNTERFACTUAL_REASON_CODES: frozenset[str] = frozenset(
     {
         REASON_CODE_CF_BASELINE_UNUSABLE,
         REASON_CODE_BACKEND_OPTED_OUT,
         REASON_CODE_REPLAY_SCHEDULE_UNPROVEN,
+        REASON_CODE_REPLAY_WALL_BUDGET,
     }
 )
 
@@ -481,6 +490,8 @@ def _replay_recorded_schedule(
     actions: list[Action],
     *,
     masking_policy: MaskingPolicy | None = None,
+    wall_budget_deadline: float | None = None,
+    wall_budget_error: type[RuntimeError] | None = None,
 ) -> _RecordedScheduleReplay:
     """Replay exactly the finite tick window recorded by the live runner.
 
@@ -498,7 +509,14 @@ def _replay_recorded_schedule(
     notes: list[str] = []
     steps_executed = 0
     final_step_done = False
+    _started = time.monotonic()
     for tick_idx, base_action in enumerate(actions):
+        if (
+            wall_budget_deadline is not None
+            and wall_budget_error is not None
+            and time.monotonic() > wall_budget_deadline
+        ):
+            raise wall_budget_error(time.monotonic() - _started)
         step_action = (
             masking_policy(base_action, tick_idx)
             if masking_policy is not None
@@ -524,6 +542,47 @@ def _replay_recorded_schedule(
     )
 
 
+def _budget_exceeded_report(
+    masking_label: str, detail: str, *, branch: str
+) -> "CounterfactualReport":
+    """A replay branch outran the wall budget: fail closed, keep it explicit.
+
+    The counterfactual is unmeasured, not a completed zero-cost replay.
+    Empty components and ``applicable=False`` prevent scoring its placeholders.
+    """
+
+    return CounterfactualReport(
+        applicable=False,
+        masking_policy=masking_label,
+        actual_components={},
+        counterfactual_components={},
+        actual_cost=0.0,
+        counterfactual_cost=0.0,
+        prevented_loss=0.0,
+        notes=f"{branch} {detail}; {REASON_CODE_REPLAY_WALL_BUDGET}",
+        reason_code=REASON_CODE_REPLAY_WALL_BUDGET,
+        per_action=[],
+        per_action_capped=False,
+        per_action_status="unavailable",
+        per_action_expected=0,
+        per_action_attempted=0,
+        per_action_failures=[],
+        per_action_groups=[],
+        per_action_group_status="unavailable",
+        per_action_group_expected=0,
+        per_action_group_attempted=0,
+        per_action_group_failures=[],
+    )
+
+
+class ReplayWallBudgetExceededError(RuntimeError):
+    """A recorded replay exceeded its opt-in cooperative diagnostic budget."""
+
+    def __init__(self, seconds: float) -> None:
+        super().__init__(f"replay exceeded {_REPLAY_WALL_BUDGET_S}s wall budget after {seconds:.0f}s")
+        self.seconds = seconds
+
+
 def _replay_recorded_and_extract_costs_and_truth(
     env_factory: Callable[[], POMDPEnvironment],
     scenario_config: dict[str, Any],
@@ -532,15 +591,29 @@ def _replay_recorded_and_extract_costs_and_truth(
     cost_extractor: Callable[[dict[str, Any]], dict[str, float]],
     *,
     masking_policy: MaskingPolicy | None = None,
+    initialized_env: POMDPEnvironment | None = None,
 ) -> tuple[dict[str, float], _RecordedScheduleReplay]:
-    """Run one exact recorded-window replay and always close its backend."""
-    env = env_factory()
+    """Run one recorded-window replay, taking ownership of its backend.
+
+    If explicitly enabled, ``_REPLAY_WALL_BUDGET_S`` is checked between
+    ticks and raises :class:`ReplayWallBudgetExceededError`. It is not a hard
+    timeout: native calls and initialization require external supervision.
+    """
+    _budget_deadline = (
+        time.monotonic() + _REPLAY_WALL_BUDGET_S
+        if _REPLAY_WALL_BUDGET_S is not None
+        else None
+    )
+    env = env_factory() if initialized_env is None else initialized_env
     try:
-        env.reset(copy.deepcopy(scenario_config), seed)
+        if initialized_env is None:
+            env.reset(copy.deepcopy(scenario_config), seed)
         replay = _replay_recorded_schedule(
             env,
             actions,
             masking_policy=masking_policy,
+            wall_budget_deadline=_budget_deadline,
+            wall_budget_error=ReplayWallBudgetExceededError,
         )
         return cost_extractor(replay.ground_truth), replay
     finally:
@@ -625,6 +698,8 @@ def run_counterfactual(
     per_action_groups: bool = False,
     per_action_group_cap: int | None = _PER_ACTION_CAP,
     readonly_tool_names: set[str] | None = None,
+    *,
+    initialized_actual_env: POMDPEnvironment | None = None,
 ) -> CounterfactualReport:
     """Run a masked-action replay and produce a CounterfactualReport.
 
@@ -671,18 +746,31 @@ def run_counterfactual(
         attribution.
     per_action_group_cap:
         Maximum repeated action groups to replay. ``None`` requests all groups.
+    initialized_actual_env:
+        Optional freshly reset, unstepped environment used for capability
+        probing. It must match ``scenario_config`` and ``seed``. Ownership
+        transfers to this function, which closes it after the actual replay,
+        including on failure. Masked replays still use fresh environments.
     """
     # ── Pass 1: replay the actual actions to capture the actual cost ──
     # Pin both branches to the finite tick sequence the live runner recorded.
     # This preserves terminal response ticks and pending-action drains while
     # avoiding fabricated horizon-padding ticks after an incomplete trace.
-    actual_components, actual_replay = _replay_recorded_and_extract_costs_and_truth(
-        env_factory,
-        scenario_config,
-        seed,
-        actual_actions,
-        cost_extractor,
-    )
+    try:
+        actual_components, actual_replay = (
+            _replay_recorded_and_extract_costs_and_truth(
+                env_factory,
+                scenario_config,
+                seed,
+                actual_actions,
+                cost_extractor,
+                initialized_env=initialized_actual_env,
+            )
+        )
+    except ReplayWallBudgetExceededError as exc:
+        return _budget_exceeded_report(
+            masking_label, str(exc), branch="actual_replay"
+        )
 
     # ── Pass 2: same scenario, same seed, but masked actions ──
     # Apply the intervention exactly once. If it leaves the complete action
@@ -699,15 +787,20 @@ def run_counterfactual(
         cf_components = dict(actual_components)
         counterfactual_replay = actual_replay
     else:
-        cf_components, counterfactual_replay = (
-            _replay_recorded_and_extract_costs_and_truth(
-                env_factory,
-                scenario_config,
-                seed,
-                masked_actions,
-                cost_extractor,
+        try:
+            cf_components, counterfactual_replay = (
+                _replay_recorded_and_extract_costs_and_truth(
+                    env_factory,
+                    scenario_config,
+                    seed,
+                    masked_actions,
+                    cost_extractor,
+                )
             )
-        )
+        except ReplayWallBudgetExceededError as exc:
+            return _budget_exceeded_report(
+                masking_label, str(exc), branch="masked_replay"
+            )
 
     value_domains = actual_replay.ground_truth.get("cost_component_value_domains", {})
     cf_value_domains = counterfactual_replay.ground_truth.get("cost_component_value_domains", {})
@@ -1074,17 +1167,33 @@ def _attribute_per_action_prevented_loss(
     entries: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     for tick, call_index, state_call in capped_calls:
-        masked_components, replay = _replay_recorded_and_extract_costs_and_truth(
-            env_factory,
-            scenario_config,
-            seed,
-            actual_actions,
-            cost_extractor,
-            masking_policy=make_mask_single_action_policy(
-                tick,
-                call_index,
-            ),
-        )
+        try:
+            masked_components, replay = _replay_recorded_and_extract_costs_and_truth(
+                env_factory,
+                scenario_config,
+                seed,
+                actual_actions,
+                cost_extractor,
+                masking_policy=make_mask_single_action_policy(
+                    tick,
+                    call_index,
+                ),
+            )
+        except Exception as exc:
+            # Optional diagnostics must not discard the completed baseline.
+            # Exception messages may contain private backend configuration.
+            failures.append(
+                {
+                    "tick": int(tick),
+                    "call_index": int(call_index),
+                    "call_id": state_call.call_id,
+                    "idempotency_key": state_call.idempotency_key,
+                    "tool_name": str(state_call.name),
+                    "reason_code": "counterfactual_attribution_replay_failed",
+                    "error_type": type(exc).__name__,
+                }
+            )
+            continue
         if not replay.completed_recorded_schedule:
             failures.append(
                 {
@@ -1199,16 +1308,27 @@ def _attribute_repeated_action_groups_prevented_loss(
                 }
             )
             continue
-        masked_components, replay = _replay_recorded_and_extract_costs_and_truth(
-            env_factory,
-            scenario_config,
-            seed,
-            actual_actions,
-            cost_extractor,
-            masking_policy=make_mask_action_group_policy(
-                (tick, call_index) for tick, call_index, _call in calls
-            ),
-        )
+        try:
+            masked_components, replay = _replay_recorded_and_extract_costs_and_truth(
+                env_factory,
+                scenario_config,
+                seed,
+                actual_actions,
+                cost_extractor,
+                masking_policy=make_mask_action_group_policy(
+                    (tick, call_index) for tick, call_index, _call in calls
+                ),
+            )
+        except Exception as exc:
+            failures.append(
+                {
+                    "group_id": group_id,
+                    "call_ids": call_ids,
+                    "reason_code": "counterfactual_attribution_replay_failed",
+                    "error_type": type(exc).__name__,
+                }
+            )
+            continue
         if not replay.completed_recorded_schedule:
             failures.append(
                 {

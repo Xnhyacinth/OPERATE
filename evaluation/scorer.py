@@ -228,7 +228,9 @@ QUALIFICATION_SCORING_VERSION = "0.15.0"
 # v0.19.0 candidate: explicitly unmodeled native catastrophe is N/A, not a
 # legacy balance-threshold failure or a fabricated perfect survival score.
 # v0.20.0 separates native routing completion from fleet failure.
-SCORING_VERSION = "0.20.0"
+# v0.21.0 closes observed-response and dimension evidence contracts, and
+# serializes an unavailable primary as null. The wait-relative formula is unchanged.
+SCORING_VERSION = "0.21.0"
 PRIMARY_HEADLINE_AGGREGATION = "wait_relative_outcome_v1"
 LEGACY_FIVE_GROUP_AGGREGATION = "scenario_applicable_five_group_v2"
 PRIMARY_WAIT_RELATIVE_PREFERRED = "counterfactual_prevention"
@@ -922,12 +924,13 @@ def score_adaptive_replanning(
         )
     # Normal completion, telemetry and an agent's own effects are not tests
     # of adaptation. Unknown events do not create measurement opportunities.
+    from core.world_evolution_contract import event_is_derived_surprise
     from evaluation.foresight import is_forecastable_event
 
     opportunities = [event for event in realized_events if (
         str(event.get("origin") or "") not in {"agent_caused", "endogenous_completion"}
         and str(event.get("event_class") or "") not in {"agent_outcome", "lifecycle", "telemetry"}
-        and (event.get("surprise") is True
+        and (event_is_derived_surprise(event)
              or event.get("event_class") == "disruption"
              or is_forecastable_event(event))
     )]
@@ -1389,20 +1392,37 @@ def native_outcome_diagnostics(report: dict[str, Any] | None) -> dict[str, Any]:
     Costs are comparable only within a matched native task/objective. This
     diagnostic does not change eligibility, gates, or cross-domain weights.
     """
-    unavailable = {"applicable": False, "reason": "usable native replay costs unavailable"}
+    unavailable = {
+        "applicable": False,
+        "reason": "usable native replay costs unavailable",
+    }
     if not report or report.get("applicable") is not True:
         return unavailable
     values = [report.get(key) for key in ("actual_cost", "counterfactual_cost")]
-    if any(isinstance(v, bool) or not isinstance(v, (int, float))
-           or not math.isfinite(v) for v in values):
+    if any(
+        isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
+        for v in values
+    ):
         return unavailable
     actual, baseline = map(float, values)
-    relative = (baseline - actual) / baseline if baseline > 0.0 else None
+    prevented = baseline - actual
+    if not math.isfinite(prevented):
+        return unavailable
+    relative = prevented / baseline if baseline > 0.0 else None
+    if relative is not None and not math.isfinite(relative):
+        return unavailable
     return {
         "applicable": True,
         "actual_cost": actual,
         "counterfactual_cost": baseline,
-        "prevented_loss": baseline - actual,
+        "prevented_loss": prevented,
+        "outcome_vs_wait": (
+            "harmed"
+            if actual > baseline
+            else "improved"
+            if actual < baseline
+            else "parity"
+        ),
         "wait_relative_change": relative,
         "bounded_score_clipped": relative is not None and not 0.0 <= relative <= 1.0,
         "aggregation": "matched_native_objective_only",
@@ -1419,12 +1439,11 @@ def _attribution_diagnostics(
     unit, or mixes the two units — the unit is chosen by ordering alone.
 
     The digest is deliberately limited to values an auditor can recompute from
-    the ``counterfactual_result`` ledger entry (the statuses, the row lists and
-    the three episode costs; ``normalized_prevention`` follows from the report's
-    documented formula). The per-pass ``expected``/``attempted``/``completed``
-    /``capped`` counters are NOT in that entry, so they are not published here
-    rather than asserted without a ledger source. The pass was capped or
-    partial is still visible via the status.
+    the ``counterfactual_result`` ledger entry (the statuses, the row lists,
+    the three episode costs, and the per-pass
+    ``expected``/``attempted``/``completed`` counters; ``normalized_prevention``
+    follows from the report's documented formula). Legacy reports predating
+    the ledger counters simply omit those keys here.
 
     ``None`` when neither pass ran. The report serializer always emits both row
     lists (as ``[]``), so list presence cannot distinguish "never requested"
@@ -1466,10 +1485,24 @@ def _attribution_diagnostics(
                 "normalized_prevention",
             )
         },
-        # Rows actually replayed — NOT the requested coverage, which the ledger
-        # entry does not carry. The ``_observed`` suffix keeps that explicit.
+        # Rows actually replayed — the requested coverage is the ``expected``
+        # counter, both now carried by the ledger entry.
         "n_groups_observed": len(groups) if isinstance(groups, list) else 0,
     }
+    # Per-pass counters: published because the ``counterfactual_result``
+    # ledger entry carries them verbatim. Absent in a legacy report → the
+    # key is omitted, never defaulted.
+    for key in (
+        "per_action_expected",
+        "per_action_attempted",
+        "per_action_completed",
+        "per_action_group_expected",
+        "per_action_group_attempted",
+        "per_action_group_completed",
+    ):
+        value = counterfactual_report.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            summary[key] = value
     if unit == "group":
         summary["n_actions_attributed"] = sum(
             len(row.get("call_ids") or [])
@@ -2171,7 +2204,12 @@ def _evidenced_calibrated_score(
         raise ValueError(f"{name} evidence_ids must be a list of non-empty strings")
     if not evidence_ids:
         return None
-    score = float(dimension.get("calibrated_score", 0.0))
+    value = dimension.get("calibrated_score")
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError(f"{name} calibrated_score must be numeric, not boolean")
+    score = float(value)
     if not math.isfinite(score):
         raise ValueError(f"{name} calibrated_score must be finite")
     return max(0.0, min(100.0, score))
@@ -2260,8 +2298,7 @@ def discriminative_core_total(
         if group_name == "task_completion":
             continue
         if all(
-            _declared_dimension_applicable(dimension_applicability or {}, name)
-            is False
+            _declared_dimension_applicable(dimension_applicability or {}, name) is False
             for name in contract["dimensions"]
         ):
             excluded_groups.append(group_name)
@@ -2312,10 +2349,20 @@ def discriminative_core_total(
         if survival_floor is not None
         else _survival_floor_violation(dimensions)
     )
-    wait_relative = _wait_relative_outcome(
-        emitted, dimension_applicability or {}
-    )
+    wait_relative = _wait_relative_outcome(emitted, dimension_applicability or {})
     wait_relative_declared_missing = list(wait_relative["missing_declared"])
+    survival_dimension = emitted.get("system_survival") or {}
+    gate_evidence_missing = survival_dimension.get("reason") in {
+        "required scoring evidence unavailable in episode ledger",
+        "no tick records",
+    } or (
+        (
+            survival_dimension.get("applicable") is True
+            or survival_dimension.get("floor_violation") is True
+        )
+        and _evidenced_calibrated_score(survival_dimension, name="system_survival")
+        is None
+    )
     coverage = None
     if schedule_coverage is not None:
         numeric_coverage = float(schedule_coverage)
@@ -2327,6 +2374,7 @@ def discriminative_core_total(
         kind != "unsupported"
         and wait_relative["score"] is not None
         and not wait_relative_declared_missing
+        and not gate_evidence_missing
     )
     survivor = (
         float(wait_relative["score"]) if wait_relative["score"] is not None else 0.0
@@ -2344,14 +2392,14 @@ def discriminative_core_total(
         "excluded_groups": excluded_groups,
         "effective_group_weights": {
             name: (
-                0.0 if name in excluded_groups
+                0.0
+                if name in excluded_groups
                 else float(contract["weight"]) / denominator
             )
             for name, contract in HEADLINE_SCORE_GROUPS.items()
         },
-        "fixed_five_group_total": numerator / sum(
-            float(contract["weight"]) for contract in HEADLINE_SCORE_GROUPS.values()
-        ),
+        "fixed_five_group_total": numerator
+        / sum(float(contract["weight"]) for contract in HEADLINE_SCORE_GROUPS.values()),
         "legacy_five_group_total": _calibrate(legacy_total, difficulty_level),
         "legacy_five_group_weight_denominator": denominator,
         "legacy_formal_score_eligible": (
@@ -2369,6 +2417,7 @@ def discriminative_core_total(
         "missing_groups": missing_groups,
         "missing_declared_dimensions": missing_declared_dimensions,
         "primary_missing_declared_dimensions": wait_relative_declared_missing,
+        "primary_gate_evidence_missing": gate_evidence_missing,
         "formal_score_eligible": primary_eligible,
         "survival_floor_zeroed": floor,
         "catastrophe_zeroed": floor,
@@ -2436,7 +2485,7 @@ def episode_wait_relative_ranking(
         "aggregation": result["aggregation"],
         "wait_relative_score": result["wait_relative_score"],
         "wait_relative_source": result["wait_relative_source"],
-        "primary_score": float(result["total_score"]) if eligible else 0.0,
+        "primary_score": float(result["total_score"]) if eligible else None,
         "formal_score_eligible": eligible,
     }
 
@@ -2656,9 +2705,7 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
     job_shop_evidence_items = []
     if inputs.evidence_logger:
         for kind in ("job_shop_tool_call", "co_bench_job_shop_tool_call"):
-            job_shop_evidence_items.extend(
-                inputs.evidence_logger.items_by_kind(kind)
-            )
+            job_shop_evidence_items.extend(inputs.evidence_logger.items_by_kind(kind))
     job_shop_dispatch_evs = [
         i.evidence_id
         for i in job_shop_evidence_items
@@ -2706,7 +2753,9 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
     dims: list[DimensionScore] = [
         score_system_survival(inputs.backend_tick_records, evidence_ids=state_evs),
         score_economic_cost(
-            inputs.cost_components, cf_cost, evidence_ids=cost_evs,
+            inputs.cost_components,
+            cf_cost,
+            evidence_ids=cost_evs,
             cost_component_value_domains=(inputs.counterfactual_report or {}).get(
                 "cost_component_value_domains", {}
             ),
@@ -2785,6 +2834,11 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
         ),
     ]
 
+    available_evidence_ids = (
+        {item.evidence_id for item in inputs.evidence_logger.items()}
+        if inputs.evidence_logger is not None
+        else set()
+    )
     for dim in dims:
         declared_applicable = _declared_dimension_applicable(
             inputs.dimension_applicability,
@@ -2797,6 +2851,20 @@ def score_episode(inputs: ScoringInputs) -> EpisodeScore:
             dim.support_count = 0
             dim.evidence_ids = list(applicability_evs)
             dim.reason = "scenario declares dimension not applicable"
+        elif dim.applicable and (
+            not dim.evidence_ids
+            or not all(
+                evidence_id in available_evidence_ids
+                for evidence_id in dim.evidence_ids
+            )
+        ):
+            # Composite diagnostics obey the same evidence boundary as the
+            # primary. A backend value alone is not an auditable scored result.
+            dim.raw_score = 0.0
+            dim.calibrated_score = 0.0
+            dim.applicable = False
+            dim.support_count = 0
+            dim.reason = "required scoring evidence unavailable in episode ledger"
         dim.weight = CANONICAL_DIMENSION_WEIGHTS.get(dim.name, dim.weight)
 
     adaptive_raw_total = aggregate(dims, drop_non_applicable=True)
