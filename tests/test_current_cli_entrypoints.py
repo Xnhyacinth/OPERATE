@@ -71,8 +71,8 @@ def test_default_release_is_anchored_to_repository() -> None:
     assert DEFAULT_RELEASE == REPO_ROOT / "benchmark"
     assert DEFAULT_RELEASE.is_absolute()
     assert SUMMARY_DEFAULT_RELEASE == DEFAULT_RELEASE
-    assert DEFAULT_OUTPUT_JSON.parent.name == "output"
-    assert DEFAULT_OUTPUT_MARKDOWN.parent.name == "output"
+    assert DEFAULT_OUTPUT_JSON.parent.name == "artifacts"
+    assert DEFAULT_OUTPUT_MARKDOWN.parent.name == "artifacts"
 
 
 def test_package_version_matches_project_metadata() -> None:

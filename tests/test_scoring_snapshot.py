@@ -62,11 +62,64 @@ def test_scoring_snapshot_roundtrip_preserves_every_dimension_and_evidence(tmp_p
     assert result["source_snapshot_sha256"] == binding["sha256"]
     assert result["score"] == score_episode(inputs).to_dict()
     assert result["formal_completion_claimed"] is False
+    # A snapshot envelope written before the label existed still yields a
+    # labelled rescore: the offline reader must never present the retired
+    # recovery pair as a live signal.
+    assert result["diagnostic_only_fields"] == {
+        "adaptive_recovery_signal_key": inputs.adaptive_recovery_signal_key,
+        "adaptive_recovery_signal_name": inputs.adaptive_recovery_signal_name,
+        "diagnostic_only": True,
+    }
     assert source.read_bytes() == before
     with pytest.raises(FileExistsError):
         write_rescore(source, binding["sha256"], target)
     with pytest.raises(ValueError, match="hash"):
         write_rescore(source, "0" * 64, tmp_path / "bad.json")
+
+
+def test_archived_recovery_signal_fields_restore_without_changing_scoring(tmp_path):
+    """D7: the retired recovery row stays serializable but never scores.
+
+    ``ScoringInputs`` may only gain optional fields, so the dead pair remains
+    part of the snapshot contract.  Changing its value must not move the score
+    or break exact-field restore of an already-archived payload.
+    """
+    from data import TrajectoryLogger
+    from evaluation.scoring_snapshot import restore_inputs, snapshot_inputs, write_rescore
+
+    def _inputs(key, name):
+        return ScoringInputs(
+            [{"balance_error_mw": 10.0}, {"balance_error_mw": 0.0}],
+            [{"tick": 0, "type": "shock", "event_class": "disruption"}],
+            {}, {}, {}, None, None, None, scenario_signature="diagnostic-only",
+            adaptive_recovery_signal_key=key, adaptive_recovery_signal_name=name,
+        )
+
+    payload = snapshot_inputs(_inputs("balance_error_mw", "power_balance_violation"))
+    assert payload["adaptive_recovery_signal_key"] == "balance_error_mw"
+    restored = restore_inputs(json.loads(json.dumps(payload)))
+    assert restored.adaptive_recovery_signal_key == "balance_error_mw"
+    assert snapshot_inputs(restored) == payload
+    assert (
+        score_episode(restored).to_dict()
+        == score_episode(_inputs("residual_risk_burden", "driving_risk_exposure")).to_dict()
+    )
+    # The live writer's label must reach the offline reader, which otherwise
+    # drops every envelope key but identity/inputs/score.
+    logger = TrajectoryLogger("saved", tmp_path)
+    binding = logger.write_snapshot("scoring_inputs", {
+        "identity": {"scenario_signature": "diagnostic-only"},
+        "inputs": payload,
+        "diagnostic_only_fields": {
+            "adaptive_recovery_signal_key": "balance_error_mw",
+            "adaptive_recovery_signal_name": "power_balance_violation",
+            "diagnostic_only": True,
+        },
+    })
+    target = tmp_path / "diagnostic_rescore.json"
+    result = write_rescore(Path(binding["path"]), binding["sha256"], target)
+    assert result["diagnostic_only_fields"]["adaptive_recovery_signal_key"] == "balance_error_mw"
+    assert result["diagnostic_only_fields"]["diagnostic_only"] is True
 
 
 def test_nonfinite_ground_truth_survives_strict_json_snapshot(tmp_path):
@@ -107,7 +160,11 @@ def test_completed_runtime_is_persisted_before_postprocessing_failure(tmp_path, 
             raise RuntimeError("counterfactual failed")
         return SimpleNamespace(actual_cost=-4.2, counterfactual_cost=10.0, prevented_loss=14.2,
             applicable=True, reason_code="", masking_policy="wait_only", per_action_status="disabled",
-            per_action=[], per_action_group_status="disabled", per_action_groups=[],
+            per_action=[], per_action_expected=0, per_action_attempted=0,
+            per_action_completed=0, per_action_failures=[],
+            per_action_group_status="disabled", per_action_groups=[],
+            per_action_group_expected=0, per_action_group_attempted=0,
+            per_action_group_completed=0, per_action_group_failures=[],
             to_dict=lambda: {"actual_cost": -4.2, "counterfactual_cost": 10.0, "applicable": True})
 
     monkeypatch.setattr(episode, "domain_counterfactual_report", fail_cf)

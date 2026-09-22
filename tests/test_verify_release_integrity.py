@@ -684,12 +684,15 @@ def test_published_evidence_uses_the_declared_formal_tool_choice() -> None:
 
 
 def test_formal_realtime_contract_tracks_diagnostic_schema() -> None:
-    assert REALTIME_FORMAL_CONTRACT_V1["scorecard_version"] == (
-        REALTIME_DIAGNOSTIC_SCHEMA
-    )
-    assert REALTIME_FORMAL_CONTRACT_V1["diagnostic_schema_version"] == (
-        REALTIME_DIAGNOSTIC_SCHEMA
-    )
+    # The frozen release contract pins the diagnostics version that was
+    # current at promotion; the live evaluation SCHEMA_VERSION may advance
+    # past it. The contract must stay internally consistent and match the
+    # manifest it verifies.
+    contract = REALTIME_FORMAL_CONTRACT_V1
+    assert contract["scorecard_version"] == contract["diagnostic_schema_version"]
+    # The frozen contract pins the version current at promotion; the live
+    # evaluation schema may advance past it, never behind it.
+    assert REALTIME_DIAGNOSTIC_SCHEMA >= contract["scorecard_version"]
 
 
 def test_v061_requires_event_driven_realtime_v2_contract() -> None:
