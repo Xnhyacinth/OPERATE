@@ -23,12 +23,25 @@ from baselines.llm_agent import (  # noqa: E402
     prompt_contract_sha256,
 )
 from core.implementation_identity import implementation_identity  # noqa: E402
+from core.realtime_clock import (  # noqa: E402
+    CORE_SPEED_SCORECARD_N,
+    NATIVE_DT_CLOCK_PROFILE,
+)
 from evaluation.dimension_applicability import (  # noqa: E402
     dimension_applicability_contract_is_valid,
 )
 from runner import EVALUATION_IMPLEMENTATION_FINGERPRINT  # noqa: E402
 
-DEFAULT_RELEASE = REPO_ROOT / "benchmark"
+
+def _default_catalog_dir(repo_root: Path) -> Path:
+    """Maintenance layout first; the versionless public tree ships ``benchmark/``."""
+    private = repo_root / "release" / "operate_v0_62_0"
+    if (private / "manifest.json").is_file() or (private / "core_suite.json").is_file():
+        return private
+    return repo_root / "benchmark"
+
+
+DEFAULT_RELEASE = _default_catalog_dir(REPO_ROOT)
 
 JsonDict = dict[str, Any]
 
@@ -53,9 +66,7 @@ AGENTIC_PROFILE_V1: JsonDict = {
     "stream_chat_completions": True,
 }
 AGENTIC_PROFILE_V3: JsonDict = {
-    key: value
-    for key, value in AGENTIC_PROFILE_V1.items()
-    if key != "max_tokens"
+    key: value for key, value in AGENTIC_PROFILE_V1.items() if key != "max_tokens"
 }
 
 REALTIME_FORMAL_CONTRACT_BASE_V1: JsonDict = {
@@ -115,6 +126,13 @@ REALTIME_FORMAL_CONTRACT_V2: JsonDict = {
     "wakeup_policy": FORMAL_WAKEUP_POLICY_V2,
 }
 
+REALTIME_FORMAL_CONTRACT_V3: JsonDict = {
+    **REALTIME_FORMAL_CONTRACT_V2,
+    "contract_version": "realtime_persistent.v3",
+    "selection_binding": "native_dt_speed_critical_v1",
+    "clock_profile": dict(NATIVE_DT_CLOCK_PROFILE),
+}
+
 AGENTIC_FORMAL_RUN_CONTRACT_V1: JsonDict = {
     "contract_version": "agentic_persistent.v1",
     "required_interaction_mode": "logical_persistent",
@@ -141,6 +159,7 @@ AGENTIC_FORMAL_RUN_CONTRACT_V2: JsonDict = {
 AGENTIC_FORMAL_RUN_CONTRACT_V3: JsonDict = {
     **AGENTIC_FORMAL_RUN_CONTRACT_V2,
     "agentic_profile": AGENTIC_PROFILE_V3,
+    "realtime_formal_contract": REALTIME_FORMAL_CONTRACT_V3,
 }
 _V058_REALTIME_FORMAL_CONTRACT_V1: JsonDict = {
     **REALTIME_FORMAL_CONTRACT_V1,
@@ -389,7 +408,7 @@ def _formal_contracts_for_release(manifest: JsonDict) -> tuple[JsonDict, JsonDic
             _V058_REALTIME_FORMAL_CONTRACT_V1,
         )
     if _release_version(manifest) >= (0, 62, 0):
-        return AGENTIC_FORMAL_RUN_CONTRACT_V3, REALTIME_FORMAL_CONTRACT_V2
+        return AGENTIC_FORMAL_RUN_CONTRACT_V3, REALTIME_FORMAL_CONTRACT_V3
     if _release_version(manifest) >= (0, 61, 0):
         return AGENTIC_FORMAL_RUN_CONTRACT_V2, REALTIME_FORMAL_CONTRACT_V2
     return AGENTIC_FORMAL_RUN_CONTRACT_V1, REALTIME_FORMAL_CONTRACT_V1
@@ -544,8 +563,7 @@ def _formal_runtime_identity(
         identity["implementation_tree_sha256"] = execution["implementation_tree_sha256"]
     internally_bound = bool(
         runtime.get("release_id") == identity["release_id"]
-        and runtime.get("implementation_tree_sha256")
-        == qualification_tree
+        and runtime.get("implementation_tree_sha256") == qualification_tree
         and runtime.get("core_release_pipeline_sha256")
         == identity["formal_core_release_pipeline_sha256"]
         and runtime.get("release_tooling_sha256")
@@ -930,8 +948,7 @@ def _formal_publication_checks(
             and bool(receipt.get("formal_evidence_archive"))
             and _valid_sha256(receipt.get("formal_evidence_archive_sha256"))
             and receipt.get("formal_result_tree_roots") == expected_roots
-            and receipt.get("receipt_sha256")
-            == _canonical_sha256(receipt_without_hash)
+            and receipt.get("receipt_sha256") == _canonical_sha256(receipt_without_hash)
         )
     return {
         "agentic_formal_completion_identity_valid": completion_valid,
@@ -975,9 +992,7 @@ def _formal_tool_choice_matches(value: object, profile: JsonDict) -> bool:
     return isinstance(expected, str) and value == expected
 
 
-def _formal_wakeup_policy_valid(
-    contract: JsonDict, *identities: object
-) -> bool:
+def _formal_wakeup_policy_valid(contract: JsonDict, *identities: object) -> bool:
     expected = contract.get("wakeup_policy")
     if expected is None:
         return True
@@ -985,8 +1000,7 @@ def _formal_wakeup_policy_valid(
         isinstance(expected, dict)
         and identities
         and all(
-            isinstance(identity, dict)
-            and identity.get("wakeup_policy") == expected
+            isinstance(identity, dict) and identity.get("wakeup_policy") == expected
             for identity in identities
         )
     )
@@ -1059,9 +1073,7 @@ def _logical_provider_route_sha256(
                     if str(name).lower() in behavior_fields
                     else "[redacted]",
                 )
-                for name, raw_value in parse_qsl(
-                    parsed.query, keep_blank_values=True
-                )
+                for name, raw_value in parse_qsl(parsed.query, keep_blank_values=True)
             ),
         }
 
@@ -1196,7 +1208,10 @@ def _logical_treatment_identity_valid(payload: JsonDict) -> bool:
     expected_profile_identity = _logical_profile_identity_from_manifest(
         payload, model=model
     )
-    if expected_profile_identity is None or profile_identity != expected_profile_identity:
+    if (
+        expected_profile_identity is None
+        or profile_identity != expected_profile_identity
+    ):
         return False
     profile_sha256 = _canonical_sha256(profile_identity)
     if profile_hashes.get(model) != profile_sha256:
@@ -1231,9 +1246,7 @@ def _logical_treatment_identity_valid(payload: JsonDict) -> bool:
             "interaction_mode": "logical_persistent",
             "agent_profile_sha256": profile_sha256,
             "formal_runtime_binding": runtime_identity,
-            "implementation_tree_sha256": payload.get(
-                "implementation_tree_sha256"
-            ),
+            "implementation_tree_sha256": payload.get("implementation_tree_sha256"),
         }
     )
     return bool(
@@ -1616,9 +1629,7 @@ def _realtime_published_manifest_valid(
             and isinstance(episode_identity, dict)
             and episode_identity.get("schema_version") == treatment_schema_version
             and _canonical_sha256(episode_identity) == episode.get("treatment_sha256")
-            and _formal_wakeup_policy_valid(
-                realtime_contract, episode_identity
-            )
+            and _formal_wakeup_policy_valid(realtime_contract, episode_identity)
             and implementation_contract.get("implementation_tree_sha256") == tree
             and implementation_contract.get("realtime_coordinator")
             == realtime_coordinator
@@ -1637,7 +1648,15 @@ def _realtime_published_manifest_valid(
                 provider.get("tool_choice"), agentic_profile
             )
             and provider.get("stream_chat_completions") is True
-            and episode_clock.get("tick_interval_s") == clock.get("tick_interval_s")
+            and (
+                (
+                    clock.get("tick_interval_policy") == "native_dt_v1"
+                    and isinstance(episode_clock.get("tick_interval_s"), (int, float))
+                    and not isinstance(episode_clock.get("tick_interval_s"), bool)
+                    and float(episode_clock["tick_interval_s"]) > 0
+                )
+                or episode_clock.get("tick_interval_s") == clock.get("tick_interval_s")
+            )
             and (episode.get("artifact_validation") or {}).get("valid") is True
             and not (
                 (episode.get("artifact_validation") or {}).get("blocker_codes") or []
@@ -2301,7 +2320,12 @@ def _agentic_formal_checks(
         "runtime_evidence_root": runtime_text,
         "selection_source": f"{readiness_text}#scenarios",
         "suite_manifest_sha256": suite_manifest_sha256,
-        "n_scenarios": len(rows),
+        "n_scenarios": (
+            CORE_SPEED_SCORECARD_N
+            if expected_realtime_contract_base.get("contract_version")
+            == "realtime_persistent.v3"
+            else len(rows)
+        ),
     }
 
     run_contract_ok = run_contract == expected_run_contract and (
@@ -2576,8 +2600,13 @@ def _agentic_formal_checks(
     # completion identity and both result trees must agree on that run tree.
     published_tree = tree
     completion = manifest.get("formal_evaluation_completion")
-    if isinstance(completion, dict) and "qualification_implementation_tree_sha256" in completion:
-        execution_identity, execution_valid = _formal_runtime_identity(release, manifest)
+    if (
+        isinstance(completion, dict)
+        and "qualification_implementation_tree_sha256" in completion
+    ):
+        execution_identity, execution_valid = _formal_runtime_identity(
+            release, manifest
+        )
         if execution_valid:
             published_tree = execution_identity["implementation_tree_sha256"]
     if isinstance(formal_evidence, dict):
@@ -2987,14 +3016,22 @@ def build_protocol21_core_integrity_report(
     )
     live_identity = {} if portable else implementation_identity(repo)
     diagnostics = {
-        "qualification_implementation_tree_sha256": manifest.get("implementation_tree_sha256"),
-        "live_implementation_tree_sha256": live_identity.get("implementation_tree_sha256"),
+        "qualification_implementation_tree_sha256": manifest.get(
+            "implementation_tree_sha256"
+        ),
+        "live_implementation_tree_sha256": live_identity.get(
+            "implementation_tree_sha256"
+        ),
         "live_implementation_matches_qualification": (
-            None if portable else live_identity.get("implementation_tree_sha256")
+            None
+            if portable
+            else live_identity.get("implementation_tree_sha256")
             == manifest.get("implementation_tree_sha256")
         ),
         "live_core_pipeline_matches_qualification": (
-            None if portable else live_identity.get("core_release_pipeline_sha256")
+            None
+            if portable
+            else live_identity.get("core_release_pipeline_sha256")
             == manifest.get("core_release_pipeline_sha256")
         ),
         "live_release_tooling_matches_promoted_snapshot": (
@@ -3002,7 +3039,7 @@ def build_protocol21_core_integrity_report(
             if portable
             else live_identity.get("release_tooling_sha256")
             == manifest.get("release_tooling_sha256")
-        )
+        ),
     }
     closure_checks = _release_closure_checks(
         release,
@@ -3181,7 +3218,9 @@ def build_protocol21_core_integrity_report(
         "verification_mode": "portable" if portable else "full",
         "runtime_evidence_bytes_verified": runtime_evidence_verified,
         "runtime_evidence_implementation_tree_sha256": (
-            manifest.get("implementation_tree_sha256") if runtime_evidence_verified else None
+            manifest.get("implementation_tree_sha256")
+            if runtime_evidence_verified
+            else None
         ),
         "portable_formal_input_ready": portable_formal_input_ready,
         "formal_run_ready": formal_run_ready,
@@ -3231,7 +3270,9 @@ def build_public_suite_integrity_report(
             leaked_hl.append(path.name)
     leaked_locks = []
     for row in rows:
-        yaml_path, contained = _resolve_repo_artifact(str(row.get("path") or ""), artifact_root=repo)
+        yaml_path, contained = _resolve_repo_artifact(
+            str(row.get("path") or ""), artifact_root=repo
+        )
         if contained and yaml_path.is_file():
             text = yaml_path.read_text(encoding="utf-8")
             if "sources/locks/operate_v0_" in text or "/candidate_imports/" in text:
@@ -3254,7 +3295,9 @@ def build_public_suite_integrity_report(
     if lite_ids - core_ids:
         issues.append("lite_not_subset_of_core")
     checks = {
-        "public_suite_present": core_ok and core_path.is_file() and lite_ok and lite_path.is_file(),
+        "public_suite_present": (
+            core_ok and core_path.is_file() and lite_ok and lite_path.is_file()
+        ),
         "scenario_yaml_present": not missing_yaml,
         "scenario_paths_current": not versioned_paths,
         "yaml_sha256_valid": not sha_mismatch,
