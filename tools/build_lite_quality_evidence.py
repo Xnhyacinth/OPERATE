@@ -14,9 +14,6 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RELEASE = REPO_ROOT / "release" / "operate_v0_62_0"
-AUDIT = REPO_ROOT / ".hl" / "lite_compress_20260911" / "audit.json"
-HY3_OK = REPO_ROOT / ".hl" / "lite_compress_20260911" / "hy3_full_ok.json"
-CPU = REPO_ROOT / ".hl" / "lite_compress_20260911" / "cpu_baselines_017.json"
 
 CRITERIA = {
     "dead_headroom": "oracle primary < 5 and max 4-model primary < 5",
@@ -72,19 +69,31 @@ def main() -> int:
         type=Path,
         default=RELEASE / "lite_quality_evidence.json",
     )
+    parser.add_argument("--audit", type=Path, required=True)
+    parser.add_argument("--hy3-ok", type=Path, required=True)
+    parser.add_argument("--cpu-baselines", type=Path, required=True)
+    parser.add_argument(
+        "--hy3-episode-tree",
+        type=Path,
+        action="append",
+        default=[],
+        help="episode tree episodes.jsonl backing the hy3_full_ok input; repeatable",
+    )
     args = parser.parse_args()
 
     core = json.loads((RELEASE / "core_suite.json").read_text(encoding="utf-8"))
-    audit = json.loads(AUDIT.read_text(encoding="utf-8"))
-    hy3 = json.loads(HY3_OK.read_text(encoding="utf-8"))
-    cpu = json.loads(CPU.read_text(encoding="utf-8"))
+    audit = json.loads(args.audit.read_text(encoding="utf-8"))
+    hy3 = json.loads(args.hy3_ok.read_text(encoding="utf-8"))
+    cpu = json.loads(args.cpu_baselines.read_text(encoding="utf-8"))
 
     scored_193: dict[str, dict[str, Any]] = {}
     for group in ("candidate", "dropped"):
         for rec in audit[group]:
             scored_193[rec["scenario_id"]] = rec
     if len(scored_193) != 193:
-        raise SystemExit(f"expected 193 CPU/model-scored Lite rows, got {len(scored_193)}")
+        raise SystemExit(
+            f"expected 193 CPU/model-scored Lite rows, got {len(scored_193)}"
+        )
 
     rows: dict[str, dict[str, Any]] = {}
     for row in core["scenarios"]:
@@ -104,7 +113,9 @@ def main() -> int:
             src = scored_193[sid]
             rec["oracle_primary"] = _round(src.get("oracle"))
             rec["four_n_ok"] = sum(
-                1 for value in (src.get("primaries") or {}).values() if value is not None
+                1
+                for value in (src.get("primaries") or {}).values()
+                if value is not None
             )
             rec["four_min"] = _round(src.get("min_model"))
             rec["four_max"] = _round(src.get("max_model"))
@@ -185,13 +196,10 @@ def main() -> int:
         "cpu_baseline_ids": ["wait_only", "greedy_heuristic", "oracle_offline"],
         "criteria": CRITERIA,
         "sources": {
-            "four_model_lite_audit": str(AUDIT.relative_to(REPO_ROOT)),
-            "cpu_baselines_017": str(CPU.relative_to(REPO_ROOT)),
-            "hy3_full_ok": str(HY3_OK.relative_to(REPO_ROOT)),
-            "hy3_full_episode_trees": [
-                "release_internal/new_release_20260906/campaign_hy3_biao_native_ioa_v062/results/tencent_hy3_full_logical_biao_native_ioa_v062/treatment-c718c9026957f7e2706a97835164bdf8782ee883ae65753281697a150335c2ab/episodes.jsonl",
-                "release_internal/retest_20260909/hy3_full_258_biao/treatment-04e2c2bd5ce0e6ff1dad4ddeff685a57b4c05e147a1e387e0452d3882215fd25/episodes.jsonl",
-            ],
+            "four_model_lite_audit": str(args.audit),
+            "cpu_baselines_017": str(args.cpu_baselines),
+            "hy3_full_ok": str(args.hy3_ok),
+            "hy3_full_episode_trees": [str(p) for p in args.hy3_episode_tree],
         },
         "rows": rows,
     }
