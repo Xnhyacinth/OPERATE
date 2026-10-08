@@ -56,3 +56,16 @@ not relicense those assets under MIT.
 
 Formal provider result publication remains pending.
 `leaderboard_eligible` is false.
+
+## Lite141 retrospective result companion
+
+Default offline scoring is `0.28.0`; the latest opt-in task-outcome revision
+is `0.30.0`. The [dated companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
+contains the 0.25–0.30 comparison, domain summaries, deletion sensitivity and
+the separate 12-model analysis figures with Source Data. The main table declares
+23 models, 20 complete 141-case scores and 2,958 measured Q values out of 3,243
+fixed targets. Missing evidence remains unknown and unranked.
+
+These fixed-panel retrospective results are separate from pending Full formal
+provider evaluation. Frozen catalog and runtime payloads are unchanged. Original
+trajectory/provider/native evidence and manuscript drafts remain private.

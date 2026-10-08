@@ -1100,7 +1100,10 @@ class SumoEgoBackend:
             response_extra={
                 "recovery_token": self._recovery_token,
                 "health_dwell_required": True,
-                "expires_at_tick": self._recovery_token_expires_tick,
+                # Tools execute before the next native tick; the public
+                # simulator decision coordinate is one ahead of the last
+                # completed native tick. Keep the internal safety TTL intact.
+                "expires_at_tick": self._recovery_token_expires_tick + 1,
             },
         )
 

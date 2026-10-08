@@ -696,6 +696,10 @@ class RealtimeEnvironmentActor:
             )
             return future
         self._idempotency_keys.add(submission.idempotency_key)
+        if self._reject_invalid_submission_locked(
+            submission, simulator_tick=self._simulator_tick_locked()
+        ):
+            return future
         if submission.supersedes_action_id:
             deferred = self._deferred_submissions.get(
                 submission.supersedes_action_id,
@@ -708,21 +712,44 @@ class RealtimeEnvironmentActor:
                         requesting_submission=submission,
                     )
                 )
-            retained: list[_PendingSubmission] = []
-            for pending in self._pending:
-                if pending.action_id == submission.supersedes_action_id:
-                    self._settle_locked(
-                        pending,
-                        status="superseded",
-                        reason="EXPLICIT_SUPERSESSION",
-                    )
-                else:
-                    retained.append(pending)
-            self._pending = retained
         self._pending.append(submission)
         self._record_lifecycle_locked(submission, status="queued", reason=None)
         self._condition.notify_all()
         return future
+
+    def _reject_invalid_submission_locked(
+        self, submission: _PendingSubmission, *, simulator_tick: int
+    ) -> bool:
+        """Check current validity before committing any supersession."""
+
+        if submission.future.cancelled():
+            status, reason = "canceled", "CALLER_CANCELED"
+        elif (
+            submission.expires_at_tick is not None
+            and simulator_tick > submission.expires_at_tick
+        ):
+            status, reason = "expired", "EXPIRED"
+        elif submission.based_on_state_version != self._state_version:
+            status, reason = "stale", "STALE_STATE"
+        else:
+            return False
+        self._settle_locked(submission, status=status, reason=reason)
+        return True
+
+    def _supersede_pending_locked(self, submission: _PendingSubmission) -> None:
+        """Commit explicit replacement only for a dispatchable submission."""
+
+        if not submission.supersedes_action_id:
+            return
+        retained: list[_PendingSubmission] = []
+        for pending in self._pending:
+            if pending.action_id == submission.supersedes_action_id:
+                self._settle_locked(
+                    pending, status="superseded", reason="EXPLICIT_SUPERSESSION"
+                )
+            else:
+                retained.append(pending)
+        self._pending = retained
 
     def wait_for_version(self, version: int, *, timeout_s: float) -> bool:
         deadline = time.monotonic() + float(timeout_s)
@@ -1311,7 +1338,10 @@ class RealtimeEnvironmentActor:
         self._condition.notify_all()
 
     def _process_deferred_fence_requests_locked(
-        self, *, simulator_tick: int
+        self,
+        *,
+        simulator_tick: int,
+        committing_submission: _PendingSubmission | None = None,
     ) -> tuple[list[dict[str, Any]], bool]:
         requests, self._deferred_fence_requests = (
             self._deferred_fence_requests,
@@ -1348,6 +1378,29 @@ class RealtimeEnvironmentActor:
                     }
                 )
                 continue
+            # A preceding in-flight investigation or step may have invalidated
+            # the replacement after admission. Preserve the old native work.
+            replacement = request.requesting_submission
+            if replacement.sequence in self._settled_sequences:
+                continue
+            if self._reject_invalid_submission_locked(
+                replacement, simulator_tick=simulator_tick
+            ):
+                self._pending = [
+                    pending
+                    for pending in self._pending
+                    if pending.sequence != replacement.sequence
+                ]
+                continue
+            if simulator_tick < replacement.valid_from_tick:
+                self._deferred_fence_requests.append(request)
+                continue
+            # Native cancellation belongs to the selected, fully validated
+            # action's commit, never to a different pending replacement.
+            if replacement is not committing_submission:
+                self._deferred_fence_requests.append(request)
+                continue
+            assert replacement.future.running()
             audit = self._cancel_pending_tool_calls_locked(
                 deferred.pending_call_ids
             )
@@ -1681,75 +1734,107 @@ class RealtimeEnvironmentActor:
             ]
             if not candidates:
                 return
-            selected = candidates[-1]
-            nominal_semantics, model_attempted_state_change = (
-                self._nominal_action_semantics(selected.action)
-            )
             candidate_sequences = {submission.sequence for submission in candidates}
             self._pending = [
                 submission
                 for submission in self._pending
                 if submission.sequence not in candidate_sequences
             ]
-            for submission in candidates[:-1]:
-                self._settle_locked(
-                    submission,
-                    status="superseded",
-                    reason="NEWER_VALID_INVESTIGATION",
+            selected = None
+            while candidates:
+                selected = candidates.pop()
+                early_exit = False
+                nominal_semantics, model_attempted_state_change = (
+                    self._nominal_action_semantics(selected.action)
                 )
-            if not selected.future.set_running_or_notify_cancel():
-                self._settle_locked(
-                    selected,
-                    status="canceled",
-                    reason="CALLER_CANCELED",
-                )
-                self._condition.notify_all()
-                early_exit = True
-            visible_evidence = set(selected.based_on_visible_evidence_ids)
-            if not early_exit and any(
-                str(evidence_id) not in visible_evidence
-                for call in selected.action.tool_calls
-                for evidence_id in call.consumes_evidence_ids or []
-            ):
-                self._settle_locked(
-                    selected,
-                    status="rejected",
-                    reason="INVISIBLE_EVIDENCE_REFERENCE",
-                )
-                self._transitions.append(
-                    {
-                        "state_version_before": self._state_version,
-                        "state_version_after": self._state_version,
-                        "simulator_tick_before": simulator_tick,
-                        "simulator_tick": simulator_tick,
-                        "simulator_time_advanced": False,
-                        "action_id": selected.action_id,
-                        "decision_id": selected.decision_id,
-                        "turn_id": selected.turn_id,
-                        "submitted_action": selected.action.to_dict(),
-                        "nominal_action": selected.action.to_dict(),
-                        "nominal_tool_semantics": nominal_semantics,
-                        "model_attempted_state_change": (
-                            model_attempted_state_change
-                        ),
-                        "applied_action": None,
-                        "action_source": "model",
-                        "rejection_reason": "INVISIBLE_EVIDENCE_REFERENCE",
-                        "safety_supervisor_failed": False,
-                        "environment_step_failed": False,
-                        "monotonic_ns": time.monotonic_ns(),
-                    }
-                )
-                self._condition.notify_all()
-                early_exit = True
-            if not early_exit:
-                try:
-                    safety_decision = self._arbitrate_locked(selected.action)
-                except Exception as exc:  # noqa: BLE001 - fail closed safety boundary
+                if (
+                    not selected.future.running()
+                    and not selected.future.set_running_or_notify_cancel()
+                ):
+                    self._settle_locked(
+                        selected,
+                        status="canceled",
+                        reason="CALLER_CANCELED",
+                    )
+                    self._condition.notify_all()
+                    early_exit = True
+                visible_evidence = set(selected.based_on_visible_evidence_ids)
+                if not early_exit and any(
+                    str(evidence_id) not in visible_evidence
+                    for call in selected.action.tool_calls
+                    for evidence_id in call.consumes_evidence_ids or []
+                ):
                     self._settle_locked(
                         selected,
                         status="rejected",
-                        reason="SAFETY_ARBITRATION_FAILED",
+                        reason="INVISIBLE_EVIDENCE_REFERENCE",
+                    )
+                    self._transitions.append(
+                        {
+                            "state_version_before": self._state_version,
+                            "state_version_after": self._state_version,
+                            "simulator_tick_before": simulator_tick,
+                            "simulator_tick": simulator_tick,
+                            "simulator_time_advanced": False,
+                            "action_id": selected.action_id,
+                            "decision_id": selected.decision_id,
+                            "turn_id": selected.turn_id,
+                            "submitted_action": selected.action.to_dict(),
+                            "nominal_action": selected.action.to_dict(),
+                            "nominal_tool_semantics": nominal_semantics,
+                            "model_attempted_state_change": (
+                                model_attempted_state_change
+                            ),
+                            "applied_action": None,
+                            "action_source": "model",
+                            "rejection_reason": "INVISIBLE_EVIDENCE_REFERENCE",
+                            "safety_supervisor_failed": False,
+                            "environment_step_failed": False,
+                            "monotonic_ns": time.monotonic_ns(),
+                        }
+                    )
+                    self._condition.notify_all()
+                    early_exit = True
+                if not early_exit:
+                    try:
+                        safety_decision = self._arbitrate_locked(selected.action)
+                    except Exception as exc:  # noqa: BLE001 - fail closed safety boundary
+                        self._settle_locked(
+                            selected,
+                            status="rejected",
+                            reason="SAFETY_ARBITRATION_FAILED",
+                        )
+                        self._transitions.append(
+                            {
+                                "state_version_before": self._state_version,
+                                "state_version_after": self._state_version,
+                                "simulator_tick_before": simulator_tick,
+                                "simulator_tick": simulator_tick,
+                                "simulator_time_advanced": False,
+                                "action_id": selected.action_id,
+                                "decision_id": selected.decision_id,
+                                "turn_id": selected.turn_id,
+                                "submitted_action": selected.action.to_dict(),
+                                "nominal_action": selected.action.to_dict(),
+                                "nominal_tool_semantics": nominal_semantics,
+                                "model_attempted_state_change": (
+                                    model_attempted_state_change
+                                ),
+                                "applied_action": None,
+                                "action_source": "safety_supervisor",
+                                "safety_supervisor_failed": True,
+                                "safety_error_type": type(exc).__name__,
+                                "environment_step_failed": False,
+                                "monotonic_ns": time.monotonic_ns(),
+                            }
+                        )
+                        self._condition.notify_all()
+                        early_exit = True
+                if not early_exit and safety_decision.disposition != "pass":
+                    self._settle_locked(
+                        selected,
+                        status="rejected",
+                        reason=f"SAFETY_{safety_decision.disposition.upper()}",
                     )
                     self._transitions.append(
                         {
@@ -1769,49 +1854,38 @@ class RealtimeEnvironmentActor:
                             ),
                             "applied_action": None,
                             "action_source": "safety_supervisor",
-                            "safety_supervisor_failed": True,
-                            "safety_error_type": type(exc).__name__,
+                            "safety_decision": safety_decision.to_dict(),
+                            "safety_arbitration": safety_decision.to_dict(),
+                            "safety_evidence_ids": list(safety_decision.evidence_ids),
+                            "used_safety_fallback": True,
                             "environment_step_failed": False,
                             "monotonic_ns": time.monotonic_ns(),
                         }
                     )
                     self._condition.notify_all()
                     early_exit = True
-            if not early_exit and safety_decision.disposition != "pass":
-                self._settle_locked(
-                    selected,
-                    status="rejected",
-                    reason=f"SAFETY_{safety_decision.disposition.upper()}",
-                )
-                self._transitions.append(
-                    {
-                        "state_version_before": self._state_version,
-                        "state_version_after": self._state_version,
-                        "simulator_tick_before": simulator_tick,
-                        "simulator_tick": simulator_tick,
-                        "simulator_time_advanced": False,
-                        "action_id": selected.action_id,
-                        "decision_id": selected.decision_id,
-                        "turn_id": selected.turn_id,
-                        "submitted_action": selected.action.to_dict(),
-                        "nominal_action": selected.action.to_dict(),
-                        "nominal_tool_semantics": nominal_semantics,
-                        "model_attempted_state_change": (
-                            model_attempted_state_change
-                        ),
-                        "applied_action": None,
-                        "action_source": "safety_supervisor",
-                        "safety_decision": safety_decision.to_dict(),
-                        "safety_arbitration": safety_decision.to_dict(),
-                        "safety_evidence_ids": list(safety_decision.evidence_ids),
-                        "used_safety_fallback": True,
-                        "environment_step_failed": False,
-                        "monotonic_ns": time.monotonic_ns(),
-                    }
-                )
-                self._condition.notify_all()
-                early_exit = True
+                if not early_exit:
+                    break
             if not early_exit:
+                commit_outcomes, execution_fence_failed = (
+                    self._process_deferred_fence_requests_locked(
+                        simulator_tick=simulator_tick,
+                        committing_submission=selected,
+                    )
+                )
+                pre_dispatch_deferred_outcomes.extend(commit_outcomes)
+                if execution_fence_failed:
+                    early_exit = True
+                    self._pending.extend(candidates)
+                else:
+                    for submission in candidates:
+                        self._settle_locked(
+                            submission,
+                            status="superseded",
+                            reason="NEWER_VALID_INVESTIGATION",
+                        )
+            if not early_exit:
+                self._supersede_pending_locked(selected)
                 self._record_lifecycle_locked(selected, status="accepted", reason=None)
                 request_version = self._state_version
                 nominal_action = deepcopy(selected.action)
@@ -2087,154 +2161,194 @@ class RealtimeEnvironmentActor:
                 else:
                     valid.append(submission)
             self._pending.extend(future_submissions)
-            selected = valid[-1] if valid else None
-            for submission in valid[:-1]:
-                self._settle_locked(
-                    submission,
-                    status="superseded",
-                    reason="NEWER_VALID_ACTION",
-                )
-            if selected is not None:
-                uncancellable_call_ids = (
-                    self._uncancellable_managed_delay_calls_locked(
-                        selected.action
+            selected = None
+            request_version = self._state_version
+            based_on_visible_evidence_ids = list(
+                self._observation.get("__last_evidence_ids__") or []
+            )
+            nominal_semantics, model_attempted_state_change = (
+                self._nominal_action_semantics(None)
+            )
+            while valid:
+                selected = valid.pop()
+                if selected is not None:
+                    uncancellable_call_ids = (
+                        self._uncancellable_managed_delay_calls_locked(
+                            selected.action
+                        )
                     )
-                )
-                if uncancellable_call_ids:
-                    rejected = selected
+                    if uncancellable_call_ids:
+                        rejected = selected
+                        self._settle_locked(
+                            rejected,
+                            status="rejected",
+                            reason="UNCANCELLABLE_MANAGED_DELAY",
+                        )
+                        self._transitions.append(
+                            {
+                                "state_version_before": self._state_version,
+                                "state_version_after": self._state_version,
+                                "simulator_tick_before": simulator_tick_before,
+                                "simulator_tick": simulator_tick_before,
+                                "simulator_time_advanced": False,
+                                "action_id": rejected.action_id,
+                                "decision_id": rejected.decision_id,
+                                "turn_id": rejected.turn_id,
+                                "submitted_action": rejected.action.to_dict(),
+                                "nominal_action": rejected.action.to_dict(),
+                                "applied_action": None,
+                                "action_source": "model",
+                                "rejection_reason": "UNCANCELLABLE_MANAGED_DELAY",
+                                "uncancellable_call_ids": uncancellable_call_ids,
+                                "environment_step_failed": False,
+                                "monotonic_ns": time.monotonic_ns(),
+                            }
+                        )
+                        selected = None
+                if (
+                    selected is not None
+                    and not selected.future.running()
+                    and not selected.future.set_running_or_notify_cancel()
+                ):
                     self._settle_locked(
-                        rejected,
-                        status="rejected",
-                        reason="UNCANCELLABLE_MANAGED_DELAY",
-                    )
-                    self._transitions.append(
-                        {
-                            "state_version_before": self._state_version,
-                            "state_version_after": self._state_version,
-                            "simulator_tick_before": simulator_tick_before,
-                            "simulator_tick": simulator_tick_before,
-                            "simulator_time_advanced": False,
-                            "action_id": rejected.action_id,
-                            "decision_id": rejected.decision_id,
-                            "turn_id": rejected.turn_id,
-                            "submitted_action": rejected.action.to_dict(),
-                            "nominal_action": rejected.action.to_dict(),
-                            "applied_action": None,
-                            "action_source": "model",
-                            "rejection_reason": "UNCANCELLABLE_MANAGED_DELAY",
-                            "uncancellable_call_ids": uncancellable_call_ids,
-                            "environment_step_failed": False,
-                            "monotonic_ns": time.monotonic_ns(),
-                        }
+                        selected,
+                        status="canceled",
+                        reason="CALLER_CANCELED",
                     )
                     selected = None
-            if selected is not None and not selected.future.set_running_or_notify_cancel():
+                request_version = self._state_version
+                based_on_visible_evidence_ids = (
+                    list(selected.based_on_visible_evidence_ids)
+                    if selected is not None
+                    else list(self._observation.get("__last_evidence_ids__") or [])
+                )
+                if selected is not None:
+                    visible_evidence = set(based_on_visible_evidence_ids)
+                    invisible_references = {
+                        str(evidence_id)
+                        for call in selected.action.tool_calls
+                        for evidence_id in call.consumes_evidence_ids or []
+                        if str(evidence_id) not in visible_evidence
+                    }
+                    if invisible_references:
+                        nominal_semantics, model_attempted_state_change = (
+                            self._nominal_action_semantics(selected.action)
+                        )
+                        self._settle_locked(
+                            selected,
+                            status="rejected",
+                            reason="INVISIBLE_EVIDENCE_REFERENCE",
+                        )
+                        self._transitions.append(
+                            {
+                                "state_version_before": request_version,
+                                "state_version_after": request_version,
+                                "simulator_tick_before": simulator_tick_before,
+                                "simulator_tick": simulator_tick_before,
+                                "simulator_time_advanced": False,
+                                "action_id": selected.action_id,
+                                "decision_id": selected.decision_id,
+                                "turn_id": selected.turn_id,
+                                "submitted_action": selected.action.to_dict(),
+                                "nominal_action": selected.action.to_dict(),
+                                "nominal_tool_semantics": nominal_semantics,
+                                "model_attempted_state_change": (
+                                    model_attempted_state_change
+                                ),
+                                "applied_action": None,
+                                "action_source": "model",
+                                "rejection_reason": "INVISIBLE_EVIDENCE_REFERENCE",
+                                "safety_supervisor_failed": False,
+                                "environment_step_failed": False,
+                                "monotonic_ns": time.monotonic_ns(),
+                            }
+                        )
+                        selected = None
+                nominal_semantics, model_attempted_state_change = (
+                    self._nominal_action_semantics(
+                        selected.action if selected is not None else None
+                    )
+                )
+                if selected is not None:
+                    try:
+                        safety_decision = self._arbitrate_locked(selected.action)
+                    except Exception as exc:  # noqa: BLE001 - fail closed at safety boundary
+                        self._done = True
+                        self._settle_locked(
+                            selected,
+                            status="rejected",
+                            reason="SAFETY_ARBITRATION_FAILED",
+                        )
+                        self._transitions.append(
+                            {
+                                **self._clock_audit_fields(),
+                                "state_version_before": request_version,
+                                "state_version_after": request_version,
+                                "simulator_tick_before": simulator_tick_before,
+                                "simulator_tick": simulator_tick_before,
+                                "simulator_time_advanced": False,
+                                "action_id": selected.action_id,
+                                "decision_id": selected.decision_id,
+                                "turn_id": selected.turn_id,
+                                "nominal_action": selected.action.to_dict(),
+                                "nominal_tool_semantics": nominal_semantics,
+                                "model_attempted_state_change": (
+                                    model_attempted_state_change
+                                ),
+                                "applied_action": None,
+                                "action_source": "safety_supervisor",
+                                "safety_decision": None,
+                                "safety_arbitration": None,
+                                "used_safety_fallback": True,
+                                "safety_supervisor_failed": True,
+                                "safety_error_type": type(exc).__name__,
+                                "environment_step_failed": False,
+                                "monotonic_ns": time.monotonic_ns(),
+                            }
+                        )
+                        self._condition.notify_all()
+                        safety_failed = True
+                    if not safety_failed:
+                        assert safety_decision is not None
+                        action = deepcopy(safety_decision.action)
+                if selected is None:
+                    continue
+                if (
+                    safety_failed
+                    or safety_decision.disposition == "pass"
+                    or not valid
+                ):
+                    break
+                # A rejected replacement must not discard an older valid action.
                 self._settle_locked(
                     selected,
-                    status="canceled",
-                    reason="CALLER_CANCELED",
+                    status="rejected",
+                    reason=f"SAFETY_{safety_decision.disposition.upper()}",
                 )
-                selected = None
-            request_version = self._state_version
-            based_on_visible_evidence_ids = (
-                list(selected.based_on_visible_evidence_ids)
-                if selected is not None
-                else list(self._observation.get("__last_evidence_ids__") or [])
-            )
-            if selected is not None:
-                visible_evidence = set(based_on_visible_evidence_ids)
-                invisible_references = {
-                    str(evidence_id)
-                    for call in selected.action.tool_calls
-                    for evidence_id in call.consumes_evidence_ids or []
-                    if str(evidence_id) not in visible_evidence
-                }
-                if invisible_references:
-                    nominal_semantics, model_attempted_state_change = (
-                        self._nominal_action_semantics(selected.action)
-                    )
-                    self._settle_locked(
-                        selected,
-                        status="rejected",
-                        reason="INVISIBLE_EVIDENCE_REFERENCE",
-                    )
-                    self._transitions.append(
-                        {
-                            "state_version_before": request_version,
-                            "state_version_after": request_version,
-                            "simulator_tick_before": simulator_tick_before,
-                            "simulator_tick": simulator_tick_before,
-                            "simulator_time_advanced": False,
-                            "action_id": selected.action_id,
-                            "decision_id": selected.decision_id,
-                            "turn_id": selected.turn_id,
-                            "submitted_action": selected.action.to_dict(),
-                            "nominal_action": selected.action.to_dict(),
-                            "nominal_tool_semantics": nominal_semantics,
-                            "model_attempted_state_change": (
-                                model_attempted_state_change
-                            ),
-                            "applied_action": None,
-                            "action_source": "model",
-                            "rejection_reason": "INVISIBLE_EVIDENCE_REFERENCE",
-                            "safety_supervisor_failed": False,
-                            "environment_step_failed": False,
-                            "monotonic_ns": time.monotonic_ns(),
-                        }
-                    )
-                    selected = None
-            nominal_semantics, model_attempted_state_change = (
-                self._nominal_action_semantics(
-                    selected.action if selected is not None else None
+                self._transitions.append(
+                    {
+                        "state_version_before": request_version,
+                        "state_version_after": request_version,
+                        "simulator_tick_before": simulator_tick_before,
+                        "simulator_tick": simulator_tick_before,
+                        "simulator_time_advanced": False,
+                        "action_id": selected.action_id,
+                        "decision_id": selected.decision_id,
+                        "turn_id": selected.turn_id,
+                        "nominal_action": selected.action.to_dict(),
+                        "nominal_tool_semantics": nominal_semantics,
+                        "model_attempted_state_change": model_attempted_state_change,
+                        "applied_action": None,
+                        "action_source": "safety_supervisor",
+                        "safety_decision": safety_decision.to_dict(),
+                        "safety_arbitration": safety_decision.to_dict(),
+                        "safety_evidence_ids": list(safety_decision.evidence_ids),
+                        "used_safety_fallback": True,
+                        "environment_step_failed": False,
+                        "monotonic_ns": time.monotonic_ns(),
+                    }
                 )
-            )
-            if selected is not None:
-                try:
-                    safety_decision = self._arbitrate_locked(selected.action)
-                except Exception as exc:  # noqa: BLE001 - fail closed at safety boundary
-                    self._done = True
-                    self._settle_locked(
-                        selected,
-                        status="rejected",
-                        reason="SAFETY_ARBITRATION_FAILED",
-                    )
-                    self._transitions.append(
-                        {
-                            **self._clock_audit_fields(),
-                            "state_version_before": request_version,
-                            "state_version_after": request_version,
-                            "simulator_tick_before": simulator_tick_before,
-                            "simulator_tick": simulator_tick_before,
-                            "simulator_time_advanced": False,
-                            "action_id": selected.action_id,
-                            "decision_id": selected.decision_id,
-                            "turn_id": selected.turn_id,
-                            "nominal_action": selected.action.to_dict(),
-                            "nominal_tool_semantics": nominal_semantics,
-                            "model_attempted_state_change": (
-                                model_attempted_state_change
-                            ),
-                            "applied_action": None,
-                            "action_source": "safety_supervisor",
-                            "safety_decision": None,
-                            "safety_arbitration": None,
-                            "used_safety_fallback": True,
-                            "safety_supervisor_failed": True,
-                            "safety_error_type": type(exc).__name__,
-                            "environment_step_failed": False,
-                            "monotonic_ns": time.monotonic_ns(),
-                        }
-                    )
-                    self._condition.notify_all()
-                    safety_failed = True
-                if not safety_failed:
-                    assert safety_decision is not None
-                    if safety_decision.disposition == "pass":
-                        self._record_lifecycle_locked(
-                            selected, status="accepted", reason=None
-                        )
-                    action = deepcopy(safety_decision.action)
-            else:
+            if selected is None and not safety_failed:
                 try:
                     safety_decision = self._safety_supervisor.decide(
                         observation=deepcopy(self._observation),
@@ -2270,6 +2384,33 @@ class RealtimeEnvironmentActor:
                 if not safety_failed:
                     assert safety_decision is not None
                     action = deepcopy(safety_decision.action)
+            if (
+                not safety_failed
+                and selected is not None
+                and safety_decision.disposition == "pass"
+            ):
+                commit_outcomes, execution_fence_failed = (
+                    self._process_deferred_fence_requests_locked(
+                        simulator_tick=simulator_tick_before,
+                        committing_submission=selected,
+                    )
+                )
+                pre_step_deferred_outcomes.extend(commit_outcomes)
+                if execution_fence_failed:
+                    safety_failed = True
+                else:
+                    for submission in valid:
+                        self._settle_locked(
+                            submission,
+                            status="superseded",
+                            reason="NEWER_VALID_ACTION",
+                        )
+                    self._supersede_pending_locked(selected)
+                    self._record_lifecycle_locked(
+                        selected, status="accepted", reason=None
+                    )
+            if safety_failed:
+                self._pending.extend(valid)
             if not safety_failed and selected is not None:
                 self._active_submission = selected
         self._drain_future_completions()

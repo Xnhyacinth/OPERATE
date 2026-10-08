@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -3037,6 +3037,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+analysis = [
+    { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "matplotlib", version = "3.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
 building-energy = [
     { name = "citylearn", marker = "python_full_version < '3.14'" },
 ]
@@ -3129,6 +3133,7 @@ requires-dist = [
     { name = "grid2op", marker = "extra == 'simulators'", specifier = ">=1.10.0" },
     { name = "httpx", marker = "extra == 'llm'", specifier = ">=0.27" },
     { name = "huggingface-hub", marker = "extra == 'hf'", specifier = ">=0.24" },
+    { name = "matplotlib", marker = "extra == 'analysis'", specifier = ">=3.9,<4" },
     { name = "matpowercaseframes", marker = "extra == 'power-grid'", specifier = ">=1.1.0" },
     { name = "matpowercaseframes", marker = "extra == 'released-backends'", specifier = ">=1.1.0" },
     { name = "matpowercaseframes", marker = "extra == 'simulators'", specifier = ">=1.1.0" },
@@ -3165,7 +3170,7 @@ requires-dist = [
     { name = "vrplib", marker = "extra == 'logistics'", specifier = ">=0.1" },
     { name = "vrplib", marker = "extra == 'released-backends'", specifier = ">=0.1" },
 ]
-provides-extras = ["simulators", "power-grid", "logistics", "microgrid", "traffic", "building-energy", "released-backends", "llm", "dev", "hf"]
+provides-extras = ["simulators", "power-grid", "logistics", "microgrid", "traffic", "building-energy", "released-backends", "llm", "dev", "hf", "analysis"]
 
 [[package]]
 name = "or-gym"

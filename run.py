@@ -137,6 +137,11 @@ def main() -> int:
     p.add_argument("--api-version", default=None, help="Azure API version")
     p.add_argument("--api-key-env", default="OPENAI_API_KEY")
     p.add_argument(
+        "--allow-insecure-http",
+        action="store_true",
+        help="Permit an http:// provider endpoint for isolated diagnostic transports",
+    )
+    p.add_argument(
         "--api-mode",
         default="auto",
         choices=["auto", "chat_completions", "responses"],
@@ -443,6 +448,7 @@ def main() -> int:
             tool_choice_supported=args.tool_choice_supported,
             api_key_env=args.api_key_env,
             base_url=configured_base_url,
+            allow_insecure_http=bool(getattr(args, 'allow_insecure_http', False)),
             api_version=args.api_version
             or os.getenv("OPERATE_API_VERSION"),
             responses_base_url=(

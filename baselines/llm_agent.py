@@ -308,8 +308,32 @@ STATIC_MODEL_TOOL_CHOICE_SUPPORT: dict[str, bool] = {
     # wake_if schema; auto mode accepts the same schema). Omitting the field
     # keeps the repair path on auto.
     "Qwen/Qwen3.6-27B": False,
+    # The internal iquest LiteLLM proxy (danbo-agidata-inner) answers normal
+    # chat-completions tool calls under ``auto`` but fails the request with
+    # an upstream 500 when ``tool_choice=required`` is sent (verified
+    # 2026-09-24; the 500 body carries an empty OpenAIException message).
+    # The repair path needs the field suppressed like the thinking routes.
+    "iquest-m1": False,
     "hy3-ioa": True,
 }
+
+
+# Routes that reject the ``temperature`` request field outright. Newer
+# thinking models deprecate sampling controls: claude-opus-4-8 answers
+# ``temperature is deprecated for this model`` with HTTP 400 for any value
+# (verified 2026-10-03 against the iquest LiteLLM proxy). For these routes
+# the wire payloads omit the key entirely instead of sending a value.
+TEMPERATURE_UNSUPPORTED_ROUTES: frozenset[str] = frozenset(
+    {
+        "claude-opus-4-8",
+    }
+)
+
+
+def temperature_param_supported(model: str) -> bool:
+    """Return False when the route rejects the temperature field entirely."""
+
+    return str(model).strip() not in TEMPERATURE_UNSUPPORTED_ROUTES
 
 
 # Some gateways echo an internal/upstream name in the response ``model`` field
@@ -333,8 +357,24 @@ STATIC_MODEL_RESPONSE_ALIASES: dict[str, frozenset[str]] = {
             "deepseek/deepseek-v4.1-flash",
         }
     ),
-    "deepseek-ai/deepseek-v4-flash-0731": frozenset({"deepseek-v4-flash-0731"}),
-    "zai-org/glm-5.3": frozenset({"glm-5.3"}),
+    "deepseek-ai/deepseek-v4-flash-0731": frozenset(
+        # The gateway rotates this route across backend pools and echoes the
+        # pool's own spelling: the bare route id and the "-new" suffix were
+        # both observed on stream turns (verified 2026-09-29 in the realtime
+        # restart batch); "deepseek-flash" is the shared pool name also used
+        # by the v4.1-flash route. All are the same served model.
+        {
+            "deepseek-v4-flash-0731",
+            "deepseek-v4-flash-0731-new",
+            "deepseek-flash",
+        }
+    ),
+    "zai-org/glm-5.3": frozenset(
+        # The gateway echoes the upstream z-ai route id on stream turns
+        # (verified 2026-09-29 in the realtime restart batch); non-stream
+        # requests echo the bare "glm-5.3" spelling (verified 2026-09-19).
+        {"glm-5.3", "z-ai/glm-5.3"}
+    ),
     # Verified 2026-09-20 against the the streaming gateway gateway: these routes rename the
     # model on streaming responses but echo the exact route id on
     # non-streaming requests. The last two spellings are not derivable from
@@ -352,10 +392,18 @@ STATIC_MODEL_RESPONSE_ALIASES: dict[str, frozenset[str]] = {
     ),
     "qwen/qwen3.8-max": frozenset({"qwen3.8-max"}),
     # kimi-k3 renames differently per mode: non-stream echoes "FW-Kimi-K3",
-    # stream echoes "kimi-k3" (verified 2026-09-20). It also hard-rejects
-    # temperature 0.0 on streaming requests, so run it at temperature 1.0.
-    "moonshotai/kimi-k3": frozenset({"FW-Kimi-K3", "kimi-k3"}),
+    # stream echoes "kimi-k3" (verified 2026-09-20). A third spelling,
+    # the upstream Fireworks route id "accounts/fireworks/models/kimi-k3",
+    # appeared on stream turns in the realtime restart batch (verified
+    # 2026-09-30). It also hard-rejects temperature 0.0 on streaming
+    # requests, so run it at temperature 1.0.
+    "moonshotai/kimi-k3": frozenset(
+        {"FW-Kimi-K3", "kimi-k3", "accounts/fireworks/models/kimi-k3"}
+    ),
     "qwen/qwen3.8-27b": frozenset({"Qwen/Qwen3.8-27B-FP8"}),
+    # glm-5.2 renames to the upstream z-ai route id on stream turns
+    # (verified 2026-09-30 in the realtime restart batch).
+    "glm-5.2": frozenset({"z-ai/glm-5.2"}),
 }
 
 
@@ -472,9 +520,7 @@ def _compact_operation_rows(
     out: dict[str, Any] = {}
     for operation_id, row in list(value.items())[:max_items]:
         if not isinstance(row, dict):
-            out[str(operation_id)] = _bounded_json_value(
-                row, string_limit=string_limit
-            )
+            out[str(operation_id)] = _bounded_json_value(row, string_limit=string_limit)
             continue
         keys = [key for key in preferred if key in row]
         keys.extend(key for key in row if key not in keys)
@@ -571,6 +617,7 @@ def _with_dependency_metadata(
                 if key not in required_fields:
                     required_fields.append(key)
     return enriched
+
 
 _SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
@@ -679,6 +726,7 @@ def parse_tencent_quota_reset(text: object) -> str | None:
 
 def provider_error_http_status(error: object) -> int | None:
     """Resolve an explicit error status, including errors inside HTTP-200 streams."""
+
     def status(value: object) -> int | None:
         if isinstance(value, str) and re.fullmatch(r"\d{3}", value):
             value = int(value)
@@ -728,23 +776,33 @@ def classify_provider_error(text: object) -> str:
     original = str(text)
     raw = original.lower()
     body = getattr(text, "body", None)
-    quota_codes = [getattr(text, "code", None)]
+    quota_codes = [getattr(text, "code", None), getattr(text, "type", None)]
     quota_messages = [raw]
     if isinstance(body, dict):
-        quota_codes.append(body.get("code"))
+        quota_codes.extend((body.get("code"), body.get("type")))
         quota_messages.append(str(body.get("message", "")).lower())
         if isinstance(body.get("error"), dict):
-            quota_codes.append(body["error"].get("code"))
+            quota_codes.extend((body["error"].get("code"), body["error"].get("type")))
             quota_messages.append(str(body["error"].get("message", "")).lower())
     if "max_chars" in raw and "action-critical" in raw:
         return "prompt_budget_exceeded"
     if (
         isinstance(text, ProviderQuotaExhaustedError)
-        or any(code in (6004, "6004", "INSUFFICIENT_BALANCE") for code in quota_codes)
+        or any(
+            code in (6004, "6004", "INSUFFICIENT_BALANCE", "budget_exceeded")
+            for code in quota_codes
+        )
         or any(
             marker in message
             for message in quota_messages
             for marker in ("insufficient balance", "insufficient account balance")
+        )
+        or any(
+            all(
+                marker in message
+                for marker in ("budget has been exceeded", "current cost", "max budget")
+            )
+            for message in quota_messages
         )
         or re.search(r"\bcode[\"']?\s*[:=]\s*[\"']?6004\b", raw)
         or "超出频率限制" in original
@@ -791,10 +849,7 @@ def classify_provider_error(text: object) -> str:
     # bounded retry loop absorbs it instead of failing the episode closed.
     if (
         "an error occurred in model serving" in raw
-        or (
-            "invalid request parameters" in raw
-            and "model serving" in raw
-        )
+        or ("invalid request parameters" in raw and "model serving" in raw)
         # Gateway-side transient stream failure; observed 2026-09-21 as a 400
         # "upstream stream error, please retry later" on a route whose next
         # request succeeded. Retryable for the same bounded-retry reasons.
@@ -811,12 +866,17 @@ def classify_provider_error(text: object) -> str:
         r"(?:http(?:/\d(?:\.\d)?)?\s+|error\s+code\s*:\s*|\[)([45]\d{2})\b",
         raw,
     )
-    if (wire_status and wire_status[1] == "429") or "rate limit" in raw or "too many requests" in raw:
+    if (
+        (wire_status and wire_status[1] == "429")
+        or "rate limit" in raw
+        or "too many requests" in raw
+    ):
         return "provider_rate_limit"
     if (wire_status and wire_status[1].startswith("5")) or any(
         marker in raw
         for marker in (
-            "server error", "bad gateway",
+            "server error",
+            "bad gateway",
             "service temporarily overloaded",
         )
     ):
@@ -890,11 +950,7 @@ def _stub_tool_results(results: object) -> list[dict[str, Any]]:
         if not isinstance(result, dict):
             continue
         stubs.append(
-            {
-                key: result[key]
-                for key in _PROMPT_TOOL_RESULT_KEYS
-                if key in result
-            }
+            {key: result[key] for key in _PROMPT_TOOL_RESULT_KEYS if key in result}
         )
     return stubs
 
@@ -1304,6 +1360,8 @@ action log and the tool descriptions.
 The observation also carries a durable `plan_state`. Treat its active plan as
 your standing multi-tick intent: continue it when it remains valid, or replace
 it explicitly when new evidence or an event invalidates its assumptions.
+The separate `plan_state.review` reports review scheduling and delivery; a due
+or served review does not cancel the business plan or prove successful handling.
 Simulator time advances independently after each operational decision; do not
 invent state transitions or assume that a plan succeeded without tool feedback.
 
@@ -1335,7 +1393,8 @@ COMMIT-TO-PLAN (foresight protocol):
   failed tools and active dilemmas always wake you early and cannot be disabled.
 - `plan_expires_at_tick` may set an absolute review deadline you choose.
 - During holds the simulator continues to advance without new model calls.
-  Omit `review_after_ticks` when continuous control updates are required.
+  Set `review_after_ticks=1` to request a review at the next simulator tick
+  when continuous control updates are required.
 """
 
 PERSISTENT_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
@@ -1416,7 +1475,8 @@ def prompt_contract_sha256(
     prompt = str(prompt_mode or "strict").lower()
     system_template = (
         PERSISTENT_SYSTEM_PROMPT + PERSISTENT_SESSION_ADDENDUM
-        if interaction == "logical_persistent" or context_ablation_mode == "matched_transcript_v1"
+        if interaction == "logical_persistent"
+        or context_ablation_mode == "matched_transcript_v1"
         else SYSTEM_PROMPT
     )
     briefing_template = (
@@ -1435,9 +1495,7 @@ class LLMConfig:
     model: str = "gpt-4o-mini"
     api_key_env: str = "OPENAI_API_KEY"
     base_url: str | None = None
-    api_version: str | None = (
-        None  # Azure only; falls back to OPERATE_API_VERSION
-    )
+    api_version: str | None = None  # Azure only; falls back to OPERATE_API_VERSION
     api_version_env: str = "OPERATE_API_VERSION"
     responses_base_url: str | None = None
     responses_base_url_env: str = "OPERATE_RESPONSES_API_BASE_URL"
@@ -1513,9 +1571,7 @@ class LLMAgent(BaselineAgent):
         self._plan_history: list[dict[str, Any]] = []
         self._pending_plan_calls: dict[str, dict[str, Any]] = {}
         self._consecutive_provider_failures = 0
-        self._last_provider_outcome: dict[str, Any] = {
-            "status": "not_called"
-        }
+        self._last_provider_outcome: dict[str, Any] = {"status": "not_called"}
         self._last_provider_response_metadata: dict[str, Any] = {}
         self._stats: dict[str, Any] = _empty_interaction_stats()
         self._stats["interaction_mode"] = self.config.interaction_mode
@@ -1525,6 +1581,8 @@ class LLMAgent(BaselineAgent):
         self._active_provider_streams: dict[str, Any] = {}
         self._canceled_realtime_turns: set[str] = set()
         self._realtime_transport_cancel_outcomes: dict[str, bool] = {}
+        self._realtime_request_cursors: dict[str, tuple[int, int]] = {}
+        self._realtime_pretransport_cancellations: dict[str, dict[str, Any]] = {}
         self._protocol_repair_budget_override: tuple[int, float] | None = None
         self._protocol_repair_available_call_ids: set[str] | None = None
         self._protocol_repair_unavailable_call_ids: set[str] | None = None
@@ -1534,7 +1592,9 @@ class LLMAgent(BaselineAgent):
     def reset(
         self, env: POMDPEnvironment, scenario_config: dict[str, Any], seed: int
     ) -> None:
-        interaction_mode = (self.config.interaction_mode or "logical_persistent").lower()
+        interaction_mode = (
+            self.config.interaction_mode or "logical_persistent"
+        ).lower()
         if interaction_mode not in {"logical_stateless", "logical_persistent"}:
             raise ValueError(
                 f"Invalid interaction_mode: {interaction_mode!r}. Must be "
@@ -1768,6 +1828,8 @@ class LLMAgent(BaselineAgent):
             self._active_provider_streams.clear()
             self._canceled_realtime_turns.clear()
             self._realtime_transport_cancel_outcomes.clear()
+            self._realtime_request_cursors.clear()
+            self._realtime_pretransport_cancellations.clear()
         self._protocol_repair_budget_override = None
         self._protocol_repair_available_call_ids = None
         self._protocol_repair_unavailable_call_ids = None
@@ -1778,7 +1840,9 @@ class LLMAgent(BaselineAgent):
         if not api_key:
             self._has_api_key = False
             if self.config.provider_failure_policy == "abort":
-                raise ValueError(f"provider credential missing: {self.config.api_key_env}")
+                raise ValueError(
+                    f"provider credential missing: {self.config.api_key_env}"
+                )
             warnings.warn(
                 f"{self.config.api_key_env} not set — LLMAgent will fall back to wait_only.",
                 stacklevel=2,
@@ -1939,8 +2003,7 @@ class LLMAgent(BaselineAgent):
         retry_specs = [
             spec
             for spec in self._tool_specs
-            if str((spec.get("function") or {}).get("name") or "")
-            in allowed_tool_names
+            if str((spec.get("function") or {}).get("name") or "") in allowed_tool_names
         ]
         if not retry_specs:
             self._last_provider_outcome = {"status": "not_called"}
@@ -1954,8 +2017,7 @@ class LLMAgent(BaselineAgent):
         staged["__allowed_tool_names__"] = allowed_tool_names
         staged["__retryable_call_ids__"] = sorted(retryable_by_id)
         staged["__control_calls__"] = [
-            deepcopy(control_calls[parent_id])
-            for parent_id in sorted(retryable_by_id)
+            deepcopy(control_calls[parent_id]) for parent_id in sorted(retryable_by_id)
         ]
         staged["__control_receipts__"] = [
             deepcopy(retryable_by_id[parent_id])
@@ -2021,9 +2083,8 @@ class LLMAgent(BaselineAgent):
         dependencies = list(retry.depends_on_call_ids or [])
         parent_id = dependencies[0] if len(dependencies) == 1 else ""
         parent_receipt = retryable_by_id.get(parent_id)
-        if (
-            parent_receipt is None
-            or retry.name != str(parent_receipt.get("name") or "")
+        if parent_receipt is None or retry.name != str(
+            parent_receipt.get("name") or ""
         ):
             return Action(
                 tool_calls=[],
@@ -2103,39 +2164,26 @@ class LLMAgent(BaselineAgent):
             self._session_event_seq = saved_session_event_seq
             self._structured_memory = saved_structured_memory
             self._stats["session_compactions"] = saved_session_compactions
-            self._stats["session_compaction_records"] = (
-                saved_session_compaction_records
-            )
+            self._stats["session_compaction_records"] = saved_session_compaction_records
 
     def get_interaction_stats(self) -> dict[str, Any]:
         """Per-episode LLM/tool counters for batch summaries and debugging."""
         identity_records = list(
             self._stats.get("provider_model_identity_records", []) or []
         )
-        self._stats["provider_model_identity_request_count"] = len(
-            identity_records
-        )
+        self._stats["provider_model_identity_request_count"] = len(identity_records)
         self._stats["provider_model_identity_closed_count"] = sum(
             record.get("closure") != "open" for record in identity_records
         )
         for closure in ("exact", "missing", "mismatch", "request_failed"):
-            field = (
-                "failed_request" if closure == "request_failed" else closure
-            )
+            field = "failed_request" if closure == "request_failed" else closure
             self._stats[f"provider_model_identity_{field}_count"] = sum(
                 record.get("closure") == closure for record in identity_records
             )
-        native_responses = int(
-            self._stats.get("native_decision_responses", 0) or 0
-        )
+        native_responses = int(self._stats.get("native_decision_responses", 0) or 0)
         if native_responses:
             self._stats["native_tool_protocol_compliance_rate"] = round(
-                int(
-                    self._stats.get(
-                        "native_tool_protocol_valid_responses", 0
-                    )
-                    or 0
-                )
+                int(self._stats.get("native_tool_protocol_valid_responses", 0) or 0)
                 / native_responses,
                 6,
             )
@@ -2206,6 +2254,10 @@ class LLMAgent(BaselineAgent):
             return
         with self._realtime_cancel_lock:
             self._active_realtime_turn_id = turn_id
+            self._realtime_request_cursors[turn_id] = (
+                len(self._stats.get("provider_request_records") or []),
+                len(self._stats.get("provider_response_records") or []),
+            )
 
     def _end_realtime_turn(self, turn_id: str | None) -> None:
         if turn_id is None:
@@ -2252,14 +2304,23 @@ class LLMAgent(BaselineAgent):
             self._realtime_transport_cancel_outcomes[turn_id] = True
             self._stats["realtime_stream_cancellations"] += 1
 
-    def realtime_cancel_outcome(self, turn_id: str) -> dict[str, bool]:
+    def realtime_cancel_outcome(self, turn_id: str) -> dict[str, Any]:
         """Return the eventual transport outcome for one realtime turn."""
 
         with self._realtime_cancel_lock:
             return {
                 "provider_stream_canceled": bool(
                     self._realtime_transport_cancel_outcomes.get(turn_id, False)
-                )
+                ),
+                **(
+                    {
+                        "pretransport_cancellation": deepcopy(
+                            self._realtime_pretransport_cancellations[turn_id]
+                        )
+                    }
+                    if turn_id in self._realtime_pretransport_cancellations
+                    else {}
+                ),
             }
 
     def _stream_turn_is_canceled(self, turn_id: str | None) -> bool:
@@ -2272,7 +2333,24 @@ class LLMAgent(BaselineAgent):
         with self._realtime_cancel_lock:
             turn_id = self._active_realtime_turn_id
         if self._stream_turn_is_canceled(turn_id):
-            raise RealtimeTurnCanceledError(f"realtime provider turn canceled: {turn_id}")
+            with self._realtime_cancel_lock:
+                before = self._realtime_request_cursors.get(turn_id)
+                after = (
+                    len(self._stats.get("provider_request_records") or []),
+                    len(self._stats.get("provider_response_records") or []),
+                )
+                if before is not None and before == after:
+                    self._realtime_pretransport_cancellations[turn_id] = {
+                        "turn_id": turn_id,
+                        "reason": "canceled_before_provider_request",
+                        "request_count_before": before[0],
+                        "request_count_after": after[0],
+                        "response_count_before": before[1],
+                        "response_count_after": after[1],
+                    }
+            raise RealtimeTurnCanceledError(
+                f"realtime provider turn canceled: {turn_id}"
+            )
 
     def ingest_realtime_observation(self, observation: dict[str, Any]) -> None:
         """Update memory from a visible non-waking realtime transition.
@@ -2314,9 +2392,7 @@ class LLMAgent(BaselineAgent):
                 "active_plan": self._active_plan,
                 "plan_history": self._plan_history,
                 "pending_plan_calls": self._pending_plan_calls,
-                "consecutive_provider_failures": (
-                    self._consecutive_provider_failures
-                ),
+                "consecutive_provider_failures": (self._consecutive_provider_failures),
                 "last_provider_outcome": self._last_provider_outcome,
                 "last_provider_response_metadata": (
                     self._last_provider_response_metadata
@@ -2342,9 +2418,7 @@ class LLMAgent(BaselineAgent):
             state["consecutive_provider_failures"]
         )
         self._last_provider_outcome = state["last_provider_outcome"]
-        self._last_provider_response_metadata = state[
-            "last_provider_response_metadata"
-        ]
+        self._last_provider_response_metadata = state["last_provider_response_metadata"]
 
     def get_last_provider_outcome(self) -> dict[str, Any]:
         """Return the structured outcome of the latest attempted provider call."""
@@ -2363,15 +2437,21 @@ class LLMAgent(BaselineAgent):
 
     def _resume_binding_sha256(self) -> str:
         # Only the digest is persisted, never config header values or a client.
-        encoded = json.dumps({
-            "config": asdict(self.config),
-            "system_prompt": self._system_prompt,
-            "tools": self._tool_specs,
-            "readonly_tools": sorted(getattr(self, "_readonly_tools", set())),
-            "max_tools": self._max_tools,
-            "max_cost_units": self._max_cost_units,
-            "observation_budget_chars": self._observation_budget_chars,
-        }, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+        encoded = json.dumps(
+            {
+                "config": asdict(self.config),
+                "system_prompt": self._system_prompt,
+                "tools": self._tool_specs,
+                "readonly_tools": sorted(getattr(self, "_readonly_tools", set())),
+                "max_tools": self._max_tools,
+                "max_cost_units": self._max_cost_units,
+                "observation_budget_chars": self._observation_budget_chars,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
         return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
     def export_resume_state(self) -> dict[str, Any]:
@@ -2411,20 +2491,38 @@ class LLMAgent(BaselineAgent):
         groups = payload.get("pending_plans")
         expected_keys = set(self.snapshot_behavioral_state()) - {"pending_plan_calls"}
         if (
-            not isinstance(behavioral, dict) or set(behavioral) != expected_keys
-            or not isinstance(stats, dict) or not isinstance(groups, list)
+            not isinstance(behavioral, dict)
+            or set(behavioral) != expected_keys
+            or not isinstance(stats, dict)
+            or not isinstance(groups, list)
         ):
             raise ValueError("incomplete resume state")
-        for key in ("tick", "idem_seq", "session_event_seq", "consecutive_provider_failures"):
+        for key in (
+            "tick",
+            "idem_seq",
+            "session_event_seq",
+            "consecutive_provider_failures",
+        ):
             if type(behavioral[key]) is not int or behavioral[key] < 0:
                 raise ValueError(f"invalid resume state {key}")
-        for key in ("session_messages", "session_ledger", "recent_actions", "plan_history"):
+        for key in (
+            "session_messages",
+            "session_ledger",
+            "recent_actions",
+            "plan_history",
+        ):
             if not isinstance(behavioral[key], list):
                 raise ValueError(f"invalid resume state {key}")
-        for key in ("structured_memory", "last_provider_outcome", "last_provider_response_metadata"):
+        for key in (
+            "structured_memory",
+            "last_provider_outcome",
+            "last_provider_response_metadata",
+        ):
             if not isinstance(behavioral[key], dict):
                 raise ValueError(f"invalid resume state {key}")
-        if behavioral["active_plan"] is not None and not isinstance(behavioral["active_plan"], dict):
+        if behavioral["active_plan"] is not None and not isinstance(
+            behavioral["active_plan"], dict
+        ):
             raise ValueError("invalid resume state active_plan")
         if not set(_empty_interaction_stats()).issubset(stats):
             raise ValueError("incomplete resume interaction stats")
@@ -2552,12 +2650,8 @@ class LLMAgent(BaselineAgent):
             )
             if isinstance(value, int | float):
                 usage[field_name] = value
-        request_sequence = len(
-            self._stats.get("provider_request_records", []) or []
-        )
-        identity_records = self._stats.setdefault(
-            "provider_model_identity_records", []
-        )
+        request_sequence = len(self._stats.get("provider_request_records", []) or [])
+        identity_records = self._stats.setdefault("provider_model_identity_records", [])
         for record in reversed(identity_records):
             if (
                 int(record.get("request_sequence") or 0) == request_sequence
@@ -2567,9 +2661,7 @@ class LLMAgent(BaselineAgent):
                     int(record.get("response_fragment_count", 0) or 0) + 1
                 )
                 if response_model not in (None, ""):
-                    model_text = redact_provider_error(
-                        response_model, max_chars=256
-                    )
+                    model_text = redact_provider_error(response_model, max_chars=256)
                     observed = record.setdefault("observed_models", [])
                     if model_text not in observed:
                         observed.append(model_text)
@@ -2740,24 +2832,31 @@ class LLMAgent(BaselineAgent):
             remaining -= interval
 
     def _provider_retry_budget_error(
-        self, budget_reason: str, *, delay_s: float = 0.0,
+        self,
+        budget_reason: str,
+        *,
+        delay_s: float = 0.0,
     ) -> ProviderRetryBudgetExhaustedError:
         state = self._provider_retry_state or {}
         audit = {
             "budget_reason": budget_reason,
             "attempts": int(state.get("attempts", 0)),
             "max_attempts": self.config.provider_retry_max_attempts,
-            "elapsed_s": max(0.0, time.monotonic() - state.get("started", time.monotonic())),
+            "elapsed_s": max(
+                0.0, time.monotonic() - state.get("started", time.monotonic())
+            ),
             "max_elapsed_s": self.config.provider_retry_max_elapsed_s,
             "request_sequence": state.get("request_sequence"),
             "root_sequence": state.get("root_sequence"),
         }
         retry_at = datetime.fromtimestamp(
-            time.time() + max(0.0, delay_s), tz=UTC,
+            time.time() + max(0.0, delay_s),
+            tz=UTC,
         ).isoformat()
         return ProviderRetryBudgetExhaustedError(
             reason=state.get("last_reason", "provider_transport_error"),
-            retry_at=retry_at, audit=audit,
+            retry_at=retry_at,
+            audit=audit,
         )
 
     def _check_provider_retry_deadline(self) -> None:
@@ -2810,9 +2909,7 @@ class LLMAgent(BaselineAgent):
                 remaining_s = max(0.0, state["deadline"] - time.monotonic())
                 if remaining_s <= 0.0:
                     raise self._provider_retry_budget_error("max_elapsed")
-                state["wire_timeout_s"] = min(
-                    float(self.config.timeout_s), remaining_s
-                )
+                state["wire_timeout_s"] = min(float(self.config.timeout_s), remaining_s)
                 started_ns = time.monotonic_ns()
                 try:
                     request_sequence = self._record_provider_request(
@@ -2836,7 +2933,9 @@ class LLMAgent(BaselineAgent):
                     if not self._effective_wire_stream():
                         self._check_provider_retry_deadline()
                     # Compatibility fallbacks may open another audited request.
-                    request_sequence = len(self._stats.get("provider_request_records", []) or [])
+                    request_sequence = len(
+                        self._stats.get("provider_request_records", []) or []
+                    )
                     return action, started_ns, request_sequence
                 except Exception as exc:
                     request_sequence = int(
@@ -2845,10 +2944,13 @@ class LLMAgent(BaselineAgent):
                     )
                     responses = self._stats.get("provider_response_records") or []
                     if request_sequence and (
-                        not responses or responses[-1]["request_sequence"] != request_sequence
+                        not responses
+                        or responses[-1]["request_sequence"] != request_sequence
                     ):
                         self._record_provider_action_response(
-                            None, started_ns=started_ns, error=exc,
+                            None,
+                            started_ns=started_ns,
+                            error=exc,
                             request_sequence=request_sequence,
                         )
                     reason = self._record_provider_error(exc)
@@ -2860,18 +2962,25 @@ class LLMAgent(BaselineAgent):
                     state["last_reason"] = reason
                     state["request_sequence"] = request_sequence
                     delay_s = self._transient_provider_retry_delay(
-                        exc, retry_index=retry_index + 1,
+                        exc,
+                        retry_index=retry_index + 1,
                     )
                     if state["attempts"] >= self.config.provider_retry_max_attempts:
-                        raise self._provider_retry_budget_error("max_attempts", delay_s=delay_s) from exc
+                        raise self._provider_retry_budget_error(
+                            "max_attempts", delay_s=delay_s
+                        ) from exc
                     if time.monotonic() + delay_s >= state["deadline"]:
-                        raise self._provider_retry_budget_error("max_elapsed", delay_s=delay_s) from exc
+                        raise self._provider_retry_budget_error(
+                            "max_elapsed", delay_s=delay_s
+                        ) from exc
                     retry_index += 1
                     self._record_retry(reason, delay_s=delay_s)
                     LOGGER.warning(
                         "Transient provider failure (%s); retrying wire request "
                         "%d/%d after %.3fs.",
-                        reason, retry_index, self.config.provider_retry_max_attempts - 1,
+                        reason,
+                        retry_index,
+                        self.config.provider_retry_max_attempts - 1,
                         delay_s,
                     )
                     self._sleep_before_provider_retry(delay_s)
@@ -2949,7 +3058,9 @@ class LLMAgent(BaselineAgent):
             return
         parsed = urlsplit(str(endpoint))
         if not parsed.scheme or not parsed.netloc:
-            raise ValueError(f"invalid provider endpoint: {public_provider_url(endpoint)}")
+            raise ValueError(
+                f"invalid provider endpoint: {public_provider_url(endpoint)}"
+            )
         if parsed.scheme.lower() != "https" and not self.config.allow_insecure_http:
             raise ValueError(
                 "provider endpoint must use HTTPS; set allow_insecure_http=True "
@@ -3018,9 +3129,7 @@ class LLMAgent(BaselineAgent):
             fn = spec.get("function", {}) or {}
             parameters = fn.get("parameters", {})
             if isinstance(parameters, dict):
-                parameters = compile_parameters_for_wire(
-                    parameters, dialect="openai"
-                )
+                parameters = compile_parameters_for_wire(parameters, dialect="openai")
             tools.append(
                 {
                     "type": "function",
@@ -3051,12 +3160,13 @@ class LLMAgent(BaselineAgent):
             "model": self.config.model,
             "instructions": instructions,
             "input": input_items,
-            "temperature": self.config.temperature,
             "max_output_tokens": self.config.max_tokens,
             "timeout": self._effective_provider_timeout_s(),
             "store": False,
             "tools": self._responses_tools(),
         }
+        if temperature_param_supported(self.config.model):
+            kwargs["temperature"] = self.config.temperature
         if self.config.tool_choice == "required" and self._tool_specs:
             kwargs["tool_choice"] = "required"
         if self.config.reasoning_effort is not None:
@@ -3091,11 +3201,7 @@ class LLMAgent(BaselineAgent):
                 fallback_without_tools=True,
             )
             rsp = create(
-                **{
-                    k: v
-                    for k, v in kwargs.items()
-                    if k not in {"tools", "tool_choice"}
-                }
+                **{k: v for k, v in kwargs.items() if k not in {"tools", "tool_choice"}}
             )
             self._record_provider_response_identity(rsp)
             if str(getattr(rsp, "status", "") or "").lower() == "incomplete":
@@ -3182,16 +3288,13 @@ class LLMAgent(BaselineAgent):
 
     def _compact_persistent_context(self, *, max_chars: int | None = None) -> None:
         max_messages = max(4, int(self.config.persistent_history_max_messages))
-        requested_max_chars = max(
-            500, int(self.config.persistent_context_max_chars)
-        )
+        requested_max_chars = max(500, int(self.config.persistent_context_max_chars))
         max_chars = max(
             500,
             int(max_chars) if max_chars is not None else requested_max_chars,
         )
         context_chars = sum(
-            len(str(message.get("content", "")))
-            for message in self._session_messages
+            len(str(message.get("content", ""))) for message in self._session_messages
         )
         if len(self._session_messages) <= max_messages and context_chars <= max_chars:
             return
@@ -3325,9 +3428,7 @@ class LLMAgent(BaselineAgent):
                 candidate = [system_and_latest[0], summary, system_and_latest[1]]
             else:
                 candidate = system_and_latest
-        candidate_chars = sum(
-            len(str(item.get("content", ""))) for item in candidate
-        )
+        candidate_chars = sum(len(str(item.get("content", ""))) for item in candidate)
         if candidate_chars > max_chars:
             raise ValueError(
                 "persistent action-critical context exceeds configured character "
@@ -3423,10 +3524,7 @@ class LLMAgent(BaselineAgent):
         )
         self._stats["session_provider_context_bytes"] = provider_context_bytes
         self._stats["session_provider_context_bytes_peak"] = max(
-            int(
-                self._stats.get("session_provider_context_bytes_peak", 0)
-                or 0
-            ),
+            int(self._stats.get("session_provider_context_bytes_peak", 0) or 0),
             provider_context_bytes,
         )
         return messages
@@ -3517,7 +3615,9 @@ class LLMAgent(BaselineAgent):
         for bucket in _PERSISTENT_MEMORY_BUCKETS:
             if remaining <= 0:
                 break
-            take = min(_PERSISTENT_MEMORY_BUCKET_FLOOR, len(retained[bucket]), remaining)
+            take = min(
+                _PERSISTENT_MEMORY_BUCKET_FLOOR, len(retained[bucket]), remaining
+            )
             if take <= 0:
                 continue
             kept[bucket] = retained[bucket][-take:]
@@ -3593,8 +3693,7 @@ class LLMAgent(BaselineAgent):
                 row
                 for row in self._structured_memory.get("unresolved_alarms", [])
                 if isinstance(row, dict)
-                and str(row.get("type") or row.get("kind") or "").lower()
-                == base_type
+                and str(row.get("type") or row.get("kind") or "").lower() == base_type
             ]
             # Never clear several concurrent alarms from an ambiguous lifecycle
             # marker. Domains with multiple instances must supply an explicit ID.
@@ -3625,9 +3724,7 @@ class LLMAgent(BaselineAgent):
             )
             if previous_fact is not None:
                 previous_totals = previous_fact["value"]
-                previous_tick = int(
-                    previous_fact.get("observed_at_tick", tick) or tick
-                )
+                previous_tick = int(previous_fact.get("observed_at_tick", tick) or tick)
                 for metric, value in totals.items():
                     previous_value = previous_totals.get(metric)
                     if (
@@ -3672,9 +3769,7 @@ class LLMAgent(BaselineAgent):
                         "id": f"forecast:{forecast_key}@{tick}",
                         "forecast_key": str(forecast_key),
                         "observed_at_tick": tick,
-                        "value": deepcopy(
-                            raw_forecast.get("value", raw_forecast)
-                        ),
+                        "value": deepcopy(raw_forecast.get("value", raw_forecast)),
                     }
                     for metadata_key in (
                         "valid_from_tick",
@@ -3684,9 +3779,7 @@ class LLMAgent(BaselineAgent):
                         "source",
                     ):
                         if metadata_key in raw_forecast:
-                            record[metadata_key] = deepcopy(
-                                raw_forecast[metadata_key]
-                            )
+                            record[metadata_key] = deepcopy(raw_forecast[metadata_key])
                 else:
                     record = {
                         "id": f"forecast:{forecast_key}@{tick}",
@@ -3848,7 +3941,12 @@ class LLMAgent(BaselineAgent):
             plan_state.get("active_plan") if isinstance(plan_state, dict) else None
         )
         self._structured_memory["active_commitments"] = (
-            [{"id": str(active_plan.get("plan_id") or "active_plan"), **deepcopy(active_plan)}]
+            [
+                {
+                    "id": str(active_plan.get("plan_id") or "active_plan"),
+                    **deepcopy(active_plan),
+                }
+            ]
             if isinstance(active_plan, dict)
             else []
         )
@@ -3994,9 +4092,7 @@ class LLMAgent(BaselineAgent):
                 "provider_retry",
             }
             if realtime_kind not in allowed_realtime_kinds:
-                raise ValueError(
-                    f"unknown realtime event kind: {realtime_kind!r}"
-                )
+                raise ValueError(f"unknown realtime event kind: {realtime_kind!r}")
             kind = realtime_kind
             context_keys: tuple[str, ...] = (
                 "totals",
@@ -4033,9 +4129,7 @@ class LLMAgent(BaselineAgent):
                 context_keys = tuple(
                     key for key in context_keys if key != "last_realized_events"
                 )
-            event_context = {
-                key: body.get(key) for key in context_keys if key in body
-            }
+            event_context = {key: body.get(key) for key in context_keys if key in body}
             event_context["realtime_event"] = realtime_event
         if self.config.context_ablation_mode == "matched_transcript_v1":
             # Event typing must not remove current decision state in an E1 arm.
@@ -4114,11 +4208,7 @@ class LLMAgent(BaselineAgent):
         protected_keys = set(state_keys)
         keys = [key for key in state_keys if key in record]
         if not identity_only:
-            keys.extend(
-                key
-                for key in sorted(record, key=str)
-                if key not in keys
-            )
+            keys.extend(key for key in sorted(record, key=str) if key not in keys)
         projected: dict[str, Any] = {}
         for key in keys:
             value = record[key]
@@ -4178,7 +4268,11 @@ class LLMAgent(BaselineAgent):
     ) -> dict[str, Any]:
         max_chars = max(
             500,
-            int(self.config.persistent_context_max_chars if max_chars is None else max_chars),
+            int(
+                self.config.persistent_context_max_chars
+                if max_chars is None
+                else max_chars
+            ),
         )
         system_content = (
             str(self._session_messages[0].get("content", ""))
@@ -4221,7 +4315,8 @@ class LLMAgent(BaselineAgent):
             compact_context = json.loads(
                 self._serialize_prompt_body(
                     {
-                        key: value for key, value in event_context.items()
+                        key: value
+                        for key, value in event_context.items()
                         if key not in protected_context
                     },
                     max_chars=available_chars,
@@ -4288,8 +4383,7 @@ class LLMAgent(BaselineAgent):
         if any(call.args.get("__protocol_error__") for call in action.tool_calls):
             return "malformed_tool_arguments"
         allowed_names = {
-            str((spec.get("function") or {}).get("name") or "")
-            for spec in tool_specs
+            str((spec.get("function") or {}).get("name") or "") for spec in tool_specs
         }
         if any(call.name not in allowed_names for call in action.tool_calls):
             return "unknown_tool"
@@ -4341,9 +4435,7 @@ class LLMAgent(BaselineAgent):
                 if dependency_id not in causally_available
             )
             if unknown:
-                self._record_dependency_rejection(
-                    call, unknown, source="native"
-                )
+                self._record_dependency_rejection(call, unknown, source="native")
                 self._stats["native_calls_dependency_metadata_cleared"] += 1
                 call.depends_on_call_ids = [
                     dependency_id
@@ -4403,8 +4495,7 @@ class LLMAgent(BaselineAgent):
                 for call in decision.get("tool_calls") or []:
                     if (
                         isinstance(call, dict)
-                        and str(call.get("call_id") or "")
-                        in discarded_prior_call_ids
+                        and str(call.get("call_id") or "") in discarded_prior_call_ids
                     ):
                         call["execution_status"] = "discarded_by_runner"
         available_prior_call_ids = self._available_prior_call_ids() | {
@@ -4423,6 +4514,7 @@ class LLMAgent(BaselineAgent):
         body["decision_ledger"] = list(self._recent_actions[-8:])
         body["plan_state"] = {
             "active_plan": deepcopy(self._active_plan),
+            "review": deepcopy(self._structured_memory.get("plan_review")),
             "recent_plan_history": deepcopy(self._plan_history[-4:]),
             "pending_plan_ids": sorted(
                 {
@@ -4432,9 +4524,7 @@ class LLMAgent(BaselineAgent):
                 }
             ),
         }
-        body["interaction_stage"] = observation.get(
-            "__interaction_stage__", "commit"
-        )
+        body["interaction_stage"] = observation.get("__interaction_stage__", "commit")
         allowed_tools = observation.get("__allowed_tool_names__")
         realtime_event = observation.get("__realtime_event__")
         if (
@@ -4562,9 +4652,10 @@ class LLMAgent(BaselineAgent):
                 available_prior_call_ids,
                 discarded_prior_call_ids,
             )
-            if int(
-                self._stats.get("native_calls_dropped_dependency", 0) or 0
-            ) > dependency_drops_before:
+            if (
+                int(self._stats.get("native_calls_dropped_dependency", 0) or 0)
+                > dependency_drops_before
+            ):
                 native_protocol_violation = "native_dependency_rejected"
         self._record_provider_action_response(
             invalid_native_action,
@@ -4590,8 +4681,7 @@ class LLMAgent(BaselineAgent):
                     else set()
                 ),
             }
-            and str(self.config.tool_choice or "auto").lower()
-            in {"auto", "required"}
+            and str(self.config.tool_choice or "auto").lower() in {"auto", "required"}
             and body.get("interaction_stage") != "investigation"
             and request_tool_specs
             and self.config.provider in {"openai", "openai_compatible", "azure"}
@@ -4614,9 +4704,7 @@ class LLMAgent(BaselineAgent):
                     "role": "user",
                     "content": json.dumps(
                         {
-                            "current_event": str(user_msg.get("content", ""))[
-                                -12_000:
-                            ],
+                            "current_event": str(user_msg.get("content", ""))[-12_000:],
                             "invalid_output": {
                                 "assistant_text": (
                                     invalid_native_action.assistant_text or ""
@@ -4666,19 +4754,13 @@ class LLMAgent(BaselineAgent):
                     for result in same_epoch_results
                     if isinstance(result, dict)
                 )
-                remaining_cost = max(
-                    0.0, float(self._max_cost_units) - spent_cost
-                )
+                remaining_cost = max(0.0, float(self._max_cost_units) - spent_cost)
             self._protocol_repair_budget_override = (
                 max(0, int(remaining_calls)),
                 max(0.0, float(remaining_cost)),
             )
-            self._protocol_repair_available_call_ids = set(
-                available_prior_call_ids
-            )
-            self._protocol_repair_unavailable_call_ids = set(
-                discarded_prior_call_ids
-            )
+            self._protocol_repair_available_call_ids = set(available_prior_call_ids)
+            self._protocol_repair_unavailable_call_ids = set(discarded_prior_call_ids)
             if self._protocol_repair_budget_override[0] == 0:
                 self._stats["protocol_repair_calls_dropped_budget"] += 1
                 action = Action(
@@ -4730,7 +4812,7 @@ class LLMAgent(BaselineAgent):
         self._record_pending_plans(action, observation)
         self._recent_actions.append(
             {
-                "tick": self._tick,
+                "tick": int(observation.get("tick", self._tick) or 0),
                 "tool_calls": [
                     {"name": c.name, "args": c.args, "call_id": c.call_id}
                     for c in action.tool_calls
@@ -4832,22 +4914,16 @@ class LLMAgent(BaselineAgent):
                     "schema_version": "provider_rate_limit_audit_v1",
                     "status": "state_error",
                     "scope": scope,
-                    "scope_sha256": hashlib.sha256(
-                        scope.encode("utf-8")
-                    ).hexdigest(),
+                    "scope_sha256": hashlib.sha256(scope.encode("utf-8")).hexdigest(),
                     "error_type": type(exc).__name__,
                 }
             else:
-                wait_seconds = float(
-                    rate_limit_audit.get("wait_seconds", 0.0) or 0.0
-                )
+                wait_seconds = float(rate_limit_audit.get("wait_seconds", 0.0) or 0.0)
                 if wait_seconds > 0.0:
                     self._bump_stat("provider_rate_limit_wait_count")
                     self._stats["provider_rate_limit_wait_seconds"] = round(
                         float(
-                            self._stats.get(
-                                "provider_rate_limit_wait_seconds", 0.0
-                            )
+                            self._stats.get("provider_rate_limit_wait_seconds", 0.0)
                             or 0.0
                         )
                         + wait_seconds,
@@ -4855,9 +4931,7 @@ class LLMAgent(BaselineAgent):
                     )
                     self._stats["provider_rate_limit_max_wait_seconds"] = max(
                         float(
-                            self._stats.get(
-                                "provider_rate_limit_max_wait_seconds", 0.0
-                            )
+                            self._stats.get("provider_rate_limit_max_wait_seconds", 0.0)
                             or 0.0
                         ),
                         wait_seconds,
@@ -4866,7 +4940,9 @@ class LLMAgent(BaselineAgent):
         if retry_state is not None:
             budget_now = time.monotonic()
             remaining_s = max(0.0, retry_state["deadline"] - budget_now)
-            retry_state["wire_timeout_s"] = min(float(self.config.timeout_s), remaining_s)
+            retry_state["wire_timeout_s"] = min(
+                float(self.config.timeout_s), remaining_s
+            )
             recovery_budget = {
                 "max_attempts": self.config.provider_retry_max_attempts,
                 "max_elapsed_s": self.config.provider_retry_max_elapsed_s,
@@ -4884,8 +4960,7 @@ class LLMAgent(BaselineAgent):
             "api_version": self.config.api_version
             or os.getenv(self.config.api_version_env),
             "public_base_url": public_provider_url(
-                self.config.base_url
-                or os.getenv("OPERATE_API_BASE_URL")
+                self.config.base_url or os.getenv("OPERATE_API_BASE_URL")
             ),
             "public_responses_base_url": public_provider_url(
                 self.config.responses_base_url
@@ -4928,13 +5003,9 @@ class LLMAgent(BaselineAgent):
             # Backward-compatible alias; new readers should use the explicit
             # configured/effective fields below.
             "stream_chat_completions": self.config.stream_chat_completions,
-            "configured_stream_chat_completions": (
-                self.config.stream_chat_completions
-            ),
+            "configured_stream_chat_completions": (self.config.stream_chat_completions),
             "effective_wire_stream": effective_wire_stream,
-            "model_context_window_tokens": (
-                self.config.model_context_window_tokens
-            ),
+            "model_context_window_tokens": (self.config.model_context_window_tokens),
             "model_max_output_tokens": self.config.model_max_output_tokens,
             "token_count_method": self.config.token_count_method,
             "token_count_version": self.config.token_count_version,
@@ -5057,9 +5128,7 @@ class LLMAgent(BaselineAgent):
 
         if not self._uses_persistent_session():
             return messages, None
-        requested_max_chars = max(
-            500, int(self.config.persistent_context_max_chars)
-        )
+        requested_max_chars = max(500, int(self.config.persistent_context_max_chars))
         context_window = self.config.model_context_window_tokens
         max_output = self.config.model_max_output_tokens
         if context_window is None or max_output is None:
@@ -5070,24 +5139,29 @@ class LLMAgent(BaselineAgent):
             # Retained transcript may use spare capacity but must not force
             # asymmetric current-state compaction. The ledger keeps its bytes.
             wire = self._provider_wire_projection(
-                messages=messages, tools=tools, max_tokens=max_tokens,
+                messages=messages,
+                tools=tools,
+                max_tokens=max_tokens,
                 effective_tool_choice=effective_tool_choice,
                 effective_wire_stream=effective_wire_stream,
                 effective_temperature=effective_temperature,
             )
-            wire_bytes = len(json.dumps(
-                wire, ensure_ascii=False, sort_keys=True,
-                separators=(",", ":"), default=str,
-            ).encode("utf-8"))
+            wire_bytes = len(
+                json.dumps(
+                    wire,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    default=str,
+                ).encode("utf-8")
+            )
             if wire_bytes + int(max_tokens) > int(context_window):
                 history_messages_dropped = max(0, len(messages) - 2)
                 messages = [messages[0], messages[-1]]
                 self._session_messages = deepcopy(messages)
 
         before_messages = len(messages)
-        before_chars = sum(
-            len(str(message.get("content", ""))) for message in messages
-        )
+        before_chars = sum(len(str(message.get("content", ""))) for message in messages)
         available_input = int(context_window) - int(max_tokens)
         effective_max_chars = min(
             requested_max_chars,
@@ -5124,9 +5198,7 @@ class LLMAgent(BaselineAgent):
                             sort_keys=True,
                             separators=(",", ":"),
                         )
-                    self._compact_persistent_context(
-                        max_chars=effective_max_chars
-                    )
+                    self._compact_persistent_context(max_chars=effective_max_chars)
                 except ValueError:
                     # The system prompt and latest actionable event are not
                     # discardable. The regular request preflight below records
@@ -5156,16 +5228,13 @@ class LLMAgent(BaselineAgent):
             overage = total_reserved - int(context_window)
             next_max_chars = max(
                 500,
-                effective_max_chars
-                - max(overage, effective_max_chars // 10),
+                effective_max_chars - max(overage, effective_max_chars // 10),
             )
             if next_max_chars >= effective_max_chars:
                 break
             effective_max_chars = next_max_chars
 
-        after_chars = sum(
-            len(str(message.get("content", ""))) for message in projected
-        )
+        after_chars = sum(len(str(message.get("content", ""))) for message in projected)
         projection = {
             "schema_version": "provider_cap_context_projection_v1",
             "requested_max_chars": requested_max_chars,
@@ -5181,16 +5250,11 @@ class LLMAgent(BaselineAgent):
             "content_chars_after": after_chars,
             "authoritative_ledger_events": len(self._session_ledger),
             "compactions_applied": (
-                int(self._stats.get("session_compactions", 0) or 0)
-                - compactions_before
+                int(self._stats.get("session_compactions", 0) or 0) - compactions_before
             ),
         }
-        self._stats["persistent_context_requested_max_chars"] = (
-            requested_max_chars
-        )
-        self._stats["persistent_context_effective_max_chars"] = (
-            effective_max_chars
-        )
+        self._stats["persistent_context_requested_max_chars"] = requested_max_chars
+        self._stats["persistent_context_effective_max_chars"] = effective_max_chars
         return projected, projection
 
     def _serialize_current_observation_for_provider(
@@ -5206,9 +5270,7 @@ class LLMAgent(BaselineAgent):
     ) -> tuple[str, dict[str, Any]]:
         """Fit one treatment-neutral current observation to the provider cap."""
 
-        requested_max_chars = max(
-            500, int(self.config.persistent_context_max_chars)
-        )
+        requested_max_chars = max(500, int(self.config.persistent_context_max_chars))
         context_window = self.config.model_context_window_tokens
         effective_max_chars = requested_max_chars
         serialized = self._serialize_prompt_body(
@@ -5270,8 +5332,7 @@ class LLMAgent(BaselineAgent):
             overage = total_reserved - int(context_window)
             next_max_chars = max(
                 500,
-                effective_max_chars
-                - max(overage, effective_max_chars // 10),
+                effective_max_chars - max(overage, effective_max_chars // 10),
             )
             if next_max_chars >= effective_max_chars:
                 break
@@ -5289,12 +5350,8 @@ class LLMAgent(BaselineAgent):
             "treatment_neutral": True,
             "include_cost_units": True,
         }
-        self._stats["current_observation_requested_max_chars"] = (
-            requested_max_chars
-        )
-        self._stats["current_observation_effective_max_chars"] = (
-            effective_max_chars
-        )
+        self._stats["current_observation_requested_max_chars"] = requested_max_chars
+        self._stats["current_observation_effective_max_chars"] = effective_max_chars
         return serialized, projection
 
     def _compiled_wire_tools(
@@ -5322,6 +5379,13 @@ class LLMAgent(BaselineAgent):
     ) -> dict[str, Any]:
         """Project the request-relevant JSON compiled for each provider."""
 
+        # Match actual wire omission rather than counting a JSON null.
+        temperature_fields = (
+            {"temperature": effective_temperature}
+            if temperature_param_supported(self.config.model)
+            else {}
+        )
+
         if (
             self.config.provider in {"openai", "openai_compatible", "azure"}
             and self._resolved_api_mode() == "responses"
@@ -5342,7 +5406,7 @@ class LLMAgent(BaselineAgent):
                     if message.get("role") != "system"
                 ],
                 "tools": self._responses_tools_from_specs(tools),
-                "temperature": effective_temperature,
+                **temperature_fields,
                 "max_output_tokens": int(max_tokens),
                 "store": False,
                 "tool_choice": effective_tool_choice,
@@ -5358,7 +5422,7 @@ class LLMAgent(BaselineAgent):
                 "system": messages[0].get("content", "") if messages else "",
                 "messages": messages[1:],
                 "tools": self._anthropic_tools_from_specs(tools),
-                "temperature": effective_temperature,
+                **temperature_fields,
                 "max_tokens": int(max_tokens),
                 "tool_choice": (
                     {"type": "any"} if effective_tool_choice == "required" else None
@@ -5380,7 +5444,7 @@ class LLMAgent(BaselineAgent):
             "model": self.config.model,
             "messages": messages,
             "tools": self._compiled_wire_tools(tools),
-            "temperature": effective_temperature,
+            **temperature_fields,
             "max_tokens": int(max_tokens),
             "tool_choice": effective_tool_choice,
             "stream": effective_wire_stream,
@@ -5588,19 +5652,19 @@ class LLMAgent(BaselineAgent):
                 "revision_reason": str(args.get("revision_reason") or ""),
                 "review_after_ticks": args.get("review_after_ticks"),
                 "predicted_events": list(
-                    args.get("predicted_events")
-                    or args.get("predictions")
-                    or []
+                    args.get("predicted_events") or args.get("predictions") or []
                 )[:8],
                 "status": "pending",
             }
-            for field_name in ("wake_if", "plan_expires_at_tick", "trigger_evidence_ids"):
+            for field_name in (
+                "wake_if",
+                "plan_expires_at_tick",
+                "trigger_evidence_ids",
+            ):
                 if field_name in args:
                     plan[field_name] = deepcopy(args[field_name])
             aliases = {
-                str(value)
-                for value in (call.call_id, call.idempotency_key)
-                if value
+                str(value) for value in (call.call_id, call.idempotency_key) if value
             }
             if not aliases:
                 aliases = {f"plan:{plan['plan_id']}:{proposed_tick}"}
@@ -5610,6 +5674,16 @@ class LLMAgent(BaselineAgent):
     def observe_transition(self, observation: dict[str, Any]) -> None:
         """Ingest tool acknowledgements even during autonomous hold ticks."""
         self._ingest_plan_feedback(observation)
+
+    def on_episode_end(
+        self,
+        *,
+        final_observation: dict[str, Any],
+        actions: list[Action],
+        episode_reward: float = 0.0,
+    ) -> None:
+        """Retain final review disposition without treating it as plan failure."""
+        self._ingest_plan_feedback(final_observation)
 
     def _ingest_plan_feedback(self, observation: dict[str, Any]) -> None:
         """Promote or reject pending plans from visible tool acknowledgements."""
@@ -5623,7 +5697,10 @@ class LLMAgent(BaselineAgent):
                 if not isinstance(raw, dict) or raw.get("name") != "commit_to_plan":
                     continue
                 payload = raw.get("payload") or {}
-                if bool(raw.get("ok")) and str(payload.get("_status") or "").lower() == "pending":
+                if (
+                    bool(raw.get("ok"))
+                    and str(payload.get("_status") or "").lower() == "pending"
+                ):
                     continue
                 signature = (
                     str(raw.get("call_id") or ""),
@@ -5651,7 +5728,9 @@ class LLMAgent(BaselineAgent):
                 if any(
                     provided and provided != str(plan.get(field_name) or "")
                     for provided, field_name in zip(
-                        signature, ("call_id", "idempotency_key", "plan_id"), strict=True,
+                        signature,
+                        ("call_id", "idempotency_key", "plan_id"),
+                        strict=True,
                     )
                 ):
                     continue
@@ -5680,6 +5759,20 @@ class LLMAgent(BaselineAgent):
                     self._bump_stat("plan_commits_rejected")
         if len(self._plan_history) > 12:
             del self._plan_history[:-12]
+        if "__plan_review__" in observation:
+            self._structured_memory["plan_review"] = deepcopy(
+                observation["__plan_review__"]
+            )
+        self._structured_memory["active_commitments"] = (
+            [
+                {
+                    "id": str(self._active_plan.get("plan_id") or "active_plan"),
+                    **deepcopy(self._active_plan),
+                }
+            ]
+            if self._active_plan is not None
+            else []
+        )
 
     def _observation_summary(self, observation: dict[str, Any]) -> dict[str, Any]:
         """Keep the prompt compact without dropping domain-native scheduling state."""
@@ -5714,9 +5807,7 @@ class LLMAgent(BaselineAgent):
             ordered = sorted(
                 rows.items(),
                 key=lambda item: (
-                    -_finite_float_or_zero(
-                        item[1].get("decision_relevance", 0.0)
-                    ),
+                    -_finite_float_or_zero(item[1].get("decision_relevance", 0.0)),
                     -int(
                         bool(
                             item[1].get("safety_violation")
@@ -5727,9 +5818,7 @@ class LLMAgent(BaselineAgent):
                     ),
                     -max(
                         0.0,
-                        _finite_float_or_zero(
-                            item[1].get("loading_percent", 0.0)
-                        )
+                        _finite_float_or_zero(item[1].get("loading_percent", 0.0))
                         - 100.0,
                     ),
                     bool(item[1].get("served") or item[1].get("dropped")),
@@ -5783,9 +5872,7 @@ class LLMAgent(BaselineAgent):
             "decision_cadence",
         )
         native_state = {
-            key: observation[key]
-            for key in native_state_keys
-            if key in observation
+            key: observation[key] for key in native_state_keys if key in observation
         }
         jobs = observation.get("jobs")
         if isinstance(jobs, dict) and any(
@@ -5807,11 +5894,7 @@ class LLMAgent(BaselineAgent):
                 "dispatch_order",
             )
             native_state["jobs"] = {
-                str(job_id): {
-                    key: job[key]
-                    for key in gpu_job_keys
-                    if key in job
-                }
+                str(job_id): {key: job[key] for key in gpu_job_keys if key in job}
                 for job_id, job in sorted(jobs.items())
                 if isinstance(job, dict)
             }
@@ -5904,9 +5987,7 @@ class LLMAgent(BaselineAgent):
                 max_payload_chars=payload_limit,
                 include_cost_units=True,
             ),
-            "control_calls": deepcopy(
-                list(control_calls)[: max(1, self._max_tools)]
-            ),
+            "control_calls": deepcopy(list(control_calls)[: max(1, self._max_tools)]),
             "retryable_call_ids": [
                 str(call_id)
                 for call_id in observation.get("__retryable_call_ids__") or []
@@ -6092,11 +6173,7 @@ class LLMAgent(BaselineAgent):
         if len(encoded) <= max_chars:
             return encoded
 
-        mandatory = {
-            key: compact.get(key)
-            for key in mandatory_keys
-            if key in compact
-        }
+        mandatory = {key: compact.get(key) for key in mandatory_keys if key in compact}
         mandatory["serialization"] = {
             **compact["serialization"],
             "mandatory_only": True,
@@ -6216,9 +6293,7 @@ class LLMAgent(BaselineAgent):
             fn = spec.get("function") or {}
             parameters = fn.get("parameters", {})
             if isinstance(parameters, dict):
-                parameters = compile_parameters_for_wire(
-                    parameters, dialect="gemini"
-                )
+                parameters = compile_parameters_for_wire(parameters, dialect="gemini")
             declarations.append(
                 {
                     "name": fn.get("name", ""),
@@ -6242,12 +6317,12 @@ class LLMAgent(BaselineAgent):
             "tools": self._google_tools_from_specs(tools),
             "temperature": temperature,
             "max_output_tokens": int(max_tokens),
-            "http_options": {"timeout": int(self._effective_provider_timeout_s() * 1000)},
+            "http_options": {
+                "timeout": int(self._effective_provider_timeout_s() * 1000)
+            },
         }
         if tool_choice == "required" and tools:
-            config["tool_config"] = {
-                "function_calling_config": {"mode": "ANY"}
-            }
+            config["tool_config"] = {"function_calling_config": {"mode": "ANY"}}
         return config
 
     def _call_openai_compatible(self, messages: list[dict[str, Any]]) -> Action:
@@ -6256,10 +6331,11 @@ class LLMAgent(BaselineAgent):
         kwargs: dict[str, Any] = {
             "model": self.config.model,
             "messages": messages,
-            "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
             "timeout": self._effective_provider_timeout_s(),
         }
+        if temperature_param_supported(self.config.model):
+            kwargs["temperature"] = self.config.temperature
         if self.config.stream_chat_completions:
             kwargs["stream"] = True
         effective_tool_choice = self._effective_wire_tool_choice(
@@ -6325,9 +6401,7 @@ class LLMAgent(BaselineAgent):
                     tool_calls=[],
                     dominant="provider_output_truncated",
                     assistant_text=rsp.choices[0].message.content or "",
-                    rationale=(
-                        getattr(rsp.choices[0].message, "reasoning", "") or ""
-                    ),
+                    rationale=(getattr(rsp.choices[0].message, "reasoning", "") or ""),
                 )
             msg = rsp.choices[0].message
             # v0.2.4: previously the dominant was silently `wait`, hiding
@@ -6389,11 +6463,12 @@ class LLMAgent(BaselineAgent):
             # temperature 0.0 with 400 "only 1 is allowed for this model",
             # which aborted otherwise-sound repair requests. The repair still
             # asks for one deterministic tool call via the prompt.
-            "temperature": self.config.temperature,
             "max_tokens": self.config.protocol_repair_max_tokens,
             "timeout": self._effective_provider_timeout_s(),
             "tools": self._compiled_wire_tools(tools),
         }
+        if temperature_param_supported(self.config.model):
+            kwargs["temperature"] = self.config.temperature
         effective_tool_choice = self._effective_wire_tool_choice(
             request_kind="protocol_repair",
             tools=tools,
@@ -6469,12 +6544,8 @@ class LLMAgent(BaselineAgent):
         spent = 0.0
         malformed_dropped = False
         dependency_dropped = False
-        causally_available = set(
-            self._protocol_repair_available_call_ids or set()
-        )
-        causally_unavailable = set(
-            self._protocol_repair_unavailable_call_ids or set()
-        )
+        causally_available = set(self._protocol_repair_available_call_ids or set())
+        causally_unavailable = set(self._protocol_repair_unavailable_call_ids or set())
         max_calls, max_cost = self._protocol_repair_budget_override or (
             max(0, int(self._max_tools)),
             max(0.0, float(self._max_cost_units)),
@@ -6510,9 +6581,7 @@ class LLMAgent(BaselineAgent):
                 if dependency_id not in causally_available
             )
             if unknown_dependencies:
-                self._stats[
-                    "protocol_repair_calls_dependency_metadata_cleared"
-                ] += 1
+                self._stats["protocol_repair_calls_dependency_metadata_cleared"] += 1
                 self._record_dependency_rejection(
                     call,
                     unknown_dependencies,
@@ -6532,14 +6601,18 @@ class LLMAgent(BaselineAgent):
             if call.call_id:
                 causally_available.add(call.call_id)
         action.tool_calls = kept
-        action.dominant = kept[0].name if kept else (
-            "protocol_repair_malformed_rejected"
-            if malformed_dropped
+        action.dominant = (
+            kept[0].name
+            if kept
             else (
-                "protocol_repair_dependency_rejected"
-                if dependency_dropped
-                or action.dominant == "protocol_repair_dependency_rejected"
-                else "protocol_repair_budget_rejected"
+                "protocol_repair_malformed_rejected"
+                if malformed_dropped
+                else (
+                    "protocol_repair_dependency_rejected"
+                    if dependency_dropped
+                    or action.dominant == "protocol_repair_dependency_rejected"
+                    else "protocol_repair_budget_rejected"
+                )
             )
         )
         return action
@@ -6589,16 +6662,12 @@ class LLMAgent(BaselineAgent):
                 )
                 for tool_call in getattr(delta, "tool_calls", None) or []:
                     index = int(getattr(tool_call, "index", 0) or 0)
-                    part = call_parts.setdefault(
-                        index, {"name": "", "arguments": ""}
-                    )
+                    part = call_parts.setdefault(index, {"name": "", "arguments": ""})
                     function = getattr(tool_call, "function", None)
                     if function is None:
                         continue
                     part["name"] += getattr(function, "name", "") or ""
-                    part["arguments"] += (
-                        getattr(function, "arguments", "") or ""
-                    )
+                    part["arguments"] += getattr(function, "arguments", "") or ""
             if self._stream_turn_is_canceled(turn_id):
                 raise RealtimeTurnCanceledError(
                     f"realtime provider stream canceled: {turn_id}"
@@ -6629,12 +6698,16 @@ class LLMAgent(BaselineAgent):
                 try:
                     close()
                 except Exception as exc:
-                    LOGGER.warning("Provider stream cleanup failed: %s", redact_provider_error(exc))
+                    LOGGER.warning(
+                        "Provider stream cleanup failed: %s", redact_provider_error(exc)
+                    )
             if turn_id is not None:
                 with self._realtime_cancel_lock:
                     self._active_provider_streams.pop(turn_id, None)
         if finish_reason is None and self.config.provider_failure_policy == "abort":
-            raise ConnectionError("provider stream ended without a terminal finish_reason")
+            raise ConnectionError(
+                "provider stream ended without a terminal finish_reason"
+            )
         calls: list[ToolCall] = []
         if finish_reason == "length":
             self._bump_stat("provider_output_truncation_count")
@@ -6701,10 +6774,11 @@ class LLMAgent(BaselineAgent):
             "system": messages[0]["content"],
             "messages": messages[1:],
             "tools": self._anthropic_tools_from_specs(self._tool_specs),
-            "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
             "timeout": self._effective_provider_timeout_s(),
         }
+        if temperature_param_supported(self.config.model):
+            kwargs["temperature"] = self.config.temperature
         if self.config.tool_choice == "required" and self._tool_specs:
             kwargs["tool_choice"] = {"type": "any"}
         rsp = self._client.messages.create(  # type: ignore[union-attr]
@@ -6837,8 +6911,7 @@ class LLMAgent(BaselineAgent):
             if arguments_parseable
             and present
             and not (
-                isinstance(raw, list)
-                and all(isinstance(item, str) for item in raw)
+                isinstance(raw, list) and all(isinstance(item, str) for item in raw)
             )
         ]
         if missing_fields:

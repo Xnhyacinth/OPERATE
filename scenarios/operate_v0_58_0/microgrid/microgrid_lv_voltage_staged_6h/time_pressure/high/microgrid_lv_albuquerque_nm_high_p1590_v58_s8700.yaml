@@ -1,0 +1,243 @@
+seed_id: microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_albuquerque_nm_high_p1590_v58_s8700
+family: microgrid_lv_voltage_staged_6h
+domain: microgrid
+backend_kind: pandapower_lv
+backend_config:
+  site: albuquerque_nm
+  pv_scale: 2.5
+  battery_e_mwh: 0.1
+  controllable_der_count: 4
+  genset_available: false
+  forecast_regime_idx: 0
+  forecast_error_sigma: 0.05
+  forecast_bias: 0.0
+  cascade_permissive: false
+  honest_zero_keys:
+  - startup_cost
+  task_contract:
+    contract: microgrid.lv_voltage.staged_recovery.v2
+    phase_ticks:
+    - 2
+    - 4
+    minimum_reduction_each_phase: 1
+    minimum_distinct_control_ticks: 2
+    reversal:
+      tool: set_battery_dispatch
+      argument: p_mw
+      first_sign: positive
+      later_sign: negative
+      later_not_before_tick: 3
+  source_profile_applied: true
+  profile_start_index: 1590
+  source_profiles:
+    load_mw:
+    - 78.27381
+    - 93.17253
+    - 104.07958
+    - 124.27621
+    - 154.41641
+    - 174.9837
+    pv_mw:
+    - 0.0
+    - 20.84868
+    - 57.62275
+    - 99.84013
+    - 77.59442
+    - 99.96646
+  source_profile_reference:
+    load_mw: 121.53370667
+    pv_mw: 99.96646
+  derivation_recipe:
+    pipeline_version: microgrid_source_consumed_v2
+    source_window_sha256: 73d5efbfe08cca94ce52a2ef18a8b2a00796e9932edebf6aee0e46bed0d1e7be
+    profile_start_index: 1590
+    selection_rule: behavioral_two_stage_recovery_scan_v1
+    network: pandapower.create_synthetic_voltage_control_lv_network
+    load_mapping: native_load_p_mw * source_load_mw[t] / mean(source_window_load_mw)
+    pv_mapping: native_sgen_p_mw * pv_scale * source_pv_mw[t] / max(source_window_pv_mw)
+    magnitude_scope: source temporal shape mapped onto the native synthetic LV feeder;
+      source site MW magnitude is not claimed as the feeder magnitude
+    stress_overlay_scope: deterministic simulator stressors declared by kind, tick,
+      duration, target, and intensity; not claimed as source-window observations
+    stress_overlays:
+    - kind: pv_ramp
+      trigger_tick: 1
+      duration_ticks: 2
+      hidden: false
+      target: {}
+      intensity: 1.5
+    - kind: load_spike
+      trigger_tick: 3
+      duration_ticks: 3
+      hidden: true
+      target: {}
+      intensity: 3.0
+  battery:
+    capacity_mwh: 0.1
+    init_soc: 0.5
+    max_charge_mw: 0.05
+    max_discharge_mw: 0.05
+    efficiency: 0.95
+  protocol21_replay_refinement:
+    method: bounded_native_replay_refinement_v1
+    source_profile_unchanged: true
+    source_observation_claim: false
+  release_ready: false
+  release_reentry_ready: false
+  source_integration_rung: staging_source_consumed_native_lv_v1
+  source_denominator_key: '{"backend":"pandapower_lv","network":"pandapower.create_synthetic_voltage_control_lv_network","site":"albuquerque_nm","source_window_sha256":"73d5efbfe08cca94ce52a2ef18a8b2a00796e9932edebf6aee0e46bed0d1e7be"}'
+  microgrid_expansion_v58:
+    pipeline: microgrid_source_identity_native_refine_v58
+    source_node_id: nrel_oedi:albuquerque_nm:1590:6:pandapower_lv
+    candidate_only: true
+    safety_threshold_unchanged: true
+    event_schedule_unchanged: true
+    source_profile_unchanged: true
+  protocol21_held_refine:
+    method: bounded_native_stress_scan_v1
+    source_profile_unchanged: true
+    source_window_unchanged: true
+    event_schedule_unchanged: true
+    declared_perturbation_only: true
+    selection_rule: max_pv_scale_times_load_intensity_among_screen_passes
+    original_pv_scale: 5.0
+    refined_pv_scale: 2.5
+    original_load_spike_intensity: 4.0
+    refined_load_spike_intensity: 3.0
+  dimension_applicability:
+    system_survival:
+      applicable: true
+      reason: lv_voltage_collapse_tick_records_available
+    economic_cost:
+      applicable: true
+      reason: lv_voltage_and_curtailment_cost_components_available
+    safety_violation:
+      applicable: true
+      reason: real_lv_power_flow_keys
+    weighted_equity_score:
+      applicable: false
+      reason: lv_voltage_control_has_no_source_grounded_criticality_classes
+    ethical_quality:
+      applicable: false
+      reason: lv_voltage_control_has_no_moral_dilemma_payload
+    stakeholder_management:
+      applicable: false
+      reason: lv_voltage_control_has_no_trust_manager_delta
+    adaptive_replanning:
+      applicable: true
+      reason: state_changing_der_curtailment_tools_available
+    information_efficiency:
+      applicable: true
+      reason: partial_lv_observation_and_inspection_tools_available
+    foresight_score:
+      applicable: false
+      reason: baseline_oracle_does_not_emit_commit_to_plan_predictions
+    optimality_gap:
+      applicable: false
+      reason: lv_voltage_control_has_no_economic_dispatch_reference
+    counterfactual_prevention:
+      applicable: true
+      reason: deterministic_masked_action_replay_over_same_lv_seed
+    stakeholder_equity:
+      applicable: false
+      reason: lv_voltage_control_has_no_cross_stakeholder_outcome_ledger
+    tool_use_efficiency:
+      applicable: true
+      reason: tool_protocol_call_outcome_and_budget_evidence_available
+  observation_budget_chars: 16000
+  core_settings_stamp: v0.54.0-settings
+horizon_ticks: 6
+tick_minutes: 60
+seed: 8700
+load_assignments:
+- load_id: load_hospital
+  stakeholder_class: hospital
+  criticality: 0.97
+  demand_fraction: 0.12
+  bus_id: lv_bus_0
+- load_id: load_water
+  stakeholder_class: water
+  criticality: 0.85
+  demand_fraction: 0.08
+  bus_id: lv_bus_1
+- load_id: load_data_center
+  stakeholder_class: data_center
+  criticality: 0.55
+  demand_fraction: 0.16
+  bus_id: lv_bus_2
+- load_id: load_commercial
+  stakeholder_class: commercial
+  criticality: 0.4
+  demand_fraction: 0.24
+  bus_id: lv_bus_3
+- load_id: load_residential
+  stakeholder_class: residential
+  criticality: 0.2
+  demand_fraction: 0.4
+  bus_id: lv_bus_4
+perturbations:
+- kind: pv_ramp
+  trigger_tick: 1
+  duration_ticks: 2
+  hidden: false
+  target: {}
+  intensity: 1.5
+  notes: Visible PV surge requires absorptive controls.
+- kind: load_spike
+  trigger_tick: 3
+  duration_ticks: 3
+  hidden: true
+  target: {}
+  intensity: 3.0
+  notes: A latent sustained demand reversal invalidates the initial absorptive plan
+    and must be inferred from native voltage observations.
+dilemmas: []
+difficulty_mode: time_pressure
+difficulty_level: high
+provenance:
+  data_source: nsrdb_rooftop
+  files:
+  - works/nrel-microgrid/albuquerque_nm.npz
+  - works/nrel-microgrid/albuquerque_nm.provenance.json
+  commit: nsrdb-physical-solar-model-v3.2.2
+  url: https://nsrdb.nrel.gov
+  lock_strategy: nsrdb=2020 oedi=2021.1 pymgrid=1.2.2
+  time_window:
+    horizon_ticks: 6
+    tick_minutes: 60
+    start_index: 1590
+    source_window_sha256: 73d5efbfe08cca94ce52a2ef18a8b2a00796e9932edebf6aee0e46bed0d1e7be
+  license: NREL public (attribution required); parse-only, baked, never runtime
+  notes: LV power-flow tier on pandapower's synthetic voltage-control LV network (BSD-3-Clause,
+    in tree); rooftop PV scaled from baked NSRDB irradiance. For source-grounded candidates,
+    the locked load/PV temporal shape is normalized onto the native feeder; backend_config.derivation_recipe
+    records the exact mapping and does not claim the source site's MW magnitude as
+    feeder magnitude. Fills the four AC power-flow keys honestly; no pymgrid required.
+scenario_id: microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_albuquerque_nm_high_p1590_v58_s8700
+complexity_metrics:
+  horizon_minutes: 360
+  n_perturbations: 2
+  suddenness_ticks: 1
+  observability_burden: 1
+  decision_depth: 2
+  cascade_permissiveness: 0
+  persistence_ratio: 0.4167
+  ambient_fraction: 0.0
+  n_stressors: 2
+  first_disruption_tick: 1
+  n_islanding_events: 0
+  controllable_asset_count: 5
+  forecast_error_sigma: 0.05
+  critical_load_fraction: 0.2
+source_contract:
+  runtime_input: []
+  derivation_input:
+  - works/nrel-microgrid/albuquerque_nm.npz
+  implementation_asset: []
+  metadata:
+  - works/nrel-microgrid/albuquerque_nm.provenance.json
+  license: []
+  derived_window:
+    sha256: 73d5efbfe08cca94ce52a2ef18a8b2a00796e9932edebf6aee0e46bed0d1e7be
+    recipe_version: microgrid_source_consumed_v2
+scenario_signature: cad0ab3e498cecea

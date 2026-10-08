@@ -24,6 +24,8 @@ from core import ToolContext, ToolRegistry, ToolSpec
 from core.protocol21_evidence import canonicalize_repo_owned_paths
 from domains.power_grid.backends.opendss_ieee13 import (
     _NEW_OBJECT_RE,
+    _dss_collection_names,
+    _native_node_voltage_meter,
     _native_protocol21_trace,
     _resolve_native_include_graph,
 )
@@ -972,7 +974,7 @@ class OpenDssFreshFeederProbeBackend:
         circuit = self._require_circuit()
         line_index = int(args.get("line_index", -1))
         connect = bool(args.get("connect"))
-        names = [str(name) for name in circuit.Lines.AllNames]
+        names = _dss_collection_names(circuit.Lines.AllNames)
         if line_index < 0 or line_index >= len(names):
             return {
                 "_status": "error",
@@ -1006,7 +1008,7 @@ class OpenDssFreshFeederProbeBackend:
         circuit = self._require_circuit()
         cap_id = int(args.get("cap_id", -1))
         status = bool(args.get("status"))
-        names = [str(name) for name in circuit.Capacitors.AllNames]
+        names = _dss_collection_names(circuit.Capacitors.AllNames)
         if cap_id < 0 or cap_id >= len(names):
             return {
                 "_status": "error",
@@ -1039,7 +1041,7 @@ class OpenDssFreshFeederProbeBackend:
         circuit = self._require_circuit()
         reg_id = int(args.get("trafo_id", -1))
         tap_pos = int(args.get("tap_pos", 0))
-        names = [str(name) for name in circuit.RegControls.AllNames]
+        names = _dss_collection_names(circuit.RegControls.AllNames)
         if reg_id < 0 or reg_id >= len(names):
             return {
                 "_status": "error",
@@ -1308,6 +1310,7 @@ class OpenDssFreshFeedersBackend(OpenDssFreshFeederProbeBackend):
             if self._initial_native_controls["controls"]:
                 summary = self._summary_from_circuit()
                 self._refresh_source_trace(summary)
+        self._source_node_ids = [str(value) for value in self._require_circuit().AllNodeNames]
         self._capture_base_load_values()
         self._capture_base_line_states()
         return summary
@@ -1410,7 +1413,7 @@ class OpenDssFreshFeedersBackend(OpenDssFreshFeederProbeBackend):
 
     def _set_line_enabled(self, line_index: int, enabled: bool) -> bool:
         circuit = self._require_circuit()
-        names = [str(name) for name in circuit.Lines.AllNames]
+        names = _dss_collection_names(circuit.Lines.AllNames)
         if line_index < 0 or line_index >= len(names):
             return False
         name = names[line_index]
@@ -1752,6 +1755,9 @@ class OpenDssFreshFeedersBackend(OpenDssFreshFeederProbeBackend):
             "voltage_max_pu": snapshot.get("voltage_max_pu"),
             "voltage_band_error": self._voltage_band_error(snapshot),
             "line_current_max_a": snapshot.get("line_current_max_a"),
+            "native_node_meter": _native_node_voltage_meter(
+                self._require_circuit(), source_node_ids=self._source_node_ids, tick=tick
+            ),
             "realized_events": realized_events,
         }
 

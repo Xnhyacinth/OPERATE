@@ -1,0 +1,63 @@
+{
+  "schema_version": "operate_trajectory_scoring_policy028.v1",
+  "evaluation_version": "0.28.0",
+  "protocol_revision": "source_population_component_quality.v1",
+  "base_policy": {
+    "path": "evaluation/policies/lite141_027.json",
+    "sha256": "e0bf602bdce9b28618e9e0bf7ad4077548195f05deff07db2f74e64ae9b36cdb",
+    "byte_count": 1869163
+  },
+  "normalization_contracts": [
+    {
+      "scenario_signature": "4906475ce3e8295c",
+      "seed": 42,
+      "source_contract_sha256": "3e876b3aa9b75b8ca067613153f7e35c455fbda6790c66b7b1a5da0805191194",
+      "population_contract_sha256": "bc6e17b23514bbf622c43ea1b384ebc0ec9ba000983a55b67c899b29948a4408",
+      "source_node_count": 278,
+      "horizon_ticks": 6,
+      "count_formula": "native_voltage_violation_cost/(100*H*M)",
+      "extrema_formula": "native_global_voltage_band_deviation_cost/(100*H)",
+      "component_rounding_decimals": 2,
+      "contract_sha256": "c32a2de56c6c9789f8c4cfc6e510c6b2b2015c038666c61e4d8f2b53af2d11fe"
+    },
+    {
+      "scenario_signature": "bafda3192d001a15",
+      "seed": 42,
+      "source_contract_sha256": "c61ed626de8ec4955e5a9d4f171baefebab2a75620c9072f86eda4f352e61425",
+      "population_contract_sha256": "9a1d01ba4e2d682d2cfe6aedc8385d6b9e5b8085360bf955447269adcb16e79c",
+      "source_node_count": 41,
+      "horizon_ticks": 4,
+      "count_formula": "native_voltage_violation_cost/(100*H*M)",
+      "extrema_formula": "native_global_voltage_band_deviation_cost/(100*H)",
+      "component_rounding_decimals": 2,
+      "contract_sha256": "e2df03783dbaa4b6354330096fbc2af9ac61e76a7c36de0efbe97c428e27c361"
+    },
+    {
+      "scenario_signature": "47231b5a2f9374e6",
+      "seed": 42,
+      "source_contract_sha256": "7650cb0755293dd30cdff7c12e925beb88ee2a8035392c045e3ac24246758663",
+      "population_contract_sha256": "5d193392a2db830492ae7e053f8c850334738c75d840f4bc2d3a01c9f91ba9ff",
+      "source_node_count": 3437,
+      "horizon_ticks": 12,
+      "count_formula": "native_voltage_violation_cost/(100*H*M)",
+      "extrema_formula": "native_global_voltage_band_deviation_cost/(100*H)",
+      "component_rounding_decimals": 2,
+      "contract_sha256": "0707540771767e45fdc663683ac6bf7dd3185d24a7a03a477f5cd268ce6e60a6"
+    },
+    {
+      "scenario_signature": "26b91b6632e18e64",
+      "seed": 42,
+      "source_contract_sha256": "3f50d8ab0f5529baa65596fecd68bd52af2eef9aec652b00773ab53c6e286988",
+      "population_contract_sha256": "30f3910b7a2e9853af3e6fcb08bd84b40da490d00bc97eeff376d9f4aca45c28",
+      "source_node_count": 7522,
+      "horizon_ticks": 6,
+      "count_formula": "native_voltage_violation_cost/(100*H*M)",
+      "extrema_formula": "native_global_voltage_band_deviation_cost/(100*H)",
+      "component_rounding_decimals": 2,
+      "contract_sha256": "e6566e019f1ab1968a624a5591b0f2ca080e3a1774edbfb32ad90c22ee69935a"
+    }
+  ],
+  "scoring_entry": "scripts/evaluate_trajectories.py",
+  "primary_interpretation": "continuous_operational_quality_with_population_normalized_DSS_exposure_not_binary_success",
+  "policy_sha256": "3746443c05069fc85e1fbd800946b73202224c81c845a3bcc9bf35a0e96d970a"
+}

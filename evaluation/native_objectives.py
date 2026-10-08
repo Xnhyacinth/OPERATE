@@ -118,13 +118,18 @@ def _number(value: Any) -> bool:
         return False
 
 
-def extract_native_objective(episode: dict[str, Any]) -> dict[str, Any]:
+def extract_native_objective(
+    episode: dict[str, Any], *, terminal_runtime_verified: bool = False
+) -> dict[str, Any]:
     """Extract a terminal cost and independent feasibility/success decisions.
 
     ``feasible`` means the declared hard gate is satisfied, not that every
     desired service metric is perfect. Only job-shop completion is a feasibility
     contract; failed material mitigation never implies infeasibility. Evidence
     IDs must resolve in the episode's authoritative evidence inventory.
+    A caller may supply terminal_runtime_verified only after authenticating a
+    completed native runtime independently of its bookkeeping status. Original
+    status is retained; this does not certify the execution identity.
     """
     result: dict[str, Any] = {
         "schema_version": "native_objective.v1",
@@ -154,7 +159,7 @@ def extract_native_objective(episode: dict[str, Any]) -> dict[str, Any]:
     def unavailable(reason: str) -> dict[str, Any]:
         return {**result, "reason": reason}
 
-    if episode.get("status") != "ok":
+    if episode.get("status") != "ok" and terminal_runtime_verified is not True:
         return unavailable("episode_not_terminal_ok")
     completion = episode.get("task_completion") or {}
     contract = completion.get("contract")

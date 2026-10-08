@@ -1,0 +1,20 @@
+{
+  "schema_version": "operate_lite_main_scoring_policy.v1",
+  "release_namespace": "operate_v0_62_0",
+  "main_track": "lite141_offline",
+  "suite_path": "release/operate_v0_62_0/lite_suite.json",
+  "suite_sha256": "0a42ff0520a48e531a2381fcb5c4ba53162663a99cb97ed7fe6f2ad73601d81b",
+  "case_count": 141,
+  "scoring_version": "0.26.1",
+  "protocol_revision": "source_obligation_outcome.v2",
+  "weight_manifest_sha256": "5bc26ae4cb8e26e7ce42b3c6a1a0f775f47eedf86d9b4da8ce09ddb2169c549b",
+  "completion_contracts_sha256": "e3340448428920841003f42d43e48ec83192ef8ec62929d599da48c95c9874d3",
+  "scoring_entry_sha256": "be886f7e5870d80929eb4037c865c0a0fec93654a08b606224eb7426a4338174",
+  "suite_selection": "model_informed_lite_development_panel",
+  "model_outcomes_used_for_suite_selection": true,
+  "requires_all_lite_cases_per_ranked_model": true,
+  "retrospective_offline_scoring_allowed": true,
+  "strict_binary_attainment_claim": false,
+  "full_core_extension_required_for_lite_main_release": false,
+  "full_core_extension_status": "optional_separately_scored_track"
+}

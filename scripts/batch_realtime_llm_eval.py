@@ -387,11 +387,22 @@ def build_batch_treatment_identity(
     provider_rate_limit_scope: str | None = None,
     safety_profile: str = DOMAIN_NEUTRAL_HOLD_PROFILE,
     response_delivery_delay_s: float = 0.0,
+    temperature: float = 0.0,
 ) -> dict[str, Any]:
     """Bind every batch-level choice that can change realtime behavior."""
 
-    if isinstance(response_delivery_delay_s, bool) or response_delivery_delay_s not in {0.0, 1.0, 5.0}:
+    if isinstance(response_delivery_delay_s, bool) or response_delivery_delay_s not in {
+        0.0,
+        1.0,
+        5.0,
+    }:
         raise ValueError("response_delivery_delay_s must be 0, 1 or 5 seconds")
+    if (
+        isinstance(temperature, bool)
+        or not math.isfinite(float(temperature))
+        or not 0.0 <= float(temperature) <= 2.0
+    ):
+        raise ValueError("temperature must be finite and within [0, 2]")
     if reasoning_effort_format not in {"auto", "native", "openrouter"}:
         raise ValueError("unsupported reasoning_effort_format")
     if thinking_type not in {None, "enabled", "disabled"}:
@@ -436,9 +447,7 @@ def build_batch_treatment_identity(
             "tick_interval_policy": "explicit_uniform_v1",
             "tick_interval_s": float(tick_interval_s),
             "episode_timeout_policy": episode_timeout_policy,
-            "process_hard_timeout_overhead_s": float(
-                process_hard_timeout_overhead_s
-            ),
+            "process_hard_timeout_overhead_s": float(process_hard_timeout_overhead_s),
             "termination_grace_s": float(termination_grace_s),
             "process_exit_hard_deadline": True,
         }
@@ -465,9 +474,7 @@ def build_batch_treatment_identity(
             "provider_rate_limit_scope is required when a provider limit is enabled"
         )
     if not quota_enabled and rate_limit_scope:
-        raise ValueError(
-            "provider_rate_limit_scope requires a provider limit"
-        )
+        raise ValueError("provider_rate_limit_scope requires a provider limit")
     if quota_enabled and provider not in {
         "openai",
         "openai_compatible",
@@ -491,7 +498,9 @@ def build_batch_treatment_identity(
         provider not in {"openai", "openai_compatible", "azure"}
         or resolved_api_mode != "chat_completions"
     ):
-        raise ValueError("reasoning format and thinking controls require Chat Completions")
+        raise ValueError(
+            "reasoning format and thinking controls require Chat Completions"
+        )
     established_stream_cancel_supported = bool(
         provider in {"openai", "openai_compatible", "azure"}
         and resolved_api_mode == "chat_completions"
@@ -545,7 +554,7 @@ def build_batch_treatment_identity(
                 base_url, responses_base_url
             ),
             "api_mode": api_mode,
-            "temperature": 0.0,
+            "temperature": float(temperature),
             "stream_chat_completions": True,
             "prompt_mode": "strict",
             "tool_choice": "auto",
@@ -656,9 +665,7 @@ def _batch_relative_output_path(
     return relative.as_posix()
 
 
-def _resolve_output_path(
-    value: Any, run_config: dict[str, Any], *, field: str
-) -> Path:
+def _resolve_output_path(value: Any, run_config: dict[str, Any], *, field: str) -> Path:
     path = Path(str(value or ""))
     if not _uses_portable_formal_output_paths(run_config):
         return path
@@ -773,9 +780,9 @@ def _quota_reset_at_utc(value: object) -> str | None:
 def _quota_fallback_deadline(
     run_config: dict[str, Any], *, now: datetime
 ) -> tuple[str, str]:
-    model_shard = (
-        (run_config.get("batch_treatment_identity") or {}).get("model_shard") or {}
-    )
+    model_shard = (run_config.get("batch_treatment_identity") or {}).get(
+        "model_shard"
+    ) or {}
     if int(model_shard.get("provider_rpd_limit") or 0) > 0:
         deadline = (now + timedelta(days=1)).replace(
             hour=0,
@@ -870,9 +877,9 @@ def _provider_quota_scope_binding(
     treatment_sha256 = str(run_config.get("batch_treatment_sha256") or "")
     if re.fullmatch(r"[0-9a-f]{64}", treatment_sha256) is None:
         raise ValueError("provider quota treatment binding is invalid")
-    model_shard = (
-        (run_config.get("batch_treatment_identity") or {}).get("model_shard") or {}
-    )
+    model_shard = (run_config.get("batch_treatment_identity") or {}).get(
+        "model_shard"
+    ) or {}
     scope = str(model_shard.get("provider_rate_limit_scope") or "").strip()
     if not scope:
         raise ValueError("provider quota scope binding is missing")
@@ -881,18 +888,16 @@ def _provider_quota_scope_binding(
 
 
 def _provider_quota_enabled(run_config: dict[str, Any]) -> bool:
-    model_shard = (
-        (run_config.get("batch_treatment_identity") or {}).get("model_shard") or {}
-    )
+    model_shard = (run_config.get("batch_treatment_identity") or {}).get(
+        "model_shard"
+    ) or {}
     return any(
         int(model_shard.get(field) or 0) > 0
         for field in ("provider_rpm_limit", "provider_rpd_limit")
     )
 
 
-def _provider_quota_sentinel_path(
-    out_dir: Path, run_config: dict[str, Any]
-) -> Path:
+def _provider_quota_sentinel_path(out_dir: Path, run_config: dict[str, Any]) -> Path:
     configured_out_dir = _resolve_run_config_path(run_config.get("output_dir"))
     if out_dir.resolve() != configured_out_dir:
         raise ValueError("provider quota sentinel output binding is invalid")
@@ -952,9 +957,7 @@ def _active_provider_quota_sentinel(
     reset_at_utc = _quota_reset_at_utc(
         payload.get("reset_at_utc") if isinstance(payload, dict) else None
     )
-    reset_source = str(
-        payload.get("reset_source") if isinstance(payload, dict) else ""
-    )
+    reset_source = str(payload.get("reset_source") if isinstance(payload, dict) else "")
     signal_reset = signal.get("reset_at_utc") if signal is not None else None
     if (
         not isinstance(payload, dict)
@@ -967,21 +970,15 @@ def _active_provider_quota_sentinel(
         or reset_at_utc is None
         or (
             signal_reset is not None
-            and (
-                reset_source != "provider_signal"
-                or reset_at_utc != signal_reset
-            )
+            and (reset_source != "provider_signal" or reset_at_utc != signal_reset)
         )
         or (
             signal_reset is None
-            and reset_source
-            not in {"bounded_reprobe", "configured_rpd_utc_midnight"}
+            and reset_source not in {"bounded_reprobe", "configured_rpd_utc_midnight"}
         )
     ):
         raise ValueError("provider quota sentinel binding is invalid")
-    reset_at = datetime.fromisoformat(
-        reset_at_utc.replace("Z", "+00:00")
-    )
+    reset_at = datetime.fromisoformat(reset_at_utc.replace("Z", "+00:00"))
     if _utc_now() < reset_at:
         return path, payload
     return None
@@ -1091,7 +1088,9 @@ def _provider_evidence_reasons(
     # an undeclared name stays a substitution.
     accepted_models = {
         requested_model,
-        *model_shard.get("accepted_response_models", frozen_model_response_aliases(requested_model)),
+        *model_shard.get(
+            "accepted_response_models", frozen_model_response_aliases(requested_model)
+        ),
     }
     rpm_limit = int(model_shard.get("provider_rpm_limit") or 0)
     rpd_limit = int(model_shard.get("provider_rpd_limit") or 0)
@@ -1110,13 +1109,18 @@ def _provider_evidence_reasons(
         requests = list(row.get("provider_requests") or [])
         responses = list(row.get("provider_responses") or [])
         identities = list(row.get("provider_model_identities") or [])
-        recovered_sequences = recovered_provider_retry_sequences(row, accepted_response_models=tuple(accepted_models))
+        recovered_sequences = recovered_provider_retry_sequences(
+            row, accepted_response_models=tuple(accepted_models)
+        )
         if row.get("provider_turn_settled") is not True:
             reasons.append("provider_turn_unsettled")
-        if row.get("provider_audit_status") == "canceled_before_provider_call":
+        if row.get("provider_audit_status") in {
+            "canceled_before_provider_call",
+            "canceled_before_transport",
+        }:
             if requests or responses or identities:
                 reasons.append("provider_audit_records_invalid")
-            elif not is_valid_zero_request_cancellation(row):
+            elif not is_valid_zero_request_cancellation(row, audit_rows=audit_rows):
                 reasons.append("provider_canceled_turn_lifecycle_invalid")
             continue
         if row.get("provider_audit_status") not in {
@@ -1202,15 +1206,20 @@ def _provider_evidence_reasons(
                     and identity.get("request_sequence") == sequence
                 ]
                 if (
-                    not isinstance(payload, dict) or payload.get("status") != "success"
-                ) and not (
-                    len(identity_matches) == 1
-                    and is_expected_provider_stream_cancellation(
-                        row,
-                        payload,
-                        identity_matches[0],
+                    (
+                        not isinstance(payload, dict)
+                        or payload.get("status") != "success"
                     )
-                ) and sequence not in recovered_sequences:
+                    and not (
+                        len(identity_matches) == 1
+                        and is_expected_provider_stream_cancellation(
+                            row,
+                            payload,
+                            identity_matches[0],
+                        )
+                    )
+                    and sequence not in recovered_sequences
+                ):
                     reasons.append("provider_response_failed")
             matching_identities = identities_by_sequence.get(sequence, [])
             if len(matching_identities) != 1:
@@ -1238,8 +1247,11 @@ def _provider_evidence_reasons(
                         if len(response_matches) == 1
                         else None
                     )
-                    if sequence not in recovered_sequences and not is_expected_provider_stream_cancellation(
-                        row, response_payload, identity
+                    if (
+                        sequence not in recovered_sequences
+                        and not is_expected_provider_stream_cancellation(
+                            row, response_payload, identity
+                        )
                     ):
                         reasons.append("provider_response_failed")
             elif closure == "missing" or not observed_models:
@@ -1358,7 +1370,9 @@ def _episode_treatment_reasons(
         "provider_retry_max_elapsed_s": model_shard.get("provider_retry_max_elapsed_s"),
         "tool_choice_supported": model_shard.get("tool_choice_supported"),
         "provider_failure_policy": model_shard.get("provider_failure_policy"),
-        "max_consecutive_provider_failures": model_shard.get("max_consecutive_provider_failures"),
+        "max_consecutive_provider_failures": model_shard.get(
+            "max_consecutive_provider_failures"
+        ),
         "provider": model_shard.get("provider"),
         "base_url": model_shard.get("base_url"),
         "api_version": model_shard.get("api_version"),
@@ -1370,7 +1384,7 @@ def _episode_treatment_reasons(
         "api_mode": model_shard.get("api_mode"),
         "prompt_mode": "strict",
         "interaction_mode": "logical_persistent",
-        "temperature": 0.0,
+        "temperature": model_shard.get("temperature", 0.0),
         "max_tokens": model_shard.get("max_tokens"),
         "protocol_repair_max_tokens": model_shard.get("protocol_repair_max_tokens"),
         "model_context_window_tokens": model_shard.get("model_context_window_tokens"),
@@ -1397,7 +1411,9 @@ def _episode_treatment_reasons(
         reasons.append("episode_provider_treatment_mismatch")
     clock = identity.get("clock") or {}
     batch_clock = batch_identity.get("clock") or {}
-    if clock.get("response_delivery_delay_s") != batch_clock.get("response_delivery_delay_s"):
+    if clock.get("response_delivery_delay_s") != batch_clock.get(
+        "response_delivery_delay_s"
+    ):
         reasons.append("episode_response_delivery_delay_mismatch")
     if batch_clock.get("tick_interval_policy") == NATIVE_DT_POLICY:
         interval = clock.get("tick_interval_s")
@@ -1515,7 +1531,9 @@ def realtime_artifact_eligibility(
         reasons.append("unsafe_or_incomplete_teardown")
     clock = artifact.get("clock") or {}
     treatment_clock = (artifact.get("treatment_identity") or {}).get("clock") or {}
-    if clock.get("response_delivery_delay_s") != treatment_clock.get("response_delivery_delay_s"):
+    if clock.get("response_delivery_delay_s") != treatment_clock.get(
+        "response_delivery_delay_s"
+    ):
         reasons.append("artifact_response_delivery_delay_mismatch")
     if clock.get("tick_interval_s") != treatment_clock.get("tick_interval_s"):
         reasons.append("artifact_tick_interval_mismatch")
@@ -1676,7 +1694,8 @@ def terminal_row_from_artifact(
 
 def _unrecovered_transport_failure(artifact: dict[str, Any]) -> bool:
     failed_turns = {
-        turn.get("turn_id") for turn in artifact.get("turns") or []
+        turn.get("turn_id")
+        for turn in artifact.get("turns") or []
         if turn.get("status") == "failed"
     }
     for audit in artifact.get("provider_audit") or []:
@@ -1685,7 +1704,9 @@ def _unrecovered_transport_failure(artifact: dict[str, Any]) -> bool:
             continue
         response = responses[-1].get("response") or {}
         if response.get("status") == "failed" and response.get("error_reason") in {
-            "provider_rate_limit", "provider_server_error", "provider_transport_error",
+            "provider_rate_limit",
+            "provider_server_error",
+            "provider_transport_error",
         }:
             return True
     return False
@@ -1709,9 +1730,18 @@ def _job_row_identity(job: dict[str, Any]) -> dict[str, Any]:
             "batch_treatment_sha256",
         )
     }
-    identity.update({key: deepcopy(job[key]) for key in (
-        "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
-    ) if key in job})
+    identity.update(
+        {
+            key: deepcopy(job[key])
+            for key in (
+                "construct_contract",
+                "source_denominator_key",
+                "case_ledger",
+                "lite_core_lineage",
+            )
+            if key in job
+        }
+    )
     return identity
 
 
@@ -2229,7 +2259,10 @@ def _formal_runtime_binding_reasons(
         try:
             formal = load_formal_contract(resolved_manifest)
             _, current_selection = _select_suite(
-                REPO_ROOT / selection["suite_locator"], "lite", formal, resolved_manifest,
+                REPO_ROOT / selection["suite_locator"],
+                "lite",
+                formal,
+                resolved_manifest,
             )
             if current_selection != selection:
                 reasons.append("lite_selection_binding_changed")
@@ -2416,7 +2449,8 @@ def finalize_run(
         "implementation_tree_sha256": current_tree,
         "suite_manifest_sha256": identity.get("suite_sha256"),
         "model": run_config["model"],
-        "leaderboard_eligible": not blockers and (identity.get("selection_contract") or {}).get("kind") != "lite",
+        "leaderboard_eligible": not blockers
+        and (identity.get("selection_contract") or {}).get("kind") != "lite",
         "evaluation_complete": not blockers,
         "suite_kind": (identity.get("selection_contract") or {}).get("kind", "core"),
         "formal_full_leaderboard_eligible": False,
@@ -2424,9 +2458,7 @@ def finalize_run(
         "coverage": scorecard["coverage"],
         "scorecard_schema_version": SCORECARD_SCHEMA_VERSION,
         "safety_profile": run_config["safety_profile"],
-        "native_takeover_applicable": run_config[
-            "native_takeover_applicable"
-        ],
+        "native_takeover_applicable": run_config["native_takeover_applicable"],
         "merge_with_logical_primary": False,
         "artifacts": artifacts,
     }
@@ -2443,9 +2475,7 @@ def _attach_native_clock(row: dict[str, Any]) -> dict[str, Any]:
     scenario = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(scenario, dict):
         raise ValueError(f"scenario YAML must be a mapping: {path}")
-    clock = classify_realtime_clock(
-        scenario, horizon_ticks=int(row["horizon_ticks"])
-    )
+    clock = classify_realtime_clock(scenario, horizon_ticks=int(row["horizon_ticks"]))
     attached = dict(row)
     attached["tick_interval_s"] = float(clock["wall_tick_interval_s"])
     attached["native_seconds_per_tick"] = float(clock["native_seconds_per_tick"])
@@ -2479,6 +2509,7 @@ def _safe_component(value: str) -> str:
 
 def _load_suite(path: Path) -> list[dict[str, Any]]:
     from core.suite_identity import canonical_scenario_slug
+
     payload = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, list):
         raw_rows = payload
@@ -2518,9 +2549,7 @@ def _load_suite(path: Path) -> list[dict[str, Any]]:
             "seed": int(raw.get("seed", 42)),
             "horizon_ticks": horizon_ticks,
             "domain": str(raw.get("domain") or "").strip().lower(),
-            "backend_kind": str(raw.get("backend_kind") or "")
-            .strip()
-            .lower(),
+            "backend_kind": str(raw.get("backend_kind") or "").strip().lower(),
         }
         if "tick_interval_s" in raw:
             interval = raw["tick_interval_s"]
@@ -2530,13 +2559,17 @@ def _load_suite(path: Path) -> list[dict[str, Any]]:
                 or not math.isfinite(float(interval))
                 or float(interval) <= 0
             ):
-                raise ValueError("suite row tick_interval_s must be finite and positive")
+                raise ValueError(
+                    "suite row tick_interval_s must be finite and positive"
+                )
             row["tick_interval_s"] = float(interval)
         rows.append(row)
     return rows
 
 
-def _select_suite(path: Path, kind: str, formal: dict[str, Any], manifest: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def _select_suite(
+    path: Path, kind: str, formal: dict[str, Any], manifest: Path
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Bind Full or an exact released Core-derived Lite subset before transport."""
     if kind == "core":
         if path.resolve() != Path(formal["selection_path"]):
@@ -2545,10 +2578,16 @@ def _select_suite(path: Path, kind: str, formal: dict[str, Any], manifest: Path)
             raise ValueError("realtime suite artifact hash mismatch")
         payload = json.loads(path.read_text())
         suite_hash = str(formal["realtime_contract"].get("suite_manifest_sha256") or "")
-        if not suite_hash or isinstance(payload, dict) and payload.get("suite_manifest_sha256") != suite_hash:
+        if (
+            not suite_hash
+            or isinstance(payload, dict)
+            and payload.get("suite_manifest_sha256") != suite_hash
+        ):
             raise ValueError("realtime suite manifest hash mismatch")
         return _load_suite(path), {"kind": "core", "suite_sha256": suite_hash}
-    if kind != "lite" or path.resolve() != (manifest.resolve().parent / "lite_suite.json"):
+    if kind != "lite" or path.resolve() != (
+        manifest.resolve().parent / "lite_suite.json"
+    ):
         raise ValueError("realtime Lite must use the bound release lite_suite.json")
     from core.lite_lineage import bind_lite_core_lineage
     from core.suite_identity import canonical_scenario_slug
@@ -2556,7 +2595,9 @@ def _select_suite(path: Path, kind: str, formal: dict[str, Any], manifest: Path)
 
     payload = json.loads(path.read_text())
     bodies = {
-        canonical_scenario_slug(row["path"]): load_scenario_yaml(canonical_scenario_slug(row["path"]))
+        canonical_scenario_slug(row["path"]): load_scenario_yaml(
+            canonical_scenario_slug(row["path"])
+        )
         for row in payload.get("scenarios") or []
     }
     binding = bind_lite_core_lineage(bodies, lite_suite=path, repo_root=REPO_ROOT)
@@ -2565,13 +2606,23 @@ def _select_suite(path: Path, kind: str, formal: dict[str, Any], manifest: Path)
     rows = _load_suite(path)
     for row in rows:
         body = bodies[canonical_scenario_slug(row["scenario_slug"])]
-        row.update({key: body[key] for key in (
-            "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
-        )})
+        row.update(
+            {
+                key: body[key]
+                for key in (
+                    "construct_contract",
+                    "source_denominator_key",
+                    "case_ledger",
+                    "lite_core_lineage",
+                )
+            }
+        )
     return rows, {
-        "kind": "lite", "suite_sha256": binding["lite_suite_sha256"],
+        "kind": "lite",
+        "suite_sha256": binding["lite_suite_sha256"],
         "suite_locator": path.resolve().relative_to(REPO_ROOT).as_posix(),
-        "lineage": binding, "formal_full_leaderboard_eligible": False,
+        "lineage": binding,
+        "formal_full_leaderboard_eligible": False,
     }
 
 
@@ -2583,9 +2634,7 @@ def validate_safety_profile_suite(
 
     if safety_identity.get("native_takeover_applicable") is not True:
         return
-    descriptor = (
-        (safety_identity.get("public_config") or {}).get("descriptor") or {}
-    )
+    descriptor = (safety_identity.get("public_config") or {}).get("descriptor") or {}
     expected_domain = str(descriptor.get("domain") or "")
     expected_backends = {
         str(value) for value in descriptor.get("backend_kinds") or [] if value
@@ -2679,11 +2728,7 @@ def _build_jobs(
     jobs: list[dict[str, Any]] = []
     for row in suite_rows:
         if policy == NATIVE_DT_POLICY:
-            bound_row = (
-                row
-                if "tick_interval_s" in row
-                else _attach_native_clock(row)
-            )
+            bound_row = row if "tick_interval_s" in row else _attach_native_clock(row)
             tick_interval_s = float(bound_row["tick_interval_s"])
         else:
             bound_row = dict(row)
@@ -2756,7 +2801,7 @@ def _command_for_job(
         "--api-mode",
         str(model["api_mode"]),
         "--temperature",
-        "0",
+        str(model.get("temperature", 0.0)),
         "--max-tokens",
         str(model["max_tokens"]),
         "--model-context-window-tokens",
@@ -2798,12 +2843,24 @@ def _command_for_job(
     for field in ("provider_retry_max_attempts", "provider_retry_max_elapsed_s"):
         command.extend(["--" + field.replace("_", "-"), str(model[field])])
     if model.get("tool_choice_supported") is not None:
-        command.append("--tool-choice-supported" if model["tool_choice_supported"] else "--no-tool-choice-supported")
+        command.append(
+            "--tool-choice-supported"
+            if model["tool_choice_supported"]
+            else "--no-tool-choice-supported"
+        )
     if job.get("lite_core_lineage"):
-        binding = {key: job[key] for key in (
-            "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
-        )}
-        command.extend(["--scenario-contract-binding", json.dumps(binding, sort_keys=True)])
+        binding = {
+            key: job[key]
+            for key in (
+                "construct_contract",
+                "source_denominator_key",
+                "case_ledger",
+                "lite_core_lineage",
+            )
+        }
+        command.extend(
+            ["--scenario-contract-binding", json.dumps(binding, sort_keys=True)]
+        )
     if getattr(args, "base_url", None):
         command.extend(["--base-url", str(args.base_url)])
     if model.get("api_version"):
@@ -2812,17 +2869,15 @@ def _command_for_job(
         command.extend(["--responses-base-url", str(args.responses_base_url)])
     if model.get("reasoning_effort"):
         command.extend(["--reasoning-effort", str(model["reasoning_effort"])])
-    command.extend(["--reasoning-effort-format", str(model.get("reasoning_effort_format", "auto"))])
+    command.extend(
+        ["--reasoning-effort-format", str(model.get("reasoning_effort_format", "auto"))]
+    )
     if model.get("thinking_type") is not None:
         command.extend(["--thinking-type", str(model["thinking_type"])])
     if model.get("provider_rpm_limit") is not None:
-        command.extend(
-            ["--provider-rpm-limit", str(model["provider_rpm_limit"])]
-        )
+        command.extend(["--provider-rpm-limit", str(model["provider_rpm_limit"])])
     if model.get("provider_rpd_limit") is not None:
-        command.extend(
-            ["--provider-rpd-limit", str(model["provider_rpd_limit"])]
-        )
+        command.extend(["--provider-rpd-limit", str(model["provider_rpd_limit"])])
     if model.get("provider_rate_limit_scope"):
         command.extend(
             [
@@ -2889,16 +2944,21 @@ def _execute_job(
         }
         _append_jsonl(
             _resolve_run_config_path(run_config["output_dir"]) / "worker_starts.jsonl",
-            {**_campaign_job_identity(job, run_config), **attempt,
-             "schema_version": "realtime_worker_execution_start_v1",
-             "worker_started_at_utc": datetime.now(UTC).isoformat()},
+            {
+                **_campaign_job_identity(job, run_config),
+                **attempt,
+                "schema_version": "realtime_worker_execution_start_v1",
+                "worker_started_at_utc": datetime.now(UTC).isoformat(),
+            },
         )
     outcome = run_subprocess_with_watchdog(
         _command_for_job(job, run_config, args),
         log_path=(
             Path(str(job["log_path"])).with_name(
                 f"{Path(str(job['log_path'])).stem}-{attempt['execution_attempt_id']}.log"
-            ) if attempt else Path(str(job["log_path"]))
+            )
+            if attempt
+            else Path(str(job["log_path"]))
         ),
         hard_timeout_s=float(job["process_hard_timeout_s"]),
         termination_grace_s=float(
@@ -2950,38 +3010,74 @@ def _execute_job(
 
 def _realtime_retryable(row: dict[str, Any]) -> bool:
     """A failed task or invalid model response is terminal, never success-search."""
-    return row.get("status") in {
-        "in_flight", "infrastructure_error", "provider_quota_exhausted", "parked",
-    } or row.get("retryable_infrastructure") is True
+    return (
+        row.get("status")
+        in {
+            "in_flight",
+            "infrastructure_error",
+            "provider_quota_exhausted",
+            "parked",
+        }
+        or row.get("retryable_infrastructure") is True
+    )
 
 
-def _campaign_job_identity(job: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
-    return {**_job_row_identity(job), "model": config["model"],
-            "implementation_tree_sha256": config["batch_treatment_identity"]["implementation_tree_sha256"]}
+def _campaign_job_identity(
+    job: dict[str, Any], config: dict[str, Any]
+) -> dict[str, Any]:
+    return {
+        **_job_row_identity(job),
+        "model": config["model"],
+        "implementation_tree_sha256": config["batch_treatment_identity"][
+            "implementation_tree_sha256"
+        ],
+    }
 
 
-def _campaign_pending_jobs(jobs: list[dict], rows: list[dict], config: dict) -> list[dict]:
+def _campaign_pending_jobs(
+    jobs: list[dict], rows: list[dict], config: dict
+) -> list[dict]:
     expected = {job["job_key"]: job for job in jobs}
     latest = {}
     for row in rows:
         key = row.get("job_key")
-        if key not in expected or row.get("batch_treatment_sha256") != config["batch_treatment_sha256"]:
-            raise ValueError("resume artifact integrity: journal treatment or job mismatch")
-        if any(row.get(field) != expected[key].get(field) for field in _job_row_identity(expected[key])):
+        if (
+            key not in expected
+            or row.get("batch_treatment_sha256") != config["batch_treatment_sha256"]
+        ):
+            raise ValueError(
+                "resume artifact integrity: journal treatment or job mismatch"
+            )
+        if any(
+            row.get(field) != expected[key].get(field)
+            for field in _job_row_identity(expected[key])
+        ):
             raise ValueError("resume artifact integrity: journal job identity mismatch")
         subprocess_record = row.get("subprocess") or {}
         if subprocess_record.get("log_sha256"):
-            log = _resolve_output_path(subprocess_record.get("log_path"), config, field="log_path")
+            log = _resolve_output_path(
+                subprocess_record.get("log_path"), config, field="log_path"
+            )
             if not log.is_file() or file_sha256(log) != subprocess_record["log_sha256"]:
                 raise ValueError("resume artifact integrity: subprocess log changed")
         raw_path = row.get("artifact_path")
         if raw_path:
             path = _resolve_output_path(raw_path, config, field="artifact_path")
-            root = Path(str(expected[key].get("trajectory_root") or expected[key].get("trajectory_dir") or (
-                _resolve_run_config_path(config["output_dir"]) / "trajectories"
-            )))
-            if not path.resolve().is_relative_to(root.resolve()) or not path.is_file() or file_sha256(path) != row.get("artifact_sha256"):
-                raise ValueError("resume artifact integrity: missing, damaged or out-of-scope artifact")
+            root = Path(
+                str(
+                    expected[key].get("trajectory_root")
+                    or expected[key].get("trajectory_dir")
+                    or (_resolve_run_config_path(config["output_dir"]) / "trajectories")
+                )
+            )
+            if (
+                not path.resolve().is_relative_to(root.resolve())
+                or not path.is_file()
+                or file_sha256(path) != row.get("artifact_sha256")
+            ):
+                raise ValueError(
+                    "resume artifact integrity: missing, damaged or out-of-scope artifact"
+                )
             artifact = json.loads(path.read_text())
             if _episode_treatment_reasons(artifact, expected[key], config) or any(
                 artifact.get(field) != expected[key].get(field)
@@ -2989,11 +3085,19 @@ def _campaign_pending_jobs(jobs: list[dict], rows: list[dict], config: dict) -> 
             ):
                 raise ValueError("resume artifact integrity: episode identity mismatch")
             refreshed = terminal_row_from_artifact(expected[key], path, config)
-            if "artifact_path_treatment_mismatch" in refreshed.get("eligibility_reasons", []):
-                raise ValueError("resume artifact integrity: artifact path treatment mismatch")
+            if "artifact_path_treatment_mismatch" in refreshed.get(
+                "eligibility_reasons", []
+            ):
+                raise ValueError(
+                    "resume artifact integrity: artifact path treatment mismatch"
+                )
             if row.get("status") == "ok" and refreshed.get("status") != "ok":
-                raise ValueError("resume artifact integrity: prior accepted episode no longer validates")
-            if refreshed.get("status") == "ineligible" and not _realtime_retryable(refreshed):
+                raise ValueError(
+                    "resume artifact integrity: prior accepted episode no longer validates"
+                )
+            if refreshed.get("status") == "ineligible" and not _realtime_retryable(
+                refreshed
+            ):
                 raise ValueError(
                     "resume artifact integrity: episode collection or contract requires attention: "
                     + ",".join(refreshed.get("eligibility_reasons") or [])
@@ -3003,32 +3107,51 @@ def _campaign_pending_jobs(jobs: list[dict], rows: list[dict], config: dict) -> 
             raise ValueError("resume artifact integrity: terminal artifact missing")
         if row.get("status") != "in_flight":
             latest[key] = row
-    return [job for key, job in expected.items() if key not in latest or _realtime_retryable(latest[key])]
+    return [
+        job
+        for key, job in expected.items()
+        if key not in latest or _realtime_retryable(latest[key])
+    ]
 
 
-def _campaign_invocation_summary(jobs, dispatched, rows, config, *, started, status, pending_before):
+def _campaign_invocation_summary(
+    jobs, dispatched, rows, config, *, started, status, pending_before
+):
     pending = _campaign_pending_jobs(jobs, rows, config)
     latest = {row["job_key"]: row for row in rows if row.get("status") != "in_flight"}
     results = []
     for job in dispatched:
         row = latest.get(job["job_key"], {}) if status == "completed" else {}
         signal = row.get("provider_quota_signal") or {}
-        results.append({**_campaign_job_identity(job, config),
-                        "status": row.get("status", "pending"),
-                        "execution_started": row.get("execution_started", False),
-                        "retryable_infrastructure": _realtime_retryable(row),
-                        "quota_parked": row.get("status") in {"parked", "provider_quota_exhausted"},
-                        "quota_reset_at": signal.get("reset_at_utc"),
-                        "error_http_status": row.get("error_http_status")})
-    return {"schema_version": "batch_invocation_v1", "status": status,
-            "worker_start_contract": "realtime_worker_execution_start_v1",
-            "started_at_utc": started, "updated_at_utc": datetime.now(UTC).isoformat(),
-            "resume_policy": "retry-infrastructure", "total_scope_jobs": len(jobs),
-            "pending_before": pending_before, "pending_after": len(pending),
-            "dispatched": len(dispatched), "resume_terminal": len(jobs)-len(pending),
-            "terminal_errors": sum(row.get("status") != "ok" for row in latest.values()),
-            "scope_attempts_closed": not pending, "formal_completion_claimed": False,
-            "dispatched_results": results}
+        results.append(
+            {
+                **_campaign_job_identity(job, config),
+                "status": row.get("status", "pending"),
+                "execution_started": row.get("execution_started", False),
+                "retryable_infrastructure": _realtime_retryable(row),
+                "quota_parked": row.get("status")
+                in {"parked", "provider_quota_exhausted"},
+                "quota_reset_at": signal.get("reset_at_utc"),
+                "error_http_status": row.get("error_http_status"),
+            }
+        )
+    return {
+        "schema_version": "batch_invocation_v1",
+        "status": status,
+        "worker_start_contract": "realtime_worker_execution_start_v1",
+        "started_at_utc": started,
+        "updated_at_utc": datetime.now(UTC).isoformat(),
+        "resume_policy": "retry-infrastructure",
+        "total_scope_jobs": len(jobs),
+        "pending_before": pending_before,
+        "pending_after": len(pending),
+        "dispatched": len(dispatched),
+        "resume_terminal": len(jobs) - len(pending),
+        "terminal_errors": sum(row.get("status") != "ok" for row in latest.values()),
+        "scope_attempts_closed": not pending,
+        "formal_completion_claimed": False,
+        "dispatched_results": results,
+    }
 
 
 def _run_pending_jobs(
@@ -3057,9 +3180,7 @@ def _run_pending_jobs(
     )
     if active_sentinel is not None:
         sentinel_path, sentinel = active_sentinel
-        signal = _validated_provider_quota_signal(
-            sentinel.get("provider_quota_signal")
-        )
+        signal = _validated_provider_quota_signal(sentinel.get("provider_quota_signal"))
         if signal is None:
             raise ValueError("provider quota sentinel signal is invalid")
         for job in pending_jobs:
@@ -3131,13 +3252,11 @@ def _run_pending_jobs(
                         )
                     quota_signal = signal
                     if quota_configured:
-                        quota_sentinel_path, _sentinel = (
-                            _write_provider_quota_sentinel(
-                                out_dir,
-                                run_config,
-                                quota_signal,
-                                job=job,
-                            )
+                        quota_sentinel_path, _sentinel = _write_provider_quota_sentinel(
+                            out_dir,
+                            run_config,
+                            quota_signal,
+                            job=job,
                         )
                     for queued_future, queued_job in list(future_to_job.items()):
                         if queued_future.cancel():
@@ -3246,9 +3365,17 @@ def load_formal_contract(path: Path) -> dict[str, Any]:
     }
     observed_versions = {key: contract.get(key) for key in expected_contract_versions}
     if observed_versions not in (expected_contract_versions, qualification_versions):
-        mismatched = [key for key, value in observed_versions.items()
-                      if value not in (expected_contract_versions[key], qualification_versions[key])]
-        raise ValueError("formal manifest realtime " + ",".join(mismatched or ["version tuple"]) + " mismatch")
+        mismatched = [
+            key
+            for key, value in observed_versions.items()
+            if value
+            not in (expected_contract_versions[key], qualification_versions[key])
+        ]
+        raise ValueError(
+            "formal manifest realtime "
+            + ",".join(mismatched or ["version tuple"])
+            + " mismatch"
+        )
     qualification_contract_sha256 = canonical_sha256(contract)
     contract = {**deepcopy(contract), **expected_contract_versions}
     runtime_contract_derivation = {
@@ -3320,9 +3447,7 @@ def load_formal_contract(path: Path) -> dict[str, Any]:
             ) from exc
         if not selection_path.is_file():
             raise ValueError("formal native selection artifact missing")
-        expected_selection_sha256 = str(
-            contract.get("selection_sha256") or ""
-        )
+        expected_selection_sha256 = str(contract.get("selection_sha256") or "")
         if file_sha256(selection_path) != expected_selection_sha256:
             raise ValueError("formal native selection artifact hash mismatch")
     else:
@@ -3398,7 +3523,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--provider-rpd-limit", type=int, default=None)
     parser.add_argument("--provider-rate-limit-scope", default=None)
     parser.add_argument("--tick-interval-s", type=float, default=None)
-    parser.add_argument("--response-delivery-delay-s", type=float, choices=[0.0, 1.0, 5.0], default=0.0)
+    parser.add_argument(
+        "--response-delivery-delay-s", type=float, choices=[0.0, 1.0, 5.0], default=0.0
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.0,
+        help="sampling temperature bound into the batch identity (kimi-k3 requires 1.0)",
+    )
     parser.add_argument("--episode-timeout-s", type=float, default=None)
     parser.add_argument("--process-hard-timeout-s", type=float, default=None)
     parser.add_argument("--termination-grace-s", type=float, default=None)
@@ -3409,10 +3542,20 @@ def main(argv: list[str] | None = None) -> int:
         choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
         default=None,
     )
-    parser.add_argument("--reasoning-effort-format", choices=["auto", "native", "openrouter"], default="auto")
-    parser.add_argument("--thinking-type", choices=["enabled", "disabled"], default=None)
+    parser.add_argument(
+        "--reasoning-effort-format",
+        choices=["auto", "native", "openrouter"],
+        default="auto",
+    )
+    parser.add_argument(
+        "--thinking-type", choices=["enabled", "disabled"], default=None
+    )
     parser.add_argument("--resume", action="store_true")
-    parser.add_argument("--resume-policy", choices=["retry-infrastructure"], default="retry-infrastructure")
+    parser.add_argument(
+        "--resume-policy",
+        choices=["retry-infrastructure"],
+        default="retry-infrastructure",
+    )
     parser.add_argument("--max-jobs", type=int, default=None)
     parser.add_argument(
         "--held-cells",
@@ -3433,7 +3576,9 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("--no-finalize and --finalize-only are mutually exclusive")
         if args.base_url_env:
             if args.base_url or not os.getenv(args.base_url_env):
-                raise ValueError("base URL environment missing or conflicts with --base-url")
+                raise ValueError(
+                    "base URL environment missing or conflicts with --base-url"
+                )
             args.base_url = os.environ[args.base_url_env]
         if args.dry_run and args.finalize_only:
             raise ValueError("--dry-run and --finalize-only are mutually exclusive")
@@ -3481,9 +3626,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         context_chars = (
             args.persistent_context_max_chars
-            if args.suite_kind == "lite" and args.persistent_context_max_chars is not None
+            if args.suite_kind == "lite"
+            and args.persistent_context_max_chars is not None
             else _bound_cli_value(
-                args.persistent_context_max_chars, agentic_profile["persistent_context_max_chars"],
+                args.persistent_context_max_chars,
+                agentic_profile["persistent_context_max_chars"],
                 flag="--persistent-context-max-chars",
             )
         )
@@ -3500,7 +3647,9 @@ def main(argv: list[str] | None = None) -> int:
             flag="--provider-timeout-s",
         )
         if clock_profile.get("tick_interval_policy") != NATIVE_DT_POLICY:
-            raise ValueError("formal realtime tick_interval_policy must be native_dt_v1")
+            raise ValueError(
+                "formal realtime tick_interval_policy must be native_dt_v1"
+            )
         if args.tick_interval_s is not None:
             raise ValueError(
                 "--tick-interval-s is not a formal native_dt_v1 flag; "
@@ -3521,9 +3670,15 @@ def main(argv: list[str] | None = None) -> int:
             flag="--termination-grace-s",
         )
         suite_rows, selection_contract = _select_suite(
-            args.suite, args.suite_kind, formal, args.formal_manifest,
+            args.suite,
+            args.suite_kind,
+            formal,
+            args.formal_manifest,
         )
-        if str(realtime_contract.get("selection_binding")) == NATIVE_DT_SELECTION_BINDING:
+        if (
+            str(realtime_contract.get("selection_binding"))
+            == NATIVE_DT_SELECTION_BINDING
+        ):
             parent_n = len(suite_rows)
             suite_rows = _select_native_dt_scorecard_rows(suite_rows)
             if args.suite_kind == "core":
@@ -3580,6 +3735,7 @@ def main(argv: list[str] | None = None) -> int:
             provider_timeout_s=provider_timeout_s,
             tick_interval_policy=tick_interval_policy,
             response_delivery_delay_s=args.response_delivery_delay_s,
+            temperature=args.temperature,
             episode_timeout_policy=clock_profile["episode_timeout_policy"],
             process_hard_timeout_overhead_s=clock_profile[
                 "process_hard_timeout_overhead_s"
@@ -3599,7 +3755,9 @@ def main(argv: list[str] | None = None) -> int:
             provider_rate_limit_scope=args.provider_rate_limit_scope,
             safety_profile=formal_safety_profile,
         )
-        identity["runtime_contract_derivation"] = deepcopy(formal["runtime_contract_derivation"])
+        identity["runtime_contract_derivation"] = deepcopy(
+            formal["runtime_contract_derivation"]
+        )
         if args.suite_kind == "lite" or selection_contract.get("clock_policy"):
             identity["selection_contract"] = selection_contract
         out_dir, run_config = resolve_run_directory(
@@ -3619,10 +3777,15 @@ def main(argv: list[str] | None = None) -> int:
                     {
                         "dry_run": True,
                         "output_dir": str(out_dir),
+                        "model_shard": identity["model_shard"],
                         "batch_treatment_sha256": run_config["batch_treatment_sha256"],
                         "job_count": len(jobs),
-                        "response_delivery_delay_s": identity["clock"]["response_delivery_delay_s"],
-                        "runtime_contract_derivation": identity["runtime_contract_derivation"],
+                        "response_delivery_delay_s": identity["clock"][
+                            "response_delivery_delay_s"
+                        ],
+                        "runtime_contract_derivation": identity[
+                            "runtime_contract_derivation"
+                        ],
                     },
                     ensure_ascii=False,
                 )
@@ -3639,15 +3802,22 @@ def main(argv: list[str] | None = None) -> int:
         try:
             pending = _campaign_pending_jobs(jobs, rows, run_config)
         except ValueError as exc:
-            _atomic_write_json(out_dir / "invocation_summary.json", {
-                "schema_version": "batch_invocation_v1", "status": "needs_attention",
-                "started_at_utc": started_at, "reason": "resume_artifact_integrity_failed",
-                "integrity_failures": [str(exc)],
-            })
+            _atomic_write_json(
+                out_dir / "invocation_summary.json",
+                {
+                    "schema_version": "batch_invocation_v1",
+                    "status": "needs_attention",
+                    "started_at_utc": started_at,
+                    "reason": "resume_artifact_integrity_failed",
+                    "integrity_failures": [str(exc)],
+                },
+            )
             raise
         if rows and not args.resume and not args.finalize_only:
             raise ValueError("existing realtime journal requires --resume")
-        completed = {job["job_key"] for job in jobs} - {job["job_key"] for job in pending}
+        completed = {job["job_key"] for job in jobs} - {
+            job["job_key"] for job in pending
+        }
 
         for job in jobs:
             if str(job["job_key"]) in completed:
@@ -3687,12 +3857,21 @@ def main(argv: list[str] | None = None) -> int:
                     completed.add(str(job["job_key"]))
 
         pending = [job for job in jobs if str(job["job_key"]) not in completed]
-        dispatched = [] if args.finalize_only else pending[:args.max_jobs]
+        dispatched = [] if args.finalize_only else pending[: args.max_jobs]
         for job in dispatched:
             job["invocation_started_at_utc"] = started_at
-        _atomic_write_json(out_dir / "invocation_summary.json", _campaign_invocation_summary(
-            jobs, dispatched, rows, run_config, started=started_at, status="running", pending_before=len(pending),
-        ))
+        _atomic_write_json(
+            out_dir / "invocation_summary.json",
+            _campaign_invocation_summary(
+                jobs,
+                dispatched,
+                rows,
+                run_config,
+                started=started_at,
+                status="running",
+                pending_before=len(pending),
+            ),
+        )
         if not args.finalize_only:
             _run_pending_jobs(
                 dispatched,
@@ -3703,14 +3882,25 @@ def main(argv: list[str] | None = None) -> int:
             )
         try:
             summary = _campaign_invocation_summary(
-                jobs, dispatched, rows, run_config, started=started_at, status="completed", pending_before=len(pending),
+                jobs,
+                dispatched,
+                rows,
+                run_config,
+                started=started_at,
+                status="completed",
+                pending_before=len(pending),
             )
         except ValueError as exc:
-            _atomic_write_json(out_dir / "invocation_summary.json", {
-                "schema_version": "batch_invocation_v1", "status": "needs_attention",
-                "started_at_utc": started_at, "reason": "resume_artifact_integrity_failed",
-                "integrity_failures": [str(exc)],
-            })
+            _atomic_write_json(
+                out_dir / "invocation_summary.json",
+                {
+                    "schema_version": "batch_invocation_v1",
+                    "status": "needs_attention",
+                    "started_at_utc": started_at,
+                    "reason": "resume_artifact_integrity_failed",
+                    "integrity_failures": [str(exc)],
+                },
+            )
             raise
         _atomic_write_json(out_dir / "invocation_summary.json", summary)
         if args.no_finalize:
@@ -3726,18 +3916,27 @@ def main(argv: list[str] | None = None) -> int:
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         if started_at is not None and run_lock_handle is not None:
-            _atomic_write_json(out_dir / "invocation_summary.json", {
-                "schema_version": "batch_invocation_v1", "status": "needs_attention",
-                "started_at_utc": started_at, "reason": "resume_artifact_integrity_failed",
-                "integrity_failures": [str(exc)],
-            })
+            _atomic_write_json(
+                out_dir / "invocation_summary.json",
+                {
+                    "schema_version": "batch_invocation_v1",
+                    "status": "needs_attention",
+                    "started_at_utc": started_at,
+                    "reason": "resume_artifact_integrity_failed",
+                    "integrity_failures": [str(exc)],
+                },
+            )
         print(f"[FATAL] {exc}", file=sys.stderr)
         return 1
     finally:
         if run_lock_handle is not None:
             run_lock_handle.close()
     print(json.dumps({"output_dir": str(out_dir), **manifest}, ensure_ascii=False))
-    return 0 if manifest.get("evaluation_complete", manifest["leaderboard_eligible"]) else 2
+    return (
+        0
+        if manifest.get("evaluation_complete", manifest["leaderboard_eligible"])
+        else 2
+    )
 
 
 if __name__ == "__main__":

@@ -14,6 +14,44 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from evaluation.batch_status import execution_status_counts  # noqa: E402
 
 
+def _primary_outcome027(out_dir: Path) -> dict:
+    """The default main table reads original bytes and keeps the Lite denominator."""
+    from scripts.evaluate_trajectories import evaluate, input_manifest
+    from evaluation.trajectory_outcome028 import load_policy
+
+    journal, config_path = out_dir / "episodes.jsonl", out_dir / "run_config.json"
+    if not journal.is_file() or not config_path.is_file():
+        return {
+            "evaluation_version": "0.28.0",
+            "applicable": False,
+            "reason": "original_episode_and_config_required",
+        }
+    config = json.loads(config_path.read_bytes())
+    if config.get("interaction_mode") != "logical_persistent":
+        return {
+            "evaluation_version": "0.28.0",
+            "applicable": False,
+            "reason": "Lite_primary_requires_logical_persistent",
+        }
+    policy = load_policy()
+    keys = {
+        (row["scenario_signature"], row["seed"])
+        for row in policy["source_contracts"]["contracts"]
+    }
+    original = [
+        json.loads(line) for line in journal.read_bytes().splitlines() if line.strip()
+    ]
+    if any(
+        (row.get("scenario_signature"), row.get("seed")) not in keys for row in original
+    ):
+        return {
+            "evaluation_version": "0.28.0",
+            "applicable": False,
+            "reason": "batch_contains_cases_outside_Lite141",
+        }
+    return {"applicable": True, **evaluate(input_manifest([out_dir]))}
+
+
 def _coverage_entry(applicable: int, total: int) -> dict[str, float | int]:
     return {
         "applicable": applicable,
@@ -187,9 +225,7 @@ def analyze_output_dir(
         model_totals["tool_results_failed"] += int(
             traj.get("tool_results_failed", 0) or 0
         )
-        argument_parse_failures = int(
-            llm.get("tool_argument_parse_failures", 0) or 0
-        )
+        argument_parse_failures = int(llm.get("tool_argument_parse_failures", 0) or 0)
         model_totals["tool_argument_parse_failures"] += argument_parse_failures
         model_totals["dependency_metadata_missing_calls"] += int(
             llm.get("dependency_metadata_missing_calls", 0) or 0
@@ -201,10 +237,7 @@ def analyze_output_dir(
             llm.get("native_calls_dependency_metadata_cleared", 0) or 0
         )
         model_totals["protocol_repair_calls_dependency_metadata_cleared"] += int(
-            llm.get(
-                "protocol_repair_calls_dependency_metadata_cleared", 0
-            )
-            or 0
+            llm.get("protocol_repair_calls_dependency_metadata_cleared", 0) or 0
         )
         model_totals["tool_argument_truncation_failures"] += int(
             llm.get("tool_argument_truncation_failures", 0) or 0
@@ -276,6 +309,8 @@ def analyze_output_dir(
         "n_error": execution_counts["n_episodes_error"],
         **execution_counts,
         "measurement_scope": "execution_ok_diagnostic_including_contaminated_rows",
+        "primary_evaluation": _primary_outcome027(out_dir),
+        "mean_by_model_scope": "legacy_live_score_diagnostic_not_primary_ranking",
         "mean_by_model": {m: sum(s) / len(s) for m, s in by_model.items()},
         "tool_histogram_by_model": {m: dict(c) for m, c in tool_hist.items()},
         "event_adaptive_autonomy_by_model": autonomy_by_model,

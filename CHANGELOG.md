@@ -1,5 +1,11 @@
 # Updates
 
+## 2026-10-08
+
+- Synchronize current runtime code, default 0.28 raw scorer, opt-in 0.30 task corrections and 0.29.1 reporting.
+- Publish 0.25–0.30 aggregate comparisons and separate 12-model analysis figures on the HF result companion.
+- Preserve immutable offline Lite source inputs and upstream-source hashes. Raw trajectories remain private; Full formal provider runs remain pending.
+
 ## 2026-09-22
 
 - Live scoring is `0.21.0` (`wait_relative_outcome_v1`). Catalog

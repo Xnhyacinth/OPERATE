@@ -8,16 +8,18 @@ create outages, surges, breakdowns and observation loss without making an LLM
 part of the world transition.
 
 The promoted `operate` release binds qualification artifacts to scoring
-`0.15.0` while live evaluations use scoring `0.21.0`
-(`wait_relative_outcome_v1`). Results from a different
+`0.15.0`; live episode artifacts use `0.21.0` (`wait_relative_outcome_v1`).
+The declared Lite141 offline main table uses `0.26.1` under its separate
+[scoring policy](EVALUATION_026_MAIN_TABLE.md). Results from a different
 implementation hash are diagnostic evidence only and cannot validate or resume
 a current formal shard.
 
-Its Core contains 769 rows across 502 physical sources: 7 Autonomous Driving,
+The optional Full/Core extension contains 769 rows across 502 physical sources:
+7 Autonomous Driving,
 18 Building Energy, 142 Datacenter, 527 Logistics, 37 Microgrid, 19 Power Grid,
-and 19 Traffic. These counts describe corpus composition; hierarchical
-source→backend→domain aggregation, rather than row count, defines the primary
-weighting.
+and 19 Traffic. These counts describe corpus composition, not the Lite main
+denominator. The Lite main Index uses frozen domain→task-family→physical-source→
+case weights across its 141 rows; the Full extension has separate scoring.
 
 ## Closed-loop episode
 
@@ -106,8 +108,11 @@ event, active plan, bounded recent decisions and hashes of compacted content.
 Formal artifacts bind the context/output limits, temperature, reasoning mode,
 tool choice, timeout, streaming behavior and compaction implementation.
 
-The 32K output value is a maximum, not a target. A length-terminated partial
-tool call is rejected and may receive one bounded repair turn. Very small caps
+The current native-capability treatment uses each route's advertised output
+ceiling, as bound in `FORMAL_EVALUATION.md`; this is a maximum, not a target.
+The former shared 32,768-token cap is a separate historical equal-budget
+treatment. A length-terminated partial tool call is rejected and may receive
+one bounded repair turn. Very small caps
 such as 1K confound tool-use competence with truncation; very large raw history
 without semantic projection confounds long-horizon reasoning with repeated
 transport cost. Provider token, latency, truncation and repair statistics must
@@ -152,12 +157,13 @@ strategy must not fail merely because it differs from a reference trajectory.
 
 ## Scoring
 
-The primary score is environment-verifiable: task outcome, system outcome,
-safety/responsibility, adaptation/foresight and action efficiency. Task outcome
-is separated from process-capability checks so an equivalent safe solution is
-not forced to imitate one authored tool path. The leaderboard macro-averages
-within effective source, backend and domain instead of letting the 142-row
-Datacenter family dominate by row count.
+The Lite main score is environment-verifiable 0.26.1 native operational quality
+capped by measured source-obligation fulfillment, with verified hard failures
+scored zero. Task outcome is separated from process-capability checks so an
+equivalent safe solution is not forced to imitate one authored tool path. Frozen
+domain→task-family→physical-source→case weights keep repeated rows from
+silently expanding a source's contribution. This Index is not a binary mission
+pass rate.
 
 The thirteen evidence-linked dimensions and the six-dimensional operational
 agency profile remain diagnostics. Operational-agency credit requires a native
@@ -193,5 +199,7 @@ scoring in the task strata where those constructs are applicable. It should not
 claim that every Core row is long-horizon, hidden-event, positively calibrated
 for autonomy or realtime. Data/code readiness means the promoted manifest and
 native replay close under the current implementation identity; it does not
-claim a provider result. Public-release and leaderboard claims remain false
-until a complete current-identity formal shard passes the publication gates.
+claim a provider result. The Lite offline scoring gate and public distribution
+are separate states: the current Lite141 panel passes its offline scoring
+audit, while public distribution has not occurred. Full/Core provider and
+scoring gates are optional extension work.

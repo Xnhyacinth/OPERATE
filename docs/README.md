@@ -16,3 +16,9 @@
 These documents describe the single current public benchmark. Internal
 maintainer namespaces and qualification ledgers live in the private archive,
 not in this checkout.
+
+- [Default raw scoring: 0.28](EVALUATION_028.md)
+- [Latest result comparison: 0.25–0.30](LATEST_RESULTS_030.md)
+- [Offline behavior/usage analysis](LITE141_ANALYSIS.md)
+
+The offline scorer additionally carries its immutable Lite141 source contracts; runtime catalog membership remains defined by benchmark/.

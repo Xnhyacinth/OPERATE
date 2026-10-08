@@ -1,17 +1,25 @@
 # Current release
 
 The promoted input namespace is `operate`. Qualification artifacts stay
-bound to scoring `0.15.0`. Live evaluations use scoring `0.21.0`. Core remains
-769 rows across 502 physical sources, with 141 Lite rows across 82 sources.
+bound to scoring `0.15.0`. Live episode artifacts use scoring `0.21.0`; the
+default Lite141 offline main table uses `0.28.0` through
+`scripts/evaluate_trajectories.py`; the frozen released `0.26.1` policy retains
+its historical meaning. Lite has 141 rows across 82 physical
+sources. The optional Full/Core extension has 769 rows across 502 sources.
 Native qualification is bound to its recorded implementation identity. Later
 verified maintenance changes bind their actual new execution identity; resume
-and merge remain strict. Formal logical/realtime provider runs and leaderboard
-result publication remain pending.
+and merge remain strict. The Lite141 offline main-table scoring gate has passed;
+public code/data distribution and retrospective result companions are maintained
+separately from formal Full certification. Optional Full logical/realtime
+provider runs remain pending.
 
 
-The active release namespace is `operate`. This document describes the
-current promoted Core; historical releases, tags, and provider trajectories are
-not valid inputs to a current formal run.
+The active release namespace is `operate`. Lite141 is the offline
+main-table denominator. The current reader policy is
+`evaluation/policies/lite141_028.json`; the frozen release policy remains at
+`benchmark/lite_main_scoring_0261.json`. This document also
+describes the promoted Core as an optional Full extension; historical releases,
+tags, and provider trajectories are not valid inputs to a current run.
 
 ## Promoted Core
 
@@ -22,11 +30,16 @@ not valid inputs to a current formal run.
   Microgrid, Power Grid, and Traffic
 - tracked source locks and compact Alibaba/DynaSched assets under `sources/`
 - 769 current scenario contracts under `scenarios/<domain>/...`
-- Core suite at `benchmark/core_suite.json`
-- matching formal manifest at `benchmark/manifest.json`
+- Lite main suite at `benchmark/lite_suite.json` with frozen
+  0.26.1 scoring policy at `benchmark/lite_main_scoring_0261.json`
+- optional Full/Core suite at `benchmark/core_suite.json`
+- matching Full manifest at `benchmark/manifest.json`
 - replay and provenance suite at `benchmark/core_suite.json`
 - promoted qualification scoring version `0.15.0`
 - live evaluation scoring version `0.21.0` (`wait_relative_outcome_v1`)
+- default offline scoring version `0.28.0`; direct raw artifact reader and
+  separately verified historical measurement recovery, described in
+  [the current scoring protocol](EVALUATION_028.md)
 - live realtime contract `realtime_persistent.v3` / `native_dt_v1`; default
   supervision scorecard is the 37-row speed-critical subset in
   `benchmark/realtime_speed_suite.json`
@@ -42,9 +55,13 @@ that historical lineage while qualifying corrected contracts for the same
 769-row, 502-source denominator. Historical admission evidence is not relabelled
 as newly executed evidence.
 
-`core_suite.json` together with its matching `manifest.json` defines the formal
-denominator. `protocol21_source_suite.json` remains the bound replay input and
-provenance ledger.
+`lite_suite.json` defines the offline main-table denominator;
+`lite_main_scoring_0261.json` retains the frozen released scorer identity, while
+the current reader uses `evaluation/policies/lite141_028.json`.
+`core_suite.json` together with its matching
+`manifest.json` defines the optional Full denominator.
+`protocol21_source_suite.json` remains the bound replay input and provenance
+ledger.
 
 ## Lite review scope
 
@@ -60,10 +77,11 @@ outside Lite. Native ticks do not bound provider latency or call count, and
 
 Lite's long-tick bands are starved: 121/141 rows are at most 32 ticks, the
 97–192 band holds 1 row and the 193+ band 2 rows, and only 2 rows exceed 128
-ticks. Lite cannot support a long-horizon capability, memory-retention or
-significance claim. Any such claim needs Core, where 54/769 rows run above 192
-ticks, and the matched long-task diagnostic slice. Report the missing coverage
-rather than filling it with zeros.
+ticks. Lite alone cannot support a broad long-horizon capability,
+memory-retention or significance claim. Such claims need additional evidence,
+for example the optional Core extension, where 54/769 rows run above 192 ticks,
+and a matched long-task diagnostic slice. Report the missing coverage rather
+than filling it with zeros.
 
 Historical zero/ceiling scores affected by measurement defects are not new
 exclusion evidence. Decisions are in
@@ -71,12 +89,39 @@ exclusion evidence. Decisions are in
 
 ## Release status
 
+- Current 0.28 raw-trajectory comparison (2026-10-06): 23 declared models,
+  2,958 determined Q values out of 3,243 fixed targets and 20 complete models.
+  It uses an explicit user-authorized descriptive cross-framework policy;
+  3 historical native-meter gaps and 282 unavailable outcomes remain unranked.
+  DSS quality now separates source node-time count exposure from global extrema
+  severity; original C/F and all non-DSS N/Q remain unchanged.
+  See [current results, evidence and reproduction](LATEST_RESULTS_028.md).
+- Lite141 0.26.1 offline main-table scoring gate: passed for the existing
+  authenticated trajectory panel; 20 models have 141/141 valid scores and 11
+  incomplete models are unranked. See
+  [the main-table audit](EVALUATION_026_MAIN_TABLE.md).
+- Lite selection used development-model outcomes. The main table is a declared
+  fixed-panel retrospective comparison, not an unbiased held-out test.
+- Latest opt-in outcome revision: 0.30.0, with the same 23 declared models,
+  20 complete scores and 2,958 determined outcomes. It corrects LV/CIGRE
+  source-population exposure and driving recovery semantics; the default reader
+  remains 0.28.0. See [latest results and historical comparison](LATEST_RESULTS_030.md).
+- Public code/data distribution is available. The dated retrospective aggregate
+  companion is separate from the pending Full formal workflow. Complete raw
+  trajectories, recovery evidence, full reports and private audit archives remain
+  in the private HF trajectory dataset. The [12-model offline analysis](LITE141_ANALYSIS.md)
+  is a companion subset, not a change to the main-table denominator.
+
+The following historical flags describe the optional Full/prospective formal
+workflow, not the separately declared Lite offline main-table gate:
+
 - the dataset's admission replay and atomic promotion are complete;
 - `formal_evaluation_ready=true`;
 - `formal_logical_persistent_evaluation_pending`;
 - `formal_realtime_persistent_evaluation_pending`;
 - `formal_runtime_evidence_distribution_pending`;
-- `public_release_ready=false` and `leaderboard_eligible=false`.
+- `public_release_ready=false` and `leaderboard_eligible=false` for that Full
+  workflow.
 
 Agency positive controls and baseline smoke remain available as independent
 diagnostics. They are not release-admission gates, formal provider inputs, or
@@ -87,9 +132,15 @@ Later maintenance fixes use [affected-scope validation](VALIDATION_POLICY.md),
 not automatic whole-suite requalification. New evaluations record their actual
 current code; historical proof is not relabelled as a new execution. Integrity
 diagnostics expose any difference between these two identities.
+Portable frozen-input integrity checks pass. The current software has different
+runtime/tooling hashes from historical formal qualification; those old flags
+do not certify a new formal run on today's implementation.
 
-Interrupted or completed results from an earlier package name, release ID,
-implementation tree, prompt/context profile, or provider binding are excluded.
+Formal resume/merge excludes interrupted or completed results with different
+release, implementation, prompt/context or provider bindings. The separately
+declared offline descriptive comparison retains authenticated historical whole
+episodes and their original identities under the policy in
+[EVALUATION_028.md](EVALUATION_028.md).
 
 ## Formal treatments
 
@@ -142,7 +193,10 @@ No hidden summarizer rewrites the authoritative history.
 tests, and concise release documentation. Historical maintenance sources and
 audit material are not part of this snapshot.
 Public commits and the changelog record updates; superseded scenario files and
-old tagged distributions are not retained in the public current tree.
+old tagged distributions are not retained in the public current tree. The
+immutable original Lite141 suite and scenario bytes required by the offline
+scoring policy are retained alongside the versionless runtime catalog; this
+source-bound companion preserves policy hashes and is not an old run bundle.
 The public setup installs the versionless runtime companion under `operate_data/`;
 the maintenance checkout may retain its `operate_data/` compatibility root.
 The manifest and recorded immutable HF revision, not that directory name, bind

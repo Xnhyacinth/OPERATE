@@ -94,3 +94,22 @@ per dimension:
 
 This wiring is small, explicit, and lives in one function so reviewers
 can quickly audit "what evidence backs the score?".
+
+## Default offline outcome evidence (0.27)
+
+The [raw-trajectory reader](EVALUATION_027.md) uses original settled native cost
+C, independently compiled source scale S, and source-fixed fulfillment F.
+Raw provider request/response hashes, original route settings and budgets,
+model identity closures, complete native windows and ledger joins are checked
+before a case receives a score. Cached historical score fields have no authority.
+
+Missing historical measurements may use a separately hash-bound recovery
+sidecar that the reader independently verifies from the original artifacts.
+Its derived evidence IDs have their own namespace; original bytes, ledger IDs,
+costs and execution identities remain unchanged. A replay candidate that cannot
+prove equivalence stays unqualified. Ordinary evaluation performs no provider
+calls, source constructors or native episode replays.
+
+Cross-framework descriptive comparisons require an explicit compatibility
+policy. They report original identity differences separately from native
+measurement qualification and never convert them into formal same-run proof.

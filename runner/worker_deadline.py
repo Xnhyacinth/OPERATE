@@ -19,8 +19,8 @@ from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Any
 
-DEFAULT_EPISODE_TIMEOUT_S = 64_800.0
-DEFAULT_POSTPROCESSING_TIMEOUT_S = 28_800.0
+DEFAULT_EPISODE_TIMEOUT_S = 172_800.0
+DEFAULT_POSTPROCESSING_TIMEOUT_S = 43_200.0
 _phase_connection: Connection | None = None
 
 
@@ -96,7 +96,9 @@ def run_with_deadline(
     receive, send = context.Pipe(duplex=False)
     temporary = tempfile.TemporaryDirectory(prefix="operate-worker-")
     result_path = Path(temporary.name) / "result.json"
-    process = context.Process(target=_child_main, args=(send, function, job, str(result_path)))
+    process = context.Process(
+        target=_child_main, args=(send, function, job, str(result_path))
+    )
     previous_handler = signal.getsignal(signal.SIGTERM)
 
     def terminate(signum, frame):

@@ -163,7 +163,13 @@ def evaluate_task_quality(
         except (TypeError, ValueError):
             return unavailable("absolute_acceptance_contract_invalid")
         result["acceptance_contract_sha256"] = hashlib.sha256(encoded).hexdigest()
-    measurement = extract_native_objective(episode)
+    measurement = extract_native_objective(
+        episode,
+        terminal_runtime_verified=artifact_binding.get(
+            "native_completed_tree_drift_verified"
+        )
+        is True,
+    )
     if measurement.get("applicable") is not True:
         return unavailable(measurement.get("reason", "native_measurement_unavailable"))
     result["hard_failure"] = measurement["hard_failure"]

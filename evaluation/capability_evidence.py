@@ -14,9 +14,14 @@ from typing import Any
 def bind_capability_evidence(
     episode: dict[str, Any], spec: dict[str, Any],
     source_path: str | Path | None = None,
-    *, comparison_policy: str = "strict",
+    *, comparison_policy: str = "strict", require_counterfactual: bool = True,
 ) -> dict[str, Any]:
-    """Check trace, evidence, scoring inputs and their episode-local identity."""
+    """Check trace, evidence, scoring inputs and their episode-local identity.
+
+    Native-only readers may make counterfactual binding optional. They must
+    check ``counterfactual_bound`` separately before using replay diagnostics.
+    All native artifacts and downstream evidence checks remain mandatory.
+    """
     if comparison_policy not in {"strict", "latest_framework_user_assumed"}:
         raise ValueError("unknown comparison policy")
     user_assumed = comparison_policy == "latest_framework_user_assumed"
@@ -25,6 +30,7 @@ def bind_capability_evidence(
         "validation_scope": "recorded_local_artifact_hashes_and_episode_binding",
         "artifacts": {}, "trace_ticks": None, "evidence_count": None,
         "native_cost_bound": False, "counterfactual_bound": False,
+        "counterfactual_reason": None,
         "formal_run_certified": False,
     }
 
@@ -133,8 +139,12 @@ def bind_capability_evidence(
     result["native_cost_bound"] = True
     replay = inputs.get("counterfactual_report")
     if not isinstance(replay, dict) or replay != episode.get("counterfactual"):
-        return fail("counterfactual_snapshot_mismatch")
-    result["counterfactual_bound"] = True
+        result["counterfactual_reason"] = "counterfactual_snapshot_mismatch"
+        if require_counterfactual:
+            return fail("counterfactual_snapshot_mismatch")
+    else:
+        result["counterfactual_bound"] = True
+        result["counterfactual_reason"] = "bound_counterfactual_snapshot"
     snapshot_evidence = (inputs.get("evidence_logger") or {}).get("items")
     if not isinstance(snapshot_evidence, list) or not all(
         isinstance(item, dict) and by_id.get(item.get("evidence_id")) == item

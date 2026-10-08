@@ -60,6 +60,7 @@ from evaluation import (
     separate_task_outcome_and_process,
     summarize_decision_impact,
 )
+from runner.plan_review import PlanReviewLedger
 from runner.resume import recompute_signature_with_seed
 from runner.checkpoint import CheckpointIntegrityError
 
@@ -1107,10 +1108,10 @@ def _plan_review_honored_rate(
     requested: int,
     honored: int,
 ) -> float | None:
-    """Fraction of committed-plan reviews that actually triggered a model call.
+    """Legacy fraction of observed relative-review due ticks served.
 
-    ``None`` when no committed plan requested a review.  Published only: this
-    never enters a score.
+    This excludes lost schedules and expiry-only reviews. Use the acceptance-
+    based plan_review_lifecycle for delivery audits. Published only; never scored.
     """
     if requested <= 0:
         return None
@@ -1183,6 +1184,7 @@ def _materialized_autonomy_window(
     action: Action,
     tool_results: list[Any],
     pending_plan_requests: dict[str, ToolCall],
+    accepted_plans: list[tuple[int, str | None, str | None, dict[str, Any]]] | None = None,
 ) -> tuple[int, str | None, str | None, dict[str, Any]]:
     """Activate terminal plan acknowledgements while preserving lineage.
 
@@ -1250,6 +1252,8 @@ def _materialized_autonomy_window(
             [result],
         )
         selected = (hold_ticks, plan_id, call_id, dict(call.args))
+        if accepted_plans is not None:
+            accepted_plans.append(selected)
     return selected or (0, None, None, {})
 
 
@@ -1507,6 +1511,7 @@ def _run_episode_loop(
     active_wake_if = set(OPTIONAL_PLAN_WAKE_REASONS)
     active_plan_expires_at_tick: int | None = None
     requested_review_tick: int | None = None
+    review_ledger = PlanReviewLedger()
     scheduled_review_ticks: list[int] = []
     periodic_scan_ticks: list[int] = []
     decision_epochs: list[dict[str, Any]] = []
@@ -1759,10 +1764,17 @@ def _run_episode_loop(
                     "reasons": interrupt_reasons,
                 }
             )
-            autonomy_ticks_remaining = 0
-            autonomy_plan_active = False
-            requested_review_tick = None
-            active_plan_expires_at_tick = None
+            if requested_plan_review or "plan_expiry" in interrupt_reasons:
+                autonomy_ticks_remaining = 0
+                autonomy_plan_active = False
+                requested_review_tick = None
+                active_plan_expires_at_tick = None
+            elif requested_review_tick is not None:
+                # An early interrupt does not cancel the standing schedule.
+                # Only a due review, expiry or successful new plan replaces it.
+                autonomy_ticks_remaining = max(
+                    0, requested_review_tick - current_tick - 1
+                )
         stale_observation_records.extend(
             _record_stale_observations(
                 evidence=getattr(env, "evidence", None),
@@ -1777,6 +1789,13 @@ def _run_episode_loop(
         elif not prospective_decision_reasons:
             prospective_decision_reasons = ["native_opportunity"]
         act_obs = dict(obs)
+        act_obs["__plan_review__"] = review_ledger.visible(current_tick)
+        review_ledger.resolve_due(
+            tick=current_tick, delivered=not (pending_action_hold
+                or decision_budget_exhausted or autonomous_hold or native_idle_hold),
+            reasons=prospective_decision_reasons,
+            budget_blocked=decision_budget_exhausted,
+        )
         act_obs["__decision_epoch__"] = {
             "decision_id": f"decision-{model_decision_ticks + 1}",
             "model_decision_index": model_decision_ticks + 1,
@@ -1971,7 +1990,12 @@ def _run_episode_loop(
                     pending_action_deadlines,
                     investigation_results,
                 )
+                plan_review = act_obs["__plan_review__"]
                 act_obs = dict(query_obs)
+                act_obs["__plan_review__"] = plan_review
+                # Investigation does not advance logical time; backend snapshots
+                # may still carry the preceding materialized transition's tick.
+                act_obs["tick"] = current_tick
                 act_obs["__decision_epoch__"] = {
                     "decision_id": f"decision-{model_decision_ticks + 1}",
                     "model_decision_index": model_decision_ticks + 1,
@@ -2449,6 +2473,26 @@ def _run_episode_loop(
             if model_decision_budget is not None
             else None
         )
+        accepted_plans = []
+        (
+            hold_ticks,
+            plan_id,
+            plan_call_id,
+            plan_args,
+        ) = _materialized_autonomy_window(
+            action,
+            list(ret.tool_results),
+            pending_plan_requests,
+            accepted_plans,
+        )
+        for accepted_hold, accepted_id, accepted_call, accepted_args in accepted_plans:
+            review_ledger.replace(
+                tick=current_tick, plan_id=accepted_id, call_id=accepted_call,
+                review_tick=(current_tick + accepted_hold + 1
+                             if accepted_args.get("review_after_ticks") is not None else None),
+                expiry_tick=_positive_int(accepted_args.get("plan_expires_at_tick")),
+            )
+        obs["__plan_review__"] = review_ledger.visible(int(env.tick))
         observe_transition = getattr(agent, "observe_transition", None)
         if callable(observe_transition):
             transition_ingestion_attempted += 1
@@ -2472,42 +2516,40 @@ def _run_episode_loop(
                     type(exc).__name__,
                     redact_provider_error(exc),
                 )
-        (
-            hold_ticks,
-            plan_id,
-            plan_call_id,
-            plan_args,
-        ) = _materialized_autonomy_window(
-            action,
-            list(ret.tool_results),
-            pending_plan_requests,
-        )
-        if plan_args and plan_args.get("review_after_ticks") is None:
-            autonomy_ticks_remaining = 0
-            autonomy_plan_id = plan_id
-            autonomy_plan_active = False
-            requested_review_tick = None
-            active_plan_expires_at_tick = None
-            autonomy_records.append(
+        if plan_args:
+            active_wake_if = (
                 {
-                    "tick": ret.observation.get("tick", env.tick - 1),
-                    "kind": "plan_committed_without_scheduled_review",
-                    "plan_id": plan_id,
-                    "call_id": plan_call_id,
-                }
-            )
-        elif plan_args:
-            if "wake_if" in plan_args:
-                active_wake_if = {
                     str(value)
                     for value in plan_args.get("wake_if") or []
                     if str(value) in OPTIONAL_PLAN_WAKE_REASONS
                 }
-            else:
-                active_wake_if = set(OPTIONAL_PLAN_WAKE_REASONS)
+                if "wake_if" in plan_args
+                else set(OPTIONAL_PLAN_WAKE_REASONS)
+            )
             active_plan_expires_at_tick = _positive_int(
                 plan_args.get("plan_expires_at_tick")
             )
+        if plan_args and plan_args.get("review_after_ticks") is None:
+            autonomy_ticks_remaining = max(
+                0, (active_plan_expires_at_tick or current_tick) - current_tick - 1
+            )
+            autonomy_plan_id = plan_id
+            autonomy_plan_active = active_plan_expires_at_tick is not None
+            requested_review_tick = None
+            autonomy_records.append(
+                {
+                    "tick": ret.observation.get("tick", env.tick - 1),
+                    "kind": (
+                        "autonomy_window_opened"
+                        if active_plan_expires_at_tick is not None
+                        else "plan_committed_without_scheduled_review"
+                    ),
+                    "plan_id": plan_id,
+                    "call_id": plan_call_id,
+                    "plan_expires_at_tick": active_plan_expires_at_tick,
+                }
+            )
+        elif plan_args:
             review_interval = hold_ticks + 1
             autonomy_ticks_remaining = hold_ticks
             autonomy_plan_id = plan_id
@@ -2574,6 +2616,9 @@ def _run_episode_loop(
                 )
                 continue
             break
+
+    review_ledger.finish(int(env.tick))
+    obs["__plan_review__"] = review_ledger.visible(int(env.tick))
 
     # Whether the backend returned ``done`` or the configured horizon was
     # exhausted, the final observation has no subsequent agent response
@@ -2727,6 +2772,7 @@ def _run_episode_loop(
             "review_offered": review_offered,
             "review_omitted": review_omitted,
             "review_omitted_by_reason": dict(review_omitted_by_reason),
+            "plan_review_lifecycle": review_ledger.summary(),
             "plan_review_requested": scheduled_plan_reviews_requested,
             "plan_review_honored": scheduled_plan_reviews_honored,
             "hold_while_actions_pending": hold_while_pending,

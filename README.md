@@ -38,8 +38,34 @@ The current Core qualifies at scoring `0.15.0` and scores live runs at `0.21.0`,
 769 Core rows across 502 physical sources and 141 Lite rows across 82 sources.
 Qualification records describe the code used for their original checks. Public
 users can run their own checkout; ordinary resume preserves completed cells
-when only code changes, while recording each attempt's actual implementation. Formal logical/realtime provider runs and leaderboard
-result publication remain pending.
+when only code changes, while recording each attempt's actual implementation.
+Formal Full logical/realtime provider runs and result publication remain pending.
+Lite retrospective results are available below.
+
+## Lite141 recorded outcomes (2026-10-08)
+
+The default raw-trajectory reader is **0.28.0**; **0.30.0** is the latest opt-in
+task-outcome revision. [Complete version comparison](docs/LATEST_RESULTS_030.md)
+covers 23 declared models, 20 complete 141-case scores and 2,958 measured outcomes.
+[Public tables, sensitivity and analysis figures](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
+have a separate manifest. Original raw trajectories remain private.
+The [analysis layer](docs/LITE141_ANALYSIS.md) uses a separate 12-model subset.
+
+```bash
+uv run --frozen --no-sync python scripts/evaluate_trajectories.py \
+  --run-dir '<completed-run-directory>' --output-dir '<new-score-directory>'
+```
+
+Offline scoring evaluates trajectories from the immutable original Lite141
+contracts and requires original journals/configurations and authenticated
+provider/native artifacts. [Frozen offline inputs](evaluation/policies/README.md) retain exact
+Lite141 suite/scenario hashes alongside the flattened runtime catalog. Two
+CityLearn signatures differ after public flattening; their new runtime trajectories
+cannot be substituted for original policy-bound runs. Restore
+the pinned upstream source files using setup before scoring. Local `.hl/` paths
+in historical reports describe private archive locations, not downloadable
+public trajectories. Current results measure recorded operational outcomes on
+Lite-Dev; independent realtime diagnostics remain separate.
 
 ## What is evaluated
 
@@ -79,14 +105,15 @@ substitute for the Full leaderboard denominator.
 | Autonomous Driving | 7 | 7 | 7 | 7 |
 | Building Energy | 18 | 10 | 6 | 5 |
 | Datacenter | 142 | 33 | 4 | 3 |
-| Logistics | 527 | 56 | 443 | 45 |
+| Logistics | 527 | 53 | 443 | 42 |
 | Microgrid | 37 | 28 | 21 | 17 |
 | Power Grid | 19 | 10 | 11 | 8 |
 | Traffic | 19 | 0 | 10 | 0 |
-| **Total** | **769** | **144** | **502** | **85** |
+| **Total** | **769** | **141** | **502** | **82** |
 
-Formal logical/realtime provider runs remain pending; public result release
-and leaderboard eligibility remain false.
+Formal Full logical/realtime provider runs remain pending; formal Full
+leaderboard eligibility remains false. The separate Lite retrospective outcome
+comparison has been published.
 
 `benchmark/core_suite.json` and `benchmark/manifest.json` define the public
 denominator. Clone this repository, install the Hugging Face runtime companion,
@@ -274,7 +301,7 @@ scripts/       replay, audit, formal batch, merge, and distribution tools
 tests/         runtime and release-contract tests
 ```
 
-Scenario membership is defined only by the current `core_suite.json`,
+Runtime scenario membership is defined by the current `core_suite.json`,
 `lite_suite.json`, and `manifest.json`. Authoring-era fields retained inside
 scenario contracts are provenance, not an additional admission decision.
 

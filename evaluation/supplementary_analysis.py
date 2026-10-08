@@ -101,6 +101,15 @@ def supplementary_artifact_bytes(row: Mapping[str, Any], descriptor: Mapping[str
     return payload
 
 
+def _comparison_provider_config(config: Mapping[str, Any]) -> dict[str, Any]:
+    """Compare response-model allowlists as sets, as the provider adapter does."""
+    result = dict(config)
+    aliases = result.get("accepted_response_models")
+    if isinstance(aliases, (list, tuple)) and all(isinstance(alias, str) for alias in aliases):
+        result["accepted_response_models"] = sorted(set(aliases))
+    return result
+
+
 def _e1_identity(row: Mapping[str, Any]) -> tuple[Any, ...] | None:
     config = _path(row, "agent_config", "config")
     fields = (row.get("model"), row.get("implementation_tree_sha256"),
@@ -120,7 +129,9 @@ def _e1_identity(row: Mapping[str, Any]) -> tuple[Any, ...] | None:
             or config["model"] != row["model"]
             or config.get("interaction_mode") != row.get("interaction_mode")):
         return None
-    return (*fields, row["seed"], {k: v for k, v in config.items() if k != "interaction_mode"})
+    return (*fields, row["seed"], _comparison_provider_config(
+        {k: v for k, v in config.items() if k != "interaction_mode"}
+    ))
 
 
 def _provider_identity_exact(stats: Mapping[str, Any]) -> bool:
@@ -330,6 +341,9 @@ def analyze_e3_group(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                 or not treatment.get("harness")):
             return {"valid": False, "problem": "e3_identity_missing"}
         treatment["clock"].pop("response_delivery_delay_s")
+        treatment["provider_public_config"] = _comparison_provider_config(
+            treatment["provider_public_config"]
+        )
         identities.append((row.get("scenario_id"), row["scenario_signature"], row["seed"], treatment))
     if any(identity != identities[0] for identity in identities[1:]):
         return {"valid": False, "problem": "e3_identity_mismatch"}

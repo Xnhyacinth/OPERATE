@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 from collections import Counter
@@ -76,6 +77,20 @@ _AUXILIARY_INPUT_RE = re.compile(
 )
 
 
+def _dss_collection_names(all_names: Any) -> list[str]:
+    """Drop the dss-python "NONE" placeholder from an element AllNames view.
+
+    A circuit with zero elements of a collection still reports ``["NONE"]``
+    (len 1), so the ``index >= len(names)`` guards would pass and the
+    subsequent ``Name`` assignment raise ``DSSException #5003``. Verified
+    against dss-python on an empty circuit 2026-09-23; the first model to
+    actually call ``set_transformer_tap`` on a regulator-less feeder (ckt5)
+    aborted as an infrastructure failure before this filter.
+    """
+
+    return [str(name) for name in all_names if str(name) != "NONE"]
+
+
 def _semantic_digest(payload: Any) -> str:
     encoded = json.dumps(
         payload,
@@ -84,6 +99,44 @@ def _semantic_digest(payload: Any) -> str:
         default=str,
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _native_node_voltage_meter(
+    circuit: Any, *, source_node_ids: list[str], tick: int
+) -> dict[str, Any]:
+    """Read every native node, including zero/unknown voltages, without solving."""
+    node_ids = [str(value) for value in circuit.AllNodeNames]
+    voltages = [float(value) for value in circuit.AllBusVmagPu]
+    unique = len(node_ids) == len(set(node_ids))
+    aligned = len(node_ids) == len(voltages) == int(circuit.NumNodes)
+    nodes = [
+        {"node_id": node, "vm_pu": value if math.isfinite(value) else None}
+        for node, value in zip(node_ids, voltages)
+    ]
+    nonfinite = [row["node_id"] for row in nodes if row["vm_pu"] is None]
+    violations = [
+        row["node_id"] for row in nodes
+        if row["vm_pu"] is not None
+        and (row["vm_pu"] < VOLTAGE_LOWER_PU or row["vm_pu"] > VOLTAGE_UPPER_PU)
+    ]
+    source = {"node_ids": list(source_node_ids)}
+    converged = bool(circuit.Solution.Converged)
+    return {
+        "schema_version": "native_node_voltage.v1",
+        "tick": int(tick),
+        "source_population_sha256": _semantic_digest(source),
+        "converged": converged,
+        "native_node_count": int(circuit.NumNodes),
+        "nodes": nodes,
+        "native_voltage_violation_node_ids": violations,
+        "zero_voltage_node_ids": [row["node_id"] for row in nodes if row["vm_pu"] == 0],
+        "nonfinite_voltage_node_ids": nonfinite,
+        "measurement_complete": (
+            converged and unique and aligned and not nonfinite
+            and node_ids == source_node_ids
+        ),
+        "measurement_policy": "all_native_nodes_no_positive_voltage_filter",
+    }
 
 
 def _resolve_native_include_graph(
@@ -109,9 +162,7 @@ def _resolve_native_include_graph(
         if path in visited:
             continue
         if not path.is_file():
-            raise FileNotFoundError(
-                f"missing OpenDSS Compile/Redirect input: {path}"
-            )
+            raise FileNotFoundError(f"missing OpenDSS Compile/Redirect input: {path}")
         visited.add(path)
         text = path.read_text(encoding="utf-8", errors="replace")
         asset = {
@@ -181,9 +232,7 @@ def _source_hash_keys(path: str, digest: str) -> dict[str, str]:
     if actual.is_relative_to(REPO_ROOT):
         relative = str(actual.relative_to(REPO_ROOT))
         keys[relative] = digest
-        nested_prefix = (
-            "works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/"
-        )
+        nested_prefix = "works/OpenDSS-IEEE13/Version8/Distrib/IEEETestCases/"
         if relative.startswith(nested_prefix):
             suffix = relative.removeprefix(nested_prefix)
             if suffix.startswith("13Bus/"):
@@ -238,8 +287,7 @@ def _native_protocol21_trace(
         for object_kind, state_field in count_fields.items()
     }
     count_match = all(
-        counts["parsed"] == counts["native"]
-        for counts in parsed_native_counts.values()
+        counts["parsed"] == counts["native"] for counts in parsed_native_counts.values()
     )
     base_state_effect = bool(
         native_state["circuit_name"]
@@ -306,9 +354,7 @@ def _native_protocol21_trace(
             "voltage_max_pu",
         ]
     elif profile:
-        consumed_channels.extend(
-            ["loadshape_definition", "loadshape_multiplier"]
-        )
+        consumed_channels.extend(["loadshape_definition", "loadshape_multiplier"])
         derived_state_fields.extend(
             ["aggregate_demand_mw", "aggregate_reactive_demand_mvar"]
         )
@@ -317,46 +363,49 @@ def _native_protocol21_trace(
             "aggregate_reactive_demand_mvar",
             "bus_voltage_pu",
         ]
-    post_source_state_digests = list(
-        profile.get("post_source_state_digests") or []
-    )
+    post_source_state_digests = list(profile.get("post_source_state_digests") or [])
     if not post_source_state_digests and state_effect:
         post_source_state_digests = [initial_state_digest]
     consumption_ticks = list(profile.get("consumption_ticks") or [])
     if not consumption_ticks and state_effect:
         consumption_ticks = [0]
     runtime_source_events = list(profile.get("runtime_source_events") or [])
-    return canonicalize_repo_owned_paths({
-        "status": "passed" if state_effect else "held",
-        "proof_kind": "native_include_graph",
-        "runtime_opened_assets": assets,
-        "opened_source_paths": [asset["path"] for asset in assets],
-        "opened_source_sha256": opened_hashes,
-        "consumed_source_hashes": consumed_hashes,
-        "lineage_source_hashes": opened_hashes,
-        "consumed_window_sha256": parser_output_digest,
-        "recipe_version": "opendss_native_include_graph_v1",
-        "parser_output_digest": parser_output_digest,
-        "parsed_source_inventory": inventory,
-        "parsed_native_element_counts": parsed_native_counts,
-        "parsed_native_element_count_match": count_match,
-        "native_solver_state": native_state,
-        "consumed_channels": consumed_channels,
-        "derived_backend_state_fields": derived_state_fields,
-        "consumption_ticks": consumption_ticks if state_effect else [],
-        "initial_state_digest": initial_state_digest,
-        "post_source_state_digests": post_source_state_digests if state_effect else [],
-        "source_field_to_state_field_map": source_field_to_state_field_map,
-        "source_state_effect_observed": state_effect,
-        "state_effect_observed": state_effect,
-        "deterministic_source_trace": True,
-        "trace_semantic_digest": _semantic_digest(semantic_payload),
-        "runtime_trace_observed": state_effect,
-        "evidence_from_scenario_config_only": False,
-        "source_time_variation_claimed": bool(profile),
-        "runtime_source_events": runtime_source_events,
-        "blockers": [] if state_effect else ["initial_solver_state_unproven"],
-    }, repo_root=REPO_ROOT)
+    return canonicalize_repo_owned_paths(
+        {
+            "status": "passed" if state_effect else "held",
+            "proof_kind": "native_include_graph",
+            "runtime_opened_assets": assets,
+            "opened_source_paths": [asset["path"] for asset in assets],
+            "opened_source_sha256": opened_hashes,
+            "consumed_source_hashes": consumed_hashes,
+            "lineage_source_hashes": opened_hashes,
+            "consumed_window_sha256": parser_output_digest,
+            "recipe_version": "opendss_native_include_graph_v1",
+            "parser_output_digest": parser_output_digest,
+            "parsed_source_inventory": inventory,
+            "parsed_native_element_counts": parsed_native_counts,
+            "parsed_native_element_count_match": count_match,
+            "native_solver_state": native_state,
+            "consumed_channels": consumed_channels,
+            "derived_backend_state_fields": derived_state_fields,
+            "consumption_ticks": consumption_ticks if state_effect else [],
+            "initial_state_digest": initial_state_digest,
+            "post_source_state_digests": post_source_state_digests
+            if state_effect
+            else [],
+            "source_field_to_state_field_map": source_field_to_state_field_map,
+            "source_state_effect_observed": state_effect,
+            "state_effect_observed": state_effect,
+            "deterministic_source_trace": True,
+            "trace_semantic_digest": _semantic_digest(semantic_payload),
+            "runtime_trace_observed": state_effect,
+            "evidence_from_scenario_config_only": False,
+            "source_time_variation_claimed": bool(profile),
+            "runtime_source_events": runtime_source_events,
+            "blockers": [] if state_effect else ["initial_solver_state_unproven"],
+        },
+        repo_root=REPO_ROOT,
+    )
 
 
 def _resolve_master_file(source_root: Path, master_rel: str) -> Path:
@@ -536,7 +585,7 @@ class OpenDssIeee13ProbeBackend:
         circuit = self._require_circuit()
         cap_id = int(args.get("cap_id", -1))
         status = bool(args.get("status"))
-        names = [str(n) for n in circuit.Capacitors.AllNames]
+        names = _dss_collection_names(circuit.Capacitors.AllNames)
         if cap_id < 0 or cap_id >= len(names):
             return {
                 "_status": "error",
@@ -568,7 +617,7 @@ class OpenDssIeee13ProbeBackend:
         circuit = self._require_circuit()
         reg_id = int(args.get("trafo_id", -1))
         tap_pos = int(args.get("tap_pos", 0))
-        names = [str(n) for n in circuit.RegControls.AllNames]
+        names = _dss_collection_names(circuit.RegControls.AllNames)
         if reg_id < 0 or reg_id >= len(names):
             return {
                 "_status": "error",
@@ -705,6 +754,7 @@ class OpenDssIeee13Backend(OpenDssIeee13ProbeBackend):
                 self.source_root = Path(source_root)
                 self.master_file = _resolve_master_file(self.source_root, MASTER_FILE)
         summary = super().reset()
+        self._source_node_ids = [str(value) for value in self._require_circuit().AllNodeNames]
         self._capture_base_load_values()
         return summary
 
@@ -807,9 +857,7 @@ class OpenDssIeee13Backend(OpenDssIeee13ProbeBackend):
         return {
             "tick": int(tick),
             "backend_kind": self.backend_kind,
-            "aggregate_demand_mw": float(
-                snapshot.get("aggregate_demand_mw") or 0.0
-            ),
+            "aggregate_demand_mw": float(snapshot.get("aggregate_demand_mw") or 0.0),
             "aggregate_reactive_demand_mvar": float(
                 snapshot.get("aggregate_reactive_demand_mvar") or 0.0
             ),
@@ -833,6 +881,9 @@ class OpenDssIeee13Backend(OpenDssIeee13ProbeBackend):
             "voltage_max_pu": snapshot.get("voltage_max_pu"),
             "voltage_band_error": self._voltage_band_error(snapshot),
             "line_current_max_a": snapshot.get("line_current_max_a"),
+            "native_node_meter": _native_node_voltage_meter(
+                self._require_circuit(), source_node_ids=self._source_node_ids, tick=tick
+            ),
             "realized_events": realized_events,
         }
 
@@ -900,10 +951,7 @@ class OpenDssIeee13Backend(OpenDssIeee13ProbeBackend):
             trigger = int(event.get("trigger_tick", 0) or 0)
             duration = max(1, int(event.get("duration_ticks", 1) or 1))
             end_tick = trigger + duration
-            if (
-                index in self._active_load_surge_indices
-                and current_tick >= end_tick
-            ):
+            if index in self._active_load_surge_indices and current_tick >= end_tick:
                 self._set_all_loads_multiplier(1.0)
                 self._active_load_surge_indices.remove(index)
                 events.append(
@@ -928,9 +976,7 @@ class OpenDssIeee13Backend(OpenDssIeee13ProbeBackend):
                 continue
             before = self._native_load_state()
             target = dict(event.get("target") or {})
-            fraction = float(
-                target.get("load_fraction", event.get("intensity", 0.0))
-            )
+            fraction = float(target.get("load_fraction", event.get("intensity", 0.0)))
             if fraction <= 0.0:
                 continue
             self._set_all_loads_multiplier(1.0 + fraction)
@@ -950,9 +996,7 @@ class OpenDssIeee13Backend(OpenDssIeee13ProbeBackend):
                 {
                     "event_id": f"opendss-ieee13-load-surge:{index}:{trigger}",
                     "type": "load_surge",
-                    "event_class": OPENDSS_IEEE13_EVENT_CLASS_REGISTRY[
-                        "load_surge"
-                    ],
+                    "event_class": OPENDSS_IEEE13_EVENT_CLASS_REGISTRY["load_surge"],
                     "origin": "procedural_perturbation",
                     "declared_perturbation": True,
                     "hidden": bool(event.get("hidden")),

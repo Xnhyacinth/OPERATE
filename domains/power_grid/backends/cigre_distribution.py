@@ -41,6 +41,11 @@ from typing import Any
 
 import pandapower as pp  # type: ignore[import-untyped]
 
+from domains.pandapower_service import (
+    build_native_service_meter,
+    capture_source_population,
+)
+
 from core.source_asset_contract import (
     virtual_source_identity_sha256,
     virtual_source_reference_info,
@@ -275,6 +280,7 @@ class CigreTickRecord:
     converged: bool = True
     done: bool = False
     realized_events: list[dict[str, Any]] = field(default_factory=list)
+    native_service_meter: dict[str, Any] = field(default_factory=dict)
 
 
 class CigreDistributionBackend:
@@ -427,6 +433,7 @@ class CigreDistributionBackend:
                 )
             )
         self._net = _build_distribution_net(network)
+        self._native_source_population = capture_source_population(self._net)
         source_files = list(
             (self._seed_obj.provenance.files if self._seed_obj else ()) or ()
         )
@@ -998,6 +1005,11 @@ class CigreDistributionBackend:
         profile_load_p = self._profile_frame("load", "p_mw", profile_index)
         profile_load_q = self._profile_frame("load", "q_mvar", profile_index)
 
+        requested_mw = {}
+        source_scaling = {
+            row["index"]: row["scaling"]
+            for row in self._native_source_population["loads"]
+        }
         for idx, base in self._base_load_p_mw.items():
             # Pull this-tick shed quantity directly from the load entry.
             # v0.1.2 fix: `apply_tool_effect("shed_load")` wrote
@@ -1015,6 +1027,7 @@ class CigreDistributionBackend:
                 self._base_load_q_mvar.get(idx, 0.0) * diurnal,
             )
             new_p = max(0.0, source_p * surge_factor - shed_mw)
+            requested_mw[idx] = source_p * surge_factor * source_scaling[idx]
             self._net.load.at[idx, "p_mw"] = new_p
             # Q scales with P (constant power factor), and shed reduces
             # both P and Q proportionally.
@@ -1155,6 +1168,16 @@ class CigreDistributionBackend:
             converged=converged,
             done=current_tick >= self._horizon - 1,
             realized_events=realized_events,
+            native_service_meter=build_native_service_meter(
+                self._net,
+                source_population=self._native_source_population,
+                requested_mw=requested_mw,
+                tick=current_tick,
+                tick_hours=tick_h,
+                converged=converged,
+                voltage_lower_pu=self.VOLTAGE_LOWER_PU,
+                voltage_upper_pu=self.VOLTAGE_UPPER_PU,
+            ),
         )
         self._tick_records.append(record)
 
@@ -1632,6 +1655,7 @@ class CigreDistributionBackend:
                 "n_disconnected_lines": int(r.n_disconnected_lines),
                 "done": bool(r.done and r.tick < self._horizon - 1),
                 "converged": bool(r.converged),
+                "native_service_meter": json.loads(json.dumps(r.native_service_meter)),
             }
             for r in self._tick_records
         ]

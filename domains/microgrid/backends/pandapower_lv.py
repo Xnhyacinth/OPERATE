@@ -35,6 +35,11 @@ from typing import TYPE_CHECKING, Any
 
 import pandapower as pp  # type: ignore[import-untyped]
 
+from domains.pandapower_service import (
+    build_native_service_meter,
+    capture_source_population,
+)
+
 if TYPE_CHECKING:  # pragma: no cover
     from ..seeds.schema import MicrogridScenarioSeed
 
@@ -94,6 +99,7 @@ class _LvTickRecord:
     converged: bool = True
     done: bool = False
     realized_events: list[dict[str, Any]] = field(default_factory=list)
+    native_service_meter: dict[str, Any] = field(default_factory=dict)
 
 
 class PandapowerLvBackend:
@@ -168,6 +174,7 @@ class PandapowerLvBackend:
         self._runtime_source_events: list[dict[str, Any]] = []
         self._post_source_state_digests: list[dict[str, Any]] = []
         self._initial_source_state_digest = ""
+        self._native_source_population: dict[str, Any] = {}
 
     # ── Reset ────────────────────────────────────────────────────────────
 
@@ -235,6 +242,7 @@ class PandapowerLvBackend:
             self._bind_runtime_source_asset()
 
         self._net = pn.create_synthetic_voltage_control_lv_network()
+        self._native_source_population = capture_source_population(self._net)
         self._base_load_p_mw = {
             int(i): float(self._net.load.p_mw.iloc[i])
             for i in range(len(self._net.load))
@@ -558,10 +566,16 @@ class PandapowerLvBackend:
                 math.sin(math.pi * current_tick / max(1, self._horizon - 1)),
             )
 
+        requested_mw = {}
+        source_scaling = {
+            row["index"]: row["scaling"]
+            for row in self._native_source_population["loads"]
+        }
         for idx, base in self._base_load_p_mw.items():
             lid = self._idx_to_load_id.get(idx, "")
             shed = float(self._loads.get(lid, {}).get("shed_this_tick_mw", 0.0))
             available = base * diurnal * self._active_load_multiplier
+            requested_mw[idx] = available * source_scaling[idx]
             realized_shed = min(shed, available)
             new_p = available - realized_shed
             if lid:
@@ -731,6 +745,16 @@ class PandapowerLvBackend:
                 *list(self._realized_events_this_tick),
                 source_event,
             ],
+            native_service_meter=build_native_service_meter(
+                self._net,
+                source_population=self._native_source_population,
+                requested_mw=requested_mw,
+                tick=current_tick,
+                tick_hours=tick_h,
+                converged=converged,
+                voltage_lower_pu=self.VOLTAGE_LOWER_PU,
+                voltage_upper_pu=self.VOLTAGE_UPPER_PU,
+            ),
         )
         self._tick_records.append(record)
         self._source_consumption_ticks.append(current_tick)
@@ -1140,6 +1164,7 @@ class PandapowerLvBackend:
                 "grid_exchange_mw": r.grid_exchange_mw,
                 "network_loss_mw": r.network_loss_mw,
                 "converged": bool(r.converged),
+                "native_service_meter": json.loads(json.dumps(r.native_service_meter)),
                 "catastrophic_failure": bool(
                     not r.converged
                     or (r.aggregate_demand_mw <= 1e-9 and r.unserved_energy_mwh > 1e-9)

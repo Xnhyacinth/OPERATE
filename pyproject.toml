@@ -88,6 +88,9 @@ dev = [
 hf = [
   "huggingface_hub>=0.24",
 ]
+analysis = [
+    "matplotlib>=3.9,<4",
+]
 
 [project.urls]
 Homepage = "https://github.com/Xnhyacinth/OPERATE"

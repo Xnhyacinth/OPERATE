@@ -2217,6 +2217,7 @@ def test_suite_clock_policy_is_derived_per_horizon(tmp_path: Path) -> None:
 def test_dry_run_preflights_without_key_output_provider_or_quota_claim(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     release_dir = tmp_path / "release" / "operate"
     release_dir.mkdir(parents=True)
@@ -2314,6 +2315,9 @@ def test_dry_run_preflights_without_key_output_provider_or_quota_claim(
         )
         == 0
     )
+    preview = json.loads(capsys.readouterr().out)
+    assert preview["model_shard"]["model"] == "z-ai/glm-5.2:free"
+    assert preview["model_shard"]["model_max_output_tokens"] == 230400
     assert clean_tree_checks == []
     assert not output_root.exists()
     assert batch.main([
@@ -2480,7 +2484,7 @@ def test_formal_episode_row_uses_relative_subprocess_log_path(
         job,
         config,
         SimpleNamespace(
-            api_key_env="API_KEY",
+            api_key_env="T_KEY",
             base_url="https://copilot.tencent.com/v2",
             responses_base_url=None,
         ),
@@ -2749,7 +2753,7 @@ def test_native_thinking_controls_bind_namespace_runner_and_resume(tmp_path):
     out_dir, config = batch.initialize_run_directory(tmp_path, identity)
     job = _job(config["batch_treatment_sha256"])
     job["trajectory_dir"] = str(out_dir / "episode")
-    command = batch._command_for_job(job, config, SimpleNamespace(api_key_env="API_KEY", base_url=None, responses_base_url=None))
+    command = batch._command_for_job(job, config, SimpleNamespace(api_key_env="T_KEY", base_url=None, responses_base_url=None))
     assert command[command.index("--reasoning-effort-format") + 1] == "native"
     assert command[command.index("--thinking-type") + 1] == "enabled"
     changed = _identity(reasoning_effort_format="openrouter", thinking_type="enabled")

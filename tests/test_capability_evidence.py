@@ -80,6 +80,41 @@ def test_changed_replay_summary_is_rejected(tmp_path):
     assert bind_capability_evidence(episode, spec)["reason"] == "counterfactual_snapshot_mismatch"
 
 
+def test_optional_counterfactual_does_not_block_bound_native_cost(tmp_path):
+    episode, spec = fixture(tmp_path)
+    for replay in (None, {"actual_cost": 13}):
+        episode["counterfactual"] = replay
+        bound = bind_capability_evidence(episode, spec, require_counterfactual=False)
+        assert bound["verified"] and bound["native_cost_bound"]
+        assert bound["counterfactual_bound"] is False
+        assert bound["counterfactual_reason"] == "counterfactual_snapshot_mismatch"
+        assert bind_capability_evidence(episode, spec)["verified"] is False
+
+
+def test_optional_counterfactual_keeps_native_and_later_identity_checks(tmp_path):
+    episode, spec = fixture(tmp_path)
+    episode["counterfactual"] = None
+    episode["ground_truth_summary"]["cost_components"]["cost"] = 13
+    assert (
+        bind_capability_evidence(episode, spec, require_counterfactual=False)["reason"]
+        == "native_cost_snapshot_mismatch"
+    )
+    episode["ground_truth_summary"]["cost_components"]["cost"] = 12
+    (tmp_path / "sample.header.json").write_text(
+        json.dumps(
+            {
+                "scenario_signature": "wrong",
+                "seed": 42,
+                "total_ticks": 1,
+            }
+        )
+    )
+    assert (
+        bind_capability_evidence(episode, spec, require_counterfactual=False)["reason"]
+        == "trajectory_header_identity_mismatch"
+    )
+
+
 def test_detached_header_identity_is_rejected(tmp_path):
     episode, spec = fixture(tmp_path)
     (tmp_path / "sample.header.json").write_text(json.dumps({

@@ -8,17 +8,65 @@ The separate [offline evaluation 0.22](EVALUATION_022.md) reports
 `evaluation_version=0.22.0`, native task quality and evidence-linked capability
 diagnostics while preserving each source episode's scoring and execution identity.
 
-For newly requested offline comparisons, use
-[0.23.1 fixed expert-target attainment](EVALUATION_023_TARGETS.md): frozen native
-targets, task-local constraints, and source/backend/domain macro attainment.
-It requires no weakest-policy anchor. Native cost gaps and limited-scope A/L
-profiles remain separate. Historical 0.22 and 0.23.0 scores are preserved;
-their calculations below are not the new headline. Known framework defects
-must remain visible when interpreting historical trajectories.
+For the default Lite141 main table, use
+[0.28 direct trajectory evaluation](EVALUATION_028.md):
+`scripts/evaluate_trajectories.py` reads original journals/configurations and
+hash-bound native/provider evidence without a prior score report, model call or
+native episode replay. Source-only compilation authenticates S and fixed weights;
+frozen native populations and separate recovery evidence authenticate F.
+DSS quality separately normalizes node-count loss by source node-time exposure
+and global extrema loss by source time exposure; original C remains unchanged.
+All 141 cases retain their weights; incomplete models have bounds and no point rank.
+Explicit cross-framework compatibility assumptions retain original execution
+identities and do not certify a same-run or current-framework evaluation.
 
-The 769-row, 502-physical-source Core is data/code ready for formal shards.
-Provider runs are still pending, so this readiness does not make the release
-public or leaderboard eligible.
+For the frozen retrospective reporting protocol, use the
+[0.29.1 operational scorecard protocol](EVALUATION_029.md), via
+`scripts/evaluate_operational_scorecard.py`, retains that outcome index and adds
+native cost/fulfillment tradeoffs, fixed-weight domain summaries, source-deletion
+sensitivity, explicit ranking cohorts and measurement-order bounds. Optional
+source-contracted capability diagnostics remain separate. Existing trajectories
+without the new capability evidence remain N/A; no six-axis ability ranking is
+inferred from Q or from conditional successful-action support. Missing optional
+capability contracts do not block the fixed-panel outcome ranking.
+
+The opt-in [0.30 task outcome revision](EVALUATION_030.md), via
+`scripts/evaluate_task_outcomes.py`, corrects LV/CIGRE voltage population
+normalization and driving recovery attainment while preserving historical
+0.28/0.29 outputs and their original evidence. It exports new/old score changes
+and the same fixed-weight diagnostics. Historical driving trajectories retain
+the old token-clock feedback defect; new scoring does not certify corrected
+historical interaction or a formal current-runtime run.
+
+The historical task-based offline scorer is
+[0.25 native-outcome quality](EVALUATION_025.md), revision
+`source_grounded_native_outcome.v3`. It scores already authenticated trajectories
+from settled native losses and source-derived scales, with fixed weights across
+domains, task families, physical sources and cases. It requires no acceptance
+target or reference replay and is an outcome-quality Index, not a completion
+percentage. Signed negative cost is retained in raw evidence but capped at 100
+in the Index. Strict acceptance (`frozen_operational_acceptance.v4`) remains a
+separate optional protocol: the source audit certifies **0/141** complete
+quality targets, so no full Lite141 task-attainment ranking is available.
+[0.26.1 source-obligation outcomes](EVALUATION_026.md) cap native quality by
+measured source service or terminal recovery for 131 Lite cases and retain native economic quality for
+10 CityLearn cases
+without a separate controllable completion meter. Its full Index is a declared
+task-outcome mixture, not a pure task completion percentage; the separate
+completion-only and 0.25 quality columns must accompany it.
+The [0.26.1 main-table protocol and release boundary](EVALUATION_026_MAIN_TABLE.md)
+records the historical Lite141 offline main-table release denominator, bound by
+`benchmark/lite_main_scoring_0261.json`. Core Full is an optional,
+separately scored extension. The Lite panel was selected using development-model
+outcomes; its rankings are fixed-panel retrospective comparisons, not an
+unbiased held-out estimate.
+Historical `atan` utility and hierarchical weighting remain diagnostics;
+[0.24 paired comparisons](EVALUATION_024.md) remain auxiliary.
+The offline path executes no model, simulator, solver or new reference policy.
+
+The optional 769-row, 502-physical-source Core is data/code ready for its
+separate formal shards; those provider runs remain pending. The Lite141 offline
+main-table scoring gate has passed, but public distribution has not occurred.
 
 ## Formal treatments
 
@@ -37,7 +85,7 @@ harness and formal treatment-family hash match.
 
 ## Native operational-quality Index (`native_quality.v1`)
 
-The new post-episode scoring entry point is
+The historical 0.22 post-episode scoring entry point is
 `scripts/evaluate_native_quality.py`. It measures the actual native task outcome
 under evidenced hard constraints, not the number of plans or tool calls. The
 reference protocol executes the fixed `wait_only`, `greedy_heuristic`,

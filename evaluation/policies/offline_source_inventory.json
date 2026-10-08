@@ -1,0 +1,1482 @@
+{
+  "schema_version": "operate-public-offline-source-inventory-v1",
+  "copied_inputs": [
+    {
+      "path": "benchmark/lite_main_scoring_0261.json",
+      "sha256": "54e92c4bb84c40dfc0f08eaa68e380e2373f87ae6dcf9274b0373e7b7b9df46c",
+      "byte_count": 1070
+    },
+    {
+      "path": "release/operate_v0_62_0/lite_main_scoring_0261.json",
+      "sha256": "54e92c4bb84c40dfc0f08eaa68e380e2373f87ae6dcf9274b0373e7b7b9df46c",
+      "byte_count": 1070
+    },
+    {
+      "path": "release/operate_v0_62_0/lite_suite.json",
+      "sha256": "0a42ff0520a48e531a2381fcb5c4ba53162663a99cb97ed7fe6f2ad73601d81b",
+      "byte_count": 967628
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/candidate_imports/citylearn_challenge_2022_phase_all_w0_71.yaml",
+      "sha256": "05c5532d02251c209a404e04a638545b41cef638c1e7ebfe5537a3092422c909",
+      "byte_count": 17762
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7392_7463.yaml",
+      "sha256": "ec83a63b6acca3dd0697b9aa48d82193db6469b356705550739c8e01513246d9",
+      "byte_count": 12957
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_1_w7560_7631.yaml",
+      "sha256": "4643ba5ba69a0f67b901b869ffb4f93fb09887fe114f801f8af2e12071956869",
+      "byte_count": 12960
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_2_w4416_4487.yaml",
+      "sha256": "1b24e977bcfbc2379536c27e0bc583a99b58f35539418e39c33d1e5ee52ec006",
+      "byte_count": 12963
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w144_215.yaml",
+      "sha256": "3e05e6715eb218bff1a73c76ed186a0bd3a9610961b21e48dc236d5b87406c01",
+      "byte_count": 13582
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w4392_4463.yaml",
+      "sha256": "635c03b71501d5be217602c4202d62ad8fdca266c5fa5660ffdd07d1364679a2",
+      "byte_count": 13623
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w4584_4655.yaml",
+      "sha256": "b916679c3832750bfb8297959ea768d6febb599e1409ff22b276f780ea97a88a",
+      "byte_count": 13573
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w5376_5447.yaml",
+      "sha256": "c4cb71d401f488c15d2ef9f903068e3ff0e4c97338b16cbe3ecf201d91f9c0a4",
+      "byte_count": 13598
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/building_energy/citylearn_der_storage_control/source_locked_long_horizon/extreme/citylearn_challenge_2022_phase_3_w5448_5519.yaml",
+      "sha256": "db21e3adc59b7ef37fd8bf932659715044cfa7347da5a6a78f397f7e26bdb5a7",
+      "byte_count": 13583
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/microgrid/microgrid_lv_voltage_recovery_10h/time_pressure/extreme/microgrid_lv_portland_or_extreme_p1543_s62.yaml",
+      "sha256": "5bb717d1b7bcb22d430058dad301f1c130685bc5a88e2afccda1fc87e02d8319",
+      "byte_count": 8290
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_albuquerque_nm_high_p1590_v58_s8700.yaml",
+      "sha256": "3e20b07e86c3674eee1a4a517524c077d168d9da41ed9da0769fa27644281038",
+      "byte_count": 8147
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_las_vegas_nv_high_p1281_s61.yaml",
+      "sha256": "dd41b80f6c9afc8dedfad8bf699e2caaa9317c92784f63a01124f486e5611ac3",
+      "byte_count": 7996
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_miami_fl_high_p5217_s57.yaml",
+      "sha256": "75e0bc5e8ba8e082b2ff690abf18a36fa77710c47e83a1301ae56040f18da6f9",
+      "byte_count": 7548
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/microgrid/microgrid_lv_voltage_staged_6h/time_pressure/high/microgrid_lv_seattle_wa_high_p4877_v58_s8728.yaml",
+      "sha256": "30bd6a3b5aa2adb3cc6b1b52075f71ddbdf4fdc8bc22bd37c6f8a62dec483362",
+      "byte_count": 8239
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p18912_r0p6_h48.yaml",
+      "sha256": "6f8ade8da42615a94ffd9c86435633234d3c9628112c60937d707eebf40cdcb5",
+      "byte_count": 16365
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/power_grid/simbench_mv_rural_timeseries_control/deep_planning/high/grounded_1_MV_rural_0_sw_high_p19008_r0p6_h48.yaml",
+      "sha256": "945cb710b3528f429189025e4c9cc441e19aa358f6d3171f1934d61dcd1d410c",
+      "byte_count": 16376
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/power_grid/simbench_mv_semiurban_timeseries_control/deep_planning/high/grounded_1_MV_semiurb_0_sw_high_p14304_r0p6_h48.yaml",
+      "sha256": "c2bce57291a47e081f84cd32c71f47db3ee29557f16afb23b2d78fd4b5d42136",
+      "byte_count": 18322
+    },
+    {
+      "path": "scenarios/operate_v0_58_0/power_grid/simbench_mv_semiurban_timeseries_control/deep_planning/high/grounded_1_MV_semiurb_0_sw_high_p19680_r0p6_h48.yaml",
+      "sha256": "e9275e1b789de16686874ea97d8421077f938d6975620146ae19ebbd247c9165",
+      "byte_count": 18345
+    },
+    {
+      "path": "scenarios/operate_v0_59_0/power_grid/candidate_imports/pglib_uc_rts_gmlc_2020_05_05_long_extreme_s42.yaml",
+      "sha256": "70bfba40fcdff66357da4e03dc060a1f507e02de17ff8ff520f6f1f3c8185333",
+      "byte_count": 5221
+    },
+    {
+      "path": "scenarios/operate_v0_59_0/power_grid/opendss_fresh_feeders_solar_ramp/deep_planning/basic/opendss_ieee123_solar_ramp_s42.yaml",
+      "sha256": "da336c6fdc38db69f0af991e01ae6a43845789fd2de73ca7d99a0c7aeccd31c2",
+      "byte_count": 7413
+    },
+    {
+      "path": "scenarios/operate_v0_59_0/power_grid/opendss_ieee13_volt_var/deep_planning/basic/opendss_ieee13_regulator_tap_dynamic_s42.yaml",
+      "sha256": "dcfd9a031f846ca4e55f7074405c207d030d29cb88799da37705b09811c83745",
+      "byte_count": 5727
+    },
+    {
+      "path": "scenarios/operate_v0_59_0/power_grid/opendss_infrastructure_feeder_control/deep_planning/high/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt24_master_ckt24_dss.yaml",
+      "sha256": "8233737f1c86499e9d1bb0faf8dee63c6d1da26fa47461991a0b890f93b2aeaa",
+      "byte_count": 19428
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/autonomous_driving/candidate_imports/ngsim_1118846999200_extreme_s42.yaml",
+      "sha256": "ce6997120b97ff7d5954a1a7052cab9f57cc094bf4c8a4393df9e80cd74e0422",
+      "byte_count": 12481
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/autonomous_driving/candidate_imports/ngsim_1118847070800_extreme_s42.yaml",
+      "sha256": "4fbc354b98821bd40aab4fa5750e81a89c89b6d76f7f52c1a9910aa669b2c1f9",
+      "byte_count": 12436
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/autonomous_driving/candidate_imports/ngsim_1118847187100_extreme_s42.yaml",
+      "sha256": "2734de637e037d82866c1b7accf8702540ae659fe2cb2906bea932ada799c172",
+      "byte_count": 12435
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/autonomous_driving/candidate_imports/ngsim_1118847260700_extreme_s42.yaml",
+      "sha256": "0b350da3e3360793384b676b48c5a673d13d493379a3aa033022b90b0e40b851",
+      "byte_count": 12437
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/autonomous_driving/candidate_imports/ngsim_1118847482500_extreme_s42.yaml",
+      "sha256": "160ec31c9bd913e1b6e38f2f4d956f2b682b5acffe6ee13d3abad3bf127bdd5a",
+      "byte_count": 12487
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/autonomous_driving/candidate_imports/ngsim_1118847616700_extreme_s42.yaml",
+      "sha256": "2ab9972f34c2e4e17175a400140b33aaf38ac65439c3135d7c5658c8cd491830",
+      "byte_count": 12488
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/autonomous_driving/candidate_imports/ngsim_1118847677100_extreme_s42.yaml",
+      "sha256": "981f301ed190f18bd17419c517af0be86f8757b9f140770eaa48926588b71558",
+      "byte_count": 12488
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/building_energy/candidate_imports/tx_travis_county_neighborhood.yaml",
+      "sha256": "94438fc56c5baff9303ccb3c818946895b079fd1150742a6b7e33bdaa0faaccf",
+      "byte_count": 67181
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/power_grid/candidate_imports/infrastructure_opendss_distribution_version8_distrib_epritestcircuits_ckt5_master_ckt5_dss.yaml",
+      "sha256": "979d849ca78f970061d7c54a3213dda2760579029a7fc190281ca72097bbe4c5",
+      "byte_count": 9367
+    },
+    {
+      "path": "scenarios/operate_v0_60_0/power_grid/candidate_imports/pglib_uc_ca_2014_09_01_reserves_0_long_extreme_s42.yaml",
+      "sha256": "58f7f98b6cb8eb54aa1c8aa5f230067e21f6a01ff9305ec8025a62d4fedd9b6b",
+      "byte_count": 4873
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/candidate_imports/datacenter_alibaba_spot_gpu_candidate_deep_planning_high_a10_w96933_e7218475fc23.yaml",
+      "sha256": "1ddfc5d54bca6b832f99b596dda5c8a2022ea3e935d38a557e58de4860678e8e",
+      "byte_count": 5522
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/candidate_imports/datacenter_alibaba_spot_gpu_candidate_deep_planning_high_h800_w398260_9f627a0ef742.yaml",
+      "sha256": "3748734305ac7c89f30c98b7e27503673ba7c5f7ce7b78b635f8017d838df371",
+      "byte_count": 5548
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high.yaml",
+      "sha256": "e7d2dcc0dc06f7447a165172acbe618258eac45631cab6257de1936fed64077e",
+      "byte_count": 11606
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_5356_6453_6464_high.yaml",
+      "sha256": "82ca6378894a83bf72e6f50883b838eb9e9773c875acd0924bc72c76706f14ed",
+      "byte_count": 9564
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w006_37cd43512549_fd47dd9d194d_basic.yaml",
+      "sha256": "1869c9712a9d047297add2a16628a0cb1179c940fbe97f40384c5acd48ee99d6",
+      "byte_count": 7310
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w598_4291_4297_basic.yaml",
+      "sha256": "1fe5417104333979dc165e0d32857bca4f40d95821d00de89de6b7c4aa3d5ea6",
+      "byte_count": 6333
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w912_6589_6595_basic.yaml",
+      "sha256": "15ea83faf316280bb019f3948c7ef300f4c84276550af88a505f7bab22335a33",
+      "byte_count": 6322
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w924_6674_6679_basic.yaml",
+      "sha256": "d6f4fc596e66c6aa2d62bc2a8bf83e0ee4db32827c18940029634dff79e55fb6",
+      "byte_count": 6313
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/alibaba_gpu_w944_6838_6853_basic.yaml",
+      "sha256": "76b7716424c8bbcb6cb11748246e91eee3a5a92cff4c2a73833e9f65588e5aa9",
+      "byte_count": 6311
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w000_70e4f598c8cd_c6931dc69176_medium__42e7e544__relabel_v1.yaml",
+      "sha256": "0f99f0387483477d37a6780888aee69b175628170f4ba799b22a9d0dc0c1d30e",
+      "byte_count": 7857
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w006_fa2b91afd167_3bfde5977acc_medium__d23e455d__relabel_v1.yaml",
+      "sha256": "cff8c978ad27952050eb395ef33c244f909eb54f55ca03fd69e14525e9a96085",
+      "byte_count": 7845
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w016_397d415bda78_79c50c9fc538_medium__05635a5b__relabel_v1.yaml",
+      "sha256": "d47e26641ef829c58e6305f84d11347218a4aa3a726f436ceb879323ea5314e5",
+      "byte_count": 11143
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w026_5b35c1c5bb06_73784323c4f7_medium__464a6562__relabel_v1.yaml",
+      "sha256": "cef1c842a7d558c62d58c50fd250af66ba4c209501be93e03c1ab64ed027f978",
+      "byte_count": 10051
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/basic/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w250_1676_1681_medium__d38e8ff9__relabel_v1.yaml",
+      "sha256": "d35152c75fc4fecd6fa02a466c7fed03985046f1a9d0905618c6139c4fac4cef",
+      "byte_count": 7275
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w904_6531_6537_medium__6715e80d__relabel_v1__b38f3183__relabel_v1.yaml",
+      "sha256": "d544b359ee3d38a6ff5729816978379a583a8aa250b78cf969d6be0c654b7bd3",
+      "byte_count": 7413
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_queue_control/time_pressure/medium/datacenter__gpu_cluster_queue_control__time_pressure__medium__alibaba_gpu_w910_6576_6581_medium__33266f2a__relabel_v1__5b08c6e3__relabel_v1.yaml",
+      "sha256": "c01cf44d187b3d48edc769c8e1be0749665f3663779b6a554b4f6c4722607719",
+      "byte_count": 7409
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/deep_planning/medium/datacenter__gpu_cluster_sla_control__deep_planning__extreme__alibaba_gpu_w007_48e63be965f9_a25c527aaecf_extreme__40a0c16c__relabel_v1.yaml",
+      "sha256": "2671b09b96394bcf2967a0a18358038caca0f251fc6ce0c2ad491b735006f583",
+      "byte_count": 10639
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/deep_planning/medium/datacenter__gpu_cluster_sla_control__deep_planning__high__alibaba_gpu_w005_de70b9377895_9c11e12760e8_high__3a164836__relabel_v1.yaml",
+      "sha256": "fffbe3c69f4a74d419c32a37bc8b424a3dbc0d0c69ff95ed8e8f9cc360555960",
+      "byte_count": 11493
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w867_6292_6297_basic.yaml",
+      "sha256": "7e121c895a7feff52a73c70ebd320994bb36617b689ad622081212eda27f521e",
+      "byte_count": 6314
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w937_6769_6774_basic.yaml",
+      "sha256": "58bb5ad3994a53afff5a1616b9cfc9c07318dbb2cd7d163e035f6f2ec16501a2",
+      "byte_count": 6302
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w967_7013_7018_basic.yaml",
+      "sha256": "53edbf72e529699ef9a2bab6bbc16797bd84ed053322906a9f00df689c7fd330",
+      "byte_count": 6306
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w969_7025_7030_basic.yaml",
+      "sha256": "06699c3c0d3b796429ff58f49ebec999f311d4be594f97e1d64f8b080184c120",
+      "byte_count": 6312
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/alibaba_gpu_w981_7118_7125_basic.yaml",
+      "sha256": "1219bffedfaf7f885cdba9e1ee743e606e4554e39c050eda110a21e49c52da33",
+      "byte_count": 6320
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w019_e74550216000_0577ada090cf_medium__aa837427__relabel_v1.yaml",
+      "sha256": "6b5a09c50489795aa730734ec8fa890e1508ed9cd47e1f27d81ff3b67e1da626",
+      "byte_count": 8940
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w021_a9336363c465_67726022669a_medium__71530e92__relabel_v1.yaml",
+      "sha256": "4c3e3c6475a5efa6a7dfd3e21907f76ce28366ac519d57fe6237451f7013153a",
+      "byte_count": 8945
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w023_81ef74aca261_8bad7084bd02_medium__f3e3b5f3__relabel_v1.yaml",
+      "sha256": "977b71fded0f809f7414836ecd4ad116cfb2c285462d3f8f72d483f6945cdd3a",
+      "byte_count": 8942
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w031_8df967e6d23e_dc053521baae_medium__46bc229d__relabel_v1.yaml",
+      "sha256": "bae2366cf982ac49c37da50421e60caf4c31998a8895e940e6a6b6577ab21d5e",
+      "byte_count": 7857
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w103_39505c01a93b_9dedbc66aac4_medium__ef5af81b__relabel_v1.yaml",
+      "sha256": "727ef854071fc1099c5a046f48bd3c33296e891968252494c8cacf44af460b33",
+      "byte_count": 8902
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/basic/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w129_873_878_medium__29324b7d__relabel_v1.yaml",
+      "sha256": "ab3bad69e3cce7a9c609fc16f726eac1ede9e8db44780386b0969b96eb7d2613",
+      "byte_count": 7242
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w335_2282_2289_medium__683ff430__relabel_v1__a5aa235d__relabel_v1.yaml",
+      "sha256": "605a5ce9a788c6a16815d1cb60e89deb2fb785e82491dd31cc50f8849d66dbda",
+      "byte_count": 7399
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w561_4012_4017_medium__7d116ae3__relabel_v1__fe1b16a4__relabel_v1.yaml",
+      "sha256": "dc537a543203717a30914c2212f1c94b5040520a915e7b8c6a1919ea24984645",
+      "byte_count": 7397
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_sla_control/time_pressure/medium/datacenter__gpu_cluster_sla_control__time_pressure__medium__alibaba_gpu_w703_5049_5058_medium__8542f98f__relabel_v1__baa3d71e__relabel_v1.yaml",
+      "sha256": "1affa5fa7c4af8a5a330d363416b3e807e8cedcc24d0e0b2f15c02691fad75ab",
+      "byte_count": 7409
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/datacenter/gpu_cluster_spot_sla_control/deep_planning/high/alibaba_spot_gpu_a100_w448554_high.yaml",
+      "sha256": "54ab8bda87a8cc25c7ecaf91023ad272227f66f1f9cb702979fdf2fa22544164",
+      "byte_count": 6637
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/dynasched_DynaSched-Grid_hetero_static_small_rho60_varh_baseline__mode_moo.yaml",
+      "sha256": "389f857901ce6572a3396b7e5789dc2165b65c7629b125ea21b471f22fc52657",
+      "byte_count": 8946
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/dynasched_DynaSched-Sweep_exp14_v2_queue_static_small__moo__rho0p80__ddt2p00__scva1p50__scvp0p50__distBase__lcvBase.yaml",
+      "sha256": "821fb2fd1ee95f273635136e1287af0f31acfc6d8e552b1b877b6aa8416e5490",
+      "byte_count": 9745
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/m5_orgym_HOUSEHOLD_2_476_TX_1_evaluation_d1882_d1941.yaml",
+      "sha256": "bc499ae93337f0f09f0d8084ca6d3853cfc9f2817735dc30c2ed357776e23783",
+      "byte_count": 8830
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_B-n31-k5.yaml",
+      "sha256": "8d2e243a548063dcd30747980be7ac23dd35174827f0bda5de40c8a4f7004433",
+      "byte_count": 8677
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_Bre-1.yaml",
+      "sha256": "122013bb7f2f43ee6c6a488e346b0fd884343b07bd50a33709d5429c606783e6",
+      "byte_count": 8910
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_CMT6.yaml",
+      "sha256": "7438b474455050e8b183b2c524a62cfe5806bd5464e579df8badf5a4c2ddc184",
+      "byte_count": 8823
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n106-k14.yaml",
+      "sha256": "25433a89d41f0ac4f7b34836251d10de5305aa03f393831e9de4fd5d1af12812",
+      "byte_count": 9030
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n129-k18.yaml",
+      "sha256": "8aac371a3ab50c9ce94e339b841b58059413e9cfb7f55b937c2d8dc708410377",
+      "byte_count": 8971
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n139-k10.yaml",
+      "sha256": "ff2c97550be1ae37d2205f169698551b58b3cdbda27298959826a2e464619bd0",
+      "byte_count": 8981
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n162-k11.yaml",
+      "sha256": "8eb72b7b8b0410ffc95138e271ee1967c3ed2eacb180f150c52b04baeeab627a",
+      "byte_count": 8842
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n186-k15.yaml",
+      "sha256": "8dcbddf9d524406b7d1e619f646b71d69521571b2a0e86187a2db4a3cd058aa7",
+      "byte_count": 9028
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n204-k19.yaml",
+      "sha256": "331bb09ed0b6835f464e9fef907912d039fc0a2d99789d341487df51bf0c14a4",
+      "byte_count": 8843
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n214-k11.yaml",
+      "sha256": "cfa79da30d86577de1d329a9108ff50e174e9cdc53b9868676d49b72e08989f7",
+      "byte_count": 8853
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n223-k34.yaml",
+      "sha256": "b3f9096d28cc270f3332693b2594534653ab5b980c1ec8f0d7c8c0f6fa9560c5",
+      "byte_count": 8812
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n313-k71.yaml",
+      "sha256": "544527967297c9ec347d36dfdf725132fe71eab8aeed22e0851abdb23962adfa",
+      "byte_count": 8844
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_X-n895-k37.yaml",
+      "sha256": "54afef9381bc254326cdf4e2cb6d2124b27dd924fc338c8b50a6b4f4277b841f",
+      "byte_count": 8855
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_XXL_Brussels2.yaml",
+      "sha256": "e5dac00330232bc30f45090fe7d154abb47a0048e57bbc2a3f938767924df65b",
+      "byte_count": 9041
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_cvrp_XXL_Ghent1.yaml",
+      "sha256": "0a1a86b7ea9c3f721930264f7e507245ae5a2cec21cc5ab835b4c88aa24807c6",
+      "byte_count": 8830
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_C1_10_1.yaml",
+      "sha256": "86f2b038328273321b9b5f09dfb38d08862150a27318faffa4fa192215893563",
+      "byte_count": 8886
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_C1_10_2.yaml",
+      "sha256": "47e258407f6330f9b0f380d2b5e97bbe037427727a74c5d13bae443f488a4701",
+      "byte_count": 8885
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_C1_10_3.yaml",
+      "sha256": "a3d87dd86105fa00db6e725b0e4adfde7678a72a749e025e86d6ff1cb4c51200",
+      "byte_count": 8880
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_C1_10_5.yaml",
+      "sha256": "de6d171c972232baa7e8ccee7b307c45e33cc9bcb36ef4f4c5e6d442598f407b",
+      "byte_count": 8715
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_C1_10_9.yaml",
+      "sha256": "b0e336a9fc74645bf4baf58b104e9ad7977bba2dec903711d03263f478c8c561",
+      "byte_count": 8715
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_C2_10_1.yaml",
+      "sha256": "80ed4b9f80f91a69cdca99a97b989010ed2976a4453656ee4610503af9219032",
+      "byte_count": 8912
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_C2_10_7.yaml",
+      "sha256": "6ccd7c240bf8f8422528bbdefc49fcd12cdcd095afd2c2d596ff6bf9afd16556",
+      "byte_count": 8896
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_GH200_C1_2_4.yaml",
+      "sha256": "d286b8c6c5939addfb64407c91561c420e3c29253c4c1b0890ba96166ec290e3",
+      "byte_count": 8697
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_GH200_R2_2_1.yaml",
+      "sha256": "dd8426913e230f9a239186d863cfd7b6948433212e17ee54f51f62135fef396e",
+      "byte_count": 8909
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_GH200_R2_2_6.yaml",
+      "sha256": "30891ea39ca7c34eeff694051a3881d0b7de6f4578bedcc9f3c276ffe77a3785",
+      "byte_count": 8728
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_GH200_RC2_2_9.yaml",
+      "sha256": "8ca7d79fcd322c66e70eafe638c1ff0b62ba4860898561a25053d6e442772757",
+      "byte_count": 8726
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_R2_10_7.yaml",
+      "sha256": "8eff261a33c61e9b4319f71efbb85ba3c36060876230420bb8002a936ffb7143",
+      "byte_count": 8695
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_R2_10_9.yaml",
+      "sha256": "5bcf0cc9817454e028a2383bacf9fc97ae11945dbb9de4e116dcc31568f38d51",
+      "byte_count": 8911
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_RC1_10_10.yaml",
+      "sha256": "4d3f43bf4ae2a38c1f8cf864d0fac8aa0a2db69a50723a3b9db575bc9495c420",
+      "byte_count": 8900
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_RC1_10_5.yaml",
+      "sha256": "6cf8a8283daf45084d29452e31930c7fa24347e6e093183b0cef5f8018dfa8e7",
+      "byte_count": 8882
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_RC2_10_9.yaml",
+      "sha256": "0794bcf54f5df62ab23df1b286561933904fd0ba0b3f0d1ce613a94f41dbdd4c",
+      "byte_count": 8904
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_Solomon_C103.yaml",
+      "sha256": "0963c2b9cbb4522edd38934cd79a2d368f517733c04b9443ee5d10bae0abe7ad",
+      "byte_count": 8878
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_Solomon_C201.yaml",
+      "sha256": "a9f8f94ba05214bf4dcfea8b95044d3a26d865a910025d5be59a3e629040bf4f",
+      "byte_count": 8731
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_Solomon_C203.yaml",
+      "sha256": "a5adbe7fc503511407c57bc00f0a37a5b0a9a42e6b5e9b110ad40b51e3d72b92",
+      "byte_count": 8724
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_Solomon_R101.yaml",
+      "sha256": "a21bb6f09a679ee2b181df9ba04990b59b972879945ef7d4c3858f3ce843e32f",
+      "byte_count": 8834
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/candidate_imports/routing_vrptw_Solomon_R203.yaml",
+      "sha256": "ea047b6b696c211f7b6a4cc09f3a827991865d984e9c0ccea38f41ae59458f5e",
+      "byte_count": 8852
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/cvrp_dispatch/time_pressure/basic/cvrp_A-n32-k5_time_pressure_basic_s7701.yaml",
+      "sha256": "5913c1517d082b7c23b714fcd888ae0667535483f7d01fd96e0a7f96d355393c",
+      "byte_count": 8637
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_foods_1_001_tx_1_d1800_30d__578831d4__relabel_v1.yaml",
+      "sha256": "762fe2ea9946c76aaea7994d334b16ead1d692bab45a8d6751b4e2114df4972d",
+      "byte_count": 9435
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/logistics__inventory_replenishment__time_pressure__basic__inventory_replenishment_time_pressure_basic_m5_hobbies_1_254_tx_3_d1710_30d_lt4_cap58__b90dde6c__relabel_v1.yaml",
+      "sha256": "df8b0e8c7d3ef6263d63aa1e2e2a21d9d41f0e93a8f59db624fd9270d6578921",
+      "byte_count": 9696
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_008_tx_2_d1705_30d_lt6_cap48_protocol21_migration_v57__cfeac7c3__relabel_v1.yaml",
+      "sha256": "c5f4ab46f2f84e8a83322a83e1b217dd973bec1509ccb23f27dad4a3da293746",
+      "byte_count": 9826
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_015_wi_3_d880_30d_lt6_cap60_protocol21_migration_v57__6e53c03d__relabel_v1.yaml",
+      "sha256": "9d6c83308b491f20a0aeb83545ea0241d97844665f2c5289835c903315a3da93",
+      "byte_count": 9803
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_256_tx_1_d1050_30d_lt3_cap58_protocol21_migration_v57.yaml",
+      "sha256": "cc4150aa6ce5348f2603ae1c0179fe2b80f3e3c2b184b5563bb83d7a3a9e4fed",
+      "byte_count": 9306
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_348_ca_1_d960_30d_lt2_cap60_protocol21_migration_v57__3ef50910__relabel_v1.yaml",
+      "sha256": "82838601572f10a714d3cb77d94ae71d9d19224634e610ae6ab2ff0dc57b4829",
+      "byte_count": 9804
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_1_371_wi_2_d1020_30d_lt5_cap55_protocol21_migration_v57__b1dd2798__relabel_v1.yaml",
+      "sha256": "5537286308c11a5e0bff02cf954a134283c71d267ac8b4bb1e2d515b29d40957",
+      "byte_count": 9826
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_hobbies_2_043_tx_2_d1780_30d_lt4_cap58_protocol21_migration_v57__3aa166d7__relabel_v1.yaml",
+      "sha256": "fb796e5d08350f927d75ed1ead1e8ee89d95f2fdd3f5966411b21d681ed9b51a",
+      "byte_count": 9820
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_household_1_002_wi_1_d1015_30d_lt6_cap48_protocol21_migration_v57__1353a1cb__relabel_v1.yaml",
+      "sha256": "a8cf2ff6ca57ca8d55d09d1dd5c3b3d5a1ee818793a8fb278e4524ebd592420d",
+      "byte_count": 9859
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_household_1_004_ca_2_d1705_30d_lt6_cap56_protocol21_migration_v57__12b2fe55__relabel_v1.yaml",
+      "sha256": "ebd8270ace71a7e1883501deecf222c490befedece2dd1fdc5b2d85c83206143",
+      "byte_count": 9861
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/inventory_replenishment/time_pressure/medium/m5_household_1_007_wi_1_d820_30d_lt6_cap56_protocol21_migration_v57__ce8de513__relabel_v1.yaml",
+      "sha256": "43343d94cd3a9c0e7cecadbe23cb1a7a9bb77c885fc3d38c139850fdc617025d",
+      "byte_count": 9843
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/job_shop_dispatch/time_pressure/high/dynasched_grid_fjsp_breakdown_priority_rep02_s42.yaml",
+      "sha256": "2314fb4147a647b6ce6ab8127569c8ec104e105aa4f015f16803e745dd4896c8",
+      "byte_count": 9367
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/logistics/vrptw_dispatch/time_pressure/medium/logistics__vrptw_dispatch__time_pressure__basic__vrptw_C101_time_pressure_basic_s8801__49665616__relabel_v1.yaml",
+      "sha256": "56dbdc7805bd48aaecceb9607a6b31e4ee43c6ff77617745f5c4421da3af4e64",
+      "byte_count": 13430
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_albuquerque_nm_extreme_v58.yaml",
+      "sha256": "e6cf6019acf93c6811cfd440f8650296d857525cc84e6eb292bbe0a586a2a47a",
+      "byte_count": 9559
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_atlanta_ga_extreme_v58.yaml",
+      "sha256": "740f50b04e045c55271612284626b2b3b0066f1d7e4dee40d121c9b9884f00b1",
+      "byte_count": 9517
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_boston_ma_extreme_v58.yaml",
+      "sha256": "1280de035b425343ef08fc4e8f1440f5d8d28a7da5b3b70d5d0e6f7addf96727",
+      "byte_count": 9490
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_denver_co_extreme_p8724_plus5.yaml",
+      "sha256": "d2173dc94a93de276cc6a0f49021f01a56e904c6bf51225bd39d701df1ac5654",
+      "byte_count": 9741
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_denver_extreme_s59.yaml",
+      "sha256": "f6a20c32369295c36f293adb8f0c54c98d1a3936b6ca5f551ec20c0cab4ad7b4",
+      "byte_count": 9236
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_p3683_plus5.yaml",
+      "sha256": "9707cd1efdaf2cc19bf3868ffd213a8c586c3fd6c8b07afaa11935139c9df939",
+      "byte_count": 9865
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_minneapolis_mn_extreme_v58.yaml",
+      "sha256": "4a2822e4a77d77ca37c57daf9523e6431b74efa14d27e4832afa11d923aa3df7",
+      "byte_count": 9597
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_portland_or_extreme_v58.yaml",
+      "sha256": "3e4ca32e4633991af059423d42d0956538b991dc8e9ebd5e0bbd728379e5061a",
+      "byte_count": 9574
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_sacramento_ca_extreme_p7382_plus5.yaml",
+      "sha256": "fc909f25f19839f34b48b2ddf7b671a9ff773512d6074f39f10ab22070f4e66e",
+      "byte_count": 9780
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_sacramento_ca_extreme_v58.yaml",
+      "sha256": "18009c4246cccc81878d8ba0ef8016d455381cb2be2a134ec161435d0984b4eb",
+      "byte_count": 9512
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_salt_lake_city_ut_extreme_v58.yaml",
+      "sha256": "00bbfe3968e851db4127f158922de1e9aa3c9e0e5740d3a8fa0d01db0e879942",
+      "byte_count": 9679
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/extreme/native_state_loss_seattle_wa_extreme_v58.yaml",
+      "sha256": "8692819ccb1569b3aee8467d70d118f7c4f7e4614294f2947086f9a68bf7a7d0",
+      "byte_count": 9553
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_albuquerque_nm_high_p1680_s89.yaml",
+      "sha256": "ee54bb3871e03ca4b04be0ca58eac6226f003305b5fa1c01870fa5081a7728b4",
+      "byte_count": 9176
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_atlanta_ga_high_p672_s77.yaml",
+      "sha256": "3eae66df77a4e5a31532cf4894db25d666e048a6210d679d629d2c0e56745f83",
+      "byte_count": 9077
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_boston_ma_high_p168_s71.yaml",
+      "sha256": "e16548817209f97b23cec2c726f20180c2d671d470f7fc20c9ff0410c5bcf725",
+      "byte_count": 9078
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_chicago_high_s61.yaml",
+      "sha256": "81512027854665ad40db836b62d02408dbfc90f1c031e5d789232399d2e76361",
+      "byte_count": 8942
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_denver_co_high_p840_s79.yaml",
+      "sha256": "2981056de447aed99ce459086af5e7a071d4f130481302f3494524a7d30fa5bb",
+      "byte_count": 9078
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_miami_high_s57.yaml",
+      "sha256": "c24970edbff8cead7eabed1da0436cfff58ee188d63d87fc3208786303050541",
+      "byte_count": 8883
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_minneapolis_mn_high_p2016_s93.yaml",
+      "sha256": "266acd94e39cb99b7ba996b05f722ed919841240c98b1c8de5bb0fda8b19ffef",
+      "byte_count": 9142
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_portland_or_high_p504_s75.yaml",
+      "sha256": "b1680b905d4b65a484d0a3cf2a0a341cdfc0b2d692ef524d16859d727f813f5a",
+      "byte_count": 9110
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_sacramento_ca_high_p2184_s95.yaml",
+      "sha256": "1be03ef4dd65170d515868e9c1170a1e0c36dac6d0bad1c3292ac4a7012c85f1",
+      "byte_count": 9164
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_seattle_wa_high_p336_s73.yaml",
+      "sha256": "1b09f5b2cc2565682fad84bc4491cdbf7f17711cae2b47019bcfda329107bf76",
+      "byte_count": 9107
+    },
+    {
+      "path": "scenarios/operate_v0_62_0/microgrid/microgrid_economic_dispatch_24h/deep_planning/high/native_state_loss_tucson_az_high_p1008_s81.yaml",
+      "sha256": "1994e365b4e734394be3172eb3a5595cb3530c0090b81aa6fc83f44d84fe09c8",
+      "byte_count": 9080
+    },
+    {
+      "path": "sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/input_model.json",
+      "sha256": "e2c852933aca029b6ae09ddcfd35d1b0973a3fc41a08eecba9e5143a2692dfa6",
+      "byte_count": 4040
+    },
+    {
+      "path": "sources/dynasched/dynasched_grid_hetero_static_small_rho60_varh_bottleneck_moo_rep02/static_jobs.json",
+      "sha256": "d3fa9537710d53255e4095fd09271d712f638349774f34c21e200b5c87b974e7",
+      "byte_count": 14519
+    }
+  ],
+  "external_inputs": [
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_1/Building_1.csv",
+      "sha256": "7c80028c65f636dfdaea168447fddc1cd71da4cc16329e2e0fba1f723d2c916e",
+      "byte_count": 349473
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_1/Building_2.csv",
+      "sha256": "9742af5be4e83606b0f0c9a83ecc6312b860a049cbced7e6142a169769b57cf9",
+      "byte_count": 349891
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_1/Building_3.csv",
+      "sha256": "981b24cd13fdfc1ffc688fa7a96e83e138be073b5ec3e27cd4ce3e457bbe87f1",
+      "byte_count": 351295
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_1/Building_4.csv",
+      "sha256": "eff80b585e2e839b95f591914c83e6daefad01884ab8acdd381cc0ba5134a530",
+      "byte_count": 349144
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_1/Building_5.csv",
+      "sha256": "0579790ee34c11b8ba6b7430e1b85d0506353399da76621d018b552f8d5d62d9",
+      "byte_count": 351598
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_1/pricing.csv",
+      "sha256": "bb94629d83146658c38015ebf8dade815c2557cd8a6c1abb7e1edc5012a483c6",
+      "byte_count": 169776
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_1/schema.json",
+      "sha256": "809b64eb09b55b2aabeb131aecaace7f54b339efe515e1dbf209ec9dbf96107a",
+      "byte_count": 8800
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_10.csv",
+      "sha256": "d8e4abd5d71ce889423e3239244940ed1c7f7efd0312b17c313ec138883739a4",
+      "byte_count": 350339
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_6.csv",
+      "sha256": "ead9a4c2a6c5ca2526dbf747584a84c06d5990eb62c9482db607dc5719c02176",
+      "byte_count": 352804
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_7.csv",
+      "sha256": "d140651d84c05dbd1f9a32a17fba5aaa21204685d37d508ebd17398783ccd1dc",
+      "byte_count": 355960
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_8.csv",
+      "sha256": "a912f82d8e11aef7e40f6e1af087ac975c5d41dd570dbba50eb5ac0a5f715db5",
+      "byte_count": 350323
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/Building_9.csv",
+      "sha256": "9be368c246f58050f56fc64d31df2966be2e74127aade0b330b2c40849ca08d6",
+      "byte_count": 350744
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/pricing.csv",
+      "sha256": "bb94629d83146658c38015ebf8dade815c2557cd8a6c1abb7e1edc5012a483c6",
+      "byte_count": 169776
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_2/schema.json",
+      "sha256": "77b0fe518ea023ef2ddcbe6ceca6d47ad1e5ab2e48b04e878173969e91f8d9e9",
+      "byte_count": 8802
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/Building_11.csv",
+      "sha256": "c836eed05a64c8d1b1b1e01292f0dd1c4e41f884b5567020a8047af98fe506c9",
+      "byte_count": 348376
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/Building_12.csv",
+      "sha256": "699e9a57a866d6e657974df00439f904b3775cd5bed64768704dd0bf4a8fdc83",
+      "byte_count": 370583
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/Building_13.csv",
+      "sha256": "77a0bb52f706c32a67938e4db02796ac8ad16f97ab8665eb748a4d1824f0fbe2",
+      "byte_count": 348311
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/Building_14.csv",
+      "sha256": "07f855121c0084552925579e7e33cf128050745b97e989a227570ef4e1470a1b",
+      "byte_count": 353946
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/Building_15.csv",
+      "sha256": "67c4c0f78d4598394838b3ba3b853d84b3712de46022bd2aa56ab51b76873606",
+      "byte_count": 350365
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/Building_16.csv",
+      "sha256": "16da28c7e6ea9bd496945e3e2d402d10aac6a1f71840b0f691a7539165ca0486",
+      "byte_count": 347298
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/Building_17.csv",
+      "sha256": "cab102276853fce3455b2d21f3d8435e5381079de59a34390985d1f8bb9893c6",
+      "byte_count": 347470
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/pricing.csv",
+      "sha256": "bb94629d83146658c38015ebf8dade815c2557cd8a6c1abb7e1edc5012a483c6",
+      "byte_count": 169776
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_3/schema.json",
+      "sha256": "d7c4f991f5b0c72fd0554bd4bfc76a1bd1e4b036245f77af99df20be4851d560",
+      "byte_count": 10316
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_1.csv",
+      "sha256": "7c80028c65f636dfdaea168447fddc1cd71da4cc16329e2e0fba1f723d2c916e",
+      "byte_count": 349473
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_10.csv",
+      "sha256": "d8e4abd5d71ce889423e3239244940ed1c7f7efd0312b17c313ec138883739a4",
+      "byte_count": 350339
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_11.csv",
+      "sha256": "c836eed05a64c8d1b1b1e01292f0dd1c4e41f884b5567020a8047af98fe506c9",
+      "byte_count": 348376
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_12.csv",
+      "sha256": "699e9a57a866d6e657974df00439f904b3775cd5bed64768704dd0bf4a8fdc83",
+      "byte_count": 370583
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_13.csv",
+      "sha256": "77a0bb52f706c32a67938e4db02796ac8ad16f97ab8665eb748a4d1824f0fbe2",
+      "byte_count": 348311
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_14.csv",
+      "sha256": "07f855121c0084552925579e7e33cf128050745b97e989a227570ef4e1470a1b",
+      "byte_count": 353946
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_15.csv",
+      "sha256": "67c4c0f78d4598394838b3ba3b853d84b3712de46022bd2aa56ab51b76873606",
+      "byte_count": 350365
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_16.csv",
+      "sha256": "16da28c7e6ea9bd496945e3e2d402d10aac6a1f71840b0f691a7539165ca0486",
+      "byte_count": 347298
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_17.csv",
+      "sha256": "cab102276853fce3455b2d21f3d8435e5381079de59a34390985d1f8bb9893c6",
+      "byte_count": 347470
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_2.csv",
+      "sha256": "9742af5be4e83606b0f0c9a83ecc6312b860a049cbced7e6142a169769b57cf9",
+      "byte_count": 349891
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_3.csv",
+      "sha256": "981b24cd13fdfc1ffc688fa7a96e83e138be073b5ec3e27cd4ce3e457bbe87f1",
+      "byte_count": 351295
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_4.csv",
+      "sha256": "eff80b585e2e839b95f591914c83e6daefad01884ab8acdd381cc0ba5134a530",
+      "byte_count": 349144
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_5.csv",
+      "sha256": "0579790ee34c11b8ba6b7430e1b85d0506353399da76621d018b552f8d5d62d9",
+      "byte_count": 351598
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_6.csv",
+      "sha256": "ead9a4c2a6c5ca2526dbf747584a84c06d5990eb62c9482db607dc5719c02176",
+      "byte_count": 352804
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_7.csv",
+      "sha256": "d140651d84c05dbd1f9a32a17fba5aaa21204685d37d508ebd17398783ccd1dc",
+      "byte_count": 355960
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_8.csv",
+      "sha256": "a912f82d8e11aef7e40f6e1af087ac975c5d41dd570dbba50eb5ac0a5f715db5",
+      "byte_count": 350323
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/Building_9.csv",
+      "sha256": "9be368c246f58050f56fc64d31df2966be2e74127aade0b330b2c40849ca08d6",
+      "byte_count": 350744
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/pricing.csv",
+      "sha256": "bb94629d83146658c38015ebf8dade815c2557cd8a6c1abb7e1edc5012a483c6",
+      "byte_count": 169776
+    },
+    {
+      "path": "works/CityLearn/data/datasets/citylearn_challenge_2022_phase_all/schema.json",
+      "sha256": "b1c3546de688298f428ca61d6300826dba0f73147534d3953b9378db789db6c3",
+      "byte_count": 17828
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-102188.csv",
+      "sha256": "5cac92dd631f662216f405e67663ab0483397ab9ca50730a43392b838f14543c",
+      "byte_count": 781174
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-112223.csv",
+      "sha256": "2e064c643a7c62486e221026ed9274746e1e84dd9f17cb4dc4694b31f66f5486",
+      "byte_count": 756977
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-113808.csv",
+      "sha256": "2065e4be3993933773f397af2dfd73f4b6920ba20ca5ff16a19f60442e6016c6",
+      "byte_count": 748751
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-120912.csv",
+      "sha256": "ccc8565a5c1a8dc00aefad48cdbec03d3990eab7db57b4366049c5f494deae8e",
+      "byte_count": 767944
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-123182.csv",
+      "sha256": "58300d7d065b6a7467d049b67c01c97efd9d1948686deae74695e7d020a90a39",
+      "byte_count": 764123
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-133435.csv",
+      "sha256": "033855a071329a4f6dba5677db97c355e8382866939f6b4652b76697a567e307",
+      "byte_count": 753514
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-133518.csv",
+      "sha256": "a4b2c02c15919c112d9a70d8b8de5eda761df1f49615a215c5f9fbd769bd84af",
+      "byte_count": 755262
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-134795.csv",
+      "sha256": "29c1913aee8db49d48bc0abfe14ddc329778a790e81f12512fdb5b3c9daec32a",
+      "byte_count": 775075
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-136361.csv",
+      "sha256": "dc8b3b9122a226651cfd7e47c068d27db569a78dd51bc44387424898d08109d6",
+      "byte_count": 741078
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-147029.csv",
+      "sha256": "126caa7976009415a7bba024e3bc8bbebea22a6370171f83ebe15bf0ec20a37f",
+      "byte_count": 756847
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-153910.csv",
+      "sha256": "ffe416115bf9eee8f446a77e651c9e1ea40269af1ba1f3b20e5da15c640f27d4",
+      "byte_count": 765635
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-155572.csv",
+      "sha256": "b8fd6b3b2424a78846ca09e425bf35538810d3d0046287f5c08c7f7be5a35edc",
+      "byte_count": 769253
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-15942.csv",
+      "sha256": "497fc45f1e1c212cd0e35671579d09873ad92b652440c02dd194ab4421c353d9",
+      "byte_count": 773588
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-166568.csv",
+      "sha256": "f9a33d7b43431c84b67ac596a30839dce2bcd56d3e62020838c3fd92e2fcab11",
+      "byte_count": 779467
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-171136.csv",
+      "sha256": "1e192ab18ab9b1aa30d2ec77ebaa311526fb15cb765e7c9b46b9399869d797ad",
+      "byte_count": 741419
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-179005.csv",
+      "sha256": "3587593dfeef99a83923acbd21c25028b942f8e57a67da6140a61207ede63239",
+      "byte_count": 770191
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-192120.csv",
+      "sha256": "34c66d5674a4a4edc18fdfdbb7e9b38ef5c1db6911461658b6a1a0464a09a03b",
+      "byte_count": 747670
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-203716.csv",
+      "sha256": "05bf011f76fb6cc51f815d88ef021c9f81a8ba9e938fad6239f3bfa011fdd47c",
+      "byte_count": 775529
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-20687.csv",
+      "sha256": "fa61c1e8520ed73f9f7f7790c219294d3838d28b655db79d47dcdb5d5c5f1a01",
+      "byte_count": 766256
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-208044.csv",
+      "sha256": "596051d69e55a89f1cd33fdd2f4f920505e797be4acb33e1f2175e2361da9241",
+      "byte_count": 762026
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-213471.csv",
+      "sha256": "e9c392d3d20abba55792287de87937f8028df4982b185d8523500ea00ad8f749",
+      "byte_count": 751371
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-21356.csv",
+      "sha256": "1d0f07a283f891fca08d1c881446c53504630edf093600faa629cf9224ee8912",
+      "byte_count": 766702
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-216680.csv",
+      "sha256": "488bbe55f60a3032c3dbdf18ba16dcb808a7d5d843b864ee8958e2b7abc5c00d",
+      "byte_count": 757948
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-223548.csv",
+      "sha256": "ae6c33e0aeef170c79df77c6b0ac5a4d48c4f05f8839ae334df35a192a57dc12",
+      "byte_count": 681429
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-224341.csv",
+      "sha256": "12773ca3403aec1e41cecb1aac621c540f9164b5c5082d3cc7d2bd9cbf058a62",
+      "byte_count": 757664
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-227400.csv",
+      "sha256": "2cac022a0a585656014ad1c641b72a2d6e486683f333f10c4fb8050dfaa72bf5",
+      "byte_count": 766235
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-237652.csv",
+      "sha256": "adc3c0dd6af7dc884655f372de7feb77a524e17cb8bd95443c7d1adf1f653343",
+      "byte_count": 748511
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-243797.csv",
+      "sha256": "0700a2ce8ace9479ef8304e45e4bb86057c36bf8b8fd82820d80adf0f9c51671",
+      "byte_count": 748970
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-248224.csv",
+      "sha256": "41f3fa142692953574553a583369b2398229c41ed0f108d37ce040ce71a25026",
+      "byte_count": 760559
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-249373.csv",
+      "sha256": "1fa84ed3d26d70bd49f02e940d94d2dcdb5dc16de2fb501e122b42e48aca68da",
+      "byte_count": 753546
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-252982.csv",
+      "sha256": "2369e5e5d09153c0a4393ce7d18f99c883c402d508cc1b672956c075cbae1bdb",
+      "byte_count": 770794
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-258438.csv",
+      "sha256": "6f52653a9e1043fab0a3bf0b62ab9629ef62cba243c04f141f79d2a9fc0badb2",
+      "byte_count": 747876
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-264250.csv",
+      "sha256": "3fa875600452ef362d5f245bf04bdcccd9ce4ff954199379fa593444fbec832f",
+      "byte_count": 761212
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-267773.csv",
+      "sha256": "a746049ee563945337f1b62445a1961c375d61ca4a814211fdc71ee123a7c145",
+      "byte_count": 771882
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-275175.csv",
+      "sha256": "251ec342d3983c90695cb893ce444613cd46d3ab6f525f9d20ff46b85598f59a",
+      "byte_count": 756099
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-276878.csv",
+      "sha256": "27448d2872c15c19518f9bca040ba21c3d19a23aa6ec3471c76fd5ec6570cbfa",
+      "byte_count": 764963
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-280890.csv",
+      "sha256": "3ad571c42be1c7c1c30413543b79a2fcbf3de05691e2c2e40d85fe025f0569bb",
+      "byte_count": 755770
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-281166.csv",
+      "sha256": "afe2e95686754bbe3b0770053268d992d7096f3f873c5a6f275b65f76d7afbd0",
+      "byte_count": 751038
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-283562.csv",
+      "sha256": "ef525beb0044f88691fbb32400685b22c30b4dd841a04d768c5991e893cf1ad0",
+      "byte_count": 766980
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-284099.csv",
+      "sha256": "5f4db646f08ea78e0d2e0c8557e6a0816ec5fcd989c31c35005a6f70c34231f4",
+      "byte_count": 747613
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-290742.csv",
+      "sha256": "49cfbb7b49bce69a2f03aa4140bc705137800633ef2cd690c30981ad8f55cad9",
+      "byte_count": 764634
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-294190.csv",
+      "sha256": "c032f74a08a4e709b0ecfb4d9b1a9a17f3b56bfcf8fb95a0a03fac009bdc4afc",
+      "byte_count": 765348
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-294740.csv",
+      "sha256": "d637779b45ddf010e61e1d8bf6585fd05eebb0d9279e3ba35fa9e4c89649336f",
+      "byte_count": 771145
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-296934.csv",
+      "sha256": "2ac3016dc0b990bf03ad92798f4a2d164f92efbe5e2074a274385cd2e4b19c30",
+      "byte_count": 770162
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-297989.csv",
+      "sha256": "fff41e475381eaf10acf960aeb6b304ed7e4722374bd632f94ea1709507978f4",
+      "byte_count": 760144
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-304920.csv",
+      "sha256": "d14cf3e777951f5740f0dc6b09945107961b46d1453db9533aa3f49dd5984d2a",
+      "byte_count": 756125
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-305554.csv",
+      "sha256": "7348fae4336fb9d117a7a04d551640d7b62fbce76b2268345c481ad6fe425414",
+      "byte_count": 744550
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-307803.csv",
+      "sha256": "65680a530a51af7c512ecd5c2bafe102dc18dfaa62831da03844c61a3ca334a5",
+      "byte_count": 761192
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-315536.csv",
+      "sha256": "6821713c517cbdd5a1814657c353c37f57d32d29e31c07ed38a89a49fe1d3ad7",
+      "byte_count": 758056
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-321547.csv",
+      "sha256": "4c561143df9c83a11edbcbabc946caa525fa36a73c3ccd96d02e66928c5275ae",
+      "byte_count": 759112
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-338399.csv",
+      "sha256": "606189910cc4f1b5bfc19c2f36be1c3c26c10d046d680f7fcb41983cec1d21c1",
+      "byte_count": 768630
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-344233.csv",
+      "sha256": "bcf4056891a520a7ceef1a8c52165ec408c3e8dccb80ae5192c37f12e83d1921",
+      "byte_count": 758288
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-345731.csv",
+      "sha256": "a905e7e770e7d0508b89b1eddd8f6fd9fb9854244604ab0c810b9ab6863b2031",
+      "byte_count": 762507
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-346066.csv",
+      "sha256": "fd941222660e70553aa9f831e25d66ac07bd22b579b74913364a5735600e619d",
+      "byte_count": 782461
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-358693.csv",
+      "sha256": "dea2ec17122a9ecfb219007c238b6b7a8d6f883833cc523787e31a293684dad2",
+      "byte_count": 734013
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-36456.csv",
+      "sha256": "1f0fa2db3ba29bf33f96a7fec79b4cb9c632e885e952ea5d4a46164f5902bab9",
+      "byte_count": 751255
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-373875.csv",
+      "sha256": "9331aa437aeba0c172968befbd6eb54457f46f2a9e8ec1d64a877e38a0be76b0",
+      "byte_count": 760932
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-378790.csv",
+      "sha256": "72b7c0f588c1ac33f9295ba26a8d7d37815cbee3bbf06d98aa80db0fc37e081e",
+      "byte_count": 754239
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-378943.csv",
+      "sha256": "aa85c75ff802ec3cbe8e263644eb62834ddc89a98eac9bd6d7b41666d6f61422",
+      "byte_count": 733179
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-379248.csv",
+      "sha256": "6a48befb7b756fbc698ae3a4a36f67f9d881dfa3ecef27c2686f984516e34f59",
+      "byte_count": 767874
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-380135.csv",
+      "sha256": "f978c04070556c242285a94cab4895edff4ad2641ac387e29ffc0f77cb1b2ca1",
+      "byte_count": 752030
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-389891.csv",
+      "sha256": "d1fb27277df887893a1c020aae4259768035f19efd44921bf2dcb2c38b2ed7b0",
+      "byte_count": 751935
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-391687.csv",
+      "sha256": "1f3d1435567bc90b4edd2420b621e1a5a132f049d831645a922e98a7b45d4fdf",
+      "byte_count": 761230
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-394712.csv",
+      "sha256": "c2cd802645d575e5643f0e472208783265a55f21bcdde7afbc6888ac7dfe583c",
+      "byte_count": 742858
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-400743.csv",
+      "sha256": "2a3e6a3e7e976b46a43b9c058e07d27268619b0093bd5ef871ddc58a09e47873",
+      "byte_count": 753390
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-400973.csv",
+      "sha256": "3657d0b551ccbd00bd075ea5122318eb214053cc1ae0ee39df86cb69a81a749f",
+      "byte_count": 758074
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-401821.csv",
+      "sha256": "284e97648f11aa98386fb1cda5f1224df3fd1dd42525f9bcdb3bf06ce2ac7dfb",
+      "byte_count": 751185
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-406573.csv",
+      "sha256": "4bd40b0cf1c001269d55e21c293003823c0a771d8cf2a98abc86f3447045fddf",
+      "byte_count": 754545
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-412815.csv",
+      "sha256": "88a4d5970b0791cf4630a9a8400614d548f66f78423de154d3a1e53146476e5e",
+      "byte_count": 774512
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-419755.csv",
+      "sha256": "1fdfcf4b5e73cdca7d518b8c1e10ba963691f641a71de3853fd12002418c79ed",
+      "byte_count": 770824
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-427553.csv",
+      "sha256": "1029738de66b13cdb2f75feab9a64073a7d169698c3485fe247e1d5ad8a07711",
+      "byte_count": 765789
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-43845.csv",
+      "sha256": "caa76b21f59e46275317333d7d3ef4f071dfa1017fd7764f2499f66cfba4dc2d",
+      "byte_count": 733190
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-449318.csv",
+      "sha256": "945888e5e3d05cc911a5dadb3b6cdbc65743ca489387d193ab192f6a4262a778",
+      "byte_count": 758519
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-46421.csv",
+      "sha256": "1cd1387b50c913f376181b89904b4952363b955d0b64c6d8f69af51b98bbe26e",
+      "byte_count": 754398
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-471221.csv",
+      "sha256": "f9e40dfcf8134f1e3ad8b8b4a9d2725077456a0c9acab5f5bcb400edcfbf6f03",
+      "byte_count": 752702
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-474782.csv",
+      "sha256": "f81560eb20adc1204b4d93a699a755065753218f3c3a7acbf2fd1ac5c8da5538",
+      "byte_count": 763972
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-479537.csv",
+      "sha256": "9b638d441256865cb478af9d995e2ed0f18ac9fe6c2c73dfeb31c7964ca86569",
+      "byte_count": 769937
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-484143.csv",
+      "sha256": "ef8d4a6ccdaaf2781d89a3459e8f30f0cba1987194e957f07033157b5c282a81",
+      "byte_count": 764466
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-486996.csv",
+      "sha256": "47e1597040d791069275fbb45037ee5ef6c19eaed24239224c92d771d9f8d384",
+      "byte_count": 743282
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-494842.csv",
+      "sha256": "dc6bbac00135e2e848391dfb0e5b1561ef0745d1ac0ac1f14ef6954984d83441",
+      "byte_count": 755776
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-50879.csv",
+      "sha256": "be47927d88553cfe162b1298b967606423be60362edfea639d940b8181524d52",
+      "byte_count": 759055
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-511164.csv",
+      "sha256": "7ff232633b12bd3321f5184d475de7be68e2702404f9f6f0171c73b61da1aacf",
+      "byte_count": 768483
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-512011.csv",
+      "sha256": "1e516d0f5705768b0186301a061f3e30e8a76d9317740c407a308de687468ef2",
+      "byte_count": 774311
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-512927.csv",
+      "sha256": "e42e1aab1bd41fb1ee25c9a610bca39fd2f37c3832a28d39f3b06a4bcadd0c04",
+      "byte_count": 746865
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-519975.csv",
+      "sha256": "be465ad672ad75c0ef692f50563bce69859925165fb893319b051b42f3c94dee",
+      "byte_count": 765480
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-523457.csv",
+      "sha256": "5069edf8ba598b5117e40a60d05257deed78db4ed1c0c1b0eefbaa5d90af758b",
+      "byte_count": 759608
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-537787.csv",
+      "sha256": "f8d07ea904427b550250ffd7018b805e04af2629a979a803a9698658ace40bf3",
+      "byte_count": 759674
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-537891.csv",
+      "sha256": "383096f2ffb4d56c7f727be81b19ffd719696fcde16ad34e6ed88b403ace6ca7",
+      "byte_count": 766281
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-63192.csv",
+      "sha256": "42a320c69bf3e8bc484f173c35cfbd7eaba975a114bf8f336b6852b1ab2329a7",
+      "byte_count": 785637
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-68142.csv",
+      "sha256": "9af43352e158996ac2be0c883cdc1ab09f1d0b1147f1991471547d34bf54a783",
+      "byte_count": 770666
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-6887.csv",
+      "sha256": "42758f583b3f7e27e56569f0f149a5d696e2b2e445378692743b77e37e92d2aa",
+      "byte_count": 715101
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-71553.csv",
+      "sha256": "95923fcab5fca2ebe97fd6be60651369a91330d5c8a559375ba3db6b4b418c99",
+      "byte_count": 769968
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-85296.csv",
+      "sha256": "0e202026b322b8e75eca4b2b7d597246634222d945e50f9e586e8796e35070d7",
+      "byte_count": 765020
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-88708.csv",
+      "sha256": "2d346938573e44d87a753f7520fddfd40e43a775a50a81757d5d5eb15961580e",
+      "byte_count": 755079
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-92392.csv",
+      "sha256": "bff2e4d27d863fa44213b720f86d0ccbaa5e19a563db2788a19d5e240dfef9ba",
+      "byte_count": 741793
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-94184.csv",
+      "sha256": "421d92bc39f0285dc31a7dfebc5a86c6fc0b8b8a208020e1db302f28692bee94",
+      "byte_count": 760595
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-96102.csv",
+      "sha256": "9cc9f6cd600cdba1bffe4e15a2c5d96bdda95ca993e1ad4fe0931a05e255588f",
+      "byte_count": 768266
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-97045.csv",
+      "sha256": "8ef6aaaaf0c5d6aa21570339ba9250f0c06cd330b2860e346d314ee64b59c7fe",
+      "byte_count": 760488
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-97674.csv",
+      "sha256": "6b58c1179772949300aa6e322ea91f7e11d1821603beeb9894cc0295b5036680",
+      "byte_count": 746115
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/resstock-amy2018-2021-release-1-99758.csv",
+      "sha256": "be0902c3e82bad6c9a33863153716c9ac642997b12116d05ff5cb6b020e15658",
+      "byte_count": 741322
+    },
+    {
+      "path": "works/CityLearn/data/datasets/tx_travis_county_neighborhood/schema.json",
+      "sha256": "83ff14fe3fa5df50d20dcdc60c957757edc5587e49e7585656da1f280af36645",
+      "byte_count": 265916
+    },
+    {
+      "path": "works/DynaSchedBench/data/DynaSched-Grid/hetero_static_small_rho60_varh_baseline__mode_moo/rep03/input_model.json",
+      "sha256": "e96c181e902fa51d4c54ae7db00902c449a4d3c8aae5cabd60260aca9b2397f6",
+      "byte_count": 4039
+    },
+    {
+      "path": "works/DynaSchedBench/data/DynaSched-Grid/hetero_static_small_rho60_varh_baseline__mode_moo/rep03/static_jobs.json",
+      "sha256": "0ddc007a94af02d87792051ba746424d3b19c8401ba056b299f8191a22237811",
+      "byte_count": 16600
+    },
+    {
+      "path": "works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__moo__rho0p80__ddt2p00__scva1p50__scvp0p50__distBase__lcvBase/rep04/input_model.json",
+      "sha256": "2005e90f42eb3066ab26202f876464ee4a43c8475463bae4fdab2d55b450444a",
+      "byte_count": 2596
+    },
+    {
+      "path": "works/DynaSchedBench/data/DynaSched-Sweep/exp14_v2_queue_static_small__moo__rho0p80__ddt2p00__scva1p50__scvp0p50__distBase__lcvBase/rep04/static_jobs.json",
+      "sha256": "2291bbdc3262ae152981340154b363fd86fc17a357b4c070ffc6972f6dc0408d",
+      "byte_count": 7236
+    },
+    {
+      "path": "works/pglib-uc/ca/2014-09-01_reserves_0.json",
+      "sha256": "ec49d9a81f9f39ffd36f3065ab4a3942d28c6bce5356de9b24fbd75e83cd0cde",
+      "byte_count": 329326
+    },
+    {
+      "path": "works/pglib-uc/rts_gmlc/2020-05-05.json",
+      "sha256": "415afbe0fd60db75acc2213b60de7bea430321a849e3341bf1c60a0b9667e75b",
+      "byte_count": 90934
+    }
+  ]
+}

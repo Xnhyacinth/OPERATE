@@ -1425,6 +1425,7 @@ def _batch_llm_config(
         model=model,
         api_key_env=args.api_key_env,
         base_url=base_url,
+        allow_insecure_http=bool(getattr(args, "allow_insecure_http", False)),
         api_version=api_version,
         responses_base_url=responses_base_url,
         api_mode=args.api_mode,
@@ -8186,6 +8187,11 @@ def _run_batch_main() -> int:
     )
     p.add_argument("--api-key-env", default="OPENAI_API_KEY")
     p.add_argument("--base-url-env", default="OPERATE_API_BASE_URL")
+    p.add_argument(
+        "--allow-insecure-http",
+        action="store_true",
+        help="Permit an http:// provider endpoint for isolated diagnostic transports",
+    )
     p.add_argument(
         "--responses-base-url-env",
         default="OPERATE_RESPONSES_API_BASE_URL",
