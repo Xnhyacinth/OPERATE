@@ -59,9 +59,13 @@ certification remain false. Missing outcomes retain bounds and no complete rank.
 The [public aggregate companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/61b30ab53103595228bf2f4098d2217dab040306/results/lite141_20261011)
 has been published and verified at its immutable revision. It contains
 model/domain summaries, process coverage, uncertainty and specification
-sensitivity. Raw trajectories and full audit reports are available in the
-[public raw evidence archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/tree/6443ec08dcc608de3476884f600264ac297f28ef). The repository name retains `Private` for
-existing links; access is public. Manuscript drafts remain private.
+sensitivity. Sanitized trajectories and audit reports are available in the
+[public sanitized trajectory archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Public-Trajectories/tree/23b01d6b00c7c58f9ec4c35700bbe57b1414cfae/sanitized_refresh_20261011).
+Scientific records, actions, scorer outputs, numeric values and identifiers are
+preserved. Infrastructure URLs and paths and credential values are redacted;
+OS metadata exclusions are recorded in the publication manifest. Sanitized
+files have new hashes and do not replace the original evidence bytes.
+Original evidence is restricted; manuscript drafts remain private.
 
 `python scripts/evaluate_task_outcomes031.py --help` describes the opt-in
 anchored scorer, whose default policy is 0.31.2. The separate default raw
@@ -74,7 +78,7 @@ This historical snapshot used the **0.28.0** default raw reader and the
 **0.30.0** opt-in task-outcome revision. [Complete version comparison](docs/LATEST_RESULTS_030.md)
 covers 23 declared models, 20 complete 141-case scores and 2,958 measured outcomes.
 [Public tables, sensitivity and analysis figures](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
-have a separate manifest. Raw evidence is now available through the archive linked above.
+have a separate manifest. Sanitized evidence is available through the archive linked above.
 The [analysis layer](docs/LITE141_ANALYSIS.md) uses a separate 12-model subset.
 
 ```bash

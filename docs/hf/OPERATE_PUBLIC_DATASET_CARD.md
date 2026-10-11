@@ -79,7 +79,12 @@ with Source Data. Its 2,958 measured Q values belong to those historical
 protocols and inputs, not the current 0.31.2 snapshot.
 
 These fixed-panel retrospective results are separate from pending Full formal
-provider evaluation. Frozen catalog and runtime payloads are unchanged. Original
-trajectory/provider/native evidence and full audit reports are available in the
-[public raw evidence archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/tree/6443ec08dcc608de3476884f600264ac297f28ef). Its repository name retains `Private` for
-existing links; access is public. Manuscript drafts remain private.
+provider evaluation. Frozen catalog and runtime payloads are unchanged. Sanitized
+trajectory/provider/native evidence and audit reports are available in the
+[public sanitized trajectory archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Public-Trajectories/tree/23b01d6b00c7c58f9ec4c35700bbe57b1414cfae/sanitized_refresh_20261011).
+
+Scientific records, actions, scorer outputs, numeric values and identifiers are
+preserved. Infrastructure URLs and paths and credential values are redacted;
+OS metadata exclusions are recorded in the publication manifest. Sanitized
+files have new hashes and do not replace the original evidence bytes.
+Original evidence is restricted to approved access. Manuscript drafts remain private.

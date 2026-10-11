@@ -13,11 +13,11 @@
 - [Evidence contract](EVIDENCE_CONTRACT.md)
 - [Data provenance](DATA_PROVENANCE.md)
 - [Repository layout and data usage](REPO_LAYOUT_AND_DATA_USAGE.md)
-- [Hugging Face dataset card](hf/OPERATE_DATASET_CARD.md)
+- [Public sanitized trajectories](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Public-Trajectories/tree/23b01d6b00c7c58f9ec4c35700bbe57b1414cfae/sanitized_refresh_20261011)
+- [Catalog and aggregate dataset card](hf/OPERATE_PUBLIC_DATASET_CARD.md)
 
-These documents describe the single current public benchmark. Internal
-maintainer namespaces and qualification ledgers live in the private archive,
-not in this checkout.
+These documents describe the single current public benchmark. Original
+maintenance evidence is retained separately under restricted access.
 
 - [Default raw scoring: 0.28](EVALUATION_028.md)
 - [Historical result comparison: 0.25–0.30](LATEST_RESULTS_030.md)

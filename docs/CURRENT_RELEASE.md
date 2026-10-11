@@ -115,15 +115,16 @@ exclusion evidence. Decisions are in
   remain retrospective and do not certify a same-run formal cohort. See
   [0.31.2 protocol](EVALUATION_0312.md) and [current results](LATEST_RESULTS_0312_SONNET.md).
 - Public code/data distribution is available. The dated retrospective aggregate
-  companion is separate from the pending Full formal workflow. Complete raw
-  trajectories, recovery evidence, full reports and audit archives are available
-  in the [public raw evidence archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/tree/6443ec08dcc608de3476884f600264ac297f28ef). The [12-model offline analysis](LITE141_ANALYSIS.md)
+  companion is separate from the pending Full formal workflow. Sanitized
+  trajectories, recovery evidence, reports and audit exports are available
+  in the [public sanitized trajectory archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Public-Trajectories/tree/23b01d6b00c7c58f9ec4c35700bbe57b1414cfae/sanitized_refresh_20261011). The [12-model offline analysis](LITE141_ANALYSIS.md)
   is a companion subset, not a change to the main-table denominator.
 
-- The [public raw evidence archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/tree/6443ec08dcc608de3476884f600264ac297f28ef) contains the verified
-  18-group incremental publication. Its repository name retains `Private` for
-  existing links; access is public. [0.31.2 aggregate results](LATEST_RESULTS_0312_SONNET.md)
-  retain their fixed-panel retrospective scope.
+- The sanitized publication preserves scientific records, actions, scorer outputs,
+  numeric values and identifiers while redacting infrastructure and credentials.
+  Its manifest records new file hashes and OS metadata exclusions. Original
+  evidence remains restricted. [0.31.2 aggregate results](LATEST_RESULTS_0312_SONNET.md)
+  retain their fixed-panel retrospective scope and unchanged values.
 
 The following historical flags describe the optional Full/prospective formal
 workflow, not the separately declared Lite offline main-table gate:
