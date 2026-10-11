@@ -117,8 +117,12 @@ exclusion evidence. Decisions are in
 - Public code/data distribution is available. The dated retrospective aggregate
   companion is separate from the pending Full formal workflow. Complete raw
   trajectories, recovery evidence, full reports and private audit archives remain
-  in the private HF trajectory dataset. The [12-model offline analysis](LITE141_ANALYSIS.md)
+  in private evidence archives. The [12-model offline analysis](LITE141_ANALYSIS.md)
   is a companion subset, not a change to the main-table denominator.
+
+- Raw trajectories and full audit reports remain private. Public
+  [0.31.2 aggregate results](LATEST_RESULTS_0312_SONNET.md) retain
+  their fixed-panel retrospective scope.
 
 The following historical flags describe the optional Full/prospective formal
 workflow, not the separately declared Lite offline main-table gate:
