@@ -59,7 +59,9 @@ certification remain false. Missing outcomes retain bounds and no complete rank.
 The [public aggregate companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/61b30ab53103595228bf2f4098d2217dab040306/results/lite141_20261011)
 has been published and verified at its immutable revision. It contains
 model/domain summaries, process coverage, uncertainty and specification
-sensitivity. Raw trajectories, full audit reports and manuscripts remain private.
+sensitivity. Raw trajectories and full audit reports are available in the
+[public raw evidence archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/tree/6443ec08dcc608de3476884f600264ac297f28ef). The repository name retains `Private` for
+existing links; access is public. Manuscript drafts remain private.
 
 `python scripts/evaluate_task_outcomes031.py --help` describes the opt-in
 anchored scorer, whose default policy is 0.31.2. The separate default raw
@@ -72,7 +74,7 @@ This historical snapshot used the **0.28.0** default raw reader and the
 **0.30.0** opt-in task-outcome revision. [Complete version comparison](docs/LATEST_RESULTS_030.md)
 covers 23 declared models, 20 complete 141-case scores and 2,958 measured outcomes.
 [Public tables, sensitivity and analysis figures](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
-have a separate manifest. Original raw trajectories remain private.
+have a separate manifest. Raw evidence is now available through the archive linked above.
 The [analysis layer](docs/LITE141_ANALYSIS.md) uses a separate 12-model subset.
 
 ```bash
@@ -87,8 +89,8 @@ Lite141 suite/scenario hashes alongside the flattened runtime catalog. Two
 CityLearn signatures differ after public flattening; their new runtime trajectories
 cannot be substituted for original policy-bound runs. Restore
 the pinned upstream source files using setup before scoring. Local `.hl/` paths
-in historical reports describe private archive locations, not downloadable
-public trajectories. Current results measure recorded operational outcomes on
+in historical reports are original provenance locators; use the public archive
+index and immutable revision to locate downloadable evidence. Current results measure recorded operational outcomes on
 Lite-Dev; independent realtime diagnostics remain separate.
 
 ## What is evaluated

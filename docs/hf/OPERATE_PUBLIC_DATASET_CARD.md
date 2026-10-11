@@ -80,4 +80,6 @@ protocols and inputs, not the current 0.31.2 snapshot.
 
 These fixed-panel retrospective results are separate from pending Full formal
 provider evaluation. Frozen catalog and runtime payloads are unchanged. Original
-trajectory/provider/native evidence and manuscript drafts remain private.
+trajectory/provider/native evidence and full audit reports are available in the
+[public raw evidence archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/tree/6443ec08dcc608de3476884f600264ac297f28ef). Its repository name retains `Private` for
+existing links; access is public. Manuscript drafts remain private.

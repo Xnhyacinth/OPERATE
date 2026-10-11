@@ -116,13 +116,14 @@ exclusion evidence. Decisions are in
   [0.31.2 protocol](EVALUATION_0312.md) and [current results](LATEST_RESULTS_0312_SONNET.md).
 - Public code/data distribution is available. The dated retrospective aggregate
   companion is separate from the pending Full formal workflow. Complete raw
-  trajectories, recovery evidence, full reports and private audit archives remain
-  in private evidence archives. The [12-model offline analysis](LITE141_ANALYSIS.md)
+  trajectories, recovery evidence, full reports and audit archives are available
+  in the [public raw evidence archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/tree/6443ec08dcc608de3476884f600264ac297f28ef). The [12-model offline analysis](LITE141_ANALYSIS.md)
   is a companion subset, not a change to the main-table denominator.
 
-- Raw trajectories and full audit reports remain private. Public
-  [0.31.2 aggregate results](LATEST_RESULTS_0312_SONNET.md) retain
-  their fixed-panel retrospective scope.
+- The [public raw evidence archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/tree/6443ec08dcc608de3476884f600264ac297f28ef) contains the verified
+  18-group incremental publication. Its repository name retains `Private` for
+  existing links; access is public. [0.31.2 aggregate results](LATEST_RESULTS_0312_SONNET.md)
+  retain their fixed-panel retrospective scope.
 
 The following historical flags describe the optional Full/prospective formal
 workflow, not the separately declared Lite offline main-table gate:
