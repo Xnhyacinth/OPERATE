@@ -11,6 +11,7 @@ from openai import OpenAI
 from baselines.llm_agent import (
     LLMAgent,
     LLMConfig,
+    ProviderQuotaExhaustedError,
     ProviderRetryBudgetExhaustedError,
     RealtimeTurnCanceledError,
     classify_provider_error,
@@ -18,12 +19,17 @@ from baselines.llm_agent import (
 
 
 def _agent(client, **config):
-    agent = LLMAgent(LLMConfig(
-        model="fixture", interaction_mode="logical_persistent",
-        model_context_window_tokens=100_000, model_max_output_tokens=4096,
-        stream_chat_completions=True, provider_failure_policy="abort",
-        max_consecutive_provider_failures=1, **config,
-    ))
+    kwargs = {
+        "model": "fixture",
+        "interaction_mode": "logical_persistent",
+        "model_context_window_tokens": 100_000,
+        "model_max_output_tokens": 4096,
+        "stream_chat_completions": True,
+        "provider_failure_policy": "abort",
+        "max_consecutive_provider_failures": 1,
+    }
+    kwargs.update(config)
+    agent = LLMAgent(LLMConfig(**kwargs))
     agent._client = client
     agent._has_api_key = True
     agent._system_prompt = "offline fixture"
@@ -296,6 +302,41 @@ def test_recovery_window_exhaustion_defers_without_an_early_request(monkeypatch)
     assert not any(row["role"] == "assistant" for row in agent.get_session_ledger())
 
 
+def test_gemini_tool_schema_rejection_is_not_retried(monkeypatch):
+    monkeypatch.setattr("baselines.llm_agent.time.sleep", lambda _: None)
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        return httpx2.Response(
+            400,
+            json={
+                "error": {
+                    "message": (
+                        'Invalid JSON payload received. Unknown name "uniqueItems" '
+                        "at 'tools[0].function_declarations[2].parameters."
+                        "properties[1].value'"
+                    ),
+                    "type": "invalid_request_error",
+                    "code": 400,
+                }
+            },
+        )
+
+    with _client(respond) as client:
+        agent = _agent(
+            client,
+            stream_chat_completions=False,
+            max_consecutive_provider_failures=0,
+            provider_retry_max_attempts=6,
+        )
+        with pytest.raises(Exception) as caught:
+            agent.act({"tick": 7}, agent._tool_specs)
+    assert classify_provider_error(caught.value) == "provider_tool_schema_error"
+    assert len(requests) == 1
+    assert agent.get_interaction_stats()["retry_attempts_total"] == 0
+
+
 def test_json_resume_state_continues_without_losing_history_or_request_ids():
     requests = []
 
@@ -369,3 +410,44 @@ def test_resume_snapshot_is_rejected_while_provider_request_is_in_flight():
     with _client(respond) as client:
         agent = _agent(client)
         agent.act({"tick": 0}, agent._tool_specs)
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_spending_budget_exhaustion_aborts_after_one_audited_wire_request(
+    monkeypatch, stream
+):
+    requests = []
+    sleeps = []
+    monkeypatch.setattr("baselines.llm_agent.time.sleep", sleeps.append)
+
+    def respond(request):
+        requests.append(request)
+        return httpx2.Response(
+            429,
+            json={
+                "error": {
+                    "message": "Budget has been exceeded! Current cost: 608.1736, Max budget: 600.0",
+                    "type": "budget_exceeded",
+                    "code": None,
+                }
+            },
+        )
+
+    with _client(respond) as client:
+        agent = _agent(
+            client, stream_chat_completions=stream, provider_retry_max_attempts=3
+        )
+        with pytest.raises(ProviderQuotaExhaustedError) as caught:
+            agent.act({"tick": 7}, agent._tool_specs)
+    assert classify_provider_error(caught.value) == "provider_quota_exhausted"
+    assert caught.value.reset_at is None
+    assert len(requests) == 1 and sleeps == []
+    stats = agent.get_interaction_stats()
+    assert stats["retry_attempts_total"] == 0
+    assert stats["ticks_wait_fallback"] == 0
+    assert len(stats["provider_request_records"]) == 1
+    assert len(stats["provider_response_records"]) == 1
+    assert (
+        stats["provider_response_records"][0]["response"]["error_reason"]
+        == "provider_quota_exhausted"
+    )

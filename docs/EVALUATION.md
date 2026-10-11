@@ -39,7 +39,7 @@ the old token-clock feedback defect; new scoring does not certify corrected
 historical interaction or a formal current-runtime run.
 
 The historical task-based offline scorer is
-[0.25 native-outcome quality](EVALUATION_025.md), revision
+0.25 native-outcome quality, revision
 `source_grounded_native_outcome.v3`. It scores already authenticated trajectories
 from settled native losses and source-derived scales, with fixed weights across
 domains, task families, physical sources and cases. It requires no acceptance
@@ -61,7 +61,7 @@ separately scored extension. The Lite panel was selected using development-model
 outcomes; its rankings are fixed-panel retrospective comparisons, not an
 unbiased held-out estimate.
 Historical `atan` utility and hierarchical weighting remain diagnostics;
-[0.24 paired comparisons](EVALUATION_024.md) remain auxiliary.
+0.24 paired comparisons remain auxiliary.
 The offline path executes no model, simulator, solver or new reference policy.
 
 The optional 769-row, 502-physical-source Core is data/code ready for its
@@ -313,7 +313,7 @@ per-dimension opportunity denominator and success rate remain unavailable.
 Process/resource columns use the same shared cells and expose measured counts;
 provider latency sums are not episode wall time or monetary cost.
 For version selection and campaign gates, see
-[the evaluation hardening decision](research/2026-09-19-evaluation-hardening.md).
+the historical evaluation hardening decision.
 
 ## Causal agency checks
 

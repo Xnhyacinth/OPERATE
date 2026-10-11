@@ -315,3 +315,54 @@ def test_malformed_bound_audit_is_reported_without_raising(tmp_path, malformatio
     audit = build_recovery_audit([], None, row, tmp_path, "hy3-ioa")
     assert audit["closed"] is False
     assert audit["totals"]["request_attempts"] is None
+
+
+@pytest.mark.parametrize("error_type", ["ImportError", "ModuleNotFoundError"])
+def test_importerror_prior_attempt_is_recoverable(tmp_path, error_type):
+    from runner.recovery_audit import build_recovery_audit
+
+    old = _row(tmp_path / "cell.stale-t1", "old", ["failed"], 0)
+    old.update(
+        error_type=error_type,
+        error_cause_type=None,
+        termination_category="harness_error",
+    )
+    current = _row(tmp_path / "cell", "new", ["success"] * 4, 0)
+    audit = build_recovery_audit([], old, current, tmp_path, "hy3-ioa")
+    assert audit["closed"] is True
+    assert audit["eligible"] is True
+
+
+@pytest.mark.parametrize("prefix", [False, True])
+def test_relative_bindings_resolve_within_batch_without_cwd(
+    tmp_path, monkeypatch, prefix
+):
+    from runner.recovery_audit import build_recovery_audit, validate_recovery_audit
+
+    root = tmp_path / "repo" / "batch_results" / "run"
+    row = _row(root / "cell", "first", ["success"], 0)
+    base = tmp_path / "repo" if prefix else root
+    row["provider_audit_artifact"]["path"] = str(
+        Path(row["provider_audit_artifact"]["path"]).relative_to(base)
+    )
+    monkeypatch.chdir(tmp_path)
+    audit = build_recovery_audit(
+        [], None, row, root, "hy3-ioa", expected_trajectory_dir=root / "cell"
+    )
+    assert audit["closed"] is True
+    assert audit["eligible"] is True
+    row["recovery_audit"] = audit
+    assert validate_recovery_audit(row, root, root / "cell") == []
+
+
+def test_relative_audit_path_cannot_escape_batch(tmp_path):
+    from runner.recovery_audit import build_recovery_audit
+
+    root = tmp_path / "run"
+    row = _row(tmp_path / "other" / "cell", "first", ["success"], 0)
+    row["provider_audit_artifact"]["path"] = "../other/cell/cell.provider_audit.jsonl"
+    audit = build_recovery_audit(
+        [], None, row, root, "hy3-ioa", expected_trajectory_dir=root / "cell"
+    )
+    assert not audit["closed"]
+    assert "attempt_0:provider_audit_path_outside_batch" in audit["reasons"]

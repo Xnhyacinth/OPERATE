@@ -1,6 +1,8 @@
 # OPERATE documentation
 
 - [Current benchmark](CURRENT_RELEASE.md)
+- [Current 0.31.2 results, including Sonnet completion](LATEST_RESULTS_0312_SONNET.md)
+- [0.31.2 reference-anchored scoring](EVALUATION_0312.md)
 - [Formal evaluation](FORMAL_EVALUATION.md)
 - [Provider route bindings](provider_route_bindings.json)
 - [Incremental validation policy](VALIDATION_POLICY.md)
@@ -18,7 +20,7 @@ maintainer namespaces and qualification ledgers live in the private archive,
 not in this checkout.
 
 - [Default raw scoring: 0.28](EVALUATION_028.md)
-- [Latest result comparison: 0.25–0.30](LATEST_RESULTS_030.md)
+- [Historical result comparison: 0.25–0.30](LATEST_RESULTS_030.md)
 - [Offline behavior/usage analysis](LITE141_ANALYSIS.md)
 
 The offline scorer additionally carries its immutable Lite141 source contracts; runtime catalog membership remains defined by benchmark/.

@@ -42,10 +42,34 @@ when only code changes, while recording each attempt's actual implementation.
 Formal Full logical/realtime provider runs and result publication remain pending.
 Lite retrospective results are available below.
 
-## Lite141 recorded outcomes (2026-10-08)
+## Current Lite141 anchored results (2026-10-11)
 
-The default raw-trajectory reader is **0.28.0**; **0.30.0** is the latest opt-in
-task-outcome revision. [Complete version comparison](docs/LATEST_RESULTS_030.md)
+The [0.31.2 Sonnet-complete snapshot](docs/LATEST_RESULTS_0312_SONNET.md)
+contains 23 declared deployments, 20 complete 141-case scores and 2,954
+measured outcomes out of 3,243 targets. HY4 Preview scores 49.04; Sonnet 5.5
+now has all seven corrected driving measurements and scores 32.08 (point
+rank 9/20). Point ranks are not a statistically resolved total order.
+
+The [reference-anchored protocol](docs/EVALUATION_0312.md) uses a [-100, 100]
+main score with full measured service required to reach 100 wherever service
+applies. Cost gain above the reference remains a separate diagnostic.
+Raw evidence has been reauthenticated; formal-run, same-run merge and held-out
+certification remain false. Missing outcomes retain bounds and no complete rank.
+
+The [public aggregate companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/61b30ab53103595228bf2f4098d2217dab040306/results/lite141_20261011)
+has been published and verified at its immutable revision. It contains
+model/domain summaries, process coverage, uncertainty and specification
+sensitivity. Raw trajectories, full audit reports and manuscripts remain private.
+
+`python scripts/evaluate_task_outcomes031.py --help` describes the opt-in
+anchored scorer, whose default policy is 0.31.2. The separate default raw
+reader remains 0.28.0; original policy-bound inputs and historical results are
+preserved. Scoring uses recorded artifacts without provider calls or native replay.
+
+## Historical Lite141 recorded outcomes (2026-10-08)
+
+This historical snapshot used the **0.28.0** default raw reader and the
+**0.30.0** opt-in task-outcome revision. [Complete version comparison](docs/LATEST_RESULTS_030.md)
 covers 23 declared models, 20 complete 141-case scores and 2,958 measured outcomes.
 [Public tables, sensitivity and analysis figures](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
 have a separate manifest. Original raw trajectories remain private.

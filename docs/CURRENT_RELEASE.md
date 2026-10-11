@@ -102,10 +102,18 @@ exclusion evidence. Decisions are in
   [the main-table audit](EVALUATION_026_MAIN_TABLE.md).
 - Lite selection used development-model outcomes. The main table is a declared
   fixed-panel retrospective comparison, not an unbiased held-out test.
-- Latest opt-in outcome revision: 0.30.0, with the same 23 declared models,
+- Historical opt-in outcome revision: 0.30.0, with the same 23 declared models,
   20 complete scores and 2,958 determined outcomes. It corrects LV/CIGRE
   source-population exposure and driving recovery semantics; the default reader
   remains 0.28.0. See [latest results and historical comparison](LATEST_RESULTS_030.md).
+- Current opt-in reference-anchored revision: 0.31.2 (`lite141_0312.json`).
+  It fixes the full-service threshold with a continuous [-100,100] main score,
+  keeps excess cost improvement diagnostic, and preserves all 141 anchors and
+  equal-domain/equal-case weights. Raw evidence has been reauthenticated;
+  20 deployments have complete fixed-panel scores after the seven-case Sonnet
+  completion. Cross-execution substitutions
+  remain retrospective and do not certify a same-run formal cohort. See
+  [0.31.2 protocol](EVALUATION_0312.md) and [current results](LATEST_RESULTS_0312_SONNET.md).
 - Public code/data distribution is available. The dated retrospective aggregate
   companion is separate from the pending Full formal workflow. Complete raw
   trajectories, recovery evidence, full reports and private audit archives remain

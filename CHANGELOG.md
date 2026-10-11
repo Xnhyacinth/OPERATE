@@ -1,5 +1,19 @@
 # Updates
 
+## 2026-10-11
+
+- Add the opt-in 0.31.2 reference-anchored scorer and immutable policies.
+  Its main score is bounded by [-100, 100]; diagnostic cost gain remains
+  available above 100. The default raw trajectory reader stays at 0.28.0.
+- Add the Sonnet-complete retrospective table: 20 of 23 declared deployments
+  have all 141 measurements, with 2,954 determined outcomes across 3,243 targets.
+  Raw reauthentication does not certify a same-run formal cohort.
+- Publish source-cluster uncertainty and specification sensitivity, and retain
+  explicit process applicability and missingness. Original raw trajectories
+  and full private audit reports are not part of this snapshot.
+- Include recovery-audit path validation and offline regression tests.
+  Historical result snapshots and policy identities remain unchanged.
+
 ## 2026-10-08
 
 - Synchronize current runtime code, default 0.28 raw scorer, opt-in 0.30 task corrections and 0.29.1 reporting.

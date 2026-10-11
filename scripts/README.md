@@ -18,3 +18,14 @@ this public tree.
 Quote `ranking.primary_score` for wait-relative ranking. Invalid
 protocol still advances the world and is counted separately from a
 chosen `wait`.
+
+## Current anchored scoring
+
+`scripts/evaluate_task_outcomes031.py` is the opt-in anchored entrypoint and
+uses `evaluation/policies/lite141_0312.json` by default. The separate default
+raw reader, `scripts/evaluate_trajectories.py`, remains at 0.28.0. See the
+[protocol](../docs/EVALUATION_0312.md) and
+[current 20-deployment snapshot](../docs/LATEST_RESULTS_0312_SONNET.md).
+`scripts/build_reference_anchors031.py` compiles new anchors from recorded
+reference episodes; neither offline scoring nor anchor compilation calls a
+provider or replays a native episode. Existing policies remain immutable.

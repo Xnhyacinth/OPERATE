@@ -59,12 +59,24 @@ Formal provider result publication remains pending.
 
 ## Lite141 retrospective result companion
 
-Default offline scoring is `0.28.0`; the latest opt-in task-outcome revision
-is `0.30.0`. The [dated companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
-contains the 0.25–0.30 comparison, domain summaries, deletion sensitivity and
-the separate 12-model analysis figures with Source Data. The main table declares
-23 models, 20 complete 141-case scores and 2,958 measured Q values out of 3,243
-fixed targets. Missing evidence remains unknown and unranked.
+The default raw reader remains `0.28.0`. The current opt-in reference-anchored
+scorer is `0.31.2`, also the default policy of its separate anchored entrypoint.
+The 2026-10-11 Sonnet-complete snapshot declares 23 deployments: 20 have all
+141 measurements, with 2,954 determined outcomes out of 3,243 fixed targets.
+Sonnet scores 32.08 (point rank 9/20). Missing outcomes stay unknown and unranked.
+Source-cluster intervals describe task sampling, not repeated-run variation;
+complete coverage does not imply statistically distinct adjacent ranks.
+
+The [2026-10-11 aggregate companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/61b30ab53103595228bf2f4098d2217dab040306/results/lite141_20261011)
+is published and verified at its immutable revision. It reports the fixed-panel retrospective
+comparison after raw reauthentication. Cross-execution substitutions do not
+certify a same-run formal cohort or held-out model-capability ranking.
+
+The [2026-10-08 companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
+remains a historical snapshot: it contains the 0.25–0.30 comparison, domain
+summaries, deletion sensitivity and the separate 12-model analysis figures
+with Source Data. Its 2,958 measured Q values belong to those historical
+protocols and inputs, not the current 0.31.2 snapshot.
 
 These fixed-panel retrospective results are separate from pending Full formal
 provider evaluation. Frozen catalog and runtime payloads are unchanged. Original

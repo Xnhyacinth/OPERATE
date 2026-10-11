@@ -243,3 +243,39 @@ def test_nonfinite_native_cost_remains_invalid_after_export(tmp_path):
     restored = json.loads(path.read_text())
     assert restored['actual_cost'] == {'__nonfinite_float__': 'nan'}
     assert not _valid(restored)
+
+
+def test_citylearn_tariff_grid_runs_labelled_configs_on_citylearn_rows_only(tmp_path, monkeypatch):
+    import hashlib
+    import json
+    import scripts.calibrate_native_quality_references as module
+    from baselines.citylearn_tariff_reference import GRID
+
+    monkeypatch.setattr(module, 'ROOT', tmp_path)
+    monkeypatch.setattr(module, 'implementation_identity', lambda: {'evaluation_runtime_sha256': 'same'})
+    suite = tmp_path / 'suite.json'
+    suite.write_text(json.dumps({'scenarios': [
+        {'scenario_signature': 'city', 'seed': 2022, 'backend_kind': 'citylearn'},
+        {'scenario_signature': 'grid', 'seed': 42, 'backend_kind': 'pyvrp_cvrp'},
+    ]}))
+    calls = []
+
+    def fake_run(row, policy, output, timeout, agent_kwargs=None):
+        calls.append((row['scenario_signature'], policy, agent_kwargs))
+        output.mkdir(parents=True)
+        path = output / 'episode.json'
+        path.write_text(json.dumps({'scenario_signature': row['scenario_signature'],
+                                    'seed': row['seed'], 'agent_name': policy,
+                                    'ground_truth_summary': {'cost_components': {'x': 1}}}))
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        return {'status': 'ok', 'episode_path': str(path.relative_to(tmp_path)),
+                'episode_sha256': digest,
+                'artifacts': [{'path': str(path.relative_to(tmp_path)), 'sha256': digest}]}
+
+    monkeypatch.setattr(module, 'run_reference', fake_run)
+    report = module.calibrate(suite, tmp_path / '.hl' / 'grid', citylearn_tariff_grid=True)
+    assert {c[0] for c in calls} == {'city'}
+    assert len(calls) == 2 * len(GRID)
+    assert all(policy == 'citylearn_tariff_reference' and kwargs for _, policy, kwargs in calls)
+    labels = set(report['results'][0]['determinism'])
+    assert len(labels) == len(GRID) and all(label.startswith('citylearn_tariff_reference@') for label in labels)

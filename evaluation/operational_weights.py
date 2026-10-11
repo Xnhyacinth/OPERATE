@@ -15,6 +15,50 @@ from evaluation.mission_contracts import _digest, _read_locked
 
 VERSION = "operational_task_weights.v2"
 LEGACY_VERSION = "operational_task_weights.v1"
+DEFAULT_WEIGHT_POLICY = "equal_domain_family_physical_source_then_case"
+# Each policy splits mass equally across the listed levels, then across cases.
+WEIGHT_POLICIES = {
+    DEFAULT_WEIGHT_POLICY: ("domain", "task_family", "physical_source"),
+    "equal_domain_physical_source_then_case": ("domain", "physical_source"),
+    "equal_domain_then_case": ("domain",),
+    "uniform_case": (),
+}
+
+
+def hierarchical_case_weights(
+    cases: dict[tuple[str, int], dict], weight_policy: str
+) -> dict[tuple[str, int], float]:
+    """Equal mass per node at each declared level, then per case.
+
+    Rows carry ``domain``, ``task_family`` and ``physical_source_cluster``; a
+    missing physical identity is its own source. Weights are 1/product of
+    integer branch counts, so the default reproduces frozen manifests exactly.
+    """
+    if weight_policy not in WEIGHT_POLICIES:
+        raise ValueError("unsupported_weight_policy")
+    levels = WEIGHT_POLICIES[weight_policy]
+
+    def node(key, row, level):
+        if level == "physical_source":
+            source = row["physical_source_cluster"]
+            return source if source is not None else ("unidentified_case", *key)
+        return row[level]
+
+    paths = {
+        key: tuple(node(key, row, lv) for lv in levels) for key, row in cases.items()
+    }
+    children = Counter()
+    for depth in range(len(levels)):
+        for branch in {path[: depth + 1] for path in paths.values()}:
+            children[branch[:depth]] += 1
+    leaves = Counter(paths.values())
+    weights = {}
+    for key, path in paths.items():
+        denominator = leaves[path]
+        for depth in range(len(levels)):
+            denominator *= children[path[:depth]]
+        weights[key] = 1 / denominator
+    return weights
 
 
 def _key(row: dict) -> tuple[str, int]:
@@ -36,8 +80,15 @@ def _unique(rows: list[dict]) -> dict[tuple[str, int], dict]:
     return result
 
 
-def compile_task_weights(suite_path: str | Path, *, root: str | Path = ".") -> dict:
+def compile_task_weights(
+    suite_path: str | Path,
+    *,
+    root: str | Path = ".",
+    weight_policy: str = DEFAULT_WEIGHT_POLICY,
+) -> dict:
     """Compile source-authenticated weights without reading any model outcome."""
+    if weight_policy not in WEIGHT_POLICIES:
+        raise ValueError("unsupported_weight_policy")
     root = Path(root)
     path = Path(suite_path)
     if not path.is_absolute():
@@ -56,18 +107,17 @@ def compile_task_weights(suite_path: str | Path, *, root: str | Path = ".") -> d
         if not isinstance(family, str) or not family.strip():
             raise ValueError("missing_weight_task_family")
         sources[_key(row)] = _physical_source_identity(row)
-    domains = {row["domain"] for row in rows}
-    families = {(row["domain"], row["family"]) for row in rows}
-    source_groups = {}
-    for row in rows:
-        key = _key(row)
-        source = (
-            sources[key] if sources[key] is not None else ("unidentified_case", *key)
-        )
-        source_groups[key] = (row["domain"], row["family"], source)
-    family_counts = Counter(domain for domain, _ in families)
-    source_counts = Counter(group[:2] for group in set(source_groups.values()))
-    case_counts = Counter(source_groups.values())
+    weights_by_key = hierarchical_case_weights(
+        {
+            _key(row): {
+                "domain": row["domain"],
+                "task_family": row["family"],
+                "physical_source_cluster": sources[_key(row)],
+            }
+            for row in rows
+        },
+        weight_policy,
+    )
     cases = []
     for row in sorted(rows, key=_key):
         scenario = yaml.safe_load(
@@ -95,14 +145,8 @@ def compile_task_weights(suite_path: str | Path, *, root: str | Path = ".") -> d
                 "backend_kind": row["backend_kind"],
                 "task_family": row.get("family", scenario.get("family")),
                 "physical_source_cluster": sources[_key(row)],
-                "score_weight": 1
-                / (
-                    len(domains)
-                    * family_counts[row["domain"]]
-                    * source_counts[(row["domain"], row["family"])]
-                    * case_counts[source_groups[_key(row)]]
-                ),
-                "weight_rationale": "equal_domain_family_physical_source_then_case",
+                "score_weight": weights_by_key[_key(row)],
+                "weight_rationale": weight_policy,
             }
         )
     weights = [row["score_weight"] for row in cases]
@@ -111,7 +155,7 @@ def compile_task_weights(suite_path: str | Path, *, root: str | Path = ".") -> d
         "evaluation_version": "0.25.0",
         "suite_sha256": hashlib.sha256(raw).hexdigest(),
         "cases": cases,
-        "weight_policy": "equal_domain_family_physical_source_then_case",
+        "weight_policy": weight_policy,
         "model_outcomes_used": False,
         "concentration": {
             "maximum_weight": max(weights),
@@ -154,30 +198,9 @@ def validate_task_weights(
     default_expected = {}
     if (
         manifest["schema_version"] == VERSION
-        and manifest.get("weight_policy")
-        == "equal_domain_family_physical_source_then_case"
+        and manifest.get("weight_policy") in WEIGHT_POLICIES
     ):
-        domains = {row["domain"] for row in cases.values()}
-        families = {(row["domain"], row["task_family"]) for row in cases.values()}
-        groups = {}
-        for key, row in cases.items():
-            source = row["physical_source_cluster"]
-            if source is None:
-                source = ("unidentified_case", *key)
-            groups[key] = (row["domain"], row["task_family"], source)
-        family_counts = Counter(domain for domain, _ in families)
-        source_counts = Counter(group[:2] for group in set(groups.values()))
-        case_counts = Counter(groups.values())
-        default_expected = {
-            key: 1
-            / (
-                len(domains)
-                * family_counts[row["domain"]]
-                * source_counts[(row["domain"], row["task_family"])]
-                * case_counts[groups[key]]
-            )
-            for key, row in cases.items()
-        }
+        default_expected = hierarchical_case_weights(cases, manifest["weight_policy"])
     weights = {}
     for key, row in cases.items():
         contract = expected[key]

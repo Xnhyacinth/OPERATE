@@ -53,6 +53,8 @@ _RECOVERABLE_ERRORS = {
     "InternalServerError",
     "ProviderRetryBudgetExhaustedError",
     "ProviderQuotaExhaustedError",
+    "ImportError",
+    "ModuleNotFoundError",
 }
 _BASIS_FIELDS = (
     "execution_attempt_id",
@@ -145,7 +147,19 @@ def _entry(row: dict[str, Any]) -> dict[str, Any]:
 
 def _resolve(raw: str | Path, root: Path) -> Path:
     path = Path(raw)
-    return (path if path.is_absolute() else root / path).resolve()
+    if path.is_absolute():
+        return path.resolve()
+    local = (root / path).resolve()
+    if local.exists():
+        return local
+    # Recorded paths may be batch-relative or repository-relative. Resolve a
+    # repository prefix without relying on cwd; the result must stay in this
+    # batch and the caller still checks its exact cell and artifact hash.
+    for parent in root.parents:
+        candidate = (parent / path).resolve()
+        if candidate.is_relative_to(root) and candidate.exists():
+            return candidate
+    return local
 
 
 def _read_audit(
@@ -369,8 +383,16 @@ def _evaluate(
                     entry["error_type"] in _RECOVERABLE_ERRORS
                     or entry["error_cause_type"] in _RECOVERABLE_ERRORS
                 )
-                or entry["termination_category"]
-                in {"harness_error", "model_failure", "provider_configuration_error"}
+                or (
+                    entry["termination_category"]
+                    in {
+                        "harness_error",
+                        "model_failure",
+                        "provider_configuration_error",
+                    }
+                    and entry["error_type"]
+                    not in {"ImportError", "ModuleNotFoundError"}
+                )
             ):
                 policy_reasons.append(f"attempt_{index}:nonrecoverable_attempt")
         elif index < len(entries) - 1:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .base import BaselineAgent
+from .citylearn_tariff_reference import CityLearnTariffReferenceAgent
 from .greedy_heuristic import GreedyHeuristicAgent
 from .llm_agent import LLMAgent, LLMConfig
 from .operational_agency_positive_control import OperationalAgencyPositiveControlAgent
@@ -17,6 +18,7 @@ REGISTRY: dict[str, type[BaselineAgent]] = {
     RandomAgent.name: RandomAgent,
     GreedyHeuristicAgent.name: GreedyHeuristicAgent,
     OracleOfflineAgent.name: OracleOfflineAgent,
+    CityLearnTariffReferenceAgent.name: CityLearnTariffReferenceAgent,
     OperationalAgencyPositiveControlAgent.name: OperationalAgencyPositiveControlAgent,
     LLMAgent.name: LLMAgent,
     ReActLLMAgent.name: ReActLLMAgent,
@@ -32,6 +34,7 @@ def make_agent(name: str, **kwargs) -> BaselineAgent:
 
 __all__ = [
     "BaselineAgent",
+    "CityLearnTariffReferenceAgent",
     "GreedyHeuristicAgent",
     "LLMAgent",
     "LLMConfig",

@@ -179,10 +179,7 @@ def resolve_formal_manifest_slice(
     if manifest_path.is_symlink():
         raise ValueError("formal manifest must be the canonical manifest.json")
     manifest_path = manifest_path.resolve()
-    if (
-        manifest_path.name != "manifest.json"
-        or not manifest_path.is_file()
-    ):
+    if manifest_path.name != "manifest.json" or not manifest_path.is_file():
         raise ValueError("formal manifest must be the canonical manifest.json")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     release_root = (repo_root / "release").resolve()
@@ -293,9 +290,9 @@ def resolve_formal_manifest_slice(
             portable=True,
             artifact_root=repo_root,
         )
-        if report.get("ok") is not True or not (
-            report.get("checks") or {}
-        ).get("agentic_formal_runtime_bundle_valid"):
+        if report.get("ok") is not True or not (report.get("checks") or {}).get(
+            "agentic_formal_runtime_bundle_valid"
+        ):
             raise ValueError("formal runtime bundle integrity mismatch")
         # Qualification artifacts retain their original implementation identity.
         # A new run binds the current tree separately in its treatment hash.
@@ -327,17 +324,14 @@ def resolve_formal_manifest_slice(
             source_suite_sha256=declared_source_hash,
             binding=manifest.get("backend_runtime_closure") or {},
         )
-        release_pipeline_hash = str(
-            manifest.get("core_release_pipeline_sha256") or ""
-        )
+        release_pipeline_hash = str(manifest.get("core_release_pipeline_sha256") or "")
         release_id = str(manifest.get("release_id") or "")
         release_tooling_hash = str(manifest.get("release_tooling_sha256") or "")
         if not (
             release_id == release_dir.name
             and re.fullmatch(r"[0-9a-f]{64}", release_pipeline_hash)
             and re.fullmatch(r"[0-9a-f]{64}", release_tooling_hash)
-            and readiness.get("core_release_pipeline_sha256")
-            == release_pipeline_hash
+            and readiness.get("core_release_pipeline_sha256") == release_pipeline_hash
             and readiness.get("release_tooling_sha256") == release_tooling_hash
             and replay_binding.get("core_release_pipeline_sha256")
             == release_pipeline_hash
@@ -368,9 +362,7 @@ def resolve_formal_manifest_slice(
             "formal_runtime_bundle_sha256": str(bundle_binding.get("sha256") or ""),
             "formal_core_suite_sha256": str(core_binding.get("sha256") or ""),
             "formal_source_suite_sha256": declared_source_hash,
-            "formal_public_evidence_sha256": str(
-                evidence_binding.get("sha256") or ""
-            ),
+            "formal_public_evidence_sha256": str(evidence_binding.get("sha256") or ""),
             "formal_public_evidence_binding_root_sha256": str(
                 evidence_binding.get("binding_root_sha256") or ""
             ),
@@ -717,9 +709,7 @@ def autonomy_diagnostics_for_row(row: dict[str, Any]) -> dict[str, Any]:
     # derived diagnostics are published top-level. Accept either placement,
     # matching `autonomy_diagnostics_from_rows`.
     return {
-        field: _autonomy_diagnostic_value(
-            autonomy.get(field, trajectory.get(field))
-        )
+        field: _autonomy_diagnostic_value(autonomy.get(field, trajectory.get(field)))
         for field in AUTONOMY_DIAGNOSTIC_FIELDS
     }
 
@@ -742,7 +732,8 @@ def _autonomy_diagnostic_value(value: Any) -> int | float | None:
 
 
 def _provider_failure_profile(
-    *, formal_run: bool,
+    *,
+    formal_run: bool,
     lite_lineage: bool = False,
     provider_failure_policy: str | None = None,
     max_consecutive_provider_failures: int | None = None,
@@ -755,7 +746,9 @@ def _provider_failure_profile(
         else (1 if fail_closed else 5)
     )
     if policy not in {"abort", "compat_fallback"} or threshold < 1:
-        raise ValueError("provider failure policy requires a positive failure threshold")
+        raise ValueError(
+            "provider failure policy requires a positive failure threshold"
+        )
     if fail_closed and (policy != "abort" or threshold != 1):
         raise ValueError(
             "formal runs and OPERATE-Lite lineage require provider failure "
@@ -768,7 +761,10 @@ def _provider_failure_profile(
 
 
 def _lite_dirty_tree_execution_error(
-    *, dry_run: bool, finalize_only: bool, git_metadata: dict[str, Any],
+    *,
+    dry_run: bool,
+    finalize_only: bool,
+    git_metadata: dict[str, Any],
 ) -> str | None:
     if dry_run or finalize_only:
         return None
@@ -900,7 +896,9 @@ def _llm_config_from_dict(d: dict[str, Any]) -> LLMConfig:
         token_count_version=str(d.get("token_count_version", TOKEN_COUNT_VERSION_V1)),
         timeout_s=float(d.get("timeout_s", 60.0)),
         provider_retry_max_attempts=int(d.get("provider_retry_max_attempts", 5)),
-        provider_retry_max_elapsed_s=float(d.get("provider_retry_max_elapsed_s", 1800.0)),
+        provider_retry_max_elapsed_s=float(
+            d.get("provider_retry_max_elapsed_s", 1800.0)
+        ),
         max_consecutive_provider_failures=int(
             d.get("max_consecutive_provider_failures", 5)
         ),
@@ -929,8 +927,7 @@ def _llm_config_from_dict(d: dict[str, Any]) -> LLMConfig:
             else None
         ),
         accepted_response_models=tuple(
-            str(alias)
-            for alias in (d.get("accepted_response_models") or [])
+            str(alias) for alias in (d.get("accepted_response_models") or [])
         ),
         reasoning_effort=(
             str(d["reasoning_effort"])
@@ -1360,9 +1357,16 @@ def _agent_treatment_identity(cfg: LLMConfig) -> dict[str, Any]:
             else {}
         ),
         "reasoning_effort": cfg.reasoning_effort,
-        **({"reasoning_effort_format": cfg.reasoning_effort_format}
-           if cfg.reasoning_effort_format != "auto" else {}),
-        **({"thinking_type": cfg.thinking_type} if cfg.thinking_type is not None else {}),
+        **(
+            {"reasoning_effort_format": cfg.reasoning_effort_format}
+            if cfg.reasoning_effort_format != "auto"
+            else {}
+        ),
+        **(
+            {"thinking_type": cfg.thinking_type}
+            if cfg.thinking_type is not None
+            else {}
+        ),
         "protocol_repair_max_tokens": cfg.protocol_repair_max_tokens,
         "allow_insecure_http": cfg.allow_insecure_http,
         "extra_header_names": sorted(str(key) for key in (cfg.extra_headers or {})),
@@ -1437,8 +1441,12 @@ def _batch_llm_config(
         timeout_s=float(
             getattr(args, "provider_timeout_s", None) or (150.0 if persistent else 60.0)
         ),
-        provider_retry_max_attempts=int(getattr(args, "provider_retry_max_attempts", 5)),
-        provider_retry_max_elapsed_s=float(getattr(args, "provider_retry_max_elapsed_s", 1800.0)),
+        provider_retry_max_attempts=int(
+            getattr(args, "provider_retry_max_attempts", 5)
+        ),
+        provider_retry_max_elapsed_s=float(
+            getattr(args, "provider_retry_max_elapsed_s", 1800.0)
+        ),
         **_provider_failure_profile(
             formal_run=bool(getattr(args, "formal_run", False)),
             lite_lineage=getattr(args, "lite_lineage_suite", None) is not None,
@@ -1471,9 +1479,7 @@ def _batch_llm_config(
         # that require an executable action.
         tool_choice="auto",
         tool_choice_supported=frozen_model_tool_choice_support(model),
-        accepted_response_models=tuple(
-            sorted(frozen_model_response_aliases(model))
-        ),
+        accepted_response_models=tuple(sorted(frozen_model_response_aliases(model))),
         reasoning_effort=getattr(args, "reasoning_effort", None),
         reasoning_effort_format=getattr(args, "reasoning_effort_format", "auto"),
         thinking_type=getattr(args, "thinking_type", None),
@@ -1662,7 +1668,9 @@ def _run_semantics_fingerprint(
     episode_checkpoint: bool = False,
     context_ablation_mode: str = "none",
 ) -> str:
-    ablation = "" if context_ablation_mode == "none" else f":context-{context_ablation_mode}"
+    ablation = (
+        "" if context_ablation_mode == "none" else f":context-{context_ablation_mode}"
+    )
     recovery = ":recovery-logical_episode_checkpoint_v1" if episode_checkpoint else ""
     output_budget = "" if max_tokens is None else f":max-tokens-{int(max_tokens)}"
     return (
@@ -1896,10 +1904,21 @@ def _run_config_treatment_compatibility_reasons(
         "agent_treatment_schema_version",
         *(meta_field for meta_field, _ in _FORMAL_RUNTIME_BINDING_FIELDS),
     )
-    if existing.get("implementation_policy") == requested.get("implementation_policy") == "provenance":
-        immutable_fields = tuple(field for field in immutable_fields if field not in {
-            "implementation_tree_sha256", "episode_timeout_s", "postprocessing_timeout_s",
-        })
+    if (
+        existing.get("implementation_policy")
+        == requested.get("implementation_policy")
+        == "provenance"
+    ):
+        immutable_fields = tuple(
+            field
+            for field in immutable_fields
+            if field
+            not in {
+                "implementation_tree_sha256",
+                "episode_timeout_s",
+                "postprocessing_timeout_s",
+            }
+        )
     if any(
         existing.get(field) != requested.get(field)
         for field in immutable_fields
@@ -2282,8 +2301,10 @@ def _no_resume_output_conflict(
     episodes_path: Path,
 ) -> bool:
     """Refuse a destructive restart over any initialized run namespace."""
-    return not resume and not finalize_only and (
-        existing_run_config is not None or episodes_path.exists()
+    return (
+        not resume
+        and not finalize_only
+        and (existing_run_config is not None or episodes_path.exists())
     )
 
 
@@ -2680,9 +2701,7 @@ def _suite_eligibility_binding(slice_name: str) -> dict[str, Any]:
             "source_artifact_sha256": hashlib.sha256(
                 artifact_path.read_bytes()
             ).hexdigest(),
-            "readiness_source_artifact": (
-                f"release/{release_id}/{source_name}"
-            ),
+            "readiness_source_artifact": (f"release/{release_id}/{source_name}"),
             "readiness_source_artifact_sha256": source_hash,
             "readiness_source_binding_valid": source_binding_valid,
             "readiness_artifact_sha256": hashlib.sha256(
@@ -2694,12 +2713,8 @@ def _suite_eligibility_binding(slice_name: str) -> dict[str, Any]:
                 "primary_leaderboard_formula_version"
             ),
             "primary_inference_version": artifact.get("primary_inference_version"),
-            "task_completion_input_unit": artifact.get(
-                "task_completion_input_unit"
-            ),
-            "task_completion_score_unit": artifact.get(
-                "task_completion_score_unit"
-            ),
+            "task_completion_input_unit": artifact.get("task_completion_input_unit"),
+            "task_completion_score_unit": artifact.get("task_completion_score_unit"),
             "weighted_equity_formula_version": artifact.get(
                 "weighted_equity_formula_version"
             ),
@@ -3023,24 +3038,23 @@ def _validate_protocol21_formal_run(
     if config.get("git_dirty") is not False:
         reasons.append("formal_git_tree_must_be_clean")
     rpm_limit = config.get("provider_rpm_limit")
-    if (
-        rpm_limit is not None
-        and (isinstance(rpm_limit, bool) or not isinstance(rpm_limit, int) or rpm_limit <= 0)
+    if rpm_limit is not None and (
+        isinstance(rpm_limit, bool) or not isinstance(rpm_limit, int) or rpm_limit <= 0
     ):
         reasons.append("formal_provider_rpm_limit_invalid")
     rpd_limit = config.get("provider_rpd_limit")
-    if (
-        rpd_limit is not None
-        and (isinstance(rpd_limit, bool) or not isinstance(rpd_limit, int) or rpd_limit <= 0)
+    if rpd_limit is not None and (
+        isinstance(rpd_limit, bool) or not isinstance(rpd_limit, int) or rpd_limit <= 0
     ):
         reasons.append("formal_provider_rpd_limit_invalid")
     quota_limit_enabled = any(
         isinstance(value, int) and not isinstance(value, bool) and value > 0
         for value in (rpm_limit, rpd_limit)
     )
-    if quota_limit_enabled and not str(
-        config.get("provider_rate_limit_scope") or ""
-    ).strip():
+    if (
+        quota_limit_enabled
+        and not str(config.get("provider_rate_limit_scope") or "").strip()
+    ):
         reasons.append("formal_provider_rate_limit_scope_required")
     if readiness.get("formal_evaluation_ready") is not True:
         reasons.append("formal_readiness_not_green")
@@ -3198,7 +3212,8 @@ def _recover_models_for_finalize(
 
 def _completed_ok_resume_index(
     rows: list[dict[str, Any]],
-    *, batch_root: Path | None = None,
+    *,
+    batch_root: Path | None = None,
 ) -> tuple[
     set[tuple[str, str, int]],
     set[tuple[str, str, int, str, str, str, str, str, str]],
@@ -3564,7 +3579,9 @@ def _persistent_session_eligibility_reasons(
 
 
 def _verified_terminal_model_failure(
-    row: dict[str, Any], *, batch_root: Path | None = None,
+    row: dict[str, Any],
+    *,
+    batch_root: Path | None = None,
 ) -> bool:
     """Admit a measured invalid reply, never an unobserved terminal warning.
 
@@ -3596,15 +3613,25 @@ def _verified_terminal_model_failure(
         ("provider_audit_artifact", "provider_audit", "provider_interaction_audit_v1"),
     ):
         if _trajectory_sidecar_eligibility_reasons(
-            row, summary_key=key, stem=stem, schema_version=schema,
-            require_nonempty=True, require_byte_count=key == "trajectory_artifact",
+            row,
+            summary_key=key,
+            stem=stem,
+            schema_version=schema,
+            require_nonempty=True,
+            require_byte_count=key == "trajectory_artifact",
             batch_root=batch_root,
         ):
             return False
         try:
-            loaded[key] = [json.loads(line) for line in resolve_batch_path(
-                summary[key]["path"], batch_root=batch_root,
-            ).read_text(encoding="utf-8").splitlines()]
+            loaded[key] = [
+                json.loads(line)
+                for line in resolve_batch_path(
+                    summary[key]["path"],
+                    batch_root=batch_root,
+                )
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
         except (OSError, UnicodeError, json.JSONDecodeError):
             return False
     try:
@@ -3632,7 +3659,8 @@ def _verified_terminal_model_failure(
         presented = envelope["presented_early_stop_warnings"]
         warnings = info["early_stop_warnings"]
         if not (
-            isinstance(presented, list) and presented
+            isinstance(presented, list)
+            and presented
             and all(isinstance(value, str) for value in presented)
             and presented == steps[-2]["info"]["early_stop_warnings"]
             and warnings == failure["terminal_warnings"]
@@ -3651,35 +3679,54 @@ def _verified_terminal_model_failure(
         observation = {
             **last["observation"],
             "__last_early_stop_warnings__": warnings,
-            "__last_realized_events__": [event for event in events if not event.get("hidden")],
+            "__last_realized_events__": [
+                event for event in events if not event.get("hidden")
+            ],
             "__last_forecast_updates__": info.get("forecast_updates") or {},
         }
         if _terminal_response_window_reasons(events) or _terminal_interrupt_reasons(
-            observation, answered_warnings=presented,
+            observation,
+            answered_warnings=presented,
         ):
             return False
         requests = envelope["provider_requests"]
         responses = envelope["provider_responses"]
         sequences = [request["sequence"] for request in requests]
         if not (
-            sequences and sequences == failure["provider_request_sequences"]
+            sequences
+            and sequences == failure["provider_request_sequences"]
             and len(set(sequences)) == len(sequences)
             and all(type(sequence) is int and sequence > 0 for sequence in sequences)
-            and responses and responses[-1]["response"]["status"] == "success"
+            and responses
+            and responses[-1]["response"]["status"] == "success"
             and responses[-1]["response"].get("decision_valid") is False
-            and all(response["response"]["status"] == "success" for response in responses)
+            and all(
+                response["response"]["status"] == "success" for response in responses
+            )
             and [response["request_sequence"] for response in responses] == sequences
         ):
             return False
         audit = loaded["provider_audit_artifact"]
-        for kind, records in (("provider_request", requests), ("provider_response", responses)):
+        for kind, records in (
+            ("provider_request", requests),
+            ("provider_response", responses),
+        ):
             for record in records:
-                matching = [item for item in audit
-                            if item.get("record_kind") == kind
-                            and item.get("sequence") == record["sequence"]]
-                if len(matching) != 1 or {
-                    key: value for key, value in matching[0].items() if key != "record_kind"
-                } != record:
+                matching = [
+                    item
+                    for item in audit
+                    if item.get("record_kind") == kind
+                    and item.get("sequence") == record["sequence"]
+                ]
+                if (
+                    len(matching) != 1
+                    or {
+                        key: value
+                        for key, value in matching[0].items()
+                        if key != "record_kind"
+                    }
+                    != record
+                ):
                     return False
     except (KeyError, TypeError, ValueError, AttributeError):
         return False
@@ -3707,41 +3754,69 @@ def _formal_row_eligibility(
     postprocessing = row.get("postprocessing_recovery")
     if postprocessing is not None:
         tree = row.get("implementation_tree_sha256")
-        if (not isinstance(postprocessing, dict) or postprocessing.get("diagnostic_only")
-                or postprocessing.get("same_contract_recovery") is not True
-                or postprocessing.get("legacy_context_reconstructed")
-                or not tree
-                or not isinstance(postprocessing.get("source_identity"), dict)
-                or not isinstance(postprocessing["source_identity"].get("implementation"), dict)
-                or not isinstance(postprocessing.get("recompute_identity"), dict)
-                or ((postprocessing.get("source_identity") or {}).get("implementation") or {}).get("implementation_tree_sha256") != tree
-                or (postprocessing.get("recompute_identity") or {}).get("implementation_tree_sha256") != tree):
+        if (
+            not isinstance(postprocessing, dict)
+            or postprocessing.get("diagnostic_only")
+            or postprocessing.get("same_contract_recovery") is not True
+            or postprocessing.get("legacy_context_reconstructed")
+            or not tree
+            or not isinstance(postprocessing.get("source_identity"), dict)
+            or not isinstance(
+                postprocessing["source_identity"].get("implementation"), dict
+            )
+            or not isinstance(postprocessing.get("recompute_identity"), dict)
+            or (
+                (postprocessing.get("source_identity") or {}).get("implementation")
+                or {}
+            ).get("implementation_tree_sha256")
+            != tree
+            or (postprocessing.get("recompute_identity") or {}).get(
+                "implementation_tree_sha256"
+            )
+            != tree
+        ):
             reasons.append("postprocessing_recovery_diagnostic_only")
         elif verify_artifact_bytes:
             try:
                 from evaluation.scoring_snapshot import decode_json
 
                 binding = row["postprocessing_recovery_artifact"]
-                raw = resolve_batch_path(binding["path"], batch_root=batch_root).read_bytes()
+                raw = resolve_batch_path(
+                    binding["path"], batch_root=batch_root
+                ).read_bytes()
                 repaired = decode_json(json.loads(raw))
-                if (hashlib.sha256(raw).hexdigest() != binding["sha256"]
-                        or len(raw) != binding["byte_count"]
-                        or repaired.get("same_contract_recovery") is not True
-                        or repaired.get("source_identity") != postprocessing["source_identity"]
-                        or repaired.get("recompute_identity") != postprocessing["recompute_identity"]
-                        or repaired["result"].get("score") != row.get("score")):
+                if (
+                    hashlib.sha256(raw).hexdigest() != binding["sha256"]
+                    or len(raw) != binding["byte_count"]
+                    or repaired.get("same_contract_recovery") is not True
+                    or repaired.get("source_identity")
+                    != postprocessing["source_identity"]
+                    or repaired.get("recompute_identity")
+                    != postprocessing["recompute_identity"]
+                    or repaired["result"].get("score") != row.get("score")
+                ):
                     reasons.append("postprocessing_recovery_artifact_mismatch")
             except (OSError, ValueError, KeyError, TypeError):
                 reasons.append("postprocessing_recovery_artifact_invalid")
     recovery = row.get("recovery_audit")
-    checkpoint = row.get("checkpoint_progress") or (row.get("trajectory_summary") or {}).get("checkpoint_progress")
+    checkpoint = row.get("checkpoint_progress") or (
+        row.get("trajectory_summary") or {}
+    ).get("checkpoint_progress")
     if recovery is not None or (checkpoint or {}).get("replayed_boundaries", 0):
         from runner.recovery_audit import validate_recovery_audit
 
         trajectory = (row.get("trajectory_summary") or {}).get("trajectory_path")
-        directory = resolve_batch_path(trajectory, batch_root=batch_root).parent if trajectory else None
+        directory = (
+            resolve_batch_path(trajectory, batch_root=batch_root).parent
+            if trajectory
+            else None
+        )
         audit_reasons = validate_recovery_audit(row, batch_root, directory)
-        if audit_reasons or not isinstance(recovery, dict) or not recovery.get("closed"):
+        if (
+            audit_reasons
+            or not isinstance(recovery, dict)
+            or not recovery.get("closed")
+        ):
             reasons.append("recovery_audit_unclosed")
         elif recovery.get("eligible") is not True:
             reasons.append("recovery_history_ineligible")
@@ -3792,8 +3867,7 @@ def _formal_row_eligibility(
         reasons.extend(_causal_response_contract_reasons(trajectory_summary))
         reasons.extend(
             _formal_primary_artifact_reasons(
-                row, verify_artifact_bytes=verify_artifact_bytes
-                , batch_root=batch_root
+                row, verify_artifact_bytes=verify_artifact_bytes, batch_root=batch_root
             )
         )
         if row.get("agent_treatment_sha256"):
@@ -4077,15 +4151,39 @@ def _retryable_infrastructure_row(row: dict[str, Any]) -> bool:
         return True
     if row.get("error_type") == "WorkerDeadlineError":
         return True
-    if row.get("termination_category") in {"harness_error", "model_failure", "provider_configuration_error"}:
+    if row.get("termination_category") == "infrastructure_error" or row.get(
+        "error_type"
+    ) in {"ImportError", "ModuleNotFoundError"}:
+        return True
+    if row.get("termination_category") in {
+        "harness_error",
+        "model_failure",
+        "provider_configuration_error",
+    }:
         return False
     transient_types = {
-        "APITimeoutError", "APIConnectionError", "TimeoutError", "ConnectTimeout",
-        "ReadTimeout", "ConnectTimeout", "WriteTimeout", "PoolTimeout", "ConnectError",
-        "ReadError", "WriteError", "CloseError", "RemoteProtocolError",
-        "ConnectionError", "RateLimitError", "InternalServerError", "ProviderRetryBudgetExhaustedError",
+        "APITimeoutError",
+        "APIConnectionError",
+        "TimeoutError",
+        "ConnectTimeout",
+        "ReadTimeout",
+        "ConnectTimeout",
+        "WriteTimeout",
+        "PoolTimeout",
+        "ConnectError",
+        "ReadError",
+        "WriteError",
+        "CloseError",
+        "RemoteProtocolError",
+        "ConnectionError",
+        "RateLimitError",
+        "InternalServerError",
+        "ProviderRetryBudgetExhaustedError",
     }
-    if any(str(row.get(key) or "") in transient_types for key in ("error_type", "error_cause_type")):
+    if any(
+        str(row.get(key) or "") in transient_types
+        for key in ("error_type", "error_cause_type")
+    ):
         return True
     http_status = row.get("error_http_status")
     if type(http_status) is int and (http_status == 429 or 500 <= http_status <= 599):
@@ -4103,15 +4201,19 @@ def _retryable_infrastructure_row(row: dict[str, Any]) -> bool:
     ):
         return False
     return isinstance(last, dict) and (
-        last.get("reason") in {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
+        last.get("reason")
+        in {"provider_rate_limit", "provider_server_error", "provider_transport_error"}
         or last.get("exc_type") in transient_types
     )
 
 
 def _terminal_attempt_key(row: dict[str, Any]) -> tuple[Any, ...] | None:
     _, strong = _row_resume_keys(row)
-    tree = ("provenance" if row.get("implementation_policy") == "provenance"
-            else row.get("implementation_tree_sha256"))
+    tree = (
+        "provenance"
+        if row.get("implementation_policy") == "provenance"
+        else row.get("implementation_tree_sha256")
+    )
     treatment = row.get("agent_treatment_sha256")
     if strong is None or not tree or not treatment:
         return None
@@ -4125,11 +4227,16 @@ class ResumeArtifactIntegrityError(ValueError):
         self.failures = failures
         self.batch_root = batch_root
         self.dry_run = False
-        super().__init__("resume_artifact_integrity_failed: prior attempt requires repair")
+        super().__init__(
+            "resume_artifact_integrity_failed: prior attempt requires repair"
+        )
 
 
 def _resume_artifact_integrity_reasons(
-    row: dict[str, Any], job: dict[str, Any], *, batch_root: Path | None,
+    row: dict[str, Any],
+    job: dict[str, Any],
+    *,
+    batch_root: Path | None,
 ) -> list[str]:
     reasons: list[str] = []
     summary = row.get("trajectory_summary") or {}
@@ -4145,14 +4252,33 @@ def _resume_artifact_integrity_reasons(
     saved = bool(job.get("trajectory_dir") or job.get("formal_run"))
     required: set[str] = set()
     if saved and row.get("status") == "ok":
-        required.update({"trajectory_artifact", "evidence_ledger_artifact", "provider_audit_artifact"})
+        required.update(
+            {
+                "trajectory_artifact",
+                "evidence_ledger_artifact",
+                "provider_audit_artifact",
+            }
+        )
     elif saved and row.get("error_stage") == "interaction_loop":
         required.add("provider_audit_artifact")
-    if required and str((job.get("llm_config") or {}).get("interaction_mode") or row.get("interaction_mode")) == "logical_persistent":
+    if (
+        required
+        and str(
+            (job.get("llm_config") or {}).get("interaction_mode")
+            or row.get("interaction_mode")
+        )
+        == "logical_persistent"
+    ):
         required.add("semantic_ledger_artifact")
-    reasons.extend(f"{name}:binding_missing" for name in sorted(required - bindings.keys()))
-    suffixes = {"trajectory_artifact": "trajectory", "evidence_ledger_artifact": "evidence",
-                "provider_audit_artifact": "provider_audit", "semantic_ledger_artifact": "semantic_ledger"}
+    reasons.extend(
+        f"{name}:binding_missing" for name in sorted(required - bindings.keys())
+    )
+    suffixes = {
+        "trajectory_artifact": "trajectory",
+        "evidence_ledger_artifact": "evidence",
+        "provider_audit_artifact": "provider_audit",
+        "semantic_ledger_artifact": "semantic_ledger",
+    }
     for name, binding in bindings.items():
         if not isinstance(binding, dict) or not binding.get("path"):
             reasons.append(f"{name}:binding_invalid")
@@ -4168,7 +4294,8 @@ def _resume_artifact_integrity_reasons(
             continue
         if summary.get("trajectory_path") and name in suffixes:
             expected = resolve_batch_path(
-                f"{summary['trajectory_path']}.{suffixes[name]}.jsonl", batch_root=batch_root,
+                f"{summary['trajectory_path']}.{suffixes[name]}.jsonl",
+                batch_root=batch_root,
             )
             if path != expected:
                 reasons.append(f"{name}:path_mismatch")
@@ -4191,18 +4318,26 @@ def _resume_artifact_integrity_reasons(
     if row.get("recovery_audit") is not None:
         from runner.recovery_audit import validate_recovery_audit
 
-        reasons.extend(validate_recovery_audit(
-            row, batch_root, job.get("recovery_trajectory_dir") or job.get("trajectory_dir")
-        ))
+        reasons.extend(
+            validate_recovery_audit(
+                row,
+                batch_root,
+                job.get("recovery_trajectory_dir") or job.get("trajectory_dir"),
+            )
+        )
     return reasons
 
 
 def _archive_binding_path(row: dict[str, Any], batch_root: Path) -> Path:
-    return batch_root / ".attempt_archive_bindings" / f"{_canonical_json_sha256(row)}.json"
+    return (
+        batch_root / ".attempt_archive_bindings" / f"{_canonical_json_sha256(row)}.json"
+    )
 
 
 def _archived_resume_projection(
-    row: dict[str, Any], job: dict[str, Any], batch_root: Path | None,
+    row: dict[str, Any],
+    job: dict[str, Any],
+    batch_root: Path | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     if batch_root is None or not job.get("trajectory_dir"):
         return row, job
@@ -4212,12 +4347,18 @@ def _archived_resume_projection(
     try:
         binding = json.loads(binding_path.read_text(encoding="utf-8"))
         original = Path(job["trajectory_dir"]).resolve()
-        archived = resolve_batch_path(binding["archived_trajectory_dir"], batch_root=batch_root)
+        archived = resolve_batch_path(
+            binding["archived_trajectory_dir"], batch_root=batch_root
+        )
         if not (
             binding.get("schema_version") == "attempt_archive_binding_v1"
             and binding.get("prior_row_sha256") == _canonical_json_sha256(row)
-            and binding.get("terminal_attempt_key_sha256") == _canonical_json_sha256(_terminal_attempt_key(row))
-            and resolve_batch_path(binding["original_trajectory_dir"], batch_root=batch_root) == original
+            and binding.get("terminal_attempt_key_sha256")
+            == _canonical_json_sha256(_terminal_attempt_key(row))
+            and resolve_batch_path(
+                binding["original_trajectory_dir"], batch_root=batch_root
+            )
+            == original
             and archived.is_relative_to(batch_root.resolve())
             and archived.parent == original.parent
             and archived.name.startswith(original.name + ".stale-")
@@ -4226,6 +4367,7 @@ def _archived_resume_projection(
         if not archived.exists():
             # A prepared binding may precede the atomic directory rename.
             return row, job
+
         def archived_path(value: object) -> str:
             relative = Path(binding["artifact_relative_paths"][str(value)])
             if relative.is_absolute() or ".." in relative.parts:
@@ -4235,7 +4377,11 @@ def _archived_resume_projection(
         projected = deepcopy(row)
         for source in (projected, projected.get("trajectory_summary") or {}):
             for key, value in source.items():
-                if key.endswith("_artifact") and isinstance(value, dict) and value.get("path"):
+                if (
+                    key.endswith("_artifact")
+                    and isinstance(value, dict)
+                    and value.get("path")
+                ):
                     value["path"] = archived_path(value["path"])
             if source.get("trajectory_path"):
                 source["trajectory_path"] = archived_path(source["trajectory_path"])
@@ -4244,27 +4390,40 @@ def _archived_resume_projection(
             value = artifact.get("path")
             if value is not None and str(value) in binding["artifact_relative_paths"]:
                 artifact["path"] = archived_path(value)
-        return projected, {**job, "trajectory_dir": str(archived),
-                           "recovery_trajectory_dir": str(original)}
+        return projected, {
+            **job,
+            "trajectory_dir": str(archived),
+            "recovery_trajectory_dir": str(original),
+        }
     except (OSError, UnicodeError, ValueError, KeyError, TypeError) as exc:
-        raise ResumeArtifactIntegrityError([{
-            "scenario_slug": job.get("scenario_slug"),
-            "reasons": [f"attempt_archive_binding:{type(exc).__name__}"],
-        }], batch_root) from exc
+        raise ResumeArtifactIntegrityError(
+            [
+                {
+                    "scenario_slug": job.get("scenario_slug"),
+                    "reasons": [f"attempt_archive_binding:{type(exc).__name__}"],
+                }
+            ],
+            batch_root,
+        ) from exc
 
 
 def _quarantine_retry_trajectory(job: dict[str, Any]) -> None:
     original = Path(job["trajectory_dir"]).resolve()
     prior = job.get("prior_attempt_for_archive")
-    root = Path(job["batch_output_dir"]).resolve() if job.get("batch_output_dir") else None
+    root = (
+        Path(job["batch_output_dir"]).resolve() if job.get("batch_output_dir") else None
+    )
     if not isinstance(prior, dict) or root is None or not original.exists():
         _quarantine_trajectory_dir(original)
         return
     projected, projected_job = _archived_resume_projection(prior, job, root)
-    reasons = _resume_artifact_integrity_reasons(projected, projected_job, batch_root=root)
+    reasons = _resume_artifact_integrity_reasons(
+        projected, projected_job, batch_root=root
+    )
     if reasons:
-        raise ResumeArtifactIntegrityError([{"scenario_slug": job.get("scenario_slug"),
-                                            "reasons": reasons}], root)
+        raise ResumeArtifactIntegrityError(
+            [{"scenario_slug": job.get("scenario_slug"), "reasons": reasons}], root
+        )
     if projected_job["trajectory_dir"] != job["trajectory_dir"]:
         # The preceding completed attempt is already archived. Quarantine only
         # this interrupted replacement; never overwrite its original binding.
@@ -4272,30 +4431,45 @@ def _quarantine_retry_trajectory(job: dict[str, Any]) -> None:
         return
     locators: dict[str, str] = {}
     for source in (prior, prior.get("trajectory_summary") or {}):
-        values = [value["path"] for key, value in source.items()
-                  if key.endswith("_artifact") and isinstance(value, dict) and value.get("path")]
+        values = [
+            value["path"]
+            for key, value in source.items()
+            if key.endswith("_artifact")
+            and isinstance(value, dict)
+            and value.get("path")
+        ]
         if source.get("trajectory_path"):
             values.append(source["trajectory_path"])
         for value in values:
             candidates = {Path(value).resolve(), (root / Path(value)).resolve()}
             matches = [path for path in candidates if path.is_relative_to(original)]
             if len(matches) != 1:
-                raise ResumeArtifactIntegrityError([{"reasons": ["archive_locator_ambiguous"]}], root)
+                raise ResumeArtifactIntegrityError(
+                    [{"reasons": ["archive_locator_ambiguous"]}], root
+                )
             locators[str(value)] = matches[0].relative_to(original).as_posix()
-    _quarantine_trajectory_dir(original, archive_binding=(
-        _archive_binding_path(prior, root), {
-            "schema_version": "attempt_archive_binding_v1",
-            "prior_row_sha256": _canonical_json_sha256(prior),
-            "terminal_attempt_key_sha256": _canonical_json_sha256(_terminal_attempt_key(prior)),
-            "original_trajectory_dir": str(original),
-            "artifact_relative_paths": locators,
-        },
-    ))
+    _quarantine_trajectory_dir(
+        original,
+        archive_binding=(
+            _archive_binding_path(prior, root),
+            {
+                "schema_version": "attempt_archive_binding_v1",
+                "prior_row_sha256": _canonical_json_sha256(prior),
+                "terminal_attempt_key_sha256": _canonical_json_sha256(
+                    _terminal_attempt_key(prior)
+                ),
+                "original_trajectory_dir": str(original),
+                "artifact_relative_paths": locators,
+            },
+        ),
+    )
 
 
 def _filter_pending_jobs(
-    jobs: list[dict[str, Any]], rows: list[dict[str, Any]],
-    *, batch_root: Path | None = None,
+    jobs: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    *,
+    batch_root: Path | None = None,
     resume_policy: str = "clean",
     repair_failures: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
@@ -4312,15 +4486,28 @@ def _filter_pending_jobs(
             row = terminal.get(_terminal_attempt_key(job))
             if row is not None:
                 try:
-                    projected, projected_job = _archived_resume_projection(row, job, batch_root)
-                    reasons = _resume_artifact_integrity_reasons(projected, projected_job, batch_root=batch_root)
+                    projected, projected_job = _archived_resume_projection(
+                        row, job, batch_root
+                    )
+                    reasons = _resume_artifact_integrity_reasons(
+                        projected, projected_job, batch_root=batch_root
+                    )
                 except ResumeArtifactIntegrityError as exc:
-                    reasons = [reason for failure in exc.failures for reason in failure.get("reasons", [])]
+                    reasons = [
+                        reason
+                        for failure in exc.failures
+                        for reason in failure.get("reasons", [])
+                    ]
                 if reasons:
                     failure = {
-                        **{key: job.get(key) for key in ("scenario_slug", "model", "seed", "pass_id")},
-                        "reasons": reasons, "needs_repair": True,
-                        "termination_category": "harness_error", "execution_started": False,
+                        **{
+                            key: job.get(key)
+                            for key in ("scenario_slug", "model", "seed", "pass_id")
+                        },
+                        "reasons": reasons,
+                        "needs_repair": True,
+                        "termination_category": "harness_error",
+                        "execution_started": False,
                         "retryable_infrastructure": False,
                     }
                     if repair_failures is not None:
@@ -4363,8 +4550,11 @@ def _filter_pending_jobs(
 
 def _resume_skip_counts(before, pending, rows, policy):
     pending_ids = {id(job) for job in pending}
-    terminal = {_terminal_attempt_key(row): row for row in rows
-                if row.get("status") in {"ok", "error"}}
+    terminal = {
+        _terminal_attempt_key(row): row
+        for row in rows
+        if row.get("status") in {"ok", "error"}
+    }
     counts = Counter()
     for job in before:
         if id(job) in pending_ids:
@@ -4374,82 +4564,136 @@ def _resume_skip_counts(before, pending, rows, policy):
         elif policy == "clean":
             counts["ok"] += 1
         else:
-            counts[terminal.get(_terminal_attempt_key(job), {}).get("status", "repair")] += 1
+            counts[
+                terminal.get(_terminal_attempt_key(job), {}).get("status", "repair")
+            ] += 1
     return counts
 
 
 def _invocation_summary(
-    scope_jobs: list[dict[str, Any]], dispatched_jobs: list[dict[str, Any]],
-    rows: list[dict[str, Any]], *, pending_before: int, resume_policy: str,
-    batch_root: Path, started_at_utc: str, status: str,
+    scope_jobs: list[dict[str, Any]],
+    dispatched_jobs: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    *,
+    pending_before: int,
+    resume_policy: str,
+    batch_root: Path,
+    started_at_utc: str,
+    status: str,
 ) -> dict[str, Any]:
     scope_keys = {_terminal_attempt_key(job) for job in scope_jobs}
     terminal = {
-        key: row for row in rows
+        key: row
+        for row in rows
         if row.get("status") in {"ok", "error"}
-        and (key := _terminal_attempt_key(row)) is not None and key in scope_keys
+        and (key := _terminal_attempt_key(row)) is not None
+        and key in scope_keys
     }
     repair_failures: list[dict[str, Any]] = []
     pending = _filter_pending_jobs(
-        scope_jobs, rows, batch_root=batch_root, resume_policy=resume_policy,
+        scope_jobs,
+        rows,
+        batch_root=batch_root,
+        resume_policy=resume_policy,
         repair_failures=repair_failures,
     )
     repair_keys = {key for key, row in terminal.items() if _row_needs_repair(row)} | {
-        _terminal_attempt_key(job) for job in scope_jobs if job.get("artifact_needs_repair")
+        _terminal_attempt_key(job)
+        for job in scope_jobs
+        if job.get("artifact_needs_repair")
     }
     for key, row in terminal.items():
         if _row_needs_repair(row) and not any(
-            all(failure.get(field) == row.get(field) for field in ("scenario_slug", "model", "seed", "pass_id"))
+            all(
+                failure.get(field) == row.get(field)
+                for field in ("scenario_slug", "model", "seed", "pass_id")
+            )
             for failure in repair_failures
         ):
-            repair_failures.append({
-                **{field: row.get(field) for field in ("scenario_slug", "model", "seed", "pass_id")},
-                "needs_repair": True, "termination_category": "harness_error",
-                "execution_started": False, "retryable_infrastructure": False,
-                "reasons": [str(row.get("error_type") or "harness_error")],
-            })
+            repair_failures.append(
+                {
+                    **{
+                        field: row.get(field)
+                        for field in ("scenario_slug", "model", "seed", "pass_id")
+                    },
+                    "needs_repair": True,
+                    "termination_category": "harness_error",
+                    "execution_started": False,
+                    "retryable_infrastructure": False,
+                    "reasons": [str(row.get("error_type") or "harness_error")],
+                }
+            )
     pending_keys = {_terminal_attempt_key(job) for job in pending} | repair_keys
     held_keys = repair_keys | {
-        _terminal_attempt_key(job) for job in scope_jobs
+        _terminal_attempt_key(job)
+        for job in scope_jobs
         if job.get("campaign_hold") and _terminal_attempt_key(job) in pending_keys
     }
     results = []
     for job in dispatched_jobs:
-        row = terminal.get(_terminal_attempt_key(job)) if status == "completed" else None
-        results.append({
-            "scenario_slug": job["scenario_slug"], "model": job["model"],
-            "seed": job["seed"], "pass_id": job.get("pass_id"),
-            **{key: job.get(key) for key in (
-                "scenario_signature", "suite_manifest_sha256", "suite_eligibility_sha256",
-                "agent_treatment_sha256", "implementation_tree_sha256", "run_semantics_fingerprint",
-            )},
-            "status": row.get("status") if row else "pending",
-            "error_type": row.get("error_type") if row else None,
-            "error_cause_type": row.get("error_cause_type") if row else None,
-            "error_http_status": row.get("error_http_status") if row else None,
-            "quota_parked": row.get("quota_parked", False) if row else None,
-            "quota_reset_at": row.get("quota_reset_at") if row else None,
-            "retry_at": row.get("retry_at") if row else None,
-            "budget_reason": row.get("budget_reason") if row else None,
-            "execution_started": row.get("execution_started") if row else None,
-            "execution_attempt_id": row.get("execution_attempt_id") if row else None,
-            "termination_category": row.get("termination_category") if row else None,
-            "needs_repair": _row_needs_repair(row) if row else None,
-            "retryable_infrastructure": _retryable_infrastructure_row(row) if row else None,
-        })
+        row = (
+            terminal.get(_terminal_attempt_key(job)) if status == "completed" else None
+        )
+        results.append(
+            {
+                "scenario_slug": job["scenario_slug"],
+                "model": job["model"],
+                "seed": job["seed"],
+                "pass_id": job.get("pass_id"),
+                **{
+                    key: job.get(key)
+                    for key in (
+                        "scenario_signature",
+                        "suite_manifest_sha256",
+                        "suite_eligibility_sha256",
+                        "agent_treatment_sha256",
+                        "implementation_tree_sha256",
+                        "run_semantics_fingerprint",
+                    )
+                },
+                "status": row.get("status") if row else "pending",
+                "error_type": row.get("error_type") if row else None,
+                "error_cause_type": row.get("error_cause_type") if row else None,
+                "error_http_status": row.get("error_http_status") if row else None,
+                "quota_parked": row.get("quota_parked", False) if row else None,
+                "quota_reset_at": row.get("quota_reset_at") if row else None,
+                "retry_at": row.get("retry_at") if row else None,
+                "budget_reason": row.get("budget_reason") if row else None,
+                "execution_started": row.get("execution_started") if row else None,
+                "execution_attempt_id": row.get("execution_attempt_id")
+                if row
+                else None,
+                "termination_category": row.get("termination_category")
+                if row
+                else None,
+                "needs_repair": _row_needs_repair(row) if row else None,
+                "retryable_infrastructure": _retryable_infrastructure_row(row)
+                if row
+                else None,
+            }
+        )
     return {
-        "schema_version": "batch_invocation_v1", "status": status,
+        "schema_version": "batch_invocation_v1",
+        "status": status,
         "worker_start_contract": "worker_execution_start_v1",
-        "started_at_utc": started_at_utc, "updated_at_utc": datetime.now(UTC).isoformat(),
-        "resume_policy": resume_policy, "total_scope_jobs": len(scope_jobs),
-        "pending_before": pending_before, "dispatched": len(dispatched_jobs),
-        "pending_after": len(pending_keys), "resume_terminal": len(scope_jobs) - len(pending_keys),
+        "started_at_utc": started_at_utc,
+        "updated_at_utc": datetime.now(UTC).isoformat(),
+        "resume_policy": resume_policy,
+        "total_scope_jobs": len(scope_jobs),
+        "pending_before": pending_before,
+        "dispatched": len(dispatched_jobs),
+        "pending_after": len(pending_keys),
+        "resume_terminal": len(scope_jobs) - len(pending_keys),
         "held_count": len(held_keys),
         "runnable_pending": len(pending_keys - held_keys),
         "needs_repair_count": len(repair_keys),
         "repair_cells": repair_failures,
-        "infrastructure_failures": sum(_retryable_infrastructure_row(row) for row in terminal.values()),
-        "terminal_errors": sum(row.get("status") == "error" for row in terminal.values()),
+        "infrastructure_failures": sum(
+            _retryable_infrastructure_row(row) for row in terminal.values()
+        ),
+        "terminal_errors": sum(
+            row.get("status") == "error" for row in terminal.values()
+        ),
         "scope_attempts_closed": not pending_keys,
         "formal_completion_claimed": False,
         "dispatched_results": results,
@@ -4464,10 +4708,14 @@ def _has_pending_postprocessing(job: dict[str, Any]) -> bool:
     if any(directory.glob("*.completed_runtime.json")):
         return True
     prior = job.get("prior_attempt_for_archive") or {}
-    if prior.get("completed_runtime_artifact") or (prior.get("trajectory_summary") or {}).get("completed_runtime_artifact"):
+    if prior.get("completed_runtime_artifact") or (
+        prior.get("trajectory_summary") or {}
+    ).get("completed_runtime_artifact"):
         return True
-    return any('"completed_runtime_artifact"' in path.read_text(encoding="utf-8")
-               for path in directory.glob("*.summary.json"))
+    return any(
+        '"completed_runtime_artifact"' in path.read_text(encoding="utf-8")
+        for path in directory.glob("*.summary.json")
+    )
 
 
 def _recover_pending_postprocessing(job, cfg, start_tree, checkpoint_identity):
@@ -4479,7 +4727,9 @@ def _recover_pending_postprocessing(job, cfg, start_tree, checkpoint_identity):
     bindings = []
     for path in directory.glob("*.summary.json"):
         summary = json.loads(path.read_text(encoding="utf-8"))
-        binding = (summary.get("trajectory_summary") or {}).get("completed_runtime_artifact")
+        binding = (summary.get("trajectory_summary") or {}).get(
+            "completed_runtime_artifact"
+        )
         if binding is not None:
             bindings.append(binding)
     prior = job.get("prior_attempt_for_archive") or {}
@@ -4495,14 +4745,18 @@ def _recover_pending_postprocessing(job, cfg, start_tree, checkpoint_identity):
     from runner.postprocessing import recover_completed_episode
 
     root = Path(job["batch_output_dir"])
-    paths = {resolve_batch_path(binding["path"], batch_root=root) for binding in bindings}
+    paths = {
+        resolve_batch_path(binding["path"], batch_root=root) for binding in bindings
+    }
     digests = {binding["sha256"] for binding in bindings}
     if len(paths) != 1 or len(digests) != 1:
         raise ValueError("completed runtime bindings are ambiguous")
     source = paths.pop()
     digest = digests.pop()
     if not source.is_relative_to(directory) or set(snapshots) != {source}:
-        raise ValueError("completed runtime binding escapes or differs from episode snapshots")
+        raise ValueError(
+            "completed runtime binding escapes or differs from episode snapshots"
+        )
     raw = source.read_bytes()
     if hashlib.sha256(raw).hexdigest() != digest:
         raise ValueError("completed runtime hash mismatch")
@@ -4510,31 +4764,49 @@ def _recover_pending_postprocessing(job, cfg, start_tree, checkpoint_identity):
         raise ValueError("completed runtime byte count mismatch")
     payload = decode_json(json.loads(raw)["payload"])
     expected_settings = {
-        "masking_policy": "wait_only", "per_action": True, "per_action_cap": None,
-        "per_action_groups": True, "per_action_group_cap": None,
+        "masking_policy": "wait_only",
+        "per_action": True,
+        "per_action_cap": None,
+        "per_action_groups": True,
+        "per_action_group_cap": None,
     }
-    if _canonical_json_sha256(payload.get("counterfactual_settings")) != _canonical_json_sha256(expected_settings):
+    if _canonical_json_sha256(
+        payload.get("counterfactual_settings")
+    ) != _canonical_json_sha256(expected_settings):
         raise ValueError("completed runtime counterfactual settings mismatch")
     context = payload.get("postprocessing_context")
     if context is not None and context.get("within_tick_interaction") is not True:
         raise ValueError("completed runtime within-tick interaction mismatch")
     identity = payload["identity"]
-    if (identity.get("scenario_signature") != job["scenario_signature"]
-            or identity.get("seed") != int(job["seed"])
-            or identity.get("agent_name") != "llm_agent"
-            or _canonical_json_sha256(identity.get("agent_config")) != _canonical_json_sha256(
-                _public_agent_config({"config": cfg}))
-            or identity.get("checkpoint_identity") != checkpoint_identity):
-        raise ValueError("completed runtime agent/scenario/checkpoint identity mismatch")
-    source_tree = (identity.get("implementation") or {}).get("implementation_tree_sha256")
+    if (
+        identity.get("scenario_signature") != job["scenario_signature"]
+        or identity.get("seed") != int(job["seed"])
+        or identity.get("agent_name") != "llm_agent"
+        or _canonical_json_sha256(identity.get("agent_config"))
+        != _canonical_json_sha256(_public_agent_config({"config": cfg}))
+        or identity.get("checkpoint_identity") != checkpoint_identity
+    ):
+        raise ValueError(
+            "completed runtime agent/scenario/checkpoint identity mismatch"
+        )
+    source_tree = (identity.get("implementation") or {}).get(
+        "implementation_tree_sha256"
+    )
     if not source_tree:
         raise ValueError("completed runtime implementation identity is missing")
     cross_tree = source_tree != start_tree
-    if cross_tree and (job.get("implementation_policy") != "provenance"
-                       or job.get("formal_run") or job.get("episode_checkpoint")):
-        raise ValueError("completed runtime implementation mismatch requires separate diagnostic recovery")
+    if cross_tree and (
+        job.get("implementation_policy") != "provenance"
+        or job.get("formal_run")
+        or job.get("episode_checkpoint")
+    ):
+        raise ValueError(
+            "completed runtime implementation mismatch requires separate diagnostic recovery"
+        )
     output = directory / f"postprocessing-recovery-{uuid.uuid4().hex}.json"
-    repaired = recover_completed_episode(source, digest, expected_identity=identity, output=output)
+    repaired = recover_completed_episode(
+        source, digest, expected_identity=identity, output=output
+    )
     row = repaired["result"]
     row["status"] = "ok"
     row["postprocessing_recovery"] = {
@@ -4542,14 +4814,17 @@ def _recover_pending_postprocessing(job, cfg, start_tree, checkpoint_identity):
         "recompute_identity": repaired["recompute_identity"],
         "source_snapshot_sha256": digest,
         "formal_completion_claimed": False,
-        "diagnostic_only": cross_tree or repaired.get("same_contract_recovery") is not True,
+        "diagnostic_only": cross_tree
+        or repaired.get("same_contract_recovery") is not True,
         "same_contract_recovery": repaired.get("same_contract_recovery") is True,
         "cross_implementation": cross_tree,
         "legacy_context_reconstructed": repaired["legacy_context_reconstructed"],
     }
     row["postprocessing_recovery_artifact"] = {
-        "path": str(output), "sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
-        "schema_version": repaired["schema_version"], "byte_count": output.stat().st_size,
+        "path": str(output),
+        "sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+        "schema_version": repaired["schema_version"],
+        "byte_count": output.stat().st_size,
     }
     row["provider_request_accounting_scope"] = "retained_completed_runtime"
     return row
@@ -4607,13 +4882,21 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     cfg = _llm_config_from_dict(job["llm_config"])
     start_tree = implementation_identity(REPO_ROOT)["implementation_tree_sha256"]
     provenance_only = job.get("implementation_policy") == "provenance"
-    expected_tree = start_tree if provenance_only else str(job.get("implementation_tree_sha256") or start_tree)
+    expected_tree = (
+        start_tree
+        if provenance_only
+        else str(job.get("implementation_tree_sha256") or start_tree)
+    )
     kwargs = {"config": cfg}
     run_options: dict[str, Any] = {}
     if job.get("lite_core_lineage") is not None:
         run_options["scenario_contract_binding"] = {
-            key: job[key] for key in (
-                "construct_contract", "source_denominator_key", "case_ledger", "lite_core_lineage",
+            key: job[key]
+            for key in (
+                "construct_contract",
+                "source_denominator_key",
+                "case_ledger",
+                "lite_core_lineage",
             )
         }
     run_options.update(
@@ -4629,15 +4912,27 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     if job.get("episode_log_path"):
         run_options["episode_log_path"] = job["episode_log_path"]
     if job.get("episode_checkpoint"):
-        identity = {key: job.get(key) for key in (
-            "scenario_slug", "scenario_signature", "model", "seed", "pass_id",
-            "agent_treatment_sha256", "implementation_tree_sha256", "run_semantics_fingerprint",
-            "suite_manifest_sha256", "suite_eligibility_sha256",
-        )}
+        identity = {
+            key: job.get(key)
+            for key in (
+                "scenario_slug",
+                "scenario_signature",
+                "model",
+                "seed",
+                "pass_id",
+                "agent_treatment_sha256",
+                "implementation_tree_sha256",
+                "run_semantics_fingerprint",
+                "suite_manifest_sha256",
+                "suite_eligibility_sha256",
+            )
+        }
         identity["schema_version"] = "logical_episode_replay_v1"
         run_options["checkpoint_identity"] = identity
         run_options["checkpoint_path"] = str(
-            Path(job["batch_output_dir"]) / ".episode_checkpoints" / f"{_canonical_json_sha256(identity)}.jsonl"
+            Path(job["batch_output_dir"])
+            / ".episode_checkpoints"
+            / f"{_canonical_json_sha256(identity)}.jsonl"
         )
     r: dict[str, Any]
     execution_attempt_id: str | None = None
@@ -4649,26 +4944,45 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     else:
         if job.get("batch_output_dir"):
             execution_attempt_id = job.get("execution_attempt_id") or uuid.uuid4().hex
-            _append_jsonl_atomic(Path(job["batch_output_dir"]) / "worker_starts.jsonl", {
-                "schema_version": "worker_execution_start_v1",
-                "execution_attempt_id": execution_attempt_id,
-                "invocation_started_at_utc": job.get("invocation_started_at_utc"),
-                "worker_started_at_utc": datetime.now(UTC).isoformat(),
-                **{key: job.get(key) for key in (
-                    "scenario_slug", "model", "seed", "pass_id", "scenario_signature",
-                    "agent_treatment_sha256", "implementation_tree_sha256",
-                    "run_semantics_fingerprint", "suite_manifest_sha256", "suite_eligibility_sha256",
-                )},
-            })
+            _append_jsonl_atomic(
+                Path(job["batch_output_dir"]) / "worker_starts.jsonl",
+                {
+                    "schema_version": "worker_execution_start_v1",
+                    "execution_attempt_id": execution_attempt_id,
+                    "invocation_started_at_utc": job.get("invocation_started_at_utc"),
+                    "worker_started_at_utc": datetime.now(UTC).isoformat(),
+                    **{
+                        key: job.get(key)
+                        for key in (
+                            "scenario_slug",
+                            "model",
+                            "seed",
+                            "pass_id",
+                            "scenario_signature",
+                            "agent_treatment_sha256",
+                            "implementation_tree_sha256",
+                            "run_semantics_fingerprint",
+                            "suite_manifest_sha256",
+                            "suite_eligibility_sha256",
+                        )
+                    },
+                },
+            )
         try:
             r = _recover_pending_postprocessing(
-                job, cfg, start_tree, run_options.get("checkpoint_identity"),
+                job,
+                cfg,
+                start_tree,
+                run_options.get("checkpoint_identity"),
             )
         except (OSError, ValueError, KeyError, TypeError) as exc:
             r = {
-                "status": "error", "error": f"completed runtime recovery rejected: {type(exc).__name__}",
-                "error_type": "CompletedRuntimeRecoveryError", "termination_category": "harness_error",
-                "needs_repair": True, "error_stage": "postprocessing_recovery",
+                "status": "error",
+                "error": f"completed runtime recovery rejected: {type(exc).__name__}",
+                "error_type": "CompletedRuntimeRecoveryError",
+                "termination_category": "harness_error",
+                "needs_repair": True,
+                "error_stage": "postprocessing_recovery",
             }
         if r is None:
             if job.get("trajectory_dir"):
@@ -4683,7 +4997,9 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
     r["implementation_tree_sha256"] = expected_tree
     r["implementation_tree_sha256_start"] = start_tree
     r["implementation_tree_sha256_end"] = end_tree
-    if not provenance_only and (start_tree != expected_tree or end_tree != expected_tree):
+    if not provenance_only and (
+        start_tree != expected_tree or end_tree != expected_tree
+    ):
         r["status"] = "error"
         r["error"] = "implementation_tree_drift"
         r["error_type"] = "ImplementationIdentityError"
@@ -4691,16 +5007,28 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
         r["needs_repair"] = True
     r = _apply_llm_job_metadata(job, r)
     r["temperature"] = float(job.get("temperature", cfg.temperature))
-    if job.get("episode_checkpoint") and r["execution_started"] and not r.get("postprocessing_recovery"):
+    if (
+        job.get("episode_checkpoint")
+        and r["execution_started"]
+        and not r.get("postprocessing_recovery")
+    ):
         from runner.recovery_audit import build_recovery_audit
 
         root = Path(job["batch_output_dir"]).resolve()
         prior = job.get("prior_attempt_for_archive")
         if isinstance(prior, dict):
             prior, _ = _archived_resume_projection(prior, job, root)
-        history = (prior.get("recovery_audit") or {}).get("attempts", []) if isinstance(prior, dict) else []
+        history = (
+            (prior.get("recovery_audit") or {}).get("attempts", [])
+            if isinstance(prior, dict)
+            else []
+        )
         r["recovery_audit"] = build_recovery_audit(
-            history, prior, r, root, str(job["model"]),
+            history,
+            prior,
+            r,
+            root,
+            str(job["model"]),
             expected_trajectory_dir=job.get("trajectory_dir"),
         )
         r["provider_request_accounting_scope"] = "retained_logical_trajectory"
@@ -4708,7 +5036,9 @@ def _run_llm_episode_job(job: dict[str, Any]) -> dict[str, Any]:
             summary = json.loads(path.read_text(encoding="utf-8"))
             summary["recovery_audit"] = r["recovery_audit"]
             summary["provider_request_accounting_scope"] = "retained_logical_trajectory"
-            _atomic_write_text(path, json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
+            _atomic_write_text(
+                path, json.dumps(summary, ensure_ascii=False, indent=2) + "\n"
+            )
         _portabilize_formal_trajectory_json_sidecars(job)
     if _row_is_quota_exhausted(r):
         r["quota_parked"] = True
@@ -4733,7 +5063,8 @@ def _portabilize_formal_trajectory_json_sidecars(job: dict[str, Any]) -> None:
     for path in sorted(trajectory_dir.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         if payload.get("schema_version") in {
-            "episode_scoring_snapshot_v1", "offline_completed_episode_recovery_v1",
+            "episode_scoring_snapshot_v1",
+            "offline_completed_episode_recovery_v1",
         }:
             # Snapshot/recovery bytes are immutable; only outer locators move.
             continue
@@ -4745,7 +5076,9 @@ def _portabilize_formal_trajectory_json_sidecars(job: dict[str, Any]) -> None:
 
 
 def _quarantine_trajectory_dir(
-    raw_path: str | Path, *, archive_binding: tuple[Path, dict[str, Any]] | None = None,
+    raw_path: str | Path,
+    *,
+    archive_binding: tuple[Path, dict[str, Any]] | None = None,
 ) -> Path | None:
     """Move an orphaned/partial episode directory aside before a clean rerun."""
     path = Path(raw_path)
@@ -4759,9 +5092,17 @@ def _quarantine_trajectory_dir(
         suffix += 1
     if archive_binding is not None:
         binding_path, binding = archive_binding
-        _atomic_write_text(binding_path, json.dumps({
-            **binding, "archived_trajectory_dir": str(stale),
-        }, indent=2) + "\n")
+        _atomic_write_text(
+            binding_path,
+            json.dumps(
+                {
+                    **binding,
+                    "archived_trajectory_dir": str(stale),
+                },
+                indent=2,
+            )
+            + "\n",
+        )
     path.rename(stale)
     return stale
 
@@ -4846,7 +5187,9 @@ def _run_llm_model_lane(lane: dict[str, Any]) -> dict[str, Any]:
     n_completed = 0
     parked_reset_at: str | None = None
     for job in jobs:
-        if (parked_reset_at is not None or _active_quota_sentinel(job)) and not _has_pending_postprocessing(job):
+        if (
+            parked_reset_at is not None or _active_quota_sentinel(job)
+        ) and not _has_pending_postprocessing(job):
             if parked_reset_at is None:
                 sentinel = _active_quota_sentinel(job) or {}
                 parked_reset_at = sentinel.get("reset_at")
@@ -5307,7 +5650,8 @@ def _pass_k_success_summary(
             duplicate_counts[model] += 1
             continue
         per_model_pass[model][cell][pass_id] = (
-            "unavailable" if _row_is_quota_exhausted(row)
+            "unavailable"
+            if _row_is_quota_exhausted(row)
             else str(row.get("status", "ok"))
         )
 
@@ -5336,11 +5680,13 @@ def _pass_k_success_summary(
                 pass_id for pass_id in required_pass_ids if pass_id not in pass_status
             ]
             errors = [
-                pass_id for pass_id, status in pass_status.items()
+                pass_id
+                for pass_id, status in pass_status.items()
                 if status not in {"ok", "unavailable"}
             ]
             unavailable = [
-                pass_id for pass_id, status in pass_status.items()
+                pass_id
+                for pass_id, status in pass_status.items()
                 if status == "unavailable"
             ]
             missing_pass_units += len(missing)
@@ -5408,7 +5754,9 @@ def _intersection_leaderboard(
     per_model: dict[str, list[float]] = {m: [] for m in configured_models}
     per_fatal: dict[str, list[bool]] = {m: [] for m in configured_models}
     seen_pass_units: set[tuple[str, str, int, str]] = set()
-    measured_pairs: dict[tuple[str, int], list[tuple[str, float, bool]]] = defaultdict(list)
+    measured_pairs: dict[tuple[str, int], list[tuple[str, float, bool]]] = defaultdict(
+        list
+    )
     for r in results:
         if r.get("status") != "ok":
             continue
@@ -5431,10 +5779,17 @@ def _intersection_leaderboard(
         value = _ranking_primary_for_analysis(r)
         if value is None:
             continue
-        measured_pairs[(slug, int(seed))].append((
-            m, value,
-            bool((r.get("ground_truth_summary") or {}).get("chose_fatal_option", False)),
-        ))
+        measured_pairs[(slug, int(seed))].append(
+            (
+                m,
+                value,
+                bool(
+                    (r.get("ground_truth_summary") or {}).get(
+                        "chose_fatal_option", False
+                    )
+                ),
+            )
+        )
     for measurements in measured_pairs.values():
         counts = Counter(model for model, _, _ in measurements)
         if any(counts[model] != pass_k for model in configured_models):
@@ -5706,7 +6061,9 @@ def _write_analysis(
 ) -> None:
     """Emit ANALYSIS.md + per-model stats JSON from episode rows."""
     ok = [r for r in results if r.get("status") == "ok"]
-    err = [r for r in results if r.get("status") != "ok" and not _row_is_quota_exhausted(r)]
+    err = [
+        r for r in results if r.get("status") != "ok" and not _row_is_quota_exhausted(r)
+    ]
     execution_counts = _execution_status_counts(results)
     clean_ok = [r for r in ok if _row_is_clean_for_resume(r, batch_root=out_dir)]
     dirty_ok = [r for r in ok if not _row_is_clean_for_resume(r, batch_root=out_dir)]
@@ -5762,9 +6119,9 @@ def _write_analysis(
 
     from evaluation.outcome_diagnostics import summarize_native_outcomes
 
-    native_outcomes = summarize_native_outcomes([
-        r for r in clean_ok if _ranking_primary_for_analysis(r) is not None
-    ])
+    native_outcomes = summarize_native_outcomes(
+        [r for r in clean_ok if _ranking_primary_for_analysis(r) is not None]
+    )
     lines = [
         "# OPERATE LLM Eval Analysis",
         "",
@@ -5803,7 +6160,9 @@ def _write_analysis(
                     f"| {item['model']} | {item['primary_leaderboard_score']:.2f} | {item['n_samples']} |"
                 )
         else:
-            lines.append("Formal primary leaderboard unavailable: batch eligibility is not satisfied.")
+            lines.append(
+                "Formal primary leaderboard unavailable: batch eligibility is not satisfied."
+            )
     lines.extend(
         [
             "",
@@ -5819,11 +6178,15 @@ def _write_analysis(
         mean = sum(scores) / len(scores)
         lines.append(f"| {model} | {mean:.2f} | {len(scores)} |")
 
-    lines.extend([
-        "", "## Native outcome harm (same clean measured-primary rows)", "",
-        "| model | sample harm rate | macro harm rate | measured/input |",
-        "|---|---:|---:|---:|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Native outcome harm (same clean measured-primary rows)",
+            "",
+            "| model | sample harm rate | macro harm rate | measured/input |",
+            "|---|---:|---:|---:|",
+        ]
+    )
     for model, item in native_outcomes.items():
         lines.append(
             f"| {model} | {item['sample_harm_rate']} | {item['macro_harm_rate']} | "
@@ -6338,7 +6701,9 @@ def _strict_task_completion_for_row(row: dict[str, Any]) -> float:
 
 
 def _bound_score_applicability(
-    row: dict[str, Any], *, batch_root: Path | None = None,
+    row: dict[str, Any],
+    *,
+    batch_root: Path | None = None,
 ) -> dict[str, Any]:
     """Verify the scorer's structural contract against engine ledger bytes."""
     contract = (row.get("score") or {}).get("dimension_applicability")
@@ -6347,9 +6712,14 @@ def _bound_score_applicability(
     if not isinstance(contract, dict):
         raise PrimaryLeaderboardContractError("invalid score applicability contract")
     reasons = _trajectory_sidecar_eligibility_reasons(
-        row, summary_key="evidence_ledger_artifact", stem="evidence_ledger",
-        path_stem="evidence", schema_version="evidence_ledger_jsonl_v1",
-        require_nonempty=True, require_byte_count=True, batch_root=batch_root,
+        row,
+        summary_key="evidence_ledger_artifact",
+        stem="evidence_ledger",
+        path_stem="evidence",
+        schema_version="evidence_ledger_jsonl_v1",
+        require_nonempty=True,
+        require_byte_count=True,
+        batch_root=batch_root,
     )
     if reasons:
         raise PrimaryLeaderboardContractError(
@@ -6357,11 +6727,19 @@ def _bound_score_applicability(
         )
     artifact = row["trajectory_summary"]["evidence_ledger_artifact"]
     try:
-        ledger = [json.loads(line) for line in resolve_batch_path(
-            artifact["path"], batch_root=batch_root,
-        ).read_text(encoding="utf-8").splitlines()]
+        ledger = [
+            json.loads(line)
+            for line in resolve_batch_path(
+                artifact["path"],
+                batch_root=batch_root,
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise PrimaryLeaderboardContractError("invalid applicability evidence ledger") from exc
+        raise PrimaryLeaderboardContractError(
+            "invalid applicability evidence ledger"
+        ) from exc
     if not any(
         isinstance(item, dict)
         and item.get("source") == "engine"
@@ -6374,7 +6752,9 @@ def _bound_score_applicability(
 
 
 def _primary_leaderboard_payload(
-    rows: list[dict[str, Any]], *, batch_root: Path | None = None,
+    rows: list[dict[str, Any]],
+    *,
+    batch_root: Path | None = None,
 ) -> dict[str, Any]:
     """Adapt episode rows once, then use the canonical primary helper."""
 
@@ -6434,9 +6814,14 @@ def _primary_leaderboard_payload(
                 raise PrimaryLeaderboardContractError(
                     "precomputed formal score mismatch"
                 )
-            group_contracts.append({"scenario_signature": row.get("scenario_signature"),
-                                    "model": row.get("model"), **score_contract,
-                                    "autonomy_diagnostics": autonomy_diagnostics_for_row(row)})
+            group_contracts.append(
+                {
+                    "scenario_signature": row.get("scenario_signature"),
+                    "model": row.get("model"),
+                    **score_contract,
+                    "autonomy_diagnostics": autonomy_diagnostics_for_row(row),
+                }
+            )
             prepared.append(
                 {
                     **row,
@@ -6464,9 +6849,14 @@ def _primary_leaderboard_payload(
                     + score_contract["primary_missing_declared_dimensions"]
                 )
             )
-        group_contracts.append({"scenario_signature": row.get("scenario_signature"),
-                                "model": row.get("model"), **score_contract,
-                                "autonomy_diagnostics": autonomy_diagnostics_for_row(row)})
+        group_contracts.append(
+            {
+                "scenario_signature": row.get("scenario_signature"),
+                "model": row.get("model"),
+                **score_contract,
+                "autonomy_diagnostics": autonomy_diagnostics_for_row(row),
+            }
+        )
         prepared.append(
             {
                 "model": row.get("model", row.get("agent_name")),
@@ -6490,13 +6880,18 @@ def _primary_leaderboard_payload(
     from evaluation.scorer import native_outcome_diagnostics
 
     for contract, row in zip(group_contracts, rows, strict=True):
-        contract["native_outcome"] = native_outcome_diagnostics(row.get("counterfactual"))
+        contract["native_outcome"] = native_outcome_diagnostics(
+            row.get("counterfactual")
+        )
     report["score_group_contracts"] = group_contracts
     return report
 
 
 def _leaderboard_from_rows(
-    rows: list[dict[str, Any]], view_name: str, *, batch_root: Path | None = None,
+    rows: list[dict[str, Any]],
+    view_name: str,
+    *,
+    batch_root: Path | None = None,
 ) -> list[dict[str, Any]]:
     per_model: dict[str, list[float]] = {}
     per_fatal: dict[str, list[bool]] = {}
@@ -6519,14 +6914,19 @@ def _leaderboard_from_rows(
 
 
 def _leaderboard_for_view(
-    results: list[dict[str, Any]], view_name: str, *, batch_root: Path | None = None,
+    results: list[dict[str, Any]],
+    view_name: str,
+    *,
+    batch_root: Path | None = None,
 ) -> list[dict[str, Any]]:
     return _leaderboard_from_rows(results, view_name, batch_root=batch_root)
 
 
 def _leaderboard_by_domain(
-    results: list[dict[str, Any]], view_name: str = "fixed_all_dimensions",
-    *, batch_root: Path | None = None,
+    results: list[dict[str, Any]],
+    view_name: str = "fixed_all_dimensions",
+    *,
+    batch_root: Path | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Per-domain leaderboards so a heavily-populated domain (e.g. logistics)
     does not dilute cross-agent gaps in the aggregate headline view."""
@@ -6535,14 +6935,19 @@ def _leaderboard_by_domain(
         grouped.setdefault(_domain_for_result(row), []).append(row)
     out: dict[str, list[dict[str, Any]]] = {}
     for domain in sorted(grouped):
-        board = _leaderboard_from_rows(grouped[domain], view_name, batch_root=batch_root)
+        board = _leaderboard_from_rows(
+            grouped[domain], view_name, batch_root=batch_root
+        )
         if board:
             out[domain] = board
     return out
 
 
 def _scenario_aligned_scores_by_model(
-    rows: list[dict[str, Any]], *, view_name: str, batch_root: Path | None = None,
+    rows: list[dict[str, Any]],
+    *,
+    view_name: str,
+    batch_root: Path | None = None,
 ) -> dict[str, list[float]]:
     """Per-model score lists, aligned by ``scenario_signature`` so position i
     means "the same scenario run" for every model.
@@ -6556,7 +6961,9 @@ def _scenario_aligned_scores_by_model(
     already encodes scenario + seed, see ``_scenario_signature_for_run``)
     and restricting to the intersection every model shares fixes this.
     """
-    by_model_signature = _scenario_score_repeats_by_model(rows, view_name=view_name, batch_root=batch_root)
+    by_model_signature = _scenario_score_repeats_by_model(
+        rows, view_name=view_name, batch_root=batch_root
+    )
     means_by_model_signature = {
         model: {
             signature: sum(values) / len(values)
@@ -6583,7 +6990,10 @@ def _scenario_aligned_scores_by_model(
 
 
 def _scenario_score_repeats_by_model(
-    rows: list[dict[str, Any]], *, view_name: str, batch_root: Path | None = None,
+    rows: list[dict[str, Any]],
+    *,
+    view_name: str,
+    batch_root: Path | None = None,
 ) -> dict[str, dict[str, list[float]]]:
     """Collect one score per repeat identity for each model/scenario cell."""
     grouped, _ = _scenario_score_repeats_and_duplicates_by_model(
@@ -6593,7 +7003,10 @@ def _scenario_score_repeats_by_model(
 
 
 def _scenario_score_repeats_and_duplicates_by_model(
-    rows: list[dict[str, Any]], *, view_name: str, batch_root: Path | None = None,
+    rows: list[dict[str, Any]],
+    *,
+    view_name: str,
+    batch_root: Path | None = None,
 ) -> tuple[dict[str, dict[str, list[float]]], dict[str, int]]:
     by_model_signature_pass: dict[str, dict[str, dict[str, float]]] = {}
     duplicates_by_model: dict[str, int] = {}
@@ -6631,7 +7044,10 @@ def _scenario_score_repeats_and_duplicates_by_model(
 
 
 def _scenario_repeat_diagnostics_by_model(
-    rows: list[dict[str, Any]], *, view_name: str, batch_root: Path | None = None,
+    rows: list[dict[str, Any]],
+    *,
+    view_name: str,
+    batch_root: Path | None = None,
 ) -> dict[str, dict[str, int | float]]:
     """Describe repeat coverage/noise without treating repeats as cells."""
     grouped, duplicates_by_model = _scenario_score_repeats_and_duplicates_by_model(
@@ -6674,16 +7090,22 @@ def _write_leaderboard_json(
     autonomy_diagnostics: dict[str, dict[str, dict[str, float]]] | None = None,
 ) -> list[dict[str, Any]]:
     leaderboard_views = {
-        "fixed_all_dimensions": _leaderboard_for_view(results, "fixed_all_dimensions", batch_root=batch_root),
+        "fixed_all_dimensions": _leaderboard_for_view(
+            results, "fixed_all_dimensions", batch_root=batch_root
+        ),
     }
-    adaptive_leaderboard = _leaderboard_for_view(results, "adaptive_applicable", batch_root=batch_root)
+    adaptive_leaderboard = _leaderboard_for_view(
+        results, "adaptive_applicable", batch_root=batch_root
+    )
     if adaptive_leaderboard:
         leaderboard_views["adaptive_applicable"] = adaptive_leaderboard
     # discriminative_core: exclude diagnostic + wait-dominated cells, and
     # score under the curated DISCRIMINATIVE_CORE_DIMENSIONS weighting
     # (drops redundant trust dims, folds in objective task_completion).
     disc_results = [r for r in results if _is_discriminative(r)]
-    disc_board = _leaderboard_for_view(disc_results, "discriminative_core", batch_root=batch_root)
+    disc_board = _leaderboard_for_view(
+        disc_results, "discriminative_core", batch_root=batch_root
+    )
     if disc_board:
         leaderboard_views["discriminative_core"] = disc_board
     # Holm pairwise over the discriminative set.
@@ -6738,7 +7160,9 @@ def _write_leaderboard_json(
             )
         ),
     }
-    leaderboard_by_domain = _leaderboard_by_domain(results, "fixed_all_dimensions", batch_root=batch_root)
+    leaderboard_by_domain = _leaderboard_by_domain(
+        results, "fixed_all_dimensions", batch_root=batch_root
+    )
     if leaderboard_by_domain:
         payload["diagnostic_leaderboard_by_domain"] = leaderboard_by_domain
     primary_leaderboard: list[dict[str, Any]] = []
@@ -6827,7 +7251,9 @@ def _write_leaderboard_json(
                 try:
                     primary = _primary_leaderboard_payload(
                         formal_rows,
-                        **({"batch_root": batch_root} if batch_root is not None else {}),
+                        **(
+                            {"batch_root": batch_root} if batch_root is not None else {}
+                        ),
                     )
                 except PrimaryLeaderboardContractError as exc:
                     # Incomplete five-group evidence (and other primary
@@ -6854,7 +7280,9 @@ def _write_leaderboard_json(
                                 "primary_inference_n_physical_clusters"
                             ),
                             "primary_pairwise": primary.get("primary_pairwise", []),
-                            "score_group_contracts": primary.get("score_group_contracts", []),
+                            "score_group_contracts": primary.get(
+                                "score_group_contracts", []
+                            ),
                         }
                     )
     if coverage is not None:
@@ -6949,9 +7377,13 @@ def _formal_leaderboard_eligibility(
         "persistent_memory_max_items": meta.get("persistent_memory_max_items"),
         "provider_timeout_s": meta.get("provider_timeout_s"),
         "provider_retry_max_attempts": meta.get("provider_retry_max_attempts", 5),
-        "provider_retry_max_elapsed_s": meta.get("provider_retry_max_elapsed_s", 1800.0),
+        "provider_retry_max_elapsed_s": meta.get(
+            "provider_retry_max_elapsed_s", 1800.0
+        ),
         "provider_failure_policy": meta.get("provider_failure_policy"),
-        "max_consecutive_provider_failures": meta.get("max_consecutive_provider_failures"),
+        "max_consecutive_provider_failures": meta.get(
+            "max_consecutive_provider_failures"
+        ),
         "provider_rpm_limit": meta.get("provider_rpm_limit"),
         "provider_rpd_limit": meta.get("provider_rpd_limit"),
         "provider_rate_limit_scope": meta.get("provider_rate_limit_scope"),
@@ -7114,7 +7546,9 @@ def _plot_score_by_model(rows: list[dict[str, Any]], path: Path) -> None:
     plot_h = height - top - bottom
     max_val = max([v for _, v, _ in items], default=1.0)
     scale = plot_h / max(max_val, 1.0)
-    body = [f'<text x="{left}" y="40" class="title">Mean ranking.primary_score by model</text>']
+    body = [
+        f'<text x="{left}" y="40" class="title">Mean ranking.primary_score by model</text>'
+    ]
     for i in range(6):
         y = top + plot_h - (plot_h * i / 5)
         val = max_val * i / 5
@@ -7258,17 +7692,22 @@ def _plot_tool_calls_vs_score(rows: list[dict[str, Any]], path: Path) -> None:
     plot_w = width - left - right
     plot_h = height - top - bottom
     measured = [
-        (r, value) for r in ok
+        (r, value)
+        for r in ok
         if (value := _ranking_primary_for_analysis(r)) is not None
     ]
     ok = [r for r, _ in measured]
-    xs = [float((r.get("trajectory_summary") or {}).get("n_tool_calls", 0) or 0)
-          for r in ok]
+    xs = [
+        float((r.get("trajectory_summary") or {}).get("n_tool_calls", 0) or 0)
+        for r in ok
+    ]
     ys = [value for _, value in measured]
     max_x = max(xs, default=1.0)
     min_y = min(ys, default=0.0)
     max_y = max(ys, default=1.0)
-    body = [f'<text x="{left}" y="40" class="title">Tool calls vs ranking.primary_score</text>']
+    body = [
+        f'<text x="{left}" y="40" class="title">Tool calls vs ranking.primary_score</text>'
+    ]
     body.append(
         f'<line x1="{left}" y1="{top + plot_h}" x2="{left + plot_w}" y2="{top + plot_h}" class="axis"/>'
     )
@@ -7398,7 +7837,11 @@ def _portable_formal_result_paths(
             if not isinstance(source, dict):
                 continue
             for name, binding in source.items():
-                if name.endswith("_artifact") and isinstance(binding, dict) and binding.get("path"):
+                if (
+                    name.endswith("_artifact")
+                    and isinstance(binding, dict)
+                    and binding.get("path")
+                ):
                     binding["path"] = relative(binding["path"], label=name)
             progress = source.get("checkpoint_progress")
             if isinstance(progress, dict) and progress.get("path"):
@@ -7641,7 +8084,9 @@ def _finalize_outputs(
     write_staleness_consumption_markdown(
         staleness_report, out_dir / "STALENESS_CONSUMPTION.md"
     )
-    failure_recipes_report = build_agent_failure_recipes_report(results, batch_root=out_dir)
+    failure_recipes_report = build_agent_failure_recipes_report(
+        results, batch_root=out_dir
+    )
     (out_dir / "agent_failure_recipes_report.json").write_text(
         json.dumps(failure_recipes_report, indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -7850,14 +8295,12 @@ def _build_jobs(
                 api_version=api_version,
                 responses_base_url=responses_base_url,
             )
-            agent_profile_sha256 = (
-                (agent_profile_sha256_by_model or {}).get(model)
-                or _agent_treatment_sha256(cfg)
-            )
-            agent_treatment_sha256 = (
-                (agent_treatment_sha256_by_model or {}).get(model)
-                or agent_profile_sha256
-            )
+            agent_profile_sha256 = (agent_profile_sha256_by_model or {}).get(
+                model
+            ) or _agent_treatment_sha256(cfg)
+            agent_treatment_sha256 = (agent_treatment_sha256_by_model or {}).get(
+                model
+            ) or agent_profile_sha256
             for seed in scenario_seeds:
                 scenario_signature = _scenario_signature_for_run(scenario, seed)
                 mdir = _safe_model_dir(model)
@@ -7881,7 +8324,9 @@ def _build_jobs(
                                 cfg.max_tokens,
                                 cfg.interaction_mode,
                                 context_ablation_mode=cfg.context_ablation_mode,
-                                episode_checkpoint=bool(getattr(args, "episode_checkpoint", False)),
+                                episode_checkpoint=bool(
+                                    getattr(args, "episode_checkpoint", False)
+                                ),
                             )
                             + f":agent-{agent_treatment_sha256}"
                         ),
@@ -7920,10 +8365,18 @@ def _build_jobs(
                     slug_safe = slug.replace("/", "_")
                     job["batch_output_dir"] = str(out_dir)
                     job["formal_run"] = bool(getattr(args, "formal_run", False))
-                    job["episode_checkpoint"] = bool(getattr(args, "episode_checkpoint", False))
+                    job["episode_checkpoint"] = bool(
+                        getattr(args, "episode_checkpoint", False)
+                    )
                     job["resume_postprocessing"] = bool(getattr(args, "resume", False))
-                    job["episode_timeout_s"] = getattr(args, "episode_timeout_s", DEFAULT_EPISODE_TIMEOUT_S)
-                    job["postprocessing_timeout_s"] = getattr(args, "postprocessing_timeout_s", DEFAULT_POSTPROCESSING_TIMEOUT_S)
+                    job["episode_timeout_s"] = getattr(
+                        args, "episode_timeout_s", DEFAULT_EPISODE_TIMEOUT_S
+                    )
+                    job["postprocessing_timeout_s"] = getattr(
+                        args,
+                        "postprocessing_timeout_s",
+                        DEFAULT_POSTPROCESSING_TIMEOUT_S,
+                    )
                     if args.save_trajectories:
                         job["trajectory_dir"] = str(
                             _fit_fs_component(
@@ -7998,11 +8451,7 @@ def _batch_exit_code(
     """
     if batch_state in BATCH_STATE_EXIT_FAILURES:
         return 2
-    if (
-        provider_contaminated
-        or prompt_budget_contaminated
-        or orphan_interrupted_logs
-    ):
+    if provider_contaminated or prompt_budget_contaminated or orphan_interrupted_logs:
         return 2
     if coverage is not None:
         execution_coverage = coverage.get("per_model_execution_coverage") or {}
@@ -8026,7 +8475,11 @@ def _run_batch_main() -> int:
         ),
     )
     p.add_argument("--scenarios", nargs="*", help="Used when --scenario-slice=custom")
-    p.add_argument("--lite-lineage-suite", type=Path, help="Verify fixed Lite membership and bind its exact Core source ledger.")
+    p.add_argument(
+        "--lite-lineage-suite",
+        type=Path,
+        help="Verify fixed Lite membership and bind its exact Core source ledger.",
+    )
     p.add_argument("--seeds", nargs="+", type=int, default=[42])
     p.add_argument(
         "--seed-mode",
@@ -8081,17 +8534,23 @@ def _run_batch_main() -> int:
     )
     p.add_argument("--provider-timeout-s", type=float, default=None)
     p.add_argument(
-        "--episode-timeout-s", type=float, default=DEFAULT_EPISODE_TIMEOUT_S,
+        "--episode-timeout-s",
+        type=float,
+        default=DEFAULT_EPISODE_TIMEOUT_S,
         help="Kill isolated episode and native subprocesses after this wall-clock budget (default: 6h).",
     )
     p.add_argument(
-        "--postprocessing-timeout-s", type=float, default=DEFAULT_POSTPROCESSING_TIMEOUT_S,
+        "--postprocessing-timeout-s",
+        type=float,
+        default=DEFAULT_POSTPROCESSING_TIMEOUT_S,
         help="Wall-clock budget for scoring and all counterfactual replays (default: 3h); expiry fails the attempt.",
     )
     p.add_argument("--provider-retry-max-attempts", type=int, default=5)
     p.add_argument("--provider-retry-max-elapsed-s", type=float, default=1800.0)
     p.add_argument(
-        "--provider-failure-policy", choices=["abort", "compat_fallback"], default=None,
+        "--provider-failure-policy",
+        choices=["abort", "compat_fallback"],
+        default=None,
         help="Abort on provider failure instead of substituting wait; formal runs require abort.",
     )
     p.add_argument("--max-consecutive-provider-failures", type=int, default=None)
@@ -8122,8 +8581,10 @@ def _run_batch_main() -> int:
         default=None,
     )
     p.add_argument(
-        "--reasoning-effort-format", choices=["auto", "native", "openrouter"],
-        default="auto", help="Chat Completions provider encoding for reasoning effort.",
+        "--reasoning-effort-format",
+        choices=["auto", "native", "openrouter"],
+        default="auto",
+        help="Chat Completions provider encoding for reasoning effort.",
     )
     p.add_argument("--thinking-type", choices=["enabled", "disabled"], default=None)
     p.add_argument(
@@ -8140,8 +8601,10 @@ def _run_batch_main() -> int:
         ),
     )
     p.add_argument(
-        "--context-ablation-mode", choices=["none", "matched_transcript_v1"],
-        default="none", help="Explicit matched E1 transcript-retention treatment.",
+        "--context-ablation-mode",
+        choices=["none", "matched_transcript_v1"],
+        default="none",
+        help="Explicit matched E1 transcript-retention treatment.",
     )
     p.add_argument(
         "--interaction-mode",
@@ -8172,11 +8635,15 @@ def _run_batch_main() -> int:
         ),
     )
     p.add_argument(
-        "--max-jobs", type=int, default=None,
+        "--max-jobs",
+        type=int,
+        default=None,
         help="Dispatch at most N pending episodes this invocation; keep the full suite scope.",
     )
     p.add_argument(
-        "--job-order", choices=["longest-first", "shortest-first"], default="longest-first",
+        "--job-order",
+        choices=["longest-first", "shortest-first"],
+        default="longest-first",
         help="Episode dispatch order, fixed for the output namespace.",
     )
     p.add_argument(
@@ -8215,7 +8682,9 @@ def _run_batch_main() -> int:
         help="Skip episodes already present as status=ok in episodes.jsonl",
     )
     p.add_argument(
-        "--resume-policy", choices=["clean", "retry-infrastructure"], default="clean",
+        "--resume-policy",
+        choices=["clean", "retry-infrastructure"],
+        default="clean",
         help=(
             "retry-infrastructure retains completed task/protocol/native failures "
             "and retries only interruptions or known transient provider errors."
@@ -8271,17 +8740,35 @@ def _run_batch_main() -> int:
             "hard-coded --scenario-slice registry lookup."
         ),
     )
-    p.add_argument("--implementation-policy", choices=["strict", "provenance"], default="strict",
-                   help="Keep code identity as provenance for public ordinary evaluation; checkpoints require strict compatibility.")
-    p.add_argument("--episode-checkpoint", action="store_true", help="Durable verified decision replay for logical persistent episodes.")
-    p.add_argument("--held-cells", help="Campaign-held exact cells; retained in scope but not dispatched.")
+    p.add_argument(
+        "--implementation-policy",
+        choices=["strict", "provenance"],
+        default="strict",
+        help="Keep code identity as provenance for public ordinary evaluation; checkpoints require strict compatibility.",
+    )
+    p.add_argument(
+        "--episode-checkpoint",
+        action="store_true",
+        help="Durable verified decision replay for logical persistent episodes.",
+    )
+    p.add_argument(
+        "--held-cells",
+        help="Campaign-held exact cells; retained in scope but not dispatched.",
+    )
     args = p.parse_args()
     if args.implementation_policy == "provenance":
         if args.formal_run or args.episode_checkpoint:
-            p.error("provenance policy is for public ordinary runs; native maintainer qualification and episode checkpoints use strict compatibility")
+            p.error(
+                "provenance policy is for public ordinary runs; native maintainer qualification and episode checkpoints use strict compatibility"
+            )
         args.resume_policy = "retry-infrastructure"
-    if args.episode_checkpoint and (args.interaction_mode != "logical_persistent" or not args.save_trajectories):
-        print("[FATAL] episode-checkpoint requires logical_persistent and saved trajectories", file=sys.stderr)
+    if args.episode_checkpoint and (
+        args.interaction_mode != "logical_persistent" or not args.save_trajectories
+    ):
+        print(
+            "[FATAL] episode-checkpoint requires logical_persistent and saved trajectories",
+            file=sys.stderr,
+        )
         return 1
     if args.max_jobs is not None and args.max_jobs < 1:
         print("[FATAL] --max-jobs must be positive", file=sys.stderr)
@@ -8344,14 +8831,28 @@ def _run_batch_main() -> int:
     if args.max_tokens < 1:
         print("[FATAL] --max-tokens must be >= 1", file=sys.stderr)
         return 1
-    if (args.provider_retry_max_attempts < 1 or not math.isfinite(args.provider_retry_max_elapsed_s)
-            or args.provider_retry_max_elapsed_s <= 0):
-        print("[FATAL] provider retry budgets must be finite and positive", file=sys.stderr)
+    if (
+        args.provider_retry_max_attempts < 1
+        or not math.isfinite(args.provider_retry_max_elapsed_s)
+        or args.provider_retry_max_elapsed_s <= 0
+    ):
+        print(
+            "[FATAL] provider retry budgets must be finite and positive",
+            file=sys.stderr,
+        )
         return 1
-    if any(not math.isfinite(value) or value <= 0 for value in (
-        args.provider_timeout_s, args.episode_timeout_s, args.postprocessing_timeout_s,
-    )):
-        print("[FATAL] provider and worker timeouts must be finite and positive", file=sys.stderr)
+    if any(
+        not math.isfinite(value) or value <= 0
+        for value in (
+            args.provider_timeout_s,
+            args.episode_timeout_s,
+            args.postprocessing_timeout_s,
+        )
+    ):
+        print(
+            "[FATAL] provider and worker timeouts must be finite and positive",
+            file=sys.stderr,
+        )
         return 1
     if any(
         limit is not None and limit <= 0
@@ -8359,10 +8860,13 @@ def _run_batch_main() -> int:
     ):
         print("[FATAL] provider request limits must be positive", file=sys.stderr)
         return 1
-    if any(
-        limit is not None and limit > 0
-        for limit in (args.provider_rpm_limit, args.provider_rpd_limit)
-    ) and not str(args.provider_rate_limit_scope or "").strip():
+    if (
+        any(
+            limit is not None and limit > 0
+            for limit in (args.provider_rpm_limit, args.provider_rpd_limit)
+        )
+        and not str(args.provider_rate_limit_scope or "").strip()
+    ):
         print(
             "[FATAL] --provider-rate-limit-scope is required when a provider "
             "request limit is enabled",
@@ -8462,9 +8966,13 @@ def _run_batch_main() -> int:
                 from core.lite_lineage import bind_lite_core_lineage
 
                 if args.formal_run or args.seed_mode != "scenario":
-                    raise ValueError("Lite lineage requires diagnostic scenario-seed execution")
+                    raise ValueError(
+                        "Lite lineage requires diagnostic scenario-seed execution"
+                    )
                 bind_lite_core_lineage(
-                    scenario_bodies, lite_suite=args.lite_lineage_suite, repo_root=REPO_ROOT,
+                    scenario_bodies,
+                    lite_suite=args.lite_lineage_suite,
+                    repo_root=REPO_ROOT,
                 )
             suite_manifest_sha256 = _suite_manifest_sha256_for_slice(
                 args.scenario_slice, scenarios, scenario_bodies
@@ -8472,13 +8980,22 @@ def _run_batch_main() -> int:
         suite_eligibility = _suite_eligibility_binding(args.scenario_slice)
         if args.lite_lineage_suite is not None:
             if args.finalize_only:
-                raise ValueError("Lite lineage cannot be retrofitted through finalize-only")
+                raise ValueError(
+                    "Lite lineage cannot be retrofitted through finalize-only"
+                )
             lineage = scenario_bodies[scenarios[0]]["lite_core_lineage"]
-            suite_eligibility["reason"] = {"code": "lite_efficiency_track_not_formal_full"}
+            suite_eligibility["reason"] = {
+                "code": "lite_efficiency_track_not_formal_full"
+            }
             suite_eligibility["lite_core_lineage"] = {
-                key: lineage[key] for key in (
-                    "schema_version", "lite_suite_sha256", "core_suite_sha256",
-                    "source_suite_sha256", "parent_release_id", "formal_full_leaderboard_eligible",
+                key: lineage[key]
+                for key in (
+                    "schema_version",
+                    "lite_suite_sha256",
+                    "core_suite_sha256",
+                    "source_suite_sha256",
+                    "parent_release_id",
+                    "formal_full_leaderboard_eligible",
                 )
             }
     except (OSError, ValueError, json.JSONDecodeError) as exc:
@@ -8538,14 +9055,16 @@ def _run_batch_main() -> int:
             # Bounded invocations may defer reports until all cells close.
             # The publication gate still uses the unfiltered validator.
             formal_reasons = [
-                reason for reason in formal_reasons
+                reason
+                for reason in formal_reasons
                 if reason != "formal_finalization_required"
             ]
         if args.dry_run:
             # Inspect the actual working bytes without authorizing execution.
             # Git metadata and every semantic/input check remain mandatory.
             formal_reasons = [
-                reason for reason in formal_reasons
+                reason
+                for reason in formal_reasons
                 if reason != "formal_git_tree_must_be_clean"
             ]
         if formal_reasons:
@@ -8888,9 +9407,7 @@ def _run_batch_main() -> int:
                 formal_run=True,
             )
             existing_run_config_path = out_dir / "run_config.json"
-            existing_run_config = _load_run_config_fail_closed(
-                existing_run_config_path
-            )
+            existing_run_config = _load_run_config_fail_closed(existing_run_config_path)
         except ValueError as exc:
             print(f"[FATAL] {exc}", file=sys.stderr)
             return 1
@@ -9035,9 +9552,16 @@ def _run_batch_main() -> int:
         "protocol_repair_max_tokens": args.protocol_repair_max_tokens,
         "tool_choice": "auto",
         "reasoning_effort": args.reasoning_effort,
-        **({"reasoning_effort_format": args.reasoning_effort_format}
-           if args.reasoning_effort_format != "auto" else {}),
-        **({"thinking_type": args.thinking_type} if args.thinking_type is not None else {}),
+        **(
+            {"reasoning_effort_format": args.reasoning_effort_format}
+            if args.reasoning_effort_format != "auto"
+            else {}
+        ),
+        **(
+            {"thinking_type": args.thinking_type}
+            if args.thinking_type is not None
+            else {}
+        ),
         **provider_failure_profile,
         "agent_profile_schema_version": "agent_treatment_v1",
         "agent_profile_identity_by_model": agent_profile_identity_by_model,
@@ -9222,11 +9746,18 @@ def _run_batch_main() -> int:
             _run_lock_handle = _acquire_output_dir_lock(out_dir)
             if args.dry_run:
                 # A runner may have created its config since the earlier read.
-                latest_config = _load_run_config_fail_closed(out_dir / "run_config.json")
+                latest_config = _load_run_config_fail_closed(
+                    out_dir / "run_config.json"
+                )
                 if latest_config is not None:
-                    reasons = _run_config_treatment_compatibility_reasons(latest_config, meta)
+                    reasons = _run_config_treatment_compatibility_reasons(
+                        latest_config, meta
+                    )
                     if reasons:
-                        raise ValueError("incompatible existing run_config.json: " + ", ".join(reasons))
+                        raise ValueError(
+                            "incompatible existing run_config.json: "
+                            + ", ".join(reasons)
+                        )
                     write_run_state = False
         except (RuntimeError, ValueError) as exc:
             print(f"[FATAL] {exc}", file=sys.stderr)
@@ -9236,7 +9767,9 @@ def _run_batch_main() -> int:
         (out_dir / "logs").mkdir(exist_ok=True)
         if args.save_trajectories:
             (out_dir / "trajectories").mkdir(exist_ok=True)
-        handlers.insert(0, logging.FileHandler(out_dir / "batch_run.log", encoding="utf-8"))
+        handlers.insert(
+            0, logging.FileHandler(out_dir / "batch_run.log", encoding="utf-8")
+        )
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -9300,14 +9833,19 @@ def _run_batch_main() -> int:
 
     episodes_path = out_dir / "episodes.jsonl"
     prior_rows = (
-        _load_episodes_jsonl(episodes_path, repair_trailing=not args.dry_run) if args.resume else []
+        _load_episodes_jsonl(episodes_path, repair_trailing=not args.dry_run)
+        if args.resume
+        else []
     )
     if args.resume and jobs:
         before_jobs = list(jobs)
         before = len(jobs)
         try:
             jobs = _filter_pending_jobs(
-                jobs, prior_rows, batch_root=out_dir, resume_policy=args.resume_policy,
+                jobs,
+                prior_rows,
+                batch_root=out_dir,
+                resume_policy=args.resume_policy,
                 repair_failures=[] if args.held_cells else None,
             )
         except ResumeArtifactIntegrityError as exc:
@@ -9315,10 +9853,16 @@ def _run_batch_main() -> int:
             raise
         skipped = before - len(jobs)
         if skipped:
-            counts = _resume_skip_counts(before_jobs, jobs, prior_rows, args.resume_policy)
+            counts = _resume_skip_counts(
+                before_jobs, jobs, prior_rows, args.resume_policy
+            )
             LOGGER.info(
                 "resume: skipping %d prior attempts (ok=%d, terminal_error=%d, held_for_repair=%d; %d remaining)",
-                skipped, counts["ok"], counts["error"], counts["repair"], len(jobs),
+                skipped,
+                counts["ok"],
+                counts["error"],
+                counts["repair"],
+                len(jobs),
             )
     pending_before = len(jobs)
     if args.held_cells:
@@ -9326,18 +9870,23 @@ def _run_batch_main() -> int:
         if isinstance(held_rows, dict):
             held_rows = held_rows.get("cells")
         if not isinstance(held_rows, list) or not all(
-            isinstance(row, dict) and all(key in row for key in ("scenario_slug", "model", "seed", "pass_id"))
+            isinstance(row, dict)
+            and all(key in row for key in ("scenario_slug", "model", "seed", "pass_id"))
             for row in held_rows
         ):
-            raise ValueError("held-cells must be a list of exact scenario/model/seed/pass_id cells")
+            raise ValueError(
+                "held-cells must be a list of exact scenario/model/seed/pass_id cells"
+            )
+
         def hold_key(row):
             return (row["scenario_slug"], row["model"], row["seed"], row.get("pass_id"))
+
         held = {hold_key(row) for row in held_rows}
         for job in scope_jobs:
             job["campaign_hold"] = hold_key(job) in held
         jobs = [job for job in jobs if not job.get("campaign_hold")]
     if args.max_jobs is not None:
-        jobs = jobs[:args.max_jobs]
+        jobs = jobs[: args.max_jobs]
 
     LOGGER.info(
         "Scheduled %d episodes (%d scenarios × %d models × %s seed mode × pass_k=%d); max_workers=%d",
@@ -9392,11 +9941,20 @@ def _run_batch_main() -> int:
     if not args.finalize_only:
         _atomic_write_text(
             out_dir / "invocation_summary.json",
-            json.dumps(_invocation_summary(
-                scope_jobs, jobs, prior_rows, pending_before=pending_before,
-                resume_policy=args.resume_policy, batch_root=out_dir,
-                started_at_utc=invocation_started_at, status="running",
-            ), indent=2) + "\n",
+            json.dumps(
+                _invocation_summary(
+                    scope_jobs,
+                    jobs,
+                    prior_rows,
+                    pending_before=pending_before,
+                    resume_policy=args.resume_policy,
+                    batch_root=out_dir,
+                    started_at_utc=invocation_started_at,
+                    status="running",
+                ),
+                indent=2,
+            )
+            + "\n",
         )
     write_mode = "a" if args.resume and episodes_path.exists() else "w"
     if jobs:
@@ -9443,7 +10001,10 @@ def _run_batch_main() -> int:
     current_tree_at_end = implementation_identity(REPO_ROOT)[
         "implementation_tree_sha256"
     ]
-    if args.implementation_policy != "provenance" and current_tree_at_end != expected_run_tree:
+    if (
+        args.implementation_policy != "provenance"
+        and current_tree_at_end != expected_run_tree
+    ):
         meta["implementation_tree_sha256_end"] = current_tree_at_end
         meta["implementation_tree_stable"] = False
         _atomic_write_text(
@@ -9462,7 +10023,9 @@ def _run_batch_main() -> int:
     meta["git_commit_end"] = git_metadata_end.get("git_commit")
     meta["git_dirty_end"] = git_metadata_end.get("git_dirty")
     meta["git_status_short_end"] = git_metadata_end.get("git_status_short") or []
-    require_clean_end = bool(meta.get("formal_run")) or args.lite_lineage_suite is not None
+    require_clean_end = (
+        bool(meta.get("formal_run")) or args.lite_lineage_suite is not None
+    )
     if require_clean_end and (
         git_metadata_end.get("git_metadata_available") is not True
         or git_metadata_end.get("git_dirty") is not False
@@ -9513,11 +10076,20 @@ def _run_batch_main() -> int:
     if not args.finalize_only:
         _atomic_write_text(
             out_dir / "invocation_summary.json",
-            json.dumps(_invocation_summary(
-                scope_jobs, jobs, results, pending_before=pending_before,
-                resume_policy=args.resume_policy, batch_root=out_dir,
-                started_at_utc=invocation_started_at, status="completed",
-            ), indent=2) + "\n",
+            json.dumps(
+                _invocation_summary(
+                    scope_jobs,
+                    jobs,
+                    results,
+                    pending_before=pending_before,
+                    resume_policy=args.resume_policy,
+                    batch_root=out_dir,
+                    started_at_utc=invocation_started_at,
+                    status="completed",
+                ),
+                indent=2,
+            )
+            + "\n",
         )
     # `_finalize_outputs` already computed the batch state machine (coverage,
     # errors, orphan residue, provider contamination) and persisted it in the
@@ -9581,16 +10153,20 @@ def main() -> int:
         if exc.batch_root is not None and not exc.dry_run:
             _atomic_write_text(
                 exc.batch_root / "invocation_summary.json",
-                json.dumps({
-                    "schema_version": "batch_invocation_v1",
-                    "status": "needs_attention",
-                    "reason": "resume_artifact_integrity_failed",
-                    "started_at_utc": invocation_started_at,
-                    "updated_at_utc": datetime.now(UTC).isoformat(),
-                    "scope_attempts_closed": False,
-                    "formal_completion_claimed": False,
-                    "integrity_failures": exc.failures,
-                }, indent=2) + "\n",
+                json.dumps(
+                    {
+                        "schema_version": "batch_invocation_v1",
+                        "status": "needs_attention",
+                        "reason": "resume_artifact_integrity_failed",
+                        "started_at_utc": invocation_started_at,
+                        "updated_at_utc": datetime.now(UTC).isoformat(),
+                        "scope_attempts_closed": False,
+                        "formal_completion_claimed": False,
+                        "integrity_failures": exc.failures,
+                    },
+                    indent=2,
+                )
+                + "\n",
             )
         print(f"[FATAL] {exc}", file=sys.stderr)
         return 1

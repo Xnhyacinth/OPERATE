@@ -46,7 +46,9 @@ def _append_sanitized_failure_trace(
     failure_logger.propagate = False
     failure_logger.addHandler(handler)
     try:
-        stack = "".join(traceback.format_list(traceback.extract_tb(error.__traceback__)))
+        stack = "".join(
+            traceback.format_list(traceback.extract_tb(error.__traceback__))
+        )
         failure_logger.error("episode aborted: %s\n%s", public_error, stack)
     finally:
         failure_logger.removeHandler(handler)
@@ -120,14 +122,22 @@ def expand_scenarios(patterns: list[str]) -> list[str]:
             # consumers (load_scenario_yaml) resolve it via their own
             # archive fallback. The pattern itself is always the canonical
             # release-scoped slug.
-            if clean.startswith("releases/") and not clean.startswith("releases/archive/"):
-                archive_pattern = str(scenarios_root / "releases" / "archive") + "/" + clean[len("releases/"):] + ".yaml"
+            if clean.startswith("releases/") and not clean.startswith(
+                "releases/archive/"
+            ):
+                archive_pattern = (
+                    str(scenarios_root / "releases" / "archive")
+                    + "/"
+                    + clean[len("releases/") :]
+                    + ".yaml"
+                )
                 if glob.glob(archive_pattern):
                     _add_yaml(Path(scenarios_root / f"{clean}.yaml"))
                     continue
             # Fallback: try via the resolver to validate the slug is real
             try:
                 from run import load_scenario_yaml  # noqa: PLC0415
+
                 load_scenario_yaml(clean)
                 _add_yaml(Path(scenarios_root / f"{clean}.yaml"))
                 continue
@@ -172,8 +182,11 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
             from core.lite_lineage import apply_lite_worker_binding
 
             apply_lite_worker_binding(
-                scenario, binding, scenario_slug=scenario_slug,
-                seed=seed, repo_root=REPO_ROOT,
+                scenario,
+                binding,
+                scenario_slug=scenario_slug,
+                seed=seed,
+                repo_root=REPO_ROOT,
             )
         traj_dir = run_options.get("trajectory_dir")
         checkpoint_options = {}
@@ -198,9 +211,7 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
                     per_action_group_attribution=bool(
                         run_options.get("per_action_group_attribution", False)
                     ),
-                    per_action_group_cap=run_options.get(
-                        "per_action_group_cap", 20
-                    ),
+                    per_action_group_cap=run_options.get("per_action_group_cap", 20),
                 )
         else:
             result = run_one(
@@ -217,9 +228,7 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
                 per_action_group_attribution=bool(
                     run_options.get("per_action_group_attribution", False)
                 ),
-                per_action_group_cap=run_options.get(
-                    "per_action_group_cap", 20
-                ),
+                per_action_group_cap=run_options.get("per_action_group_cap", 20),
             )
         result["status"] = "ok"
         if log_path is not None:
@@ -273,12 +282,22 @@ def run_one_safe(args: tuple[str, str, int, dict[str, Any]] | tuple) -> dict[str
         reason = classify_provider_error(provider_error)
         if type(exc).__name__ == "ProviderQuotaExhaustedError":
             category = "quota_deferred"
-        elif reason in {"provider_transport_error", "provider_rate_limit", "provider_server_error"}:
+        elif reason in {
+            "provider_transport_error",
+            "provider_rate_limit",
+            "provider_server_error",
+        }:
             category = "provider_transient_error"
-        elif type(exc).__name__ in {"ProviderCircuitOpenError", "ProviderModelIdentityError"} or (
-            http_status is not None and 400 <= http_status < 500
-        ):
+        elif type(exc).__name__ in {
+            "ProviderCircuitOpenError",
+            "ProviderModelIdentityError",
+        } or (http_status is not None and 400 <= http_status < 500):
             category = "provider_configuration_error"
+        elif isinstance(exc, ImportError):
+            # Native extension/backend import failed before the model could act.
+            # Retry after the operator repairs the environment; do not treat it
+            # as a completed episode or a scorer/protocol bug.
+            category = "infrastructure_error"
         else:
             category = "harness_error"
         for field in ("retry_at", "budget_reason", "root_sequence", "attempts"):

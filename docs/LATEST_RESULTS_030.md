@@ -1,12 +1,10 @@
-# Latest Lite141 retrospective results: 0.30
+# Historical Lite141 retrospective results: 0.30
 
-Snapshot: 2026-10-08. The default raw-trajectory evaluator remains **0.28.0**;
-**0.30.0** is the latest opt-in task-outcome revision. The panel has 23 declared
-models, 3,243 fixed targets, 2,958 determined Q values and 20 complete 141-case
-models. HY3 has 138/141; Grok 4.6 and 4.7 have no selected outcomes. Missing
-measurements retain fixed weights and bounds; they receive no point rank.
+This preserves the 2026-10-08 comparison. For the current anchored
+results, see [0.31.2 with Sonnet completion](LATEST_RESULTS_0312_SONNET.md).
 
-The table uses the completed historical comparison panel, including the GPT-5.5
+The following table is the **unchanged 2026-10-08 snapshot**, not the current
+trajectory selection. It uses the historical comparison panel, including the GPT-5.5
 105-case supplement. It preserves the published versions. Score changes across
 versions describe changed measurement rules, not changed model execution.
 0.25 atan and 0.25 v3 are distinct historical native-quality mappings. 0.26.1
@@ -51,13 +49,14 @@ after aggregation would be a different metric. Unknown cases keep their weight.
 The 0.30 loss revisions affect nine LV/CIGRE and seven driving cases; original
 cost components, 0.28 evidence and DSS measurement are preserved.
 
-Full 0.30 report SHA256:
+Historical 2026-10-08 full 0.30 report SHA256:
 `d95ed6a0c583425a4479908ebdb53a89b81a25cb1b6833b955253b914e4e482c`.
 Full 0.29.1 report SHA256:
 `af1040ac9ec47946ed952e825fa6a9e601969cdf19346e0623986f46b02b388a`.
 The private trajectory archive carries complete reports, original input
 manifests, recovery evidence, checksums and audit receipts. Public aggregate
-tables are available in the [dated HF result companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008).
+tables for that historical snapshot are available in the
+[2026-10-08 HF result companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008).
 
 Point ranks describe recorded outcomes on Lite-Dev. Precision and missingness
 bounds are not repeated-run confidence intervals. Historical driving feedback

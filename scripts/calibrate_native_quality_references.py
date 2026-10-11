@@ -30,6 +30,7 @@ from scripts.calibrate_core_candidate import (  # noqa: E402
 )
 
 POLICIES = ('wait_only', 'greedy_heuristic', 'oracle_offline', 'random')
+TARIFF_AGENT = 'citylearn_tariff_reference'
 
 
 def validate_output(path: Path) -> Path:
@@ -89,14 +90,24 @@ def _write(path: Path, payload: Any) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def _child(connection: Any, row: dict, policy: str, output: Path) -> None:
+def policy_specs(citylearn_tariff_grid: bool = False) -> list[tuple[str, str, dict]]:
+    """(label, agent, agent kwargs); grid labels name their fixed configuration."""
+    if not citylearn_tariff_grid:
+        return [(policy, policy, {}) for policy in POLICIES]
+    from baselines.citylearn_tariff_reference import GRID, config_id
+    return [(f'{TARIFF_AGENT}@{config_id(c)}', TARIFF_AGENT, dict(c)) for c in GRID]
+
+
+def _child(connection: Any, row: dict, policy: str, output: Path,
+           agent_kwargs: dict | None = None) -> None:
     _claim_process_group()
     try:
         scenario_path = _resolve_scenario_path(row['path'])
         scenario = load_scenario_yaml(str(scenario_path.relative_to(ROOT / 'scenarios')))
         if row.get('yaml_sha256') and hashlib.sha256(scenario_path.read_bytes()).hexdigest() != row['yaml_sha256']:
             raise ValueError('scenario YAML hash differs from selected suite')
-        result = run_one(scenario, policy, trajectory_dir=output / 'trajectory',
+        result = run_one(scenario, policy, agent_kwargs=agent_kwargs or None,
+                         trajectory_dir=output / 'trajectory',
                          seed_override=int(row.get('seed', scenario.get('seed', 42))),
                          per_action_cap=0)
         if result['scenario_signature'] != row['scenario_signature']:
@@ -114,11 +125,12 @@ def _child(connection: Any, row: dict, policy: str, output: Path) -> None:
         connection.close()
 
 
-def run_reference(row: dict, policy: str, output: Path, timeout: float) -> dict:
+def run_reference(row: dict, policy: str, output: Path, timeout: float,
+                  agent_kwargs: dict | None = None) -> dict:
     output.mkdir(parents=True, exist_ok=False)
     context = multiprocessing.get_context('spawn')
     parent, child = context.Pipe(duplex=False)
-    process = context.Process(target=_child, args=(child, row, policy, output))
+    process = context.Process(target=_child, args=(child, row, policy, output, agent_kwargs))
     process.start()
     child.close()
     try:
@@ -152,13 +164,16 @@ def _verified_record(record: dict, row: dict, policy: str, output: Path) -> None
         raise ValueError('reference episode identity mismatch')
 
 
-def _episode(row: dict, policy: str, repetition: int, output: Path, timeout: float,
-             identity: dict, manifest_hash: str, retry: bool) -> dict:
+def _episode(row: dict, spec: tuple[str, str, dict], repetition: int, output: Path,
+             timeout: float, identity: dict, manifest_hash: str, retry: bool) -> dict:
+    policy, agent, agent_kwargs = spec
     base = output / row['scenario_signature'] / policy / str(repetition)
     attempts = sorted(base.glob('attempt-*')) if base.exists() else []
     binding = {'scenario_signature': row['scenario_signature'], 'seed': row.get('seed', 42),
                'policy': policy, 'repetition': repetition, 'manifest_sha256': manifest_hash,
                'implementation_identity': identity}
+    if agent_kwargs:
+        binding.update(agent=agent, agent_kwargs=agent_kwargs)
     if attempts:
         previous = attempts[-1]
         receipt = previous / 'end.json'
@@ -170,7 +185,7 @@ def _episode(row: dict, policy: str, repetition: int, output: Path, timeout: flo
                     identity['evaluation_runtime_sha256']):
                 raise ValueError('reference execution identity mismatch')
             record = end['record']
-            _verified_record(record, row, policy, previous)
+            _verified_record(record, row, agent, previous)
             if record['status'] == 'ok' or not retry:
                 return record
         elif not retry:
@@ -182,9 +197,13 @@ def _episode(row: dict, policy: str, repetition: int, output: Path, timeout: flo
     start_hash = _write(attempt / 'start.json', binding)
     if implementation_identity()['evaluation_runtime_sha256'] != identity['evaluation_runtime_sha256']:
         raise ValueError('implementation changed before reference execution')
-    result = run_reference(row, policy, attempt / 'execution', timeout)
+    if agent_kwargs:
+        result = run_reference(row, agent, attempt / 'execution', timeout,
+                               agent_kwargs=agent_kwargs)
+    else:
+        result = run_reference(row, agent, attempt / 'execution', timeout)
     record = {'policy': policy, 'repetition': repetition, **result}
-    _verified_record(record, row, policy, attempt)
+    _verified_record(record, row, agent, attempt)
     end_identity = implementation_identity()
     _write(attempt / 'end.json', {'start_sha256': start_hash, 'record': record,
                                 'end_implementation_identity': end_identity})
@@ -210,7 +229,8 @@ def _publish_report(output: Path, manifest_path: Path, identity: dict, results: 
 
 def calibrate(suite: Path, output: Path, selected: set[str] | None = None,
               timeout: float = 600, shard_index: int = 0, shard_count: int = 1,
-              *, resume: bool = False, retry_incomplete: bool = False) -> dict:
+              *, resume: bool = False, retry_incomplete: bool = False,
+              citylearn_tariff_grid: bool = False) -> dict:
     if shard_count < 1 or not 0 <= shard_index < shard_count:
         raise ValueError('shard-index must be in [0, shard-count)')
     if not math.isfinite(timeout) or timeout <= 0:
@@ -221,17 +241,22 @@ def calibrate(suite: Path, output: Path, selected: set[str] | None = None,
     raw = suite.read_bytes()
     body = json.loads(raw)
     rows = validate_rows(body['scenarios'], selected)
+    if citylearn_tariff_grid:
+        rows = [row for row in rows if row.get('backend_kind') == 'citylearn']
     rows = [row for index, row in enumerate(rows) if index % shard_count == shard_index]
     if not rows:
         raise ValueError('no reference rows selected')
+    specs = policy_specs(citylearn_tariff_grid)
     output.mkdir(parents=True, exist_ok=resume)
     identity = implementation_identity()
     manifest = {'schema_version': 'native_quality_reference_evidence.v1',
                 'suite_path': str(suite.resolve()), 'suite_sha256': hashlib.sha256(raw).hexdigest(),
-                'implementation_identity': identity, 'policies': list(POLICIES),
+                'implementation_identity': identity, 'policies': [s[0] for s in specs],
                 'repetitions': 2, 'anchor_certified': False,
                 'shard_index': shard_index, 'shard_count': shard_count,
                 'treatment': 'cpu_reference_run_one', 'rows': rows}
+    if citylearn_tariff_grid:
+        manifest['policy_specs'] = [dict(label=s[0], agent=s[1], agent_kwargs=s[2]) for s in specs]
     manifest_path = output / 'manifest.json'
     if manifest_path.exists():
         previous = json.loads(manifest_path.read_bytes())
@@ -248,10 +273,11 @@ def calibrate(suite: Path, output: Path, selected: set[str] | None = None,
     for row in rows:
         episodes = []
         comparisons = {}
-        for policy in POLICIES:
+        for spec in specs:
+            policy = spec[0]
             pair = []
             for repetition in range(2):
-                record = _episode(row, policy, repetition, output, timeout, identity,
+                record = _episode(row, spec, repetition, output, timeout, identity,
                                   manifest_hash, retry_incomplete)
                 episodes.append(record)
                 pair.append(record)
@@ -288,11 +314,14 @@ def main() -> None:
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--retry-incomplete', action='store_true',
                         help='retry interrupted/failed references in new attempt directories')
+    parser.add_argument('--citylearn-tariff-grid', action='store_true',
+                        help='run the fixed CityLearn tariff reference grid on CityLearn rows only')
     args = parser.parse_args()
     report = calibrate(args.suite, args.output,
                        set(args.scenario_signatures) if args.scenario_signatures else None,
                        args.episode_timeout_seconds, args.shard_index, args.shard_count,
-                       resume=args.resume, retry_incomplete=args.retry_incomplete)
+                       resume=args.resume, retry_incomplete=args.retry_incomplete,
+                       citylearn_tariff_grid=args.citylearn_tariff_grid)
     if not report['identity_unchanged']:
         raise SystemExit('implementation changed during calibration; evidence is not calibration eligible')
 
