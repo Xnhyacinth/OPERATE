@@ -3,9 +3,8 @@ title: "OPERATE: Benchmarking Persistent Operational Agency in Source-Grounded E
 message: If you use this benchmark, cite the GitHub repository, Git commit, and Hugging Face dataset revision.
 type: software
 authors:
-  - name: Xnhyacinth
+  - name: OPERATE Authors
 license: MIT
-repository-code: https://github.com/Xnhyacinth/OPERATE
 abstract: >-
   OPERATE evaluates LLM agents as persistent operational decision centers
   against source-grounded, code-driven, seeded executable systems. Its primary

@@ -38,7 +38,7 @@ clusters within domains and do not measure repeated-run variability.
 
 | Incomplete deployment | Coverage | Excl. driving score |
 |---|---:|---:|
-| iquest-m1 | 134/141 | 10.93 |
+| deployment-16 | 134/141 | 10.93 |
 | claude-sonnet-5.5 | 134/141 | 30.30 |
 | grok-4.6 | 0/141 | N/A |
 | grok-4.7 | 0/141 | N/A |

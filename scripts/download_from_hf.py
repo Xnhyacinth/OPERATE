@@ -10,7 +10,7 @@ Authentication is optional for the public dataset. If present, ``HF_TOKEN`` or
 the token returned by ``huggingface_hub.get_token()`` is passed through.
 
 Usage:
-    python scripts/download_from_hf.py
+    python scripts/download_from_hf.py --repo-id <DATASET_OWNER>/<DATASET_NAME>
     python scripts/download_from_hf.py --revision <DATASET_COMMIT_SHA>
     python scripts/download_from_hf.py --download-only
 """
@@ -40,7 +40,6 @@ if str(REPO) not in sys.path:
 # name is intentionally not the active release ID; MANIFEST.json supplies the
 # exact release binding and prevents cross-release reuse.
 DATA = REPO / "operate_data"
-DEFAULT_REPO_ID = "Xnhyacinth/OPERATE"
 CLUSTERDATA_URL = "https://github.com/alibaba/clusterdata.git"
 CLUSTERDATA_EXPECTED_COMMIT = "0d0f3f1efdbf1add6a7bcc63676eafbd1eb11f71"
 CLUSTERDATA_SPARSE_PATHS = (
@@ -3048,8 +3047,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--repo-id",
-        default=DEFAULT_REPO_ID,
-        help=f"HF dataset repo id (default: {DEFAULT_REPO_ID})",
+        default=os.environ.get("OPERATE_HF_REPO_ID"),
+        help="HF dataset repo id; defaults to OPERATE_HF_REPO_ID",
     )
     ap.add_argument(
         "--revision",
@@ -3081,6 +3080,8 @@ def main() -> int:
         help="replace an existing backend directory when its marker is stale",
     )
     args = ap.parse_args()
+    if not args.repo_id:
+        ap.error("set OPERATE_HF_REPO_ID or provide --repo-id")
 
     data_dir = Path(args.data_dir)
     try:

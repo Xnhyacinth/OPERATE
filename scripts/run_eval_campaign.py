@@ -737,7 +737,7 @@ def worker(config_path: Path, lane: str, *, once=False) -> int:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--config", type=Path, required=True)
-    p.add_argument("--lane", default="tencent")
+    p.add_argument("--lane", default="gateway")
     mode = p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--start", action="store_true")
     mode.add_argument("--worker", action="store_true")

@@ -38,7 +38,7 @@ from baselines.llm_agent import (
     build_visible_belief_summary,
     classify_provider_error,
     observation_budget_chars,
-    parse_tencent_quota_reset,
+    parse_provider_quota_reset,
     redact_provider_error,
 )
 from core import Action, ToolCall
@@ -515,9 +515,7 @@ def test_oracle_uses_acopf_reserve_lever_when_seed_exposes_it() -> None:
 
 
 def test_llm_agent_falls_back_without_api_key(monkeypatch) -> None:
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("API_KEY", raising=False)
     env, actions = _run(LLMAgent, level="basic")
     # All emitted actions should be `wait` because the fallback path is hit
     assert all(a.dominant == "wait" for a in actions)
@@ -2982,7 +2980,7 @@ def test_call_openai_compatible_passes_configured_timeout() -> None:
     assert captured["timeout"] == 12.0
 
 
-def test_llm_agent_raises_quota_exhausted_on_tencent_6004() -> None:
+def test_llm_agent_raises_quota_exhausted_on_provider_6004() -> None:
     agent = LLMAgent(config=LLMConfig(provider="openai", model="hy3-ioa"))
     agent._has_api_key = True  # noqa: SLF001
 
@@ -3190,13 +3188,13 @@ def test_classify_provider_error_identifies_rate_limit_and_server_error() -> Non
     )
 
 
-def test_classify_provider_error_treats_tencent_6004_as_quota_not_rate_limit() -> None:
+def test_classify_provider_error_treats_provider_6004_as_quota_not_rate_limit() -> None:
     payload = (
         "Error code: 429 - {'error': {'code': 6004, 'message': "
         "'超出频率限制，将在 2026-08-19 16:33:40 UTC+8 后恢复'}}"
     )
     assert classify_provider_error(payload) == "provider_quota_exhausted"
-    assert parse_tencent_quota_reset(payload) == "2026-08-19 16:33:40 UTC+8"
+    assert parse_provider_quota_reset(payload) == "2026-08-19 16:33:40 UTC+8"
     assert (
         classify_provider_error(
             "mandatory prompt state exceeds max_chars; refusing to omit "
@@ -3745,7 +3743,7 @@ def test_reflexion_strict_memory_scope_never_exposes_difficulty_labels(
     from baselines.reflexion_agent import ReflexionLLMAgent
 
     monkeypatch.setenv("OPERATE_REFLEXION_DIR", str(tmp_path))
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("API_KEY", raising=False)
     (tmp_path / "daily_ops_24h__strict.jsonl").write_text(
         json.dumps(
             {
@@ -3792,7 +3790,7 @@ def test_reflexion_strict_memory_scope_never_exposes_difficulty_labels(
 
 
 def test_strict_system_prompt_uses_domain_native_objective(monkeypatch) -> None:
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("API_KEY", raising=False)
     env = SimpleNamespace(
         budget=SimpleNamespace(max_tool_calls_per_tick=2, max_cost_units_per_tick=2.0),
         get_tool_specs=lambda: [],
@@ -6308,3 +6306,17 @@ def test_stream_chunks_merge_before_model_identity_closure() -> None:
     assert record["response_fragment_count"] == 2
     assert record["observed_models"] == ["requested-model"]
     assert record["closure"] == "exact"
+
+
+
+@pytest.mark.parametrize("provider", ["openai", "openai_compatible", "azure"])
+def test_provider_envelope_binds_the_endpoint_used_by_its_transport(monkeypatch, provider):
+    monkeypatch.setenv("BASE_URL", "https://ambient.example.test/v1")
+    agent = LLMAgent(_stateless_config(provider=provider, base_url=None))
+    agent._record_provider_request(
+        messages=[{"role": "user", "content": "event"}],
+        tools=[], fallback_without_tools=False,
+    )
+    envelope = agent.get_interaction_stats()["provider_request_records"][0]["envelope"]
+    expected = "https://ambient.example.test/v1" if provider == "azure" else None
+    assert envelope["public_base_url"] == expected

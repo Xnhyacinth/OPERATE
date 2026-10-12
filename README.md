@@ -4,9 +4,6 @@
   <p><strong>Benchmarking Persistent Operational Agency in Source-Grounded Executable Systems</strong></p>
 
   <p>
-    <a href="https://github.com/Xnhyacinth/OPERATE/actions/workflows/ci.yml"><img src="https://github.com/Xnhyacinth/OPERATE/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-    <a href="https://huggingface.co/datasets/Xnhyacinth/OPERATE"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-Full%20%7C%20Lite-FFD21E" alt="Hugging Face dataset: Full and Lite" /></a>
-    <a href="https://huggingface.co/collections/Xnhyacinth/operate-6a9ed166a0c8cd671910ca1a"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Collection-OPERATE-FFD21E" alt="Hugging Face collection: OPERATE" /></a>
     <img src="https://img.shields.io/badge/Full-769%20scenarios-0F766E" alt="Full: 769 scenarios" />
     <img src="https://img.shields.io/badge/Lite-141%20scenarios-0EA5A4" alt="Lite: 141 scenarios" />
     <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white" alt="Python 3.10 through 3.14" /></a>
@@ -20,8 +17,7 @@ come from seeded executable backends; the model is the agent under test, never
 the environment or the judge.
 
 [Documentation](docs/README.md) ·
-[Hugging Face data](https://huggingface.co/datasets/Xnhyacinth/OPERATE) ·
-[Hugging Face collection](https://huggingface.co/collections/Xnhyacinth/operate-6a9ed166a0c8cd671910ca1a) ·
+[Data access](docs/DATA_ACCESS.md) ·
 [Evaluation protocol](docs/FORMAL_EVALUATION.md) ·
 [Data provenance](docs/DATA_PROVENANCE.md)
 
@@ -56,11 +52,11 @@ applies. Cost gain above the reference remains a separate diagnostic.
 Raw evidence has been reauthenticated; formal-run, same-run merge and held-out
 certification remain false. Missing outcomes retain bounds and no complete rank.
 
-The [public aggregate companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/61b30ab53103595228bf2f4098d2217dab040306/results/lite141_20261011)
+The public aggregate companion (`results/lite141_20261011` at revision `61b30ab53103595228bf2f4098d2217dab040306`)
 has been published and verified at its immutable revision. It contains
 model/domain summaries, process coverage, uncertainty and specification
 sensitivity. Sanitized trajectories and audit reports are available in the
-[public sanitized trajectory archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Public-Trajectories/tree/23b01d6b00c7c58f9ec4c35700bbe57b1414cfae/sanitized_refresh_20261011).
+public sanitized trajectory archive (`sanitized_refresh_20261011` at revision `23b01d6b00c7c58f9ec4c35700bbe57b1414cfae`).
 Scientific records, actions, scorer outputs, numeric values and identifiers are
 preserved. Infrastructure URLs and paths and credential values are redacted;
 OS metadata exclusions are recorded in the publication manifest. Sanitized
@@ -77,7 +73,7 @@ preserved. Scoring uses recorded artifacts without provider calls or native repl
 This historical snapshot used the **0.28.0** default raw reader and the
 **0.30.0** opt-in task-outcome revision. [Complete version comparison](docs/LATEST_RESULTS_030.md)
 covers 23 declared models, 20 complete 141-case scores and 2,958 measured outcomes.
-[Public tables, sensitivity and analysis figures](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
+Public tables, sensitivity and analysis figures (`results/lite141_20261008` at revision `main`)
 have a separate manifest. Sanitized evidence is available through the archive linked above.
 The [analysis layer](docs/LITE141_ANALYSIS.md) uses a separate 12-model subset.
 
@@ -159,8 +155,9 @@ Python 3.10 through 3.14 is supported by the framework. Use Python 3.13 for a
 single-environment full-Core run because of current upstream CityLearn pins.
 
 ```bash
-git clone https://github.com/Xnhyacinth/OPERATE.git
+git clone '<repository-url>' OPERATE
 cd OPERATE
+export OPERATE_HF_REPO_ID='<dataset-owner>/<dataset-name>'
 python -m pip install uv==0.12.5
 bash scripts/setup_eval_env.sh --smoke
 ```
@@ -172,6 +169,9 @@ performance. Model evaluation additionally requires your model API credentials.
 Unanswered alarms from the passive baseline remain visible as policy warnings;
 the installation profile does not turn them into successful interventions.
 Strict agent/action validation and safety checks remain unchanged.
+
+Dataset locations and provider endpoints are supplied through environment
+variables; see [data and API configuration](docs/DATA_ACCESS.md).
 
 The public HF download is content-addressed and does not require `HF_TOKEN`.
 The installer resolves the current public snapshot once and records its exact
@@ -190,10 +190,12 @@ For metadata analysis without installing simulators, install the Hugging Face
 directly:
 
 ```python
+import os
+
 from datasets import load_dataset
 
-full = load_dataset("Xnhyacinth/OPERATE", "full", split="test")
-lite = load_dataset("Xnhyacinth/OPERATE", "lite", split="test")
+full = load_dataset(os.environ["OPERATE_HF_REPO_ID"], "full", split="test")
+lite = load_dataset(os.environ["OPERATE_HF_REPO_ID"], "lite", split="test")
 ```
 
 Each Parquet row contains viewer-friendly metadata and the exact scenario YAML;

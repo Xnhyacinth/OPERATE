@@ -29,7 +29,7 @@ driving recovery. See [0.30 protocol](EVALUATION_030.md),
 | deepseek-ai/deepseek-v4-flash-0731 | 18.8225 | 36.2658 | 34.5074 | 34.5074 | 39.9315 | 39.9315 | 39.9315 | 47.3159 | 11 | 141/141 |
 | zai-org/glm-5.3 | 19.4888 | 37.5653 | 35.3156 | 35.3156 | 39.8431 | 39.8431 | 39.8431 | 47.2138 | 12 | 141/141 |
 | qwen/qwen3.8-27b | 19.4197 | 37.2002 | 34.7100 | 34.7100 | 39.0799 | 39.0799 | 39.0799 | 46.6918 | 13 | 141/141 |
-| iquest-m1 | 17.5239 | 34.2833 | 32.5055 | 32.5055 | 37.8897 | 37.8897 | 37.8897 | 45.5714 | 14 | 141/141 |
+| deployment-16 | 17.5239 | 34.2833 | 32.5055 | 32.5055 | 37.8897 | 37.8897 | 37.8897 | 45.5714 | 14 | 141/141 |
 | Qwen/Qwen3.6-27B | 18.7451 | 36.5481 | 33.0500 | 33.0500 | 38.0047 | 38.0047 | 38.0047 | 45.2852 | 15 | 141/141 |
 | gpt-6-sol | 19.6664 | 38.3340 | 33.8449 | 33.8449 | 38.1657 | 38.1657 | 38.1657 | 45.1471 | 16 | 141/141 |
 | gpt-5.5 | 18.3044 | 35.6167 | 31.9919 | 31.9919 | 36.3688 | 36.3688 | 36.3688 | 43.7011 | 17 | 141/141 |
@@ -56,7 +56,7 @@ Full 0.29.1 report SHA256:
 The private trajectory archive carries complete reports, original input
 manifests, recovery evidence, checksums and audit receipts. Public aggregate
 tables for that historical snapshot are available in the
-[2026-10-08 HF result companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008).
+2026-10-08 HF result companion (`results/lite141_20261008` at revision `main`).
 
 Point ranks describe recorded outcomes on Lite-Dev. Precision and missingness
 bounds are not repeated-run confidence intervals. Historical driving feedback

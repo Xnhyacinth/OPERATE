@@ -29,7 +29,9 @@ def test_provider_route_bindings_are_complete_and_append_only() -> None:
     for row in routes:
         assert row["request_max_tokens"] == row["max_output_tokens"]
         assert row["context_window_tokens"] >= row["request_max_tokens"]
-        assert row["provider"] in {"tencent", "openrouter"}
+        assert row["provider"] == "openai_compatible"
+        assert row["base_url_env"] == "BASE_URL"
+        assert "base_url" not in row
         assert row["workers_lite"] >= 1
         assert row["workers_full"] >= 1
     changelog = payload["changelog"]

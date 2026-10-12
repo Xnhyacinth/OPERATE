@@ -54,7 +54,7 @@ def test_maintained_setup_uses_operate_runtime_bundle() -> None:
     assert 'git -C "$WORKS/JSPLIB-Instances" check-ignore CHECKSUMS.txt' in setup
     assert "OPERATE_HF_REVISION" in setup
     assert '--revision "$OPERATE_HF_REVISION"' in setup
-    assert "NREL_API_KEY" not in setup
+    assert "API_KEY" not in setup
     assert "download_nrel_microgrid_sources.py" not in setup
 
 
@@ -136,8 +136,8 @@ def test_formal_runbook_documents_unknown_quota() -> None:
     assert "scripts/merge_formal_llm_shards.py" in runbook
     assert "same single model" in runbook
     assert "quota remains unknown" in runbook
-    assert "OPERATE_TENCENT_HY3_RPM_LIMIT:?" not in runbook
-    assert "OPERATE_TENCENT_HY3_RPD_LIMIT:?" not in runbook
+    assert "OPERATE_MODEL_RPM_LIMIT:?" not in runbook
+    assert "OPERATE_MODEL_RPD_LIMIT:?" not in runbook
 
 
 def test_active_data_docs_do_not_retain_pre_promotion_counts() -> None:

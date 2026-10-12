@@ -10,7 +10,7 @@ import pytest
 from scripts import download_from_hf
 
 
-REPO_ID = "Xnhyacinth/OPERATE"
+REPO_ID = "anonymous/OPERATE"
 REVISION = "a" * 40
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -277,3 +277,37 @@ def test_public_download_rejects_unbound_repo_or_revision(
             repo_id=repo_id,
             revision=revision,
         )
+
+
+
+def test_downloader_requires_explicit_dataset_before_network(monkeypatch, capsys):
+    monkeypatch.delenv("OPERATE_HF_REPO_ID", raising=False)
+    monkeypatch.setattr(sys, "argv", ["download_from_hf.py", "--dry-run"])
+    monkeypatch.setitem(sys.modules, "huggingface_hub", None)
+    with pytest.raises(SystemExit) as exc:
+        download_from_hf.main()
+    assert exc.value.code == 2
+    assert "OPERATE_HF_REPO_ID" in capsys.readouterr().err
+
+
+def test_downloader_uses_configured_dataset(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("OPERATE_HF_REPO_ID", REPO_ID)
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    monkeypatch.setitem(
+        sys.modules, "huggingface_hub",
+        _fake_huggingface_hub(private=False, sha=REVISION),
+    )
+    monkeypatch.setattr(download_from_hf, "REPO", tmp_path)
+    monkeypatch.setattr(sys, "argv", [
+        "download_from_hf.py", "--data-dir", str(tmp_path / "runtime"), "--dry-run",
+    ])
+    assert download_from_hf.main() == 0
+    assert REPO_ID in capsys.readouterr().out
+    assert not (tmp_path / "runtime").exists()
+
+
+def test_downloader_explicit_dataset_overrides_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("OPERATE_HF_REPO_ID", "other/dataset")
+    assert _run_dry_run(
+        monkeypatch, tmp_path, private=False, sha=REVISION, revision=None,
+    ) == 0

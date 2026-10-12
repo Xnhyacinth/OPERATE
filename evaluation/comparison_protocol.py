@@ -117,6 +117,9 @@ def load_protocol(config, *, suite_sha256, models):
             agent_treatment_sha256_by_model={model: ident['agent_treatment_sha256']},
             run_semantics_fingerprint=semantics[:-len(suffix)])
     rebuilt = build_protocol(configs, suite_sha256=suite_sha256, pass_id=protocol['pass_id'])
+    for model in models:
+        recorded = protocol['models'][model]['agent_config']['config']
+        rebuilt['models'][model]['agent_config']['config']['api_key_env'] = recorded['api_key_env']
     if rebuilt != protocol:
         raise ValueError('comparison protocol declaration mismatch')
     return protocol, digest
@@ -154,6 +157,6 @@ def validate_row(protocol, model, row):
     if isinstance(actual, dict) and isinstance(actual.get('config'), dict):
         actual = {**actual, 'config': {**actual['config']}}
         # Credential environment variable names are not request semantics.
-        actual['config']['api_key_env'] = 'OPENAI_API_KEY'
+        actual['config']['api_key_env'] = protocol['models'][model]['agent_config']['config']['api_key_env']
     if actual != protocol['models'][model]['agent_config']:
         raise ValueError('comparison protocol agent_config mismatch')

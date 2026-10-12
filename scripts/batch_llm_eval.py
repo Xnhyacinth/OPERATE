@@ -44,7 +44,7 @@ from baselines.llm_agent import (  # noqa: E402
     frozen_model_capabilities,
     frozen_model_response_aliases,
     frozen_model_tool_choice_support,
-    parse_tencent_quota_reset,
+    parse_provider_quota_reset,
     prompt_contract_sha256,
     public_provider_url,
 )
@@ -782,6 +782,7 @@ def _lite_dirty_tree_execution_error(
 def _load_zhsrc_exports() -> dict[str, str]:
     """Parse export lines from ~/.zshrc without executing shell files."""
     out: dict[str, str] = {}
+    public_keys = {"API_KEY", "BASE_URL", "OPERATE_API_VERSION", "OPERATE_RESPONSES_API_BASE_URL"}
     pat = re.compile(r"^export\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
     for rc in (Path.home() / ".zshrc",):
         if not rc.exists():
@@ -792,10 +793,10 @@ def _load_zhsrc_exports() -> dict[str, str]:
             if not m:
                 continue
             key, val = m.group(1), m.group(2).strip().strip('"').strip("'")
-            if key.startswith("OPERATE_") or key == "OPENAI_API_KEY":
+            if key.startswith("OPERATE_") or key in public_keys:
                 out[key] = val
     for k, v in os.environ.items():
-        if k.startswith("OPERATE_") or k == "OPENAI_API_KEY":
+        if k.startswith("OPERATE_") or k in public_keys:
             out[k] = v
     return out
 
@@ -868,14 +869,12 @@ def _llm_config_from_dict(d: dict[str, Any]) -> LLMConfig:
     return LLMConfig(
         provider=d["provider"],
         model=d["model"],
-        api_key_env=d.get("api_key_env", "OPENAI_API_KEY"),
+        api_key_env=d.get("api_key_env", "API_KEY"),
         base_url=d.get("base_url"),
         api_version=d.get("api_version"),
         api_version_env=d.get("api_version_env", "OPERATE_API_VERSION"),
         responses_base_url=d.get("responses_base_url"),
-        responses_base_url_env=d.get(
-            "responses_base_url_env", "OPERATE_RESPONSES_API_BASE_URL"
-        ),
+        responses_base_url_env=d.get("responses_base_url_env", "OPERATE_RESPONSES_API_BASE_URL"),
         api_mode=d.get("api_mode", "auto"),
         stream_chat_completions=bool(d.get("stream_chat_completions", False)),
         temperature=float(d.get("temperature", 1.0)),
@@ -982,7 +981,7 @@ def _quota_sentinel_path(out_dir: str | Path, model: str) -> Path:
 
 
 def _parse_quota_reset_at(text: object) -> datetime | None:
-    stamp = parse_tencent_quota_reset(text)
+    stamp = parse_provider_quota_reset(text)
     raw = str(text or "").strip()
     if stamp is None and raw.endswith("UTC+8"):
         stamp = raw
@@ -1013,9 +1012,9 @@ def _parse_quota_reset_at(text: object) -> datetime | None:
 
 
 def _quota_reset_text(text: object) -> str | None:
-    tencent_stamp = parse_tencent_quota_reset(text)
-    if tencent_stamp is not None:
-        return tencent_stamp
+    provider_stamp = parse_provider_quota_reset(text)
+    if provider_stamp is not None:
+        return provider_stamp
     parsed = _parse_quota_reset_at(text)
     if parsed is None:
         return None
@@ -8652,8 +8651,8 @@ def _run_batch_main() -> int:
         default=True,
         help="Write per-episode trajectory JSON under trajectories/<model>/",
     )
-    p.add_argument("--api-key-env", default="OPENAI_API_KEY")
-    p.add_argument("--base-url-env", default="OPERATE_API_BASE_URL")
+    p.add_argument("--api-key-env", default="API_KEY")
+    p.add_argument("--base-url-env", default="BASE_URL")
     p.add_argument(
         "--allow-insecure-http",
         action="store_true",

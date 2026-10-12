@@ -142,7 +142,7 @@ unattributed budget, without clearing history:
 
 ```bash
 uv run --no-sync python scripts/run_eval_campaign.py \
-  --config /path/to/campaign/config.json --lane tencent \
+  --config /path/to/campaign/config.json --lane gateway \
   --extend-attempts 2 --job-id JOB_ID \
   --cell-key '["SCENARIO_SLUG", "MODEL", 42, "pass-0"]' \
   --reason 'Transport fix verified; extend the existing lifetime budget'

@@ -10,8 +10,8 @@ current OPERATE snapshot. Report vulnerabilities against that current tree.
 Do not open a public issue for security reports that include secrets, credentials,
 or exploit details.
 
-Email the maintainer listed in `CITATION.cff` or use GitHub's private vulnerability
-reporting for `Xnhyacinth/OPERATE`.
+Use this repository's private vulnerability reporting feature, where available,
+or the confidential contact supplied with the distribution.
 
 Please include:
 

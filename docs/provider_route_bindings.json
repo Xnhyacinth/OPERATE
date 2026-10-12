@@ -24,8 +24,7 @@
   "routes": [
     {
       "model": "hy3-ioa",
-      "provider": "tencent",
-      "base_url": "https://copilot.tencent.com/v2",
+      "provider": "openai_compatible",
       "context_window_tokens": 192000,
       "max_output_tokens": 64000,
       "request_max_tokens": 64000,
@@ -35,12 +34,12 @@
       "workers_full": 16,
       "workers_lite": 12,
       "source": "provider route inventory",
-      "notes": "192k is the combined envelope; input plus 64k output must fit 192k."
+      "notes": "192k is the combined envelope; input plus 64k output must fit 192k.",
+      "base_url_env": "BASE_URL"
     },
     {
       "model": "gpt-5.6-luna",
-      "provider": "tencent",
-      "base_url": "https://copilot.tencent.com/v2",
+      "provider": "openai_compatible",
       "context_window_tokens": 272000,
       "max_output_tokens": 128000,
       "request_max_tokens": 128000,
@@ -50,12 +49,12 @@
       "workers_full": 16,
       "workers_lite": 12,
       "source": "campaign envelope; provider card is 1M and is not this request binding",
-      "notes": "Thinking omitted on this route."
+      "notes": "Thinking omitted on this route.",
+      "base_url_env": "BASE_URL"
     },
     {
       "model": "glm-5.3-flash-ioa",
-      "provider": "tencent",
-      "base_url": "https://copilot.tencent.com/v2",
+      "provider": "openai_compatible",
       "context_window_tokens": 1000000,
       "max_output_tokens": 128000,
       "request_max_tokens": 128000,
@@ -65,12 +64,12 @@
       "workers_full": 16,
       "workers_lite": 12,
       "source": "provider route inventory",
-      "notes": "Neighbor glm-5.2-ioa is 1M/48k and is not this identity."
+      "notes": "Neighbor glm-5.2-ioa is 1M/48k and is not this identity.",
+      "base_url_env": "BASE_URL"
     },
     {
       "model": "deepseek-v4-flash-ioa",
-      "provider": "tencent",
-      "base_url": "https://copilot.tencent.com/v2",
+      "provider": "openai_compatible",
       "context_window_tokens": 1000000,
       "max_output_tokens": 50000,
       "request_max_tokens": 50000,
@@ -80,12 +79,12 @@
       "workers_full": 16,
       "workers_lite": 12,
       "source": "provider route inventory",
-      "notes": "This route output cap is 50k, not upstream 384k."
+      "notes": "This route output cap is 50k, not upstream 384k.",
+      "base_url_env": "BASE_URL"
     },
     {
       "model": "z-ai/glm-5.2:free",
-      "provider": "openrouter",
-      "base_url": "https://openrouter.ai/api/v1",
+      "provider": "openai_compatible",
       "context_window_tokens": 256000,
       "max_output_tokens": 230400,
       "request_max_tokens": 230400,
@@ -95,7 +94,8 @@
       "workers_full": 8,
       "workers_lite": 8,
       "source": "advertised provider limits",
-      "notes": "Free-tier RPM/RPD are account-specific and must be declared when used."
+      "notes": "Free-tier RPM/RPD are account-specific and must be declared when used.",
+      "base_url_env": "BASE_URL"
     }
   ],
   "changelog": [

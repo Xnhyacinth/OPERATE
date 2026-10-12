@@ -23,7 +23,7 @@ def test_single_episode_cli_native_thinking_reaches_actual_sdk_wire(monkeypatch,
     monkeypatch.setattr(run, 'run_realtime', capture)
     monkeypatch.setattr(sys, 'argv', ['run.py', '--scenario', 'fixture', '--agent', 'llm_agent',
         '--interaction-mode', mode, '--provider', 'openai_compatible', '--model', 'hy3-ioa',
-        '--base-url', 'https://copilot.tencent.com/v2', '--api-key-env', 'WIRE_KEY',
+        '--base-url', 'https://provider.example.test/v2', '--api-key-env', 'WIRE_KEY',
         '--api-mode', 'chat_completions', '--model-context-window-tokens', '192000',
         '--model-max-output-tokens', '64000', '--max-tokens', '32768',
         '--reasoning-effort', 'high', '--reasoning-effort-format', 'native',

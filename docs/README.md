@@ -4,6 +4,7 @@
 - [Current 0.31.2 results, including Sonnet completion](LATEST_RESULTS_0312_SONNET.md)
 - [0.31.2 reference-anchored scoring](EVALUATION_0312.md)
 - [Formal evaluation](FORMAL_EVALUATION.md)
+- [Data and API configuration](DATA_ACCESS.md)
 - [Provider route bindings](provider_route_bindings.json)
 - [Incremental validation policy](VALIDATION_POLICY.md)
 - [Agentic interaction and context](AGENTIC_INTERACTION.md)
@@ -13,7 +14,7 @@
 - [Evidence contract](EVIDENCE_CONTRACT.md)
 - [Data provenance](DATA_PROVENANCE.md)
 - [Repository layout and data usage](REPO_LAYOUT_AND_DATA_USAGE.md)
-- [Public sanitized trajectories](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Public-Trajectories/tree/23b01d6b00c7c58f9ec4c35700bbe57b1414cfae/sanitized_refresh_20261011)
+- Public sanitized trajectories (`sanitized_refresh_20261011` at revision `23b01d6b00c7c58f9ec4c35700bbe57b1414cfae`)
 - [Catalog and aggregate dataset card](hf/OPERATE_PUBLIC_DATASET_CARD.md)
 
 These documents describe the single current public benchmark. Original

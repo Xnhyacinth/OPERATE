@@ -30,7 +30,7 @@ cases do not enter F. See [the scoring protocol](EVALUATION_027.md).
 | 13 | deepseek-ai/deepseek-v4-flash-0731 | 34.5074 | 36.2658 | 76.9831 |
 | 14 | gpt-6-sol | 33.8449 | 38.3340 | 67.9105 |
 | 15 | Qwen/Qwen3.6-27B | 33.0500 | 36.5481 | 73.4473 |
-| 16 | iquest-m1 | 32.5055 | 34.2833 | 73.2550 |
+| 16 | deployment-16 | 32.5055 | 34.2833 | 73.2550 |
 | 17 | gpt-5.6-sol | 31.1913 | 36.8968 | 64.8393 |
 | 18 | gpt-6-luna | 29.0534 | 35.1844 | 63.8492 |
 | 19 | gpt-5.6-luna | 28.2542 | 34.1964 | 62.7047 |
@@ -85,12 +85,9 @@ Different concurrency cohorts are not merged into a formal run or this Q.
 
 ## Reproduce
 
-[Raw input manifest](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/blob/main/outcome027_20261005/results/input_manifest.json),
-[full result](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/blob/main/outcome027_20261005/results/report.json),
-[case ledger](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/blob/main/outcome027_20261005/results/case_rows.jsonl),
-[CSV](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/blob/main/outcome027_20261005/results/table.csv) and
-[archive inventory and audit bindings](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Private-Trajectories-v0.62/blob/main/outcome027_20261005/manifest.json)
-are in the private trajectory dataset. Access requires its existing permission.
+The raw input manifest, full result, case ledger, CSV, archive inventory and
+audit bindings remain in a restricted evidence archive. Its location is supplied
+separately to authorized users; access requires existing permission.
 
 The inventory binds a content-addressed original-raw archive, exact locked
 source assets, new-run/supplementary evidence, a software snapshot and final

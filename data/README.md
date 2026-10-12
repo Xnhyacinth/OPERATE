@@ -6,7 +6,8 @@ and 141 Lite rows over 82 sources. Scenario contracts live under
 `sources/`. `benchmark/core_suite.json` plus `benchmark/manifest.json` define
 the evaluation denominator.
 
-The public Hugging Face repository is `Xnhyacinth/OPERATE`. A published bundle
+Set `OPERATE_HF_REPO_ID` to the public runtime dataset id (`owner/name`);
+see [access configuration](../docs/DATA_ACCESS.md). A published bundle
 is authoritative only when its `MANIFEST.json` passes integrity verification.
 The downloader resolves the public snapshot to an immutable HF commit and
 records it in `operate_data/.operate-bundle-owner.json`. Use that recorded

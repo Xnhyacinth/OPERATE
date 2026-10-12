@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -22,10 +23,10 @@ if str(REPO_ROOT) not in sys.path:
 
 from core.implementation_identity import implementation_identity  # noqa: E402
 from core.protocol21_evidence import canonicalize_repo_owned_paths  # noqa: E402
+from scripts.download_from_hf import _validate_hf_binding  # noqa: E402
 
 DEFAULT_RELEASE = REPO_ROOT / "benchmark"
 DEFAULT_OUTPUT = REPO_ROOT / "operate_data"
-DEFAULT_REPO_ID = "Xnhyacinth/OPERATE"
 FORMAL_RESULT_TREE_INDEX_NAME = "FORMAL_RESULT_TREE_INDEX.json"
 FORMAL_RESULT_TREE_INDEX_SCHEMA = "operate-formal-result-tree-index-v1"
 BACKEND_LINKS = {
@@ -2562,11 +2563,12 @@ def build_operate_bundle(
     repo_root: Path,
     release_dir: Path,
     output_dir: Path,
-    repo_id: str = DEFAULT_REPO_ID,
+    repo_id: str,
     include_backends: bool = True,
     release_manifest_path: Path | None = None,
     versionless_filenames: bool = False,
 ) -> dict[str, Any]:
+    _validate_hf_binding(repo_id=repo_id, revision=None)
     repo_root = repo_root.resolve()
     release_dir = release_dir.resolve()
     output_dir = output_dir.resolve()
@@ -2842,7 +2844,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--release-dir", type=Path, default=DEFAULT_RELEASE)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--repo-id", default=DEFAULT_REPO_ID)
+    parser.add_argument("--repo-id", default=os.environ.get("OPERATE_HF_REPO_ID"))
     parser.add_argument("--release-manifest", type=Path)
     parser.add_argument(
         "--versionless-filenames",
@@ -2850,6 +2852,8 @@ def main() -> int:
         help="use stable public archive names; release identity remains in MANIFEST.json",
     )
     args = parser.parse_args()
+    if not args.repo_id:
+        parser.error("set OPERATE_HF_REPO_ID or provide --repo-id")
     manifest = build_operate_bundle(
         repo_root=REPO_ROOT,
         release_dir=args.release_dir,

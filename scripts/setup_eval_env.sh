@@ -8,7 +8,7 @@
 #
 # Reads from env (never hardcodes secrets):
 #   HF_TOKEN      — optional; public downloads do not require authentication
-#   OPERATE_HF_REPO_ID — optional dataset override (default Xnhyacinth/OPERATE)
+#   OPERATE_HF_REPO_ID — required public runtime dataset id (owner/name)
 #   OPERATE_HF_REVISION — optional immutable dataset commit revision
 #
 # Usage:
@@ -35,6 +35,11 @@ for arg in "$@"; do
 		;;
 	esac
 done
+
+if [ "$SKIP_DATA" -eq 0 ] && [ -z "${OPERATE_HF_REPO_ID:-}" ]; then
+	echo "FATAL: set OPERATE_HF_REPO_ID to the public runtime dataset id (owner/name)" >&2
+	exit 2
+fi
 
 log() { printf '\n\033[1;34m=== %s ===\033[0m\n' "$*"; }
 ok() { printf '  \033[32mOK\033[0m   %s\n' "$*"; }
@@ -130,7 +135,7 @@ ok "JSPLIB source checksum manifest prepared"
 log "install OPERATE runtime companion"
 RUNTIME_DATA_DIR="$REPO/operate_data"
 DOWNLOAD_ARGS=(
-	--repo-id "${OPERATE_HF_REPO_ID:-Xnhyacinth/OPERATE}"
+	--repo-id "$OPERATE_HF_REPO_ID"
 	--data-dir "$RUNTIME_DATA_DIR"
 )
 if [ -n "${OPERATE_HF_REVISION:-}" ]; then

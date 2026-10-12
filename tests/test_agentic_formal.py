@@ -205,7 +205,7 @@ def test_effective_llm_config_matches_v057_agentic_profile() -> None:
         model="hy3-ioa",
         temperature=0.0,
         args=args,
-        base_url="https://copilot.tencent.com/v2",
+        base_url="https://provider.example.test/v2",
         api_version=None,
         responses_base_url=None,
     )

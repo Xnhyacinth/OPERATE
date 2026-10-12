@@ -17,7 +17,7 @@ def test_persistent_decision_receives_complete_investigation_results(
         persistent_context_max_chars=128000,
         provider_failure_policy="abort",
     ))
-    monkeypatch.setenv("OPENAI_API_KEY", "fixture")
+    monkeypatch.setenv("API_KEY", "fixture")
     monkeypatch.setattr(agent, "_make_client", lambda _: object())
     tools = [{"type": "function", "function": {
         "name": "wait", "parameters": {"type": "object", "properties": {}},

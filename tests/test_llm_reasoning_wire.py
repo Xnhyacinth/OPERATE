@@ -84,7 +84,7 @@ def test_reasoning_profile_reaches_decision_and_repair_wire(
     config = LLMConfig(
         provider=provider,
         model="hy3-ioa",
-        base_url="https://copilot.tencent.com/v2",
+        base_url="https://provider.example.test/v2",
         api_key_env="OPERATE_WIRE_TEST_KEY",
         api_mode="chat_completions",
         interaction_mode="logical_stateless",

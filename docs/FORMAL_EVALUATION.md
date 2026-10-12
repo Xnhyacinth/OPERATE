@@ -173,7 +173,7 @@ the documented allowance strata without checking which one applies to the
 account.
 
 ```bash
-export BASE_URL='https://openrouter.ai/api/v1'
+export BASE_URL='<provider-base-url>'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 : "${RPD_LIMIT:?set the applicable free-tier RPD limit}"
@@ -207,7 +207,7 @@ limit, start a new treatment namespace with all three quota arguments supplied
 together.
 
 ```bash
-export BASE_URL='https://copilot.tencent.com/v2'
+export BASE_URL='<provider-base-url>'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
@@ -235,7 +235,7 @@ Lite is not a Full formal shard. The native GLM-5.3-Flash Lite command uses
 `run_lite.py`; do not add `--formal-run`.
 
 ```bash
-export BASE_URL='https://copilot.tencent.com/v2'
+export BASE_URL='<provider-base-url>'
 export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
 
@@ -297,7 +297,7 @@ PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
   --output-root batch_results/formal/realtime_persistent/glm_5_2_free_w8 \
   --model z-ai/glm-5.2:free --provider openai_compatible \
-  --base-url https://openrouter.ai/api/v1 --api-key-env API_KEY \
+  --base-url "$BASE_URL" --api-key-env API_KEY \
   --api-mode chat_completions \
   --model-context-window-tokens 256000 \
   --model-max-output-tokens 230400 \
@@ -325,7 +325,7 @@ PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
   --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
   --output-root batch_results/formal/realtime_persistent/hy3_ioa_w16 \
   --model hy3-ioa --provider openai_compatible \
-  --base-url https://copilot.tencent.com/v2 --api-key-env API_KEY \
+  --base-url "$BASE_URL" --api-key-env API_KEY \
   --api-mode chat_completions \
   --model-context-window-tokens 192000 \
   --model-max-output-tokens 64000 \

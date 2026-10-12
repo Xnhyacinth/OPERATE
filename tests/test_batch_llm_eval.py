@@ -3711,7 +3711,7 @@ def test_build_jobs_uses_slug_in_trajectory_dir_to_avoid_alias_collisions(
     slug_b = "traffic/vip_priority_dilemma/deep_planning/basic/traffic_vip_priority_dilemma_deep_planning_basic"
     shared_seed_id = "traffic_sumo365_20230620_deep_planning_basic_s42"
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=True,
         pass_k=1,
@@ -3743,7 +3743,7 @@ def test_build_jobs_hashes_overlong_path_components(tmp_path: Path) -> None:
     long_leaf = "m5_" + ("inventory_replenishment_extreme_" * 8) + "final"
     slug = f"logistics/inventory/{long_leaf}"
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=True,
         pass_k=1,
@@ -3779,7 +3779,7 @@ def test_formal_path_shorten_map_is_clone_portable(
     long_leaf = "m5_" + ("inventory_replenishment_extreme_" * 8) + "final"
     slug = f"logistics/inventory/{long_leaf}"
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=True,
         pass_k=1,
@@ -3857,7 +3857,7 @@ def test_relative_formal_output_keeps_sidecar_byte_validation_bound(
     )
     out_dir.mkdir(parents=True)
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=True,
         pass_k=1,
@@ -3912,7 +3912,7 @@ def test_relative_formal_output_keeps_sidecar_byte_validation_bound(
 
 def test_build_jobs_schedules_long_horizons_first(tmp_path: Path) -> None:
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=False,
         pass_k=1,
@@ -3945,7 +3945,7 @@ def test_build_jobs_schedules_long_horizons_first(tmp_path: Path) -> None:
 def test_build_jobs_expands_pass_k_replicates(tmp_path: Path) -> None:
     scenario_slug = "power_grid/foo/time_pressure/basic/foo_s42"
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=True,
         pass_k=2,
@@ -4016,7 +4016,7 @@ def test_build_jobs_expands_pass_k_replicates(tmp_path: Path) -> None:
 def test_build_jobs_can_use_each_scenarios_locked_seed(tmp_path: Path) -> None:
     scenario_slug = "logistics/family/time_pressure/basic/sample"
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=False,
         pass_k=1,
@@ -4385,7 +4385,7 @@ def test_grid2op_cache_preflight_blocks_before_job_build(
         mod,
         "_load_zhsrc_exports",
         lambda: {
-            "OPENAI_API_KEY": "test-key",
+            "API_KEY": "test-key",
             "OPERATE_MODELS": "gpt-5-2025-08-07",
         },
     )
@@ -4464,7 +4464,7 @@ def test_non_grid2op_dry_run_skips_grid2op_cache_preflight(
         mod,
         "_load_zhsrc_exports",
         lambda: {
-            "OPENAI_API_KEY": "test-key",
+            "API_KEY": "test-key",
             "OPERATE_MODELS": "gpt-5-2025-08-07",
         },
     )
@@ -4521,7 +4521,7 @@ def test_dry_run_does_not_require_api_key(monkeypatch, tmp_path: Path) -> None:
     output_dir = tmp_path / "credential_free_plan"
     scenario = "power_grid/daily_ops_24h/time_pressure/basic/do_20200127_time_pressure_basic_s42"
     monkeypatch.setattr(mod, "_load_zhsrc_exports", lambda: {})
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("API_KEY", raising=False)
     monkeypatch.setattr(mod, "_expand_scenarios", lambda patterns: [scenario])
     monkeypatch.setattr(
         mod,
@@ -4574,7 +4574,7 @@ def test_grid2op_dry_run_records_local_cache_preflight(
         mod,
         "_load_zhsrc_exports",
         lambda: {
-            "OPENAI_API_KEY": "test-key",
+            "API_KEY": "test-key",
             "OPERATE_MODELS": "gpt-5-2025-08-07",
         },
     )
@@ -4672,9 +4672,9 @@ def test_finalize_pipeline_writes_expected_artifacts_and_manifest(
 
     def fake_load_zhsrc_exports() -> dict[str, str]:
         return {
-            "OPENAI_API_KEY": "test-key",
+            "API_KEY": "test-key",
             "OPERATE_MODELS": ",".join(models),
-            "OPERATE_API_BASE_URL": "http://example.test",
+            "BASE_URL": "http://example.test",
             "OPERATE_API_VERSION": "2024-03-01-preview",
         }
 
@@ -5567,18 +5567,24 @@ def test_llm_config_round_trip_preserves_api_mode_and_responses_base_url() -> No
 def test_load_zhsrc_exports_reads_zshrc_fallback(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("OPERATE_MODELS", raising=False)
     monkeypatch.delenv("OPERATE_RESPONSES_API_BASE_URL", raising=False)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("BASE_URL", raising=False)
+    monkeypatch.delenv("OPERATE_API_VERSION", raising=False)
+    monkeypatch.delenv("API_KEY", raising=False)
     home = tmp_path / "home"
     home.mkdir()
     (home / ".zshrc").write_text(
         'export OPERATE_MODELS="gpt-5.2-2025-12-11,gemini-3.1-fl"\n'
-        'export OPERATE_RESPONSES_API_BASE_URL="https://responses-endpoint"\n',
+        'export OPERATE_RESPONSES_API_BASE_URL="https://responses-endpoint"\n'
+        'export BASE_URL="https://provider.example.test/v1"\n'
+        'export OPERATE_API_VERSION="2024-03-01-preview"\n',
         encoding="utf-8",
     )
     monkeypatch.setattr(mod.Path, "home", staticmethod(lambda: home))
     env = mod._load_zhsrc_exports()
     assert env["OPERATE_MODELS"] == "gpt-5.2-2025-12-11,gemini-3.1-fl"
     assert env["OPERATE_RESPONSES_API_BASE_URL"] == "https://responses-endpoint"
+    assert env["BASE_URL"] == "https://provider.example.test/v1"
+    assert env["OPERATE_API_VERSION"] == "2024-03-01-preview"
 
 
 def test_load_named_zshrc_export_supports_custom_api_key_env(
@@ -5587,11 +5593,11 @@ def test_load_named_zshrc_export_supports_custom_api_key_env(
     home = tmp_path / "home"
     home.mkdir()
     (home / ".zshrc").write_text(
-        'export APYI_API_KEY="secret-test-value"\n', encoding="utf-8"
+        'export OTHER_API_KEY="secret-test-value"\n', encoding="utf-8"
     )
     monkeypatch.setattr(mod.Path, "home", staticmethod(lambda: home))
 
-    assert mod._load_named_zshrc_export("APYI_API_KEY") == "secret-test-value"
+    assert mod._load_named_zshrc_export("OTHER_API_KEY") == "secret-test-value"
     assert mod._load_named_zshrc_export("INVALID-NAME") is None
 
 
@@ -5636,9 +5642,9 @@ def test_per_model_scheduler_writes_scheduler_mode_and_uses_model_lanes(
 
     def fake_load_zhsrc_exports() -> dict[str, str]:
         return {
-            "OPENAI_API_KEY": "test-key",
+            "API_KEY": "test-key",
             "OPERATE_MODELS": ",".join(models),
-            "OPERATE_API_BASE_URL": "http://example.test",
+            "BASE_URL": "http://example.test",
             "OPERATE_API_VERSION": "2024-03-01-preview",
         }
 
@@ -5758,7 +5764,7 @@ def test_main_pass_k_writes_pass_ids_and_manifest_coverage(
 
     def fake_load_zhsrc_exports() -> dict[str, str]:
         return {
-            "OPENAI_API_KEY": "test-key",
+            "API_KEY": "test-key",
             "OPERATE_MODELS": model,
         }
 
@@ -5988,7 +5994,7 @@ def test_finalize_only_recovers_real_scope_from_existing_batch_metadata_and_rows
     )
 
     def fake_load_zhsrc_exports() -> dict[str, str]:
-        return {"OPENAI_API_KEY": "test-key", "OPERATE_MODELS": model}
+        return {"API_KEY": "test-key", "OPERATE_MODELS": model}
 
     def fake_expand(patterns: list[str]) -> list[str]:
         assert patterns == [scenario_slug, scenario_slug_2]
@@ -7686,7 +7692,7 @@ def _run_main_with_batch_state(
     }
 
     def fake_load_zhsrc_exports() -> dict[str, str]:
-        return {"OPENAI_API_KEY": "test-key", "OPERATE_MODELS": ",".join(models)}
+        return {"API_KEY": "test-key", "OPERATE_MODELS": ",".join(models)}
 
     def fake_load_scenario_yaml(slug: str) -> dict[str, Any]:
         return {
@@ -8041,7 +8047,7 @@ def test_current_defaults_use_strict_persistent_treatment(
     monkeypatch.setattr(
         mod,
         "_load_zhsrc_exports",
-        lambda: {"OPENAI_API_KEY": "test-key"},
+        lambda: {"API_KEY": "test-key"},
     )
     monkeypatch.setattr(mod, "_expand_scenarios", lambda patterns: [scenario])
     monkeypatch.setattr(
@@ -8137,7 +8143,7 @@ def test_no_resume_refuses_existing_run_config_or_episode_journal(
 
 def test_batch_llm_config_aligns_persistent_agentic_defaults() -> None:
     args = argparse.Namespace(
-        api_key_env="OPENROUTER_API_KEY",
+        api_key_env="API_KEY",
         api_mode="chat_completions",
         interaction_mode="logical_persistent",
         stream_chat_completions=False,
@@ -8148,7 +8154,7 @@ def test_batch_llm_config_aligns_persistent_agentic_defaults() -> None:
         model="stealth/ox-alpha",
         temperature=0.0,
         args=args,
-        base_url="https://openrouter.ai/api/v1",
+        base_url="https://provider.example.test/api/v1",
         api_version=None,
         responses_base_url=None,
     )
@@ -8169,7 +8175,7 @@ def test_batch_llm_config_aligns_persistent_agentic_defaults() -> None:
 
 def test_formal_batch_llm_config_fails_closed_on_first_provider_error() -> None:
     args = argparse.Namespace(
-        api_key_env="OPENROUTER_API_KEY",
+        api_key_env="API_KEY",
         api_mode="chat_completions",
         interaction_mode="logical_persistent",
         stream_chat_completions=True,
@@ -8181,7 +8187,7 @@ def test_formal_batch_llm_config_fails_closed_on_first_provider_error() -> None:
         model="z-ai/glm-5.2:free",
         temperature=0.0,
         args=args,
-        base_url="https://openrouter.ai/api/v1",
+        base_url="https://provider.example.test/api/v1",
         api_version=None,
         responses_base_url=None,
     )
@@ -8363,7 +8369,7 @@ def test_formal_logical_chat_rejects_ambient_nonazure_transport(
 
 def test_batch_llm_config_snapshots_inkling_tool_choice_capability() -> None:
     args = argparse.Namespace(
-        api_key_env="OPENROUTER_API_KEY",
+        api_key_env="API_KEY",
         api_mode="chat_completions",
         interaction_mode="logical_persistent",
         stream_chat_completions=True,
@@ -8376,7 +8382,7 @@ def test_batch_llm_config_snapshots_inkling_tool_choice_capability() -> None:
         model="thinkingmachines/inkling:free",
         temperature=0.0,
         args=args,
-        base_url="https://openrouter.ai/api/v1",
+        base_url="https://provider.example.test/api/v1",
         api_version=None,
         responses_base_url=None,
     )
@@ -8406,7 +8412,7 @@ def test_tool_choice_capability_snapshot_is_treatment_bound() -> None:
 
 def test_batch_llm_config_binds_persistent_working_context_overrides() -> None:
     base_args = {
-        "api_key_env": "OPENROUTER_API_KEY",
+        "api_key_env": "API_KEY",
         "api_mode": "chat_completions",
         "interaction_mode": "logical_persistent",
         "stream_chat_completions": False,
@@ -8416,7 +8422,7 @@ def test_batch_llm_config_binds_persistent_working_context_overrides() -> None:
         model="stealth/ox-alpha",
         temperature=0.0,
         args=argparse.Namespace(**base_args),
-        base_url="https://openrouter.ai/api/v1",
+        base_url="https://provider.example.test/api/v1",
         api_version=None,
         responses_base_url=None,
     )
@@ -8429,7 +8435,7 @@ def test_batch_llm_config_binds_persistent_working_context_overrides() -> None:
             persistent_context_max_chars=64_000,
             persistent_memory_max_items=80,
         ),
-        base_url="https://openrouter.ai/api/v1",
+        base_url="https://provider.example.test/api/v1",
         api_version=None,
         responses_base_url=None,
     )
@@ -8444,7 +8450,7 @@ def test_batch_llm_config_binds_persistent_working_context_overrides() -> None:
 
 def test_batch_llm_config_preserves_formal_stateless_defaults() -> None:
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="chat_completions",
         interaction_mode="logical_stateless",
         stream_chat_completions=False,
@@ -8472,7 +8478,7 @@ def test_batch_llm_config_preserves_formal_stateless_defaults() -> None:
 
 def test_stateless_ox_does_not_silently_bind_frozen_model_capabilities() -> None:
     args = argparse.Namespace(
-        api_key_env="OPENROUTER_API_KEY",
+        api_key_env="API_KEY",
         api_mode="chat_completions",
         interaction_mode="logical_stateless",
         stream_chat_completions=False,
@@ -8483,7 +8489,7 @@ def test_stateless_ox_does_not_silently_bind_frozen_model_capabilities() -> None
         model="stealth/ox-alpha",
         temperature=1.0,
         args=args,
-        base_url="https://openrouter.ai/api/v1",
+        base_url="https://provider.example.test/api/v1",
         api_version=None,
         responses_base_url=None,
     )
@@ -8494,7 +8500,7 @@ def test_stateless_ox_does_not_silently_bind_frozen_model_capabilities() -> None
 
 def test_explicit_stateless_model_capabilities_form_a_diagnostic_treatment() -> None:
     base_args = {
-        "api_key_env": "OPENROUTER_API_KEY",
+        "api_key_env": "API_KEY",
         "api_mode": "chat_completions",
         "interaction_mode": "logical_stateless",
         "stream_chat_completions": False,
@@ -8504,7 +8510,7 @@ def test_explicit_stateless_model_capabilities_form_a_diagnostic_treatment() -> 
         model="stealth/ox-alpha",
         temperature=1.0,
         args=argparse.Namespace(**base_args),
-        base_url="https://openrouter.ai/api/v1",
+        base_url="https://provider.example.test/api/v1",
         api_version=None,
         responses_base_url=None,
     )
@@ -8516,7 +8522,7 @@ def test_explicit_stateless_model_capabilities_form_a_diagnostic_treatment() -> 
             model_context_window_tokens=128_000,
             model_max_output_tokens=16_384,
         ),
-        base_url="https://openrouter.ai/api/v1",
+        base_url="https://provider.example.test/api/v1",
         api_version=None,
         responses_base_url=None,
     )
@@ -8678,8 +8684,8 @@ def test_persistent_batch_cli_uses_agentic_defaults(
         mod,
         "_load_zhsrc_exports",
         lambda: {
-            "OPENAI_API_KEY": "test-key",
-            "OPENAI_BASE_URL": "https://openrouter.ai/api/v1",
+            "API_KEY": "test-key",
+            "BASE_URL": "https://provider.example.test/api/v1",
         },
     )
     monkeypatch.setattr(mod, "_expand_scenarios", lambda patterns: [scenario])
@@ -8847,7 +8853,7 @@ def test_prompt_mode_debug_flows_into_llm_config_and_run_config(
     monkeypatch.setattr(
         mod,
         "_load_zhsrc_exports",
-        lambda: {"OPENAI_API_KEY": "test-key"},
+        lambda: {"API_KEY": "test-key"},
     )
     monkeypatch.setattr(mod, "_expand_scenarios", lambda patterns: [scenario])
     monkeypatch.setattr(
@@ -8899,7 +8905,7 @@ def test_prompt_mode_debug_flows_into_llm_config_and_run_config(
 def test_build_jobs_wires_prompt_mode_into_llm_config(tmp_path: Path) -> None:
     scenario_slug = "power_grid/foo/time_pressure/basic/foo_s42"
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=False,
         pass_k=1,
@@ -8933,7 +8939,7 @@ def test_build_jobs_defaults_prompt_mode_to_strict_when_args_lack_attribute(
     not an AttributeError."""
     scenario_slug = "power_grid/foo/time_pressure/basic/foo_s42"
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=False,
         pass_k=1,
@@ -8960,7 +8966,7 @@ def test_build_jobs_defaults_prompt_mode_to_strict_when_args_lack_attribute(
 def test_build_jobs_uses_explicit_batch_output_budget(tmp_path: Path) -> None:
     scenario_slug = "power_grid/foo/time_pressure/basic/foo_s42"
     args = argparse.Namespace(
-        api_key_env="OPENAI_API_KEY",
+        api_key_env="API_KEY",
         api_mode="auto",
         save_trajectories=True,
         pass_k=1,

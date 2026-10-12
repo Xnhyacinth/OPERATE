@@ -120,8 +120,8 @@ def test_real_integrity_summary_producer_is_accepted_by_campaign_reader(
         return SimpleNamespace(returncode=batch.main())
 
     config, state_path = setup_worker(tmp_path, monkeypatch, execute)
-    campaign.worker(config, "tencent", once=True)
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
+    campaign.worker(config, "gateway", once=True)
     saved = json.loads(state_path.read_text())["jobs"]["hy3"]
     assert saved["status"] == "needs_attention"
     assert saved["reason"] == "resume_artifact_integrity_failed"

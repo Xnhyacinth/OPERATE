@@ -141,7 +141,7 @@ class RealtimeTurnCanceledError(RuntimeError):
 
 
 class ProviderQuotaExhaustedError(RuntimeError):
-    """Hard provider quota (e.g. Tencent 6004); park the model, do not circuit-burn."""
+    """Hard provider quota (e.g. provider code 6004); park the model, do not circuit-burn."""
 
     def __init__(
         self,
@@ -175,7 +175,7 @@ class RequestBudgetPreflightError(ValueError):
         self.request_sequence = request_sequence
 
 
-_TENCENT_QUOTA_RESET_RE = re.compile(
+_PROVIDER_QUOTA_RESET_RE = re.compile(
     r"将在\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+UTC\+8"
 )
 _PROVIDER_CIRCUIT_REASONS = frozenset(
@@ -308,12 +308,12 @@ STATIC_MODEL_TOOL_CHOICE_SUPPORT: dict[str, bool] = {
     # wake_if schema; auto mode accepts the same schema). Omitting the field
     # keeps the repair path on auto.
     "Qwen/Qwen3.6-27B": False,
-    # The internal iquest LiteLLM proxy (danbo-agidata-inner) answers normal
+    # An OpenAI-compatible gateway answers normal
     # chat-completions tool calls under ``auto`` but fails the request with
     # an upstream 500 when ``tool_choice=required`` is sent (verified
     # 2026-09-24; the 500 body carries an empty OpenAIException message).
     # The repair path needs the field suppressed like the thinking routes.
-    "iquest-m1": False,
+    "deployment-16": False,
     "hy3-ioa": True,
 }
 
@@ -321,7 +321,7 @@ STATIC_MODEL_TOOL_CHOICE_SUPPORT: dict[str, bool] = {
 # Routes that reject the ``temperature`` request field outright. Newer
 # thinking models deprecate sampling controls: claude-opus-4-8 answers
 # ``temperature is deprecated for this model`` with HTTP 400 for any value
-# (verified 2026-10-03 against the iquest LiteLLM proxy). For these routes
+# (verified 2026-10-03 against an OpenAI-compatible gateway). For these routes
 # the wire payloads omit the key entirely instead of sending a value.
 TEMPERATURE_UNSUPPORTED_ROUTES: frozenset[str] = frozenset(
     {
@@ -716,9 +716,9 @@ def public_provider_url(value: str | None) -> str | None:
         return "[redacted-invalid-provider-url]"
 
 
-def parse_tencent_quota_reset(text: object) -> str | None:
-    """Return the UTC+8 reset stamp from a Tencent 6004 payload, if present."""
-    match = _TENCENT_QUOTA_RESET_RE.search(str(text))
+def parse_provider_quota_reset(text: object) -> str | None:
+    """Return the UTC+8 reset stamp from a provider code 6004 payload, if present."""
+    match = _PROVIDER_QUOTA_RESET_RE.search(str(text))
     if match is None:
         return None
     return f"{match.group(1)} UTC+8"
@@ -1493,7 +1493,7 @@ def prompt_contract_sha256(
 class LLMConfig:
     provider: str = "openai"  # openai | azure | anthropic | google | openai_compatible
     model: str = "gpt-4o-mini"
-    api_key_env: str = "OPENAI_API_KEY"
+    api_key_env: str = "API_KEY"
     base_url: str | None = None
     api_version: str | None = None  # Azure only; falls back to OPERATE_API_VERSION
     api_version_env: str = "OPERATE_API_VERSION"
@@ -2557,7 +2557,7 @@ class LLMAgent(BaselineAgent):
             self._bump_stat("provider_quota_exhausted_count")
             raise ProviderQuotaExhaustedError(
                 redact_provider_error(exc),
-                reset_at=parse_tencent_quota_reset(exc),
+                reset_at=parse_provider_quota_reset(exc),
             ) from exc
         counts_toward_circuit = reason in _PROVIDER_CIRCUIT_REASONS
         if counts_toward_circuit:
@@ -2995,11 +2995,9 @@ class LLMAgent(BaselineAgent):
                 from openai import AzureOpenAI  # type: ignore[import]
             except ImportError as exc:
                 raise RuntimeError("openai SDK not installed") from exc
-            endpoint = self.config.base_url or os.getenv("OPERATE_API_BASE_URL")
+            endpoint = self.config.base_url or os.getenv("BASE_URL")
             if not endpoint:
-                raise ValueError(
-                    "azure provider requires base_url or OPERATE_API_BASE_URL"
-                )
+                raise ValueError("azure provider requires base_url or BASE_URL")
             self._validate_provider_endpoint(endpoint)
             api_version = self.config.api_version or os.getenv(
                 self.config.api_version_env, "2024-03-01-preview"
@@ -4960,7 +4958,8 @@ class LLMAgent(BaselineAgent):
             "api_version": self.config.api_version
             or os.getenv(self.config.api_version_env),
             "public_base_url": public_provider_url(
-                self.config.base_url or os.getenv("OPERATE_API_BASE_URL")
+                self.config.base_url
+                or (os.getenv("BASE_URL") if self.config.provider == "azure" else None)
             ),
             "public_responses_base_url": public_provider_url(
                 self.config.responses_base_url

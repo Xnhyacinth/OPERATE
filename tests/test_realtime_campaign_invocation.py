@@ -333,7 +333,7 @@ def test_bounded_main_resume_never_repeats_completed_scope(tmp_path, monkeypatch
         "--model",
         "hy3-ioa",
         "--base-url",
-        "https://copilot.tencent.com/v2?token=secret",
+        "https://provider.example.test/v2?token=secret",
         "--api-key-env",
         "LOCAL_STUB_KEY",
         "--model-context-window-tokens",

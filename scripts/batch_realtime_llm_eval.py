@@ -37,7 +37,7 @@ if str(REPO_ROOT) not in sys.path:
 from baselines.llm_agent import (  # noqa: E402
     LLMConfig,
     frozen_model_response_aliases,
-    parse_tencent_quota_reset,
+    parse_provider_quota_reset,
     prompt_contract_sha256,
 )
 from core.event_protocol import EVENT_DECISION_CONTRACT_VERSION  # noqa: E402
@@ -754,11 +754,11 @@ def _utc_now() -> datetime:
 
 def _quota_reset_at_utc(value: object) -> str | None:
     raw = str(value or "").strip()
-    tencent_stamp = parse_tencent_quota_reset(raw)
-    if tencent_stamp is not None:
+    provider_stamp = parse_provider_quota_reset(raw)
+    if provider_stamp is not None:
         try:
             parsed = datetime.strptime(
-                tencent_stamp.removesuffix(" UTC+8"), "%Y-%m-%d %H:%M:%S"
+                provider_stamp.removesuffix(" UTC+8"), "%Y-%m-%d %H:%M:%S"
             ).replace(tzinfo=timezone(timedelta(hours=8)))
         except ValueError:
             return None
@@ -3505,7 +3505,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-url-env", default=None)
     parser.add_argument("--api-version", default=None)
     parser.add_argument("--responses-base-url", default=None)
-    parser.add_argument("--api-key-env", default="OPENAI_API_KEY")
+    parser.add_argument("--api-key-env", default="API_KEY")
     parser.add_argument(
         "--api-mode",
         default="chat_completions",
@@ -3580,6 +3580,8 @@ def main(argv: list[str] | None = None) -> int:
                     "base URL environment missing or conflicts with --base-url"
                 )
             args.base_url = os.environ[args.base_url_env]
+        elif not args.base_url:
+            args.base_url = os.getenv("BASE_URL") or None
         if args.dry_run and args.finalize_only:
             raise ValueError("--dry-run and --finalize-only are mutually exclusive")
         if not args.finalize_only:

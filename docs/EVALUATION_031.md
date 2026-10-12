@@ -259,7 +259,7 @@ corrected-feedback retest, rebuilt from raw journals by the 0.30 reader:
 
 The mapping is explicit. A model without a mapped retest becomes unknown in
 driving, never keeps its historical row: claude-sonnet-5.5 (its local "retest"
-is its historical journal) and iquest-m1. Execution identities stay recorded.
+is its historical journal) and deployment-16. Execution identities stay recorded.
 This is a descriptive cross-implementation substitution, not a same-run formal
 merge.
 

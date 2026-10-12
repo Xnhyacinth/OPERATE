@@ -9,7 +9,7 @@ description = "OPERATE: persistent operational agency in source-grounded executa
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
 license = "MIT"
-authors = [{ name = "Xnhyacinth" }]
+authors = [{ name = "OPERATE Authors" }]
 dependencies = [
   "numpy>=1.24,<2.3; python_version < '3.14'",
   "numpy>=2.3.3,<2.4; python_version >= '3.14'",
@@ -92,9 +92,6 @@ analysis = [
     "matplotlib>=3.9,<4",
 ]
 
-[project.urls]
-Homepage = "https://github.com/Xnhyacinth/OPERATE"
-Issues = "https://github.com/Xnhyacinth/OPERATE/issues"
 
 [tool.setuptools.packages.find]
 include = ["core*", "evaluation*", "baselines*", "audit*", "runner*", "domains*", "data"]

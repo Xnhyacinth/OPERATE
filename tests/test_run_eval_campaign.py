@@ -20,11 +20,11 @@ from scripts.run_eval_campaign import (
 def job(name="hy3"):
     return {
         "id": name, "suite": "full", "model": "hy3-ioa",
-        "api_key_env": "API_KEY", "base_url": "https://copilot.tencent.com/v2",
+        "api_key_env": "API_KEY", "base_url": "https://provider.example.test/v2",
         "context_window": 192000, "max_output": 64000,
         "reasoning_effort": "high", "reasoning_effort_format": "native",
         "thinking_type": "enabled", "rpm": 20, "rpd": 0,
-        "quota_scope": "tencent-shared", "workers": 2, "chunk_jobs": 2,
+        "quota_scope": "gateway-shared", "workers": 2, "chunk_jobs": 2,
     }
 
 
@@ -85,7 +85,7 @@ def test_round_robin_and_shared_pool_cooldown():
     s["jobs"] = {"hy3": {"last_started": 20}, "luna": {"last_started": 10}}
     jobs = [job(), job("luna")]
     assert choose_job(jobs, s, 30)["id"] == "luna"
-    s["pools"]["tencent-shared"] = 100
+    s["pools"]["gateway-shared"] = 100
     assert choose_job(jobs, s, 99) is None
     assert choose_job(jobs, s, 101)["id"] == "luna"
     s["not_before"] = 200
@@ -195,7 +195,7 @@ def test_worker_passes_cell_holds_without_hiding_remaining_scope(tmp_path, monke
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
     for _ in range(3):
-        campaign.worker(config, "tencent", once=True)
+        campaign.worker(config, "gateway", once=True)
     assert len(calls) == 2
     saved = json.loads(state_path.read_text())["jobs"]["hy3"]
     assert saved["status"] == "needs_attention"
@@ -218,7 +218,7 @@ def test_quota_parking_does_not_spend_attempt_budget():
                  execution_started=False, quota_reset_at="2030-01-01T00:00:00Z")
     apply_invocation(s, job(), summary([row]), now=100, cooldown=60, max_attempts=3)
     assert not s["jobs"]["hy3"]["attempt_failures"]
-    assert s["pools"]["tencent-shared"] > 1_000_000_000
+    assert s["pools"]["gateway-shared"] > 1_000_000_000
 
 
 def test_model_failure_is_terminal_without_retry_until_success():
@@ -256,13 +256,13 @@ def test_credentials_are_literal_and_never_execute(tmp_path):
 
 def setup_worker(tmp_path, monkeypatch, fake_run):
     config = {"runtime_root": str(tmp_path/"runtime"), "max_episode_attempts": 3,
-              "lanes": {"tencent": {"cooldown_s": 0, "jobs": [job()]}}}
+              "lanes": {"gateway": {"cooldown_s": 0, "jobs": [job()]}}}
     path = tmp_path/"campaign.json"
     path.write_text(json.dumps(config))
     monkeypatch.setattr(campaign, "verify_bindings", lambda *args: None)
     monkeypatch.setattr(campaign, "load_credentials", lambda *args: {"API_KEY": "test"})
     monkeypatch.setattr(campaign.subprocess, "run", fake_run)
-    return path, tmp_path/"queue/tencent/state.json"
+    return path, tmp_path/"queue/gateway/state.json"
 
 
 def test_worker_formal_subdir_closure_then_failed_finalizer_does_not_loop(tmp_path, monkeypatch):
@@ -280,10 +280,10 @@ def test_worker_formal_subdir_closure_then_failed_finalizer_does_not_loop(tmp_pa
         return SimpleNamespace(returncode=1 if "--finalize" in cmd else 0)
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
     assert json.loads(state_path.read_text())["jobs"]["hy3"]["needs_finalize"]
-    campaign.worker(config, "tencent", once=True)
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
+    campaign.worker(config, "gateway", once=True)
     saved = json.loads(state_path.read_text())
     assert saved["jobs"]["hy3"]["status"] == "reports_need_attention"
     assert not saved["jobs"]["hy3"]["needs_finalize"]
@@ -306,7 +306,7 @@ def test_interruption_and_transport_share_case_attempt_budget(tmp_path, monkeypa
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
     for _ in range(4):
-        campaign.worker(config, "tencent", once=True)
+        campaign.worker(config, "gateway", once=True)
     saved = json.loads(state_path.read_text())["jobs"]["hy3"]
     assert len(calls) == 3
     assert saved["status"] == "needs_attention"
@@ -323,7 +323,7 @@ def test_stale_summary_is_not_accepted_after_preflight_failure(tmp_path, monkeyp
     payload = summary([result()], pending=0)
     payload["started_at_utc"] = datetime.now(UTC).isoformat()
     (out/"invocation_summary.json").write_text(json.dumps(payload))
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
     saved = json.loads(state_path.read_text())["jobs"]["hy3"]
     assert saved["status"] == "needs_attention"
     assert not saved.get("needs_finalize")
@@ -357,11 +357,11 @@ def test_stop_after_current_invocation_still_closes_its_summary(tmp_path, monkey
         payload = summary([result()], pending=3)
         payload["started_at_utc"] = datetime.now(UTC).isoformat()
         (out / "invocation_summary.json").write_text(json.dumps(payload))
-        (tmp_path / "queue/tencent/STOP").touch()
+        (tmp_path / "queue/gateway/STOP").touch()
         return SimpleNamespace(returncode=0)
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
-    campaign.worker(config, "tencent")
+    campaign.worker(config, "gateway")
     saved = json.loads(state_path.read_text())
     assert saved["worker_status"] == "stopped"
     assert "active" not in saved
@@ -385,8 +385,8 @@ def test_unverifiable_resume_evidence_parks_lane_without_spending_model_attempt(
         return SimpleNamespace(returncode=1)
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
-    campaign.worker(config, "tencent", once=True)
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
+    campaign.worker(config, "gateway", once=True)
     saved = json.loads(state_path.read_text())["jobs"]["hy3"]
     assert saved["status"] == "needs_attention"
     assert saved["reason"] == "resume_artifact_integrity_failed"
@@ -408,7 +408,7 @@ def test_interrupted_chunk_charges_only_actual_worker_starts(tmp_path, monkeypat
         return SimpleNamespace(returncode=-15)
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
     failures = json.loads(state_path.read_text())["jobs"]["hy3"]["attempt_failures"]
     assert len(failures) == 1
     assert json.loads(next(iter(failures)))[0] == "started"
@@ -423,7 +423,7 @@ def test_interrupted_chunk_without_start_proof_requires_attention(tmp_path, monk
         return SimpleNamespace(returncode=-15)
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
     saved = json.loads(state_path.read_text())["jobs"]["hy3"]
     assert saved["status"] == "needs_attention"
     assert saved["reason"] == "interrupted_start_evidence_invalid"
@@ -444,7 +444,7 @@ def test_interruption_does_not_charge_settled_success_or_model_failure(tmp_path,
         return SimpleNamespace(returncode=-15)
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
     failures = json.loads(state_path.read_text())["jobs"]["hy3"]["attempt_failures"]
     assert len(failures) == 1 and json.loads(next(iter(failures)))[0] == "unfinished"
 
@@ -459,6 +459,6 @@ def test_verified_empty_start_journal_charges_no_episode(tmp_path, monkeypatch):
         return SimpleNamespace(returncode=-15)
 
     config, state_path = setup_worker(tmp_path, monkeypatch, fake_run)
-    campaign.worker(config, "tencent", once=True)
+    campaign.worker(config, "gateway", once=True)
     saved = json.loads(state_path.read_text())["jobs"]["hy3"]
     assert saved["status"] == "ready" and not saved["attempt_failures"]

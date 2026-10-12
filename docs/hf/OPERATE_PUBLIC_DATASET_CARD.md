@@ -28,8 +28,9 @@ configs:
 Systems**
 
 This is the current public dataset for OPERATE. Filenames are versionless;
-immutable Hugging Face commits identify each snapshot. The matching public
-code lives at [Xnhyacinth/OPERATE](https://github.com/Xnhyacinth/OPERATE).
+immutable Hugging Face commits identify each snapshot. Matching public code is supplied in the OPERATE repository.
+Dataset and archive locations are supplied by the distributor; configure
+`OPERATE_HF_REPO_ID` and `OPERATE_TRAJECTORIES_REPO_ID` locally.
 
 The current catalog contains 769 Full scenarios across 502 physical sources
 and 141 Lite scenarios across 82 sources. Qualification scoring is `0.15.0`.
@@ -67,12 +68,12 @@ Sonnet scores 32.08 (point rank 9/20). Missing outcomes stay unknown and unranke
 Source-cluster intervals describe task sampling, not repeated-run variation;
 complete coverage does not imply statistically distinct adjacent ranks.
 
-The [2026-10-11 aggregate companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/61b30ab53103595228bf2f4098d2217dab040306/results/lite141_20261011)
+The 2026-10-11 aggregate companion (`results/lite141_20261011` at revision `61b30ab53103595228bf2f4098d2217dab040306`)
 is published and verified at its immutable revision. It reports the fixed-panel retrospective
 comparison after raw reauthentication. Cross-execution substitutions do not
 certify a same-run formal cohort or held-out model-capability ranking.
 
-The [2026-10-08 companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
+The 2026-10-08 companion (`results/lite141_20261008` at revision `main`)
 remains a historical snapshot: it contains the 0.25–0.30 comparison, domain
 summaries, deletion sensitivity and the separate 12-model analysis figures
 with Source Data. Its 2,958 measured Q values belong to those historical
@@ -81,7 +82,7 @@ protocols and inputs, not the current 0.31.2 snapshot.
 These fixed-panel retrospective results are separate from pending Full formal
 provider evaluation. Frozen catalog and runtime payloads are unchanged. Sanitized
 trajectory/provider/native evidence and audit reports are available in the
-[public sanitized trajectory archive](https://huggingface.co/datasets/Xnhyacinth/OPERATE-Public-Trajectories/tree/23b01d6b00c7c58f9ec4c35700bbe57b1414cfae/sanitized_refresh_20261011).
+public sanitized trajectory archive (`sanitized_refresh_20261011` at revision `23b01d6b00c7c58f9ec4c35700bbe57b1414cfae`).
 
 Scientific records, actions, scorer outputs, numeric values and identifiers are
 preserved. Infrastructure URLs and paths and credential values are redacted;

@@ -27,7 +27,7 @@ def _identity(
     tick_interval_s: float = 0.25,
     provider: str = "openai_compatible",
     model: str = "hy3-ioa",
-    base_url: str = "https://copilot.tencent.com/v2?token=secret",
+    base_url: str = "https://provider.example.test/v2?token=secret",
     api_mode: str = "chat_completions",
     api_version: str | None = None,
     responses_base_url: str | None = None,
@@ -334,14 +334,14 @@ def _episode_identity() -> dict:
             "tool_choice_supported": None,
             "provider_failure_policy": "abort",
             "max_consecutive_provider_failures": 1,
-            "base_url": "https://copilot.tencent.com/v2",
+            "base_url": "https://provider.example.test/v2",
             "api_version": None,
             "effective_api_version": None,
             "responses_base_url": None,
             "private_provider_route_sha256": batch.canonical_sha256(
                 {
                     "base_url": batch._public_provider_route(
-                        "https://copilot.tencent.com/v2?token=secret"
+                        "https://provider.example.test/v2?token=secret"
                     ),
                     "responses_base_url": None,
                     "extra_headers": [],
@@ -384,7 +384,7 @@ def test_native_dt_batch_identity_omits_uniform_tick() -> None:
     identity = batch.build_batch_treatment_identity(
         model="hy3-ioa",
         provider="openai_compatible",
-        base_url="https://copilot.tencent.com/v2",
+        base_url="https://provider.example.test/v2",
         api_mode="chat_completions",
         api_version=None,
         responses_base_url=None,
@@ -423,7 +423,7 @@ def test_native_dt_batch_identity_omits_uniform_tick() -> None:
         batch.build_batch_treatment_identity(
             model="hy3-ioa",
             provider="openai_compatible",
-            base_url="https://copilot.tencent.com/v2",
+            base_url="https://provider.example.test/v2",
             api_mode="chat_completions",
             api_version=None,
             responses_base_url=None,
@@ -2485,7 +2485,7 @@ def test_formal_episode_row_uses_relative_subprocess_log_path(
         config,
         SimpleNamespace(
             api_key_env="T_KEY",
-            base_url="https://copilot.tencent.com/v2",
+            base_url="https://provider.example.test/v2",
             responses_base_url=None,
         ),
     )

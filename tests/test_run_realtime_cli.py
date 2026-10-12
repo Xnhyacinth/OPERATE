@@ -80,7 +80,7 @@ def test_realtime_cli_uses_separate_runner_and_persistent_semantic_agent(monkeyp
             "--model",
             "stealth/ox-alpha",
             "--base-url",
-            "https://openrouter.ai/api/v1",
+            "https://provider.example.test/api/v1",
             "--realtime-tick-interval-s",
             "0.25",
             "--realtime-episode-timeout-s",
@@ -178,7 +178,7 @@ def test_logical_persistent_cli_uses_agentic_defaults_without_changing_formal_mo
             "--model",
             "stealth/ox-alpha",
             "--base-url",
-            "https://openrouter.ai/api/v1",
+            "https://provider.example.test/api/v1",
         ],
     )
 
@@ -469,3 +469,20 @@ def test_cli_rejects_invalid_realtime_clock_values(
 
     with pytest.raises(SystemExit):
         run.main()
+
+
+
+def test_single_episode_cli_binds_generic_endpoint_before_identity(monkeypatch):
+    captured = {}
+    monkeypatch.setenv("API_KEY", "test-key")
+    monkeypatch.setenv("BASE_URL", "https://provider.example.test/v1")
+    monkeypatch.setattr(run, "load_scenario_yaml", lambda _: {"seed": 42})
+    monkeypatch.setattr(run, "run_one", lambda **kw: captured.update(kw) or {"ok": True})
+    monkeypatch.setattr(sys, "argv", [
+        "run.py", "--scenario", "fixture", "--agent", "llm_agent",
+        "--interaction-mode", "logical_stateless",
+    ])
+    assert run.main() == 0
+    config = captured["agent_kwargs"]["config"]
+    assert config.api_key_env == "API_KEY"
+    assert config.base_url == "https://provider.example.test/v1"

@@ -430,7 +430,7 @@ def validate_execution(
     actual = deepcopy(episode.get("agent_config"))
     if not isinstance(actual, dict) or not isinstance(actual.get("config"), dict):
         raise ValueError("public_agent_config_missing")
-    actual["config"]["api_key_env"] = "OPENAI_API_KEY"
+    actual["config"]["api_key_env"] = expected["config"]["api_key_env"]
     # Newly added optional defaults are absent in historical profiles. Every
     # recorded field and every field declared by the original profile is checked.
     for key, value in expected["config"].items():

@@ -135,7 +135,7 @@ def main() -> int:
     p.add_argument("--tool-choice-supported", action=argparse.BooleanOptionalAction, default=None)
     p.add_argument("--base-url", default=None)
     p.add_argument("--api-version", default=None, help="Azure API version")
-    p.add_argument("--api-key-env", default="OPENAI_API_KEY")
+    p.add_argument("--api-key-env", default="API_KEY")
     p.add_argument(
         "--allow-insecure-http",
         action="store_true",
@@ -402,7 +402,7 @@ def main() -> int:
                 1 if args.provider_failure_policy == "abort" else 5
             )
         configured_base_url = args.base_url or os.getenv(
-            "OPERATE_API_BASE_URL"
+            "BASE_URL"
         )
         frozen_capabilities = (
             frozen_model_capabilities(args.model) if is_persistent else None

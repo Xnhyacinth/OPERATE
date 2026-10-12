@@ -30,7 +30,7 @@ See [the 0.28 protocol](EVALUATION_028.md).
 | 13 | qwen/qwen3.8-27b | 39.0799 | 41.5702 | 74.6888 | 141/141 |
 | 14 | gpt-6-sol | 38.1657 | 42.6549 | 67.9105 | 141/141 |
 | 15 | Qwen/Qwen3.6-27B | 38.0047 | 41.5028 | 73.4473 | 141/141 |
-| 16 | iquest-m1 | 37.8897 | 39.6676 | 73.2550 | 141/141 |
+| 16 | deployment-16 | 37.8897 | 39.6676 | 73.2550 | 141/141 |
 | 17 | gpt-5.5 | 36.3688 | 39.9936 | 71.5816 | 141/141 |
 | 18 | gpt-5.6-sol | 35.1750 | 40.8805 | 64.8393 | 141/141 |
 | 19 | gpt-6-luna | 33.0836 | 39.2146 | 63.8492 | 141/141 |
@@ -73,7 +73,7 @@ No binary task-attainment or comprehensive long-horizon certification is implied
 ## Local artifacts and reproduction
 
 The complete result archive is indexed by the private HF trajectory manifest;
-the [2026-10-08 public companion](https://huggingface.co/datasets/Xnhyacinth/OPERATE/tree/main/results/lite141_20261008)
+the 2026-10-08 public companion (`results/lite141_20261008` at revision `main`)
 contains aggregate version comparisons. Generated artifacts remain outside Git under
 `.hl/analysis/outcome028_population_normalization_20261006/`:
 

@@ -154,7 +154,7 @@ def _attach_formal_distribution_receipt(release: Path, manifest: dict) -> None:
     receipt = {
         "schema_version": "operate-formal-distribution-receipt-v1",
         "release_id": manifest["release_id"],
-        "hf_repo_id": "Xnhyacinth/OPERATE",
+        "hf_repo_id": "anonymous/OPERATE",
         "visibility": "private",
         "revision": "a" * 40,
         "verification": "private_cas_exact_snapshot_v1",
@@ -715,12 +715,12 @@ def test_v061_requires_event_driven_realtime_v2_contract() -> None:
 
 def _logical_treatment_identity_payload() -> dict:
     model = "provider-model"
-    base_url = "https://copilot.tencent.com/v2"
+    base_url = "https://provider.example.test/v2"
     provider_route_sha256 = _canonical_sha256(
         {
             "base_url": {
                 "scheme": "https",
-                "host": "copilot.tencent.com",
+                "host": "provider.example.test",
                 "port": None,
                 "path": "/v2",
                 "query": [],
