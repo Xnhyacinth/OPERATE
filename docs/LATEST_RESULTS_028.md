@@ -73,7 +73,7 @@ No binary task-attainment or comprehensive long-horizon certification is implied
 ## Local artifacts and reproduction
 
 The complete result archive is indexed by the private HF trajectory manifest;
-the 2026-10-08 public companion (`results/lite141_20261008` at revision `main`)
+the 2026-10-08 public companion (`<aggregate-results-directory>` at revision `main`)
 contains aggregate version comparisons. Generated artifacts remain outside Git under
 `.hl/analysis/outcome028_population_normalization_20261006/`:
 
@@ -94,8 +94,8 @@ uv run --frozen --no-sync python scripts/evaluate_trajectories.py \
 
 Restore the exact bound original artifacts, source files and scoring runtime
 before portable reproduction; the audit refuses a changed runtime. This run
-uses the working implementation based on commit `5c3b1c61f9b873078df21d38209b85d115d003e2`,
-with the new scoring bytes identified by the runtime hash below. Historical
+uses the supplied scoring snapshot, whose bytes are identified by the runtime
+hash below. Historical
 0.27 policies, reports and publication records retain their original identity.
 
 - Scoring runtime SHA-256: `a6134895e57fc5579180a641a4299ed010a87f1fa0ed6d91d4046468c9c3dfac`.

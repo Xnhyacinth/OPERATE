@@ -56,7 +56,7 @@ Full 0.29.1 report SHA256:
 The private trajectory archive carries complete reports, original input
 manifests, recovery evidence, checksums and audit receipts. Public aggregate
 tables for that historical snapshot are available in the
-2026-10-08 HF result companion (`results/lite141_20261008` at revision `main`).
+2026-10-08 HF result companion (`<aggregate-results-directory>` at revision `main`).
 
 Point ranks describe recorded outcomes on Lite-Dev. Precision and missingness
 bounds are not repeated-run confidence intervals. Historical driving feedback

@@ -626,7 +626,7 @@ def _bind_external_checkout(paths: dict[str, Path], *, root: Path) -> tuple[Path
     source.write_text("{}\n", encoding="utf-8")
     subprocess.run(["git", "init", "-q", str(checkout)], check=True)
     subprocess.run(
-        ["git", "-C", str(checkout), "config", "user.email", "test@example.com"],
+        ["git", "-C", str(checkout), "config", "user.email", "fixture"],
         check=True,
     )
     subprocess.run(
@@ -645,7 +645,7 @@ def _bind_external_checkout(paths: dict[str, Path], *, root: Path) -> tuple[Path
     closure["external_sources"] = {
         "external": {
             "delivery": "git_checkout",
-            "url": "https://example.test/external.git",
+            "url": "https://provider/external.git",
             "revision": revision,
             "required_files": {
                 "works/External/input.json": hashlib.sha256(
@@ -3297,31 +3297,31 @@ def test_agent_treatment_hash_covers_session_and_provider_policy(
     base = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://user:secret@example.com/v1?token=secret&deployment=blue",
+        base_url="https://user:secret@provider/v1?token=secret&deployment=blue",
         interaction_mode="logical_stateless",
     )
     persistent = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://example.com/v1?token=different&deployment=blue",
+        base_url="https://provider/v1?token=different&deployment=blue",
         interaction_mode="logical_persistent",
     )
     same_public_route = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://other:rotated@example.com/v1?token=rotated&deployment=blue",
+        base_url="https://other:rotated@provider/v1?token=rotated&deployment=blue",
         interaction_mode="logical_stateless",
     )
     different_behavior_route = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://example.com/v1?token=secret&deployment=green",
+        base_url="https://provider/v1?token=secret&deployment=green",
         interaction_mode="logical_stateless",
     )
     different_memory_bound = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://example.com/v1",
+        base_url="https://provider/v1",
         interaction_mode="logical_stateless",
         persistent_memory_max_items=7,
     )
@@ -3356,7 +3356,7 @@ def test_agent_treatment_hash_covers_session_and_provider_policy(
     different_header_value = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://user:secret@example.com/v1?token=secret&deployment=blue",
+        base_url="https://user:secret@provider/v1?token=secret&deployment=blue",
         interaction_mode="logical_stateless",
         extra_headers={"X-Route": "canary"},
     )
@@ -3366,14 +3366,14 @@ def test_agent_treatment_hash_covers_session_and_provider_policy(
     rotated_secret_header = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://example.com/v1?token=rotated&deployment=blue",
+        base_url="https://provider/v1?token=rotated&deployment=blue",
         interaction_mode="logical_stateless",
         extra_headers={"Authorization": "Bearer rotated-secret"},
     )
     original_secret_header = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://example.com/v1?token=secret&deployment=blue",
+        base_url="https://provider/v1?token=secret&deployment=blue",
         interaction_mode="logical_stateless",
         extra_headers={"Authorization": "Bearer original-secret"},
     )
@@ -3383,14 +3383,14 @@ def test_agent_treatment_hash_covers_session_and_provider_policy(
     rotated_cookie = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://example.com/v1?token=rotated&deployment=blue",
+        base_url="https://provider/v1?token=rotated&deployment=blue",
         interaction_mode="logical_stateless",
         extra_headers={"Cookie": "session=rotated"},
     )
     original_cookie = mod.LLMConfig(
         provider="openai_compatible",
         model="model",
-        base_url="https://example.com/v1?token=secret&deployment=blue",
+        base_url="https://provider/v1?token=secret&deployment=blue",
         interaction_mode="logical_stateless",
         extra_headers={"Cookie": "session=original"},
     )

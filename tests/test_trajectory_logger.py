@@ -129,11 +129,11 @@ def test_header_serialization_redacts_agent_extra_header_values(tmp_path: Path) 
                         provider="azure",
                         model="gpt-test",
                         base_url=(
-                            "https://user:secret-value@example.com/v1"
+                            "https://user:secret-value@provider/v1"
                             "?api_key=secret-value#fragment"
                         ),
                         responses_base_url=(
-                            "https://example.com/responses?token=secret-value"
+                            "https://provider/responses?token=secret-value"
                         ),
                         extra_headers={"Ocp-Apim-Subscription-Key": "secret-value"},
                     )
@@ -153,10 +153,10 @@ def test_header_serialization_redacts_agent_extra_header_values(tmp_path: Path) 
         "Ocp-Apim-Subscription-Key": "[redacted]"
     }
     assert payload["agent_config"]["config"]["base_url"] == (
-        "https://example.com/v1"
+        "https://provider/v1"
     )
     assert payload["agent_config"]["config"]["responses_base_url"] == (
-        "https://example.com/responses"
+        "https://provider/responses"
     )
 
 

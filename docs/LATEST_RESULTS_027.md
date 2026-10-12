@@ -105,7 +105,7 @@ uv run --frozen --no-sync python scripts/evaluate_trajectories.py \
   --output-dir '<new-audit-directory>'
 ```
 
-Scoring code: `63f41f7104ccf2b903e9ddae9256ea1bd2bda425`.
+Use the scoring snapshot supplied with the distribution.
 Runtime SHA-256: `ae7c9e8db43e98576ea464b7352c95b8470b0f23d37afe1b8d673addda3db145`.
 Report SHA-256: `7b5a6f02d5219767300f6f3e66710400d7bd6d71e6c73b7e849cf8195aa81842`.
 Original manifest SHA-256: `2043e76055233ab827c657b7c103325b69b7ccde7999f9382475999c93e91143`.

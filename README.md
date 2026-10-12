@@ -52,11 +52,11 @@ applies. Cost gain above the reference remains a separate diagnostic.
 Raw evidence has been reauthenticated; formal-run, same-run merge and held-out
 certification remain false. Missing outcomes retain bounds and no complete rank.
 
-The public aggregate companion (`results/lite141_20261011` at revision `61b30ab53103595228bf2f4098d2217dab040306`)
+The public aggregate companion (`<aggregate-results-directory>`)
 has been published and verified at its immutable revision. It contains
 model/domain summaries, process coverage, uncertainty and specification
 sensitivity. Sanitized trajectories and audit reports are available in the
-public sanitized trajectory archive (`sanitized_refresh_20261011` at revision `23b01d6b00c7c58f9ec4c35700bbe57b1414cfae`).
+public sanitized trajectory archive (`<trajectory-archive-directory>`).
 Scientific records, actions, scorer outputs, numeric values and identifiers are
 preserved. Infrastructure URLs and paths and credential values are redacted;
 OS metadata exclusions are recorded in the publication manifest. Sanitized
@@ -73,7 +73,7 @@ preserved. Scoring uses recorded artifacts without provider calls or native repl
 This historical snapshot used the **0.28.0** default raw reader and the
 **0.30.0** opt-in task-outcome revision. [Complete version comparison](docs/LATEST_RESULTS_030.md)
 covers 23 declared models, 20 complete 141-case scores and 2,958 measured outcomes.
-Public tables, sensitivity and analysis figures (`results/lite141_20261008` at revision `main`)
+Public tables, sensitivity and analysis figures (`<aggregate-results-directory>` at revision `main`)
 have a separate manifest. Sanitized evidence is available through the archive linked above.
 The [analysis layer](docs/LITE141_ANALYSIS.md) uses a separate 12-model subset.
 

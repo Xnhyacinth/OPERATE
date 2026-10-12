@@ -117,7 +117,7 @@ exclusion evidence. Decisions are in
 - Public code/data distribution is available. The dated retrospective aggregate
   companion is separate from the pending Full formal workflow. Sanitized
   trajectories, recovery evidence, reports and audit exports are available
-  in the public sanitized trajectory archive (`sanitized_refresh_20261011` at revision `23b01d6b00c7c58f9ec4c35700bbe57b1414cfae`). The [12-model offline analysis](LITE141_ANALYSIS.md)
+  in the public sanitized trajectory archive (`<trajectory-archive-directory>`). The [12-model offline analysis](LITE141_ANALYSIS.md)
   is a companion subset, not a change to the main-table denominator.
 
 - The sanitized publication preserves scientific records, actions, scorer outputs,

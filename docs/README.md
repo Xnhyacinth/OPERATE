@@ -14,7 +14,7 @@
 - [Evidence contract](EVIDENCE_CONTRACT.md)
 - [Data provenance](DATA_PROVENANCE.md)
 - [Repository layout and data usage](REPO_LAYOUT_AND_DATA_USAGE.md)
-- Public sanitized trajectories (`sanitized_refresh_20261011` at revision `23b01d6b00c7c58f9ec4c35700bbe57b1414cfae`)
+- Public sanitized trajectories (`<trajectory-archive-directory>`)
 - [Catalog and aggregate dataset card](hf/OPERATE_PUBLIC_DATASET_CARD.md)
 
 These documents describe the single current public benchmark. Original

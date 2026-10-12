@@ -4851,7 +4851,7 @@ def test_realtime_treatment_hash_binds_clock_safety_and_public_provider_config()
         "config": {
             "provider": "openai_compatible",
             "model": "hy3-ioa",
-            "base_url": "https://user:password@example.test/v1?api_key=secret",
+            "base_url": "https://user:password@provider/v1?api_key=secret",
             "extra_headers": {
                 "Authorization": "Bearer private-token",
                 "X-Route": "canary",
@@ -4880,7 +4880,7 @@ def test_realtime_treatment_hash_binds_clock_safety_and_public_provider_config()
     assert identity != changed_identity
     assert "password" not in serialized
     assert "private-token" not in serialized
-    assert identity["provider_public_config"]["base_url"] == "https://example.test/v1"
+    assert identity["provider_public_config"]["base_url"] == "https://provider/v1"
     assert identity["interrupt_contract"] == {
         "behavioral_state_transactional": True,
         "direct_api_turn_concurrency": 1,

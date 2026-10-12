@@ -3207,7 +3207,7 @@ def test_classify_provider_error_treats_provider_6004_as_quota_not_rate_limit() 
 def test_provider_error_redactor_covers_headers_and_payloads() -> None:
     raw = (
         "Authorization: Basic dXNlcjpwYXNz Cookie: session=private-cookie "
-        "https://user:password@example.test/v2?code=private-code&token=url-token "
+        "https://user:password@provider/v2?code=private-code&token=url-token "
         "headers={'Authorization': 'Bearer sk-python-secret', "
         "'Ocp-Apim-Subscription-Key': 'sub-secret'} "
         '"Authorization": "Bearer sk-json-secret" '
