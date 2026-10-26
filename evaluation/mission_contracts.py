@@ -15,6 +15,7 @@ import yaml
 
 from evaluation.legacy_agency_adapter import compile_legacy_agency_contract
 from evaluation.legacy_persistence_adapter import compile_legacy_persistence_contract
+from evaluation.source_inputs import source_input_path
 
 VERSION = 'mission_acceptance.v1'
 FJSP = 'dynasched_flexible_job_shop'
@@ -29,6 +30,7 @@ def _read_locked(root: Path, descriptor: dict, *, label: str) -> bytes:
     path = (root / descriptor['path']).resolve()
     if not path.is_relative_to(root.resolve()):
         raise ValueError(f'{label}_outside_root')
+    path = source_input_path(root, descriptor['path'], descriptor['sha256'])
     raw = path.read_bytes()
     if hashlib.sha256(raw).hexdigest() != descriptor['sha256']:
         raise ValueError(f'{label}_hash_mismatch')

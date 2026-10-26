@@ -46,33 +46,12 @@ def test_release_clis_start_from_external_cwd_without_install(
         assert result.returncode == 0, result.stderr
 
 
-def test_public_bundle_cli_starts_from_external_cwd_without_install(
-    tmp_path: Path,
-) -> None:
-    dependency_path = sysconfig.get_paths()["purelib"]
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-S",
-            str(REPO_ROOT / "tools" / "download_public_bundle.py"),
-            "--help",
-        ],
-        cwd=tmp_path,
-        env={**os.environ, "PYTHONPATH": dependency_path},
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 0, result.stderr
-
-
 def test_default_release_is_anchored_to_repository() -> None:
     assert DEFAULT_RELEASE == REPO_ROOT / "benchmark"
     assert DEFAULT_RELEASE.is_absolute()
     assert SUMMARY_DEFAULT_RELEASE == DEFAULT_RELEASE
-    assert DEFAULT_OUTPUT_JSON.parent.name == "artifacts"
-    assert DEFAULT_OUTPUT_MARKDOWN.parent.name == "artifacts"
+    assert DEFAULT_OUTPUT_JSON.parent.name == "outputs"
+    assert DEFAULT_OUTPUT_MARKDOWN.parent.name == "outputs"
 
 
 def test_package_version_matches_project_metadata() -> None:

@@ -49,7 +49,7 @@ from core.realtime_clock import (  # noqa: E402
     SELECTION_BINDING as NATIVE_DT_SELECTION_BINDING,
     classify_realtime_clock,
 )
-from core.protocol21_evidence import (  # noqa: E402
+from core.source_evidence import (  # noqa: E402
     canonicalize_repo_owned_paths,
     resolve_binding_path,
 )

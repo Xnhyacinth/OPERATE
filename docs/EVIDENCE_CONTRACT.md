@@ -95,9 +95,9 @@ per dimension:
 This wiring is small, explicit, and lives in one function so reviewers
 can quickly audit "what evidence backs the score?".
 
-## Default offline outcome evidence (0.27)
+## Offline outcome evidence
 
-The [raw-trajectory reader](EVALUATION_027.md) uses original settled native cost
+The [raw-trajectory reader](OFFLINE_SCORING.md) uses original settled native cost
 C, independently compiled source scale S, and source-fixed fulfillment F.
 Raw provider request/response hashes, original route settings and budgets,
 model identity closures, complete native windows and ledger joins are checked

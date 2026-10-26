@@ -13,7 +13,7 @@ This package implements the disaster vertical slice spec'd in
   the same method surface.
 
 The disaster domain is INTENTIONALLY independent of ``domains.power_grid``
-(see ``.hl/policy.md`` Red Line #3): native entity types, native tools,
+(see ``docs/PROTOCOL.md`` Red Line #3): native entity types, native tools,
 native stakeholders, native ``Perturbation`` enum. Cross-domain coupling
 goes through ``core.cascade_bus.CascadeBus`` only.
 """

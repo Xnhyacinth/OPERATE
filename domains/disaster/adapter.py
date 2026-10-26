@@ -5,7 +5,7 @@ Mirrors the structure of ``domains.power_grid.adapter`` line-for-line —
 backend + fog + belief + tool registry + stakeholder manager + dilemma
 manager + evidence logger + cascade-bus subscriber — but uses
 disaster-native types and never imports from ``domains.power_grid``
-(Red Line #3, ``.hl/policy.md``).
+(Red Line #3, ``docs/PROTOCOL.md``).
 
 The default backend is ``MockRcrsBackend``. The seed's
 ``backend_config['backend_kind']`` switches to the real

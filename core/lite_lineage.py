@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from core.suite_identity import canonical_scenario_slug, recompute_signature_with_seed
 
 
@@ -25,11 +27,33 @@ def _release_dir(repo_root: Path, release: Any) -> Path:
         or "\\" in release
     ):
         raise ValueError("Lite release path invalid")
+    if release == "operate":
+        path = (repo_root / "benchmark").resolve()
+        if not path.is_relative_to(repo_root.resolve()):
+            raise ValueError("Lite release path invalid")
+        return path
     root = (repo_root / "release").resolve()
     path = (root / release).resolve()
     if path.parent != root:
         raise ValueError("Lite release path invalid")
     return path
+
+
+def _source_catalog(
+    repo_root: Path, release_dir: Path, core: dict[str, Any], core_hash: str,
+) -> tuple[dict[str, Any], str, bool]:
+    """Public Core is the source index; private catalogs retain their ledger."""
+    if release_dir == (repo_root / "benchmark").resolve():
+        manifest, _ = _read(release_dir / "manifest.json")
+        if (
+            manifest.get("schema_version") != "operate-public-benchmark-v1"
+            or manifest.get("core_suite", {}).get("path") != "core_suite.json"
+            or manifest["core_suite"].get("sha256") != core_hash
+        ):
+            raise ValueError("Lite public Core manifest mismatch")
+        return core, core_hash, True
+    source, source_hash = _read(release_dir / "protocol21_source_suite.json")
+    return source, source_hash, False
 
 
 def _repo_relative_path(repo_root: Path, path: Path) -> str:
@@ -69,7 +93,16 @@ def bind_lite_core_lineage(
     lite, lite_hash = _read(lite_suite)
     release_dir = _release_dir(repo_root, lite.get("parent_release_id"))
     core, core_hash = _read(release_dir / "core_suite.json")
-    source, source_hash = _read(release_dir / "protocol21_source_suite.json")
+    source, source_hash, public_catalog = _source_catalog(
+        repo_root, release_dir, core, core_hash,
+    )
+    if public_catalog:
+        manifest, _ = _read(release_dir / "manifest.json")
+        if (
+            manifest.get("lite_suite", {}).get("path") != "lite_suite.json"
+            or manifest["lite_suite"].get("sha256") != lite_hash
+        ):
+            raise ValueError("Lite public suite manifest mismatch")
     if lite.get("parent_core_suite_sha256") != core_hash:
         raise ValueError("Lite parent Core hash mismatch")
     if lite.get("parent_release_id") != core.get("release_id") or core.get(
@@ -87,6 +120,7 @@ def bind_lite_core_lineage(
         "lite_suite_path": _repo_relative_path(repo_root, lite_suite),
         "core_suite_sha256": core_hash,
         "source_suite_sha256": source_hash,
+        "source_catalog_kind": "public_core_catalog" if public_catalog else "qualified_source_suite",
         "parent_release_id": core["release_id"],
         "formal_full_leaderboard_eligible": False,
     }
@@ -107,19 +141,27 @@ def bind_lite_core_lineage(
             raise ValueError(f"Lite Core construct contract mismatch: {slug}")
         if body.get("seed", row["seed"]) != row["seed"]:
             raise ValueError(f"Lite input seed mismatch: {slug}")
+        path = (repo_root / row["path"]).resolve()
+        if repo_root.resolve() not in path.parents:
+            raise ValueError(f"Lite input YAML path mismatch: {slug}")
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != row.get("yaml_sha256"):
+            raise ValueError(f"Lite input YAML hash mismatch: {slug}")
+        runtime_signature = recompute_signature_with_seed(
+            yaml.safe_load(raw), int(row["seed"]),
+        )
         if (
             body.get("scenario_signature") != row["scenario_signature"]
-            or recompute_signature_with_seed(body, int(row["seed"]))
-            != row["scenario_signature"]
+            or recompute_signature_with_seed(body, int(row["seed"])) != runtime_signature
+            or (not public_catalog and runtime_signature != row["scenario_signature"])
         ):
             raise ValueError(f"Lite input signature mismatch: {slug}")
-        path = (repo_root / row["path"]).resolve()
-        if repo_root.resolve() not in path.parents or hashlib.sha256(
-            path.read_bytes()
-        ).hexdigest() != row.get("yaml_sha256"):
-            raise ValueError(f"Lite input YAML hash mismatch: {slug}")
         ledger = members[1].get("case_ledger")
-        if (
+        if public_catalog:
+            # The public index binds source identity, not private qualification
+            # evidence. Never invent a case ledger or promote formal eligibility.
+            ledger = None
+        elif (
             not isinstance(ledger, dict)
             or ledger.get("source_denominator_key") != row["source_denominator_key"]
         ):
@@ -133,6 +175,7 @@ def bind_lite_core_lineage(
                 "join": "exact_path_signature_seed",
                 "path": row["path"],
                 "scenario_signature": row["scenario_signature"],
+                "runtime_scenario_signature": runtime_signature,
                 "seed": row["seed"],
                 "yaml_sha256": row["yaml_sha256"],
             },
@@ -167,12 +210,16 @@ def apply_lite_worker_binding(
         raise ValueError("Lite worker scenario path mismatch")
     if seed != lineage.get("seed") or scenario.get("seed", seed) != seed:
         raise ValueError("Lite worker scenario seed mismatch")
-    if recompute_signature_with_seed(scenario, seed) != lineage.get(
-        "scenario_signature"
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != lineage.get("yaml_sha256"):
+        raise ValueError("Lite worker YAML hash mismatch")
+    runtime_signature = recompute_signature_with_seed(yaml.safe_load(raw), seed)
+    if (
+        lineage.get("runtime_scenario_signature", lineage.get("scenario_signature"))
+        != runtime_signature
+        or recompute_signature_with_seed(scenario, seed) != runtime_signature
     ):
         raise ValueError("Lite worker scenario signature mismatch")
-    if hashlib.sha256(path.read_bytes()).hexdigest() != lineage.get("yaml_sha256"):
-        raise ValueError("Lite worker YAML hash mismatch")
     release = lineage.get("parent_release_id")
     release_dir = _release_dir(repo_root, release)
     candidate_value = lineage.get("lite_suite_path")
@@ -188,14 +235,24 @@ def apply_lite_worker_binding(
         candidate_path = (repo_root / candidate_value).resolve()
         if not candidate_path.is_relative_to(repo_root.resolve()):
             raise ValueError("Lite worker suite path invalid")
+    core, core_hash = _read(release_dir / "core_suite.json")
+    _, _, public_catalog = _source_catalog(repo_root, release_dir, core, core_hash)
+    expected_kind = "public_core_catalog" if public_catalog else "qualified_source_suite"
+    if lineage.get("source_catalog_kind", "qualified_source_suite") != expected_kind:
+        raise ValueError("Lite worker source catalog kind mismatch")
     suite_rows = {}
     for filename, field in (
         ("lite_suite.json", "lite_suite_sha256"),
         ("core_suite.json", "core_suite_sha256"),
         ("protocol21_source_suite.json", "source_suite_sha256"),
     ):
+        source_name = (
+            "core_suite.json"
+            if public_catalog and filename == "protocol21_source_suite.json"
+            else filename
+        )
         suite, digest = _read(
-            candidate_path if filename == "lite_suite.json" else release_dir / filename
+            candidate_path if filename == "lite_suite.json" else release_dir / source_name
         )
         if digest != lineage.get(field):
             raise ValueError("Lite worker suite hash mismatch")

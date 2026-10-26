@@ -32,7 +32,7 @@ from core import (
     ToolRegistry,
     ToolSpec,
 )
-from core.protocol21_evidence import canonicalize_repo_owned_paths
+from core.source_evidence import canonicalize_repo_owned_paths
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SOURCE_ROOT = REPO_ROOT / "works" / "OpenDSS-IEEE13"

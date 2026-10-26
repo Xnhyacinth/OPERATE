@@ -3,7 +3,7 @@ domains.traffic.native_tools — Traffic-domain native tool surface.
 
 Mirrors the disaster / power-grid native_tools shape:
 ``register_traffic_tools(reg, backend, env)`` populates a ``core.ToolRegistry``
-with the OpenAI-style function tools from ``docs/v0.7_traffic_spec.md`` §3.
+with the OpenAI-style function tools from ``docs/PROTOCOL.md`` §3.
 Categories:
 
 - Investigation (no state change, costs a tick of attention):
@@ -18,7 +18,7 @@ Categories:
 - Meta:
     wait, noop
 
-Per ``.hl/policy.md`` Red Line #3, this module does NOT import from any other
+Per ``docs/PROTOCOL.md`` Red Line #3, this module does NOT import from any other
 ``domains.*`` package — the mirror is structural (same handler-factory pattern,
 same ``ToolSpec(...)`` calls), with traffic-native names and the operator
 vocabulary fixed by the spec (``meter_inflow`` not ``shed_lane``).

@@ -8,4 +8,4 @@ COPY . .
 RUN uv sync --frozen --no-dev
 
 # Current Full scenario, relative to scenarios/.
-CMD ["uv", "run", "python", "run.py", "--scenario", "datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high", "--agent", "wait_only", "--seed", "42"]
+CMD ["uv", "run", "python", "run.py", "--scenario", "datacenter/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high", "--agent", "wait_only", "--seed", "42"]

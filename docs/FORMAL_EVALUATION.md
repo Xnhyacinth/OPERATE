@@ -1,380 +1,106 @@
-# OPERATE formal evaluation
+# Evaluate a model
 
-Use this public `main` checkout. Lite evaluation is `run_lite.py`; Full uses
-the commands below. Quote `ranking.primary_score` (`wait_relative_outcome_v1`),
-not `score.total_score`. Quote `ANALYSIS.md` / `summary.csv` `primary_score`.
-Invalid or empty protocol still advances the world and is counted as
-`n_invalid_model_decisions`, not a deliberate `wait`. Diagnostic
-`batch_llm_eval.py` without `--formal-run` converts provider failures into `wait`.
-
-This runbook applies to the current 769-row public Core. The
-`benchmark/core_suite.json` and `benchmark/manifest.json` define the shard.
-
-## Contract
-
-- `logical_persistent` is the primary leaderboard treatment.
-- `realtime_persistent` is a separate supervision scorecard and is not pooled
-  into the 0.21.0 wait-relative primary.
-- One complete model shard is a valid formal unit. There is no fixed model
-  roster or three-repeat gate; `pass_k` is an explicit reliability stratum.
-- The simulator advances state. A tick is a causal coordinate, not a repeated
-  natural-language prompt. After the mission briefing, the model is called
-  only for typed wakeups, actionable feedback, scheduled reviews, or required
-  receipt reconciliation.
-- Every run is bound to the current catalog, model/provider route,
-  harness, prompt and context profile, generation limits. Public code identity is recorded as provenance,
-  not a commit or clean-tree admission requirement. Concurrency is separately immutable
-  in the run scope and output namespace.
-- The canonical `agent_scheduled_v1` wakeup policy gives review scheduling to
-  the agent, disables harness-periodic scans, delivers typed actionable events,
-  and treats unknown events as non-actionable.
-
-Live `realtime_persistent` uses `native_dt_v1`: wall ticks equal each row's native plant quantum, and the default speed card is `benchmark/realtime_speed_suite.json` (37 Core rows).
-
-Public startup verifies dataset/source integrity, compatible scoring contracts,
-backend assets and provider settings. It does not require Git or an approved
-commit/code-tree hash. Full/Lite use `--implementation-policy provenance`;
-ordinary resume skips completed cells across code updates while preserving
-original provenance. Dataset/model/protocol changes remain separate runs. A maintenance
-fix does not require repeating the full native qualification pipeline.
-See [Validation policy](VALIDATION_POLICY.md) for affected-scope tests.
-
-## Runtime bootstrap
-
-Resolve the current public runtime once, then use the exact revision recorded
-in `operate_data/.operate-bundle-owner.json`. A branch such as `main` is not a
-formal binding because it is mutable.
+Install the runtime with [setup](../README.md#install), then verify the catalog:
 
 ```bash
-python -m pip install uv==0.12.5
-uv sync --frozen --python 3.13 --extra dev --extra llm --extra hf \
-  --extra released-backends --extra simulators
-uv run python scripts/download_from_hf.py --download-only
-export OPERATE_HF_REVISION="$(uv run python - <<'PY'
-import json
-from pathlib import Path
-
-receipt = json.loads(Path("operate_data/.operate-bundle-owner.json").read_text())
-print(receipt["revision"])
-PY
-)"
+uv run --frozen --no-sync python scripts/verify_release_integrity.py benchmark
 ```
 
-The private maintainer archive and its post-provider CAS publication workflow
-are not required to run an independent shard.
+Full uses `benchmark/core_suite.json` and `benchmark/manifest.json`.
+Lite uses `benchmark/lite_suite.json` as a fixed development panel.
+Select the same single model throughout each shard.
 
-## Environment
+## Provider settings
 
-Use Python 3.13 for a full seven-domain run because the current CityLearn pin is
-not available on Python 3.14. The framework and compatible backend slices are
-supported on Python 3.10 through 3.14.
+Set `API_KEY`, `BASE_URL`, `MODEL_ID`, `CONTEXT_TOKENS` and `OUTPUT_TOKENS`
+locally. Context and output limits must match your provider's advertised route.
+Only enable reasoning, thinking or streaming controls supported by that route;
+`--help` lists the available flags. The public tree contains no provider account
+configuration or fixed model roster.
 
-```bash
-: "${OPERATE_HF_REVISION:?set the resolved immutable HF revision}"
-bash scripts/setup_eval_env.sh
-.venv/bin/python scripts/verify_release_integrity.py benchmark
-```
+A provider quota remains unknown unless supplied for that account. Omit quota
+flags when unknown. When known, bind `--provider-rpm-limit`,
+`--provider-rpd-limit` and `--provider-rate-limit-scope` together; processes sharing
+an account must share a non-secret scope. Never include credentials in a scope,
+command argument or output file.
 
-`setup_eval_env.sh` installs the locked environment, clones the six
-manifest-declared external source repositories at pinned commits, and restores
-the public runtime companion at `OPERATE_HF_REVISION`. The companion includes
-the permission-cleared, byte-exact M5 tables used by Full; no separate Kaggle
-credential is required. A `download_from_hf.py --download-only` check verifies
-bundle bytes only; it does not establish a runnable formal environment.
-
-Traffic rows additionally require the declared SUMO assets and
-`OPERATE_TRAFFIC_BACKEND_REAL=1`. Autonomous-driving rows require the
-manifest-bound NGSIM/SUMO source bundle and
-`OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1`. Do not replace a missing native
-backend with a mock or emulated fallback in a formal shard.
-
-## Provider shards
-
-Start a provider shard only after the dataset/runtime integrity check passes.
-This reads and verifies existing artifacts; it does not execute calibration.
-
-Public logical Full and Lite shards use `run_full.py` and `run_lite.py` against
-`benchmark/`. They do not take a private qualification manifest. The realtime
-CLI still requires `--formal-manifest`; that file is not shipped in this
-repository, so public users should use the logical runners.
-
-The examples read the credential from `API_KEY` and the OpenAI-compatible
-route from `BASE_URL`. Export both securely before executing a shard; no
-maintainer shell configuration is required. Never place the credential value
-in command arguments, config, trajectories, or logs. Request
-`--max-tokens` equals that route's advertised maximum output, with a separate
-8,192-token protocol-repair budget. Formal logical and realtime shards use
-`provider_failure_policy=abort` with a one-failure circuit threshold: a failed
-provider/tool-calling decision terminates the episode and is never converted to
-an environment-advancing `wait`. Before that circuit policy applies, the harness
-may retry the identical wire request at most four times for transport-only 429
-or 5xx failures, using deterministic 5/10/20/40-second backoff and a bounded
-provider `Retry-After` value. Every attempt independently reserves quota and has
-one request/response audit record. Content, protocol, context-budget, hard-quota,
-and model-identity failures are not transient retries.
-
-| Model | Route context / max output | Request output | Workers | Effort / thinking |
-| --- | ---: | ---: | ---: | --- |
-| `hy3-ioa` | 192,000 / 64,000 | 64,000 | 16 Full | `native` / `high`, thinking `enabled` |
-| `gpt-5.6-luna` | 272,000 / 128,000 | 128,000 | 12 Lite | `native` / `high`, thinking omitted |
-| `deepseek-v4-flash-ioa` | 1,000,000 / 50,000 | 50,000 | 12 Lite | `native` / `high`, thinking `enabled` |
-| `glm-5.3-flash-ioa` | 1,000,000 / 128,000 | 128,000 | 12 Lite | `native` / `high`, thinking `enabled` |
-
-Keep this table in sync with `docs/provider_route_bindings.json`. That file is
-the append-only record of each route's envelope, request `--max-tokens`,
-thinking controls, and worker counts. The OpenRouter example below remains
-`z-ai/glm-5.2:free` at 256,000 / 230,400 with 8 Full workers.
-
-These are explicit example bindings, not auto-detected provider guarantees.
-Verify your exact route's advertised limits and account quota before execution;
-different bindings require a new treatment and output namespace.
-
-The current Core contains no Grid2Op-backed row, so the catalog-required
-global scheduler may use the provider-specific worker counts above. If a later
-Core contains any Grid2Op row, formal startup fails closed for more than one
-worker; that run must use a new output namespace with `max-workers=1`.
-A different worker count is always a different run scope and is not a
-compatible formal checkpoint.
-
-`tool_choice=auto` is the formal cross-provider profile. This does not permit a
-model to evade an action-required decision: the protocol validator still
-rejects a text-only/non-executable decision. Reasoning effort is never inferred
-from the provider name; a shard either binds an advertised effort explicitly or
-omits the field.
-
-Declared provider quotas are part of the treatment. Free-model shards using
-the same account must use a non-secret shared scope such as `provider-free-shared`
-and its shared 20 RPM limiter. Bind the account's applicable free-tier daily
-allowance explicitly: 50 RPD when the account has purchased fewer than 10
-credits, or 1,000 RPD once that threshold is met. When an account-level limit is
-unknown, the formal commands below omit RPM, RPD, and quota scope instead of
-inventing a provider guarantee. The resulting `null` values are still
-treatment-bound; structured 429 responses and retry outcomes remain auditable.
-Scope names identify quota pools and never contain API-key bytes. When a limit
-is declared, the limiter state defaults to `~/.cache/operate/provider-rate-limits`;
-all processes reserve a slot under a file lock after request-budget preflight and
-before provider transport.
-
-Provider result publication does not change the private repository visibility.
-
-An RPM reservation can add a short audited wait. Exhausting RPD raises a
-`ProviderQuotaExhaustedError`, writes a resumable sentinel with the next UTC-day
-reset, and parks remaining cells instead of blocking workers for hours. Changing
-the RPM, RPD, or scope requires a fresh output directory because all three fields
-are treatment- and run-config-bound.
-
-The following commands describe separate example shards; there is no required
-provider order or fixed model roster. Put the public OpenAI-compatible endpoint
-in `BASE_URL` and read the credential only from `API_KEY`. Never merge limiter
-scopes, trajectories, or treatment hashes across accounts.
-
-Set the account-specific daily cap for a free-tier example; do not copy one of
-the documented allowance strata without checking which one applies to the
-account.
+## Logical evaluation
 
 ```bash
-export BASE_URL='<provider-base-url>'
-export OPERATE_TRAFFIC_BACKEND_REAL=1
 export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
-: "${RPD_LIMIT:?set the applicable free-tier RPD limit}"
+export OPERATE_TRAFFIC_BACKEND_REAL=1
 
-PYTHONPATH=. .venv/bin/python run_full.py \
-  --output-dir batch_results/full/logical_persistent/glm_5_2_free_w8 \
-  --models z-ai/glm-5.2:free \
+uv run --frozen --no-sync python run_full.py \
+  --models "$MODEL_ID" --output-dir outputs/full \
   --api-key-env API_KEY --base-url-env BASE_URL \
-  --api-mode chat_completions --stream-chat-completions \
-  --model-context-window-tokens 256000 \
-  --model-max-output-tokens 230400 \
+  --model-context-window-tokens "$CONTEXT_TOKENS" \
+  --model-max-output-tokens "$OUTPUT_TOKENS" \
+  --max-tokens "$OUTPUT_TOKENS" \
   --interaction-mode logical_persistent \
   --pass-k 1 --seed-mode scenario --prompt-mode strict \
-  --temperature 0 --reasoning-effort high \
-  --max-tokens 230400 --protocol-repair-max-tokens 8192 \
-  --provider-timeout-s 300 \
-  --provider-rpm-limit 20 \
-  --provider-rpd-limit "$RPD_LIMIT" \
-  --provider-rate-limit-scope provider-free-shared \
+  --temperature 0 --scheduler-mode global --max-workers 1 \
   --persistent-history-max-messages 64 \
-  --persistent-context-max-chars 512000 \
-  --persistent-memory-max-items 128 \
-  --scheduler-mode global --max-workers 8 \
+  --persistent-context-max-chars 512000 --persistent-memory-max-items 128 \
+  --provider-failure-policy abort --max-consecutive-provider-failures 1 \
   --save-trajectories --resume --finalize --dry-run
 ```
 
-A second route has a separate complete command. Concurrency is fixed at 16.
-Account quota remains unknown for that route, so the command omits RPM, RPD, and
-quota scope. If the account later publishes or returns an account-specific
-limit, start a new treatment namespace with all three quota arguments supplied
-together.
+Review the plan, then remove `--dry-run`. For Lite, use `run_lite.py` and a fresh
+output directory with the same provider settings; do not add `--formal-run`.
+Full and Lite set their own fixed scenario scope. Their default
+`--implementation-policy provenance` records the actual code without requiring
+a specific commit or clean checkout.
+
+The persistent profile bounds history to 64 messages, visible context to
+512,000 characters and memory to 128 items. The agent receives one mission
+briefing and then typed actionable wakeups, feedback, receipts and its scheduled
+reviews. `agent_scheduled_v1` disables harness-periodic scans. Unknown events
+are non-actionable unless the domain registry declares otherwise.
+
+The command above and the Lite defaults abort provider failures instead of
+turning them into a `wait`.
+Transport retries are recorded separately. Invalid protocol advances the world
+and is counted as an invalid decision, separately from a deliberate `wait`.
+Native driving and traffic execution require real SUMO transport; missing
+backends must not be replaced with mocks.
+
+## Resume and score
+
+Keep `--resume` and the original output directory to continue a compatible run.
+Completed cells retain their original provenance across code updates; unfinished
+episode checkpoints still require compatible replay. Dataset, model, provider,
+protocol or concurrency changes need a new run scope. See
+[recovery](EVALUATION_RECOVERY.md) for interrupted postprocessing.
+
+Use `ranking.primary_score` for live wait-relative ranking. The
+[raw trajectory scorer](OFFLINE_SCORING.md) and
+[anchored scorer](ANCHORED_SCORING.md) use separate versioned contracts and must
+be identified separately. Incomplete evidence retains missing-value bounds;
+it must not become a complete ranking.
+
+Merge only compatible formal shards:
 
 ```bash
-export BASE_URL='<provider-base-url>'
-export OPERATE_TRAFFIC_BACKEND_REAL=1
-export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
-
-PYTHONPATH=. .venv/bin/python run_full.py \
-  --output-dir batch_results/full/logical_persistent/hy3_ioa_w16 \
-  --models hy3-ioa \
-  --api-key-env API_KEY --base-url-env BASE_URL \
-  --api-mode chat_completions --stream-chat-completions \
-  --model-context-window-tokens 192000 \
-  --model-max-output-tokens 64000 \
-  --interaction-mode logical_persistent \
-  --pass-k 1 --seed-mode scenario --prompt-mode strict \
-  --temperature 0 --reasoning-effort high \
-  --reasoning-effort-format native --thinking-type enabled \
-  --max-tokens 64000 --protocol-repair-max-tokens 8192 \
-  --provider-timeout-s 300 \
-  --persistent-history-max-messages 64 \
-  --persistent-context-max-chars 512000 \
-  --persistent-memory-max-items 128 \
-  --scheduler-mode global --max-workers 16 \
-  --save-trajectories --resume --finalize --dry-run
+uv run --frozen --no-sync python scripts/merge_formal_llm_shards.py --help
 ```
 
-Lite is not a Full formal shard. The native GLM-5.3-Flash Lite command uses
-`run_lite.py`; do not add `--formal-run`.
+The merger verifies dataset, treatment and implementation identities. Readiness
+or a successful installation check does not certify completed model evaluation.
+
+## Realtime supervision
+
+`scripts/batch_realtime_llm_eval.py` runs a separate `realtime_persistent`
+scorecard with `native_dt_v1`: the plant advances in wall time during requests
+and actions. The default speed subset is
+`benchmark/realtime_speed_suite.json`. Do not pool its scores into the logical
+primary treatment.
+
+Formal realtime execution requires a compatible `--formal-manifest`, which is
+not distributed in this repository. Inspect its interface with:
 
 ```bash
-export BASE_URL='<provider-base-url>'
-export OPERATE_TRAFFIC_BACKEND_REAL=1
-export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
-
-PYTHONPATH=. .venv/bin/python run_lite.py \
-  --output-dir batch_results/lite/logical_persistent/glm_5_3_flash_ioa_w12 \
-  --lite-suite benchmark/lite_suite.json \
-  --models glm-5.3-flash-ioa \
-  --api-key-env API_KEY --base-url-env BASE_URL \
-  --api-mode chat_completions --stream-chat-completions \
-  --model-context-window-tokens 1000000 \
-  --model-max-output-tokens 128000 \
-  --interaction-mode logical_persistent \
-  --pass-k 1 --seed-mode scenario --prompt-mode strict \
-  --temperature 0 --reasoning-effort high \
-  --reasoning-effort-format native --thinking-type enabled \
-  --max-tokens 128000 --protocol-repair-max-tokens 8192 \
-  --provider-timeout-s 300 \
-  --persistent-history-max-messages 64 \
-  --persistent-context-max-chars 512000 \
-  --persistent-memory-max-items 128 \
-  --scheduler-mode global --max-workers 12 \
-  --save-trajectories --resume --finalize --dry-run
+uv run --frozen --no-sync python scripts/batch_realtime_llm_eval.py --help
 ```
 
-The logical dry-run is not filesystem-empty: it writes `run_config.json`,
-`batch_run.log`, `logs/`, and, because trajectories are required,
-`trajectories/` when creating a new preview namespace, under the normal output
-lock. Inspecting an existing compatible namespace is read-only: it does not
-overwrite configuration, repair journals, append logs or rewrite path maps. After
-reviewing the resolved treatment hash, model identity, provider route,
-capabilities and manifest-selected formal scope, the same output namespace may
-be reused by removing only `--dry-run` while keeping every immutable run-scope
-field identical and retaining `--resume`. Disabling resume refuses an
-initialized namespace rather than truncating its journal. A capability, quota,
-scope, scheduler, or concurrency change requires a new output directory; an
-incompatible existing `run_config.json` fails closed. Rate limiting, route
-fallback, truncated output, text-only tool responses, or provider identity
-drift are recorded as failures; the runner does not silently convert them to
-`wait`.
-
-## Realtime supervision shards
-
-Realtime uses the same 769 Core rows but writes a separate supervision
-scorecard. The suite is `benchmark/core_suite.json`. The realtime CLI also
-requires `--formal-manifest`, which is a private qualification binding and is
-not present in the public tree. Public evaluation uses `run_full.py` /
-`run_lite.py`. The commands below document the realtime flags and provider
-bindings for maintainers who have that private manifest.
-
-OpenAI-compatible GLM:
-
-```bash
-export OPERATE_TRAFFIC_BACKEND_REAL=1
-export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
-: "${RPD_LIMIT:?set the applicable free-tier RPD limit}"
-
-PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
-  --suite "$OPERATE_FORMAL_READINESS" \
-  --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
-  --output-root batch_results/formal/realtime_persistent/glm_5_2_free_w8 \
-  --model z-ai/glm-5.2:free --provider openai_compatible \
-  --base-url "$BASE_URL" --api-key-env API_KEY \
-  --api-mode chat_completions \
-  --model-context-window-tokens 256000 \
-  --model-max-output-tokens 230400 \
-  --max-tokens 230400 --protocol-repair-max-tokens 8192 \
-  --persistent-history-max-messages 64 \
-  --persistent-context-max-chars 512000 \
-  --persistent-memory-max-items 128 \
-  --provider-timeout-s 300 \
-  --provider-rpm-limit 20 \
-  --provider-rpd-limit "$RPD_LIMIT" \
-  --provider-rate-limit-scope provider-free-shared \
-  --tick-interval-s 5 --termination-grace-s 5 \
-  --max-workers 8 --pass-k 1 --reasoning-effort high \
-  --resume --dry-run
-```
-
-hy3-ioa:
-
-```bash
-export OPERATE_TRAFFIC_BACKEND_REAL=1
-export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
-
-PYTHONPATH=. .venv/bin/python scripts/batch_realtime_llm_eval.py \
-  --suite "$OPERATE_FORMAL_READINESS" \
-  --formal-manifest "$OPERATE_FORMAL_MANIFEST" \
-  --output-root batch_results/formal/realtime_persistent/hy3_ioa_w16 \
-  --model hy3-ioa --provider openai_compatible \
-  --base-url "$BASE_URL" --api-key-env API_KEY \
-  --api-mode chat_completions \
-  --model-context-window-tokens 192000 \
-  --model-max-output-tokens 64000 \
-  --max-tokens 64000 --protocol-repair-max-tokens 8192 \
-  --reasoning-effort high --reasoning-effort-format native --thinking-type enabled \
-  --persistent-history-max-messages 64 \
-  --persistent-context-max-chars 512000 \
-  --persistent-memory-max-items 128 \
-  --provider-timeout-s 300 \
-  --tick-interval-s 5 --termination-grace-s 5 \
-  --max-workers 16 --pass-k 1 \
-  --resume --dry-run
-```
-
-## Context and artifacts
-
-Authoritative environment, tool, action, receipt, and effect evidence is
-append-only. The model sees a deterministic bounded projection plus structured
-memory for unresolved alarms, obligations, facts, commitments, forecasts, and
-numeric trends. Compaction preserves semantic-ledger hashes and never rewrites
-the authoritative trajectory with an untracked summarizer model.
-
-Every terminal row must bind the main trajectory and semantic ledger by path,
-schema, SHA-256, byte count, and record count. Resume accepts only a complete
-compatible terminal row under the same treatment; stale `in_flight` records or
-artifacts from another implementation tree fail closed.
-
-## Publication gate
-
-A shard may be reported only after every manifest-selected Core row is terminal,
-derived reports are finalized, provider and artifact audits pass, and there are no
-fatal, orphan, missing, duplicate, or treatment-mismatched rows. Domain/backend
-strata and evidence support accompany the primary aggregate.
-
-After one same single model has completed both formal treatments, merge
-compatible shards with `scripts/merge_formal_llm_shards.py`. Independent
-evaluation does not require uploading a distribution bundle. Leaderboard
-eligibility remains false until those provider shards are complete.
-
-See [`AGENTIC_INTERACTION.md`](AGENTIC_INTERACTION.md) for the event loop,
-memory, cancellation, supersession, safety-supervisor, and realtime scorecard
-contracts.
-
-## Recovery and code updates
-
-See [Framework recovery](FRAMEWORK_RECOVERY.md). Public Full/Lite default to
-code-provenance mode. Opt-in episode checkpoints require `--implementation-policy strict`
-for exact within-episode replay; this is a checkpoint safety check, not a public
-release restriction. After a behavior-changing repair, report results by their
-recorded implementation and rerun only affected invalid measurements in a new
-result namespace. Never overwrite old scores or claim repaired observations were
-presented to historical model calls.
+Public users can evaluate the logical tracks independently with the commands
+above. See [interaction](AGENTIC_INTERACTION.md) for realtime evidence semantics.

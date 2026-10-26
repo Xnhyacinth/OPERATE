@@ -91,7 +91,7 @@ def test_maintained_setup_does_not_clone_companion_archive_roots() -> None:
 
 def test_runtime_companion_is_not_documented_as_portable_core() -> None:
     data_readme = (REPO_ROOT / "data" / "README.md").read_text(encoding="utf-8")
-    dataset_card = (REPO_ROOT / "docs" / "hf" / "OPERATE_DATASET_CARD.md").read_text(
+    dataset_card = (REPO_ROOT / "docs" / "hf" / "DATASET_CARD.md").read_text(
         encoding="utf-8"
     )
     downloader = (REPO_ROOT / "scripts" / "download_from_hf.py").read_text(
@@ -121,8 +121,9 @@ def test_formal_runbook_uses_resumable_logical_and_realtime_commands() -> None:
 
     assert "--no-resume" not in runbook
     assert runbook.count("scripts/batch_realtime_llm_eval.py") >= 2
-    assert "--model z-ai/glm-5.2:free" in runbook
-    assert "--model hy3-ioa" in runbook
+    assert '--models "$MODEL_ID"' in runbook
+    assert '--model-context-window-tokens "$CONTEXT_TOKENS"' in runbook
+    assert '--model-max-output-tokens "$OUTPUT_TOKENS"' in runbook
     assert "--interaction-mode logical_persistent" in runbook
     assert "--resume" in runbook
     assert ".hl/release_rebuild/" not in runbook

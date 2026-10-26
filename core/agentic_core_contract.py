@@ -13,13 +13,13 @@ from pathlib import Path
 from typing import Any
 
 from core.implementation_identity import implementation_identity
-from core.protocol21_admission import (
+from core.source_admission import (
     QUALITY_CORE_V2_ADMISSION_PROFILE,
     agentic_admission_check_names,
     declared_protocol21_admission_profile,
     resolve_protocol21_admission_profile,
 )
-from core.protocol21_evidence import artifact_binding as _artifact_binding
+from core.source_evidence import artifact_binding as _artifact_binding
 from evaluation.scorer import SCORING_VERSION
 from runner.episode import (
     EVALUATION_IMPLEMENTATION_FINGERPRINT,

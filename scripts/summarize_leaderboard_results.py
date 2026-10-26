@@ -88,24 +88,10 @@ def _ok_row_cleanliness(row: dict[str, Any]) -> tuple[bool, str | None]:
         return False, "llm_failure_or_fallback_wait"
     return True, None
 
-def _default_catalog_dir(repo_root: Path) -> Path:
-    private = repo_root / "release" / "operate_v0_62_0"
-    if (private / "manifest.json").is_file() or (private / "core_suite.json").is_file():
-        return private
-    return repo_root / "benchmark"
-
-
-DEFAULT_RELEASE = _default_catalog_dir(REPO_ROOT)
-DEFAULT_SUMMARY_CSV = (
-    REPO_ROOT
-    / "batch_results"
-    / "operate_v0_62_0"
-    / "formal"
-    / "logical_persistent"
-    / "summary.csv"
-)
-DEFAULT_OUTPUT_JSON = REPO_ROOT / ".hl/artifacts/operate_v062_leaderboard_results.json"
-DEFAULT_OUTPUT_MARKDOWN = REPO_ROOT / ".hl/artifacts/operate_v062_leaderboard_results.md"
+DEFAULT_RELEASE = REPO_ROOT / "benchmark"
+DEFAULT_SUMMARY_CSV = REPO_ROOT / "outputs/full/summary.csv"
+DEFAULT_OUTPUT_JSON = REPO_ROOT / "outputs/summary.json"
+DEFAULT_OUTPUT_MARKDOWN = REPO_ROOT / "outputs/summary.md"
 DEFAULT_BOOTSTRAP_SAMPLES = 2000
 DEFAULT_BOOTSTRAP_SEED = 1729
 DEFAULT_CONFIDENCE_LEVEL = 0.95

@@ -3,7 +3,7 @@ domains.logistics.seeds.schema — Logistics-native scenario seed contract.
 
 Mirrors ``domains.power_grid.seeds.schema`` / ``domains.disaster.seeds.schema``
 in *shape* (``signature()`` / ``to_dict()`` / ``complexity_metrics()`` are
-hash-compatible) but does NOT import from them. Per ``.hl/policy.md`` Red
+hash-compatible) but does NOT import from them. Per ``docs/PROTOCOL.md`` Red
 Line #3 the logistics domain has its own ``Perturbation`` kinds, its own
 priority/stakeholder classes, and its own depot / vehicle / customer / arc
 concepts. Cross-domain coupling goes through ``core.cascade_bus.CascadeEvent``.

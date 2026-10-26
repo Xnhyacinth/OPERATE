@@ -1,27 +1,22 @@
-# OPERATE documentation
+# Documentation
 
-- [Current benchmark](CURRENT_RELEASE.md)
-- [Current 0.31.2 results, including Sonnet completion](LATEST_RESULTS_0312_SONNET.md)
-- [0.31.2 reference-anchored scoring](EVALUATION_0312.md)
-- [Formal evaluation](FORMAL_EVALUATION.md)
-- [Data and API configuration](DATA_ACCESS.md)
-- [Provider route bindings](provider_route_bindings.json)
-- [Incremental validation policy](VALIDATION_POLICY.md)
-- [Agentic interaction and context](AGENTIC_INTERACTION.md)
-- [Benchmark design](BENCHMARK_DESIGN.md)
-- [Protocol](PROTOCOL.md)
-- [Evaluation and scoring](EVALUATION.md)
-- [Evidence contract](EVIDENCE_CONTRACT.md)
-- [Data provenance](DATA_PROVENANCE.md)
-- [Repository layout and data usage](REPO_LAYOUT_AND_DATA_USAGE.md)
-- Public sanitized trajectories (`sanitized_refresh_20261011` at revision `23b01d6b00c7c58f9ec4c35700bbe57b1414cfae`)
-- [Catalog and aggregate dataset card](hf/OPERATE_PUBLIC_DATASET_CARD.md)
+Start with [installation and a model run](../README.md), then use:
 
-These documents describe the single current public benchmark. Original
-maintenance evidence is retained separately under restricted access.
+| Topic | Document |
+| --- | --- |
+| Dataset and API settings | [Data access](DATA_ACCESS.md) |
+| Full/Lite scope and certification status | [Benchmark status](CURRENT_RELEASE.md) |
+| Model evaluation and resume | [Evaluation runbook](FORMAL_EVALUATION.md) |
+| Live and offline scoring | [Evaluation contract](EVALUATION.md) |
+| Raw trajectory scoring | [Offline scoring](OFFLINE_SCORING.md) |
+| Reference-anchored scoring | [Anchored scoring](ANCHORED_SCORING.md) |
+| Interaction and context | [Agent interaction](AGENTIC_INTERACTION.md) |
+| Task design and protocol | [Design](BENCHMARK_DESIGN.md), [protocol](PROTOCOL.md) |
+| Sources and licenses | [Provenance](DATA_PROVENANCE.md), [dataset card](hf/DATASET_CARD.md) |
+| Evidence and recovery | [Evidence](EVIDENCE_CONTRACT.md), [episode recovery](FRAMEWORK_RECOVERY.md), [postprocessing recovery](EVALUATION_RECOVERY.md) |
+| Development checks | [Validation policy](VALIDATION_POLICY.md) |
+| Parquet export and reconstruction | [Data schema](hf/PARQUET_SCHEMA.md) |
 
-- [Default raw scoring: 0.28](EVALUATION_028.md)
-- [Historical result comparison: 0.25–0.30](LATEST_RESULTS_030.md)
-- [Offline behavior/usage analysis](LITE141_ANALYSIS.md)
-
-The offline scorer additionally carries its immutable Lite141 source contracts; runtime catalog membership remains defined by benchmark/.
+The repository contains the current reusable benchmark. Experiment reports,
+model result tables, deployment inventories and maintenance history are kept
+outside this distribution.

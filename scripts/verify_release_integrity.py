@@ -33,15 +33,7 @@ from evaluation.dimension_applicability import (  # noqa: E402
 from runner import EVALUATION_IMPLEMENTATION_FINGERPRINT  # noqa: E402
 
 
-def _default_catalog_dir(repo_root: Path) -> Path:
-    """Maintenance layout first; the versionless public tree ships ``benchmark/``."""
-    private = repo_root / "release" / "operate_v0_62_0"
-    if (private / "manifest.json").is_file() or (private / "core_suite.json").is_file():
-        return private
-    return repo_root / "benchmark"
-
-
-DEFAULT_RELEASE = _default_catalog_dir(REPO_ROOT)
+DEFAULT_RELEASE = REPO_ROOT / "benchmark"
 
 JsonDict = dict[str, Any]
 

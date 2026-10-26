@@ -6,7 +6,7 @@ This package is the second *real-backend* OPERATE domain (see
 while disruptions (vehicle breakdown, urgent order, demand surge, blocked
 arc, traffic delay) arrive.
 
-Per ``.hl/policy.md`` Red Line #3 the logistics domain is INTENTIONALLY
+Per ``docs/PROTOCOL.md`` Red Line #3 the logistics domain is INTENTIONALLY
 independent of ``domains.power_grid`` and ``domains.disaster``: native
 entity types (depot / vehicle / customer / order / arc), native tools,
 native ``Perturbation`` enum. Cross-domain coupling goes through

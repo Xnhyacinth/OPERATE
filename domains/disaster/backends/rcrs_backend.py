@@ -18,7 +18,7 @@ Why a separate class instead of feature-flagging the mock:
   reachable, RCRS image pulled, kernel TCP port reserved). Encoding
   these in a single class would force the mock to ship the same
   failure modes, breaking the "spike must run on laptop without
-  Docker" invariant in ``.hl/policy.md``.
+  Docker" invariant in ``docs/PROTOCOL.md``.
 - A separate class also lets the adapter cleanly select between mock
   and real via ``backend_kind`` in the seed without runtime branches
   inside the hot path.

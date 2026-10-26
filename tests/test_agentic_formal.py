@@ -4,7 +4,7 @@ from copy import deepcopy
 from types import SimpleNamespace
 
 from scripts import batch_llm_eval as batch
-from scripts import build_protocol21_core_readiness as readiness
+from scripts import build_evaluation_readiness as readiness
 from tests.test_batch_llm_eval import _formally_eligible_protocol21_row
 
 

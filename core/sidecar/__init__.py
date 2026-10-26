@@ -3,7 +3,7 @@ core.sidecar — external-process transport boundary.
 
 A *sidecar* owns the lifecycle and transport of a single external
 simulator process so that ``core/`` itself never imports a backend SDK
-(``.hl/policy.md`` red-line #10 + the ``core/`` ↔ ``domains/`` boundary).
+(``docs/PROTOCOL.md`` red-line #10 + the ``core/`` ↔ ``domains/`` boundary).
 
 The only sidecar shipped today is :class:`~core.sidecar.sumo_sidecar.SumoSidecar`,
 which selects ``libsumo`` → ``traci`` → Docker ``eclipse/sumo`` transport and
@@ -12,7 +12,7 @@ exposes a one-pull-per-tick cached snapshot. A domain backend
 to the sidecar; the sidecar talks to SUMO; ``core`` talks to neither.
 
 Design invariants (mirrors the RCRS Docker-sidecar stance in
-``docs/v0.7_traffic_spec.md`` §11):
+``docs/PROTOCOL.md`` §11):
 
 - ``core.sidecar`` imports **no** backend and **no** ``domains.*`` module.
 - ``SumoSidecar.close()`` is ``finally``-guarded and force-kills any orphan

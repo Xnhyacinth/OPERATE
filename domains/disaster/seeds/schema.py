@@ -2,7 +2,7 @@
 domains.disaster.seeds.schema — Disaster-native scenario seed contract.
 
 Mirrors ``domains.power_grid.seeds.schema`` in shape, but does NOT import
-from it. Per ``.hl/policy.md`` Red Line #3 the disaster domain has its own
+from it. Per ``docs/PROTOCOL.md`` Red Line #3 the disaster domain has its own
 ``Perturbation`` kinds, its own stakeholder classes, and its own zone /
 hospital / responder concepts. Cross-domain coupling goes through
 ``core.cascade_bus.CascadeEvent``, never through direct schema reuse.

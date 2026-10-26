@@ -6,7 +6,7 @@ gate reads logistics provenance the same way it reads power-grid
 provenance. This module does NOT import from ``domains.power_grid``.
 
 Important data-license note (verified per set, see spec §3 / §11 and the
-MATPOWER-case lesson in ``.hl/failed_directions.md``): a permissive
+MATPOWER-case lesson in ``docs/DATA_PROVENANCE.md``): a permissive
 *reader* (PyVRP / VRPLIB = MIT) does not make the *instance data*
 permissive. CVRPLIB / Solomon / Augerat carry **no formal OSS license
 (research-use only)** and are released as parsed structural seeds with

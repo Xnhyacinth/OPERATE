@@ -124,8 +124,8 @@ def sumo_runtime_binding(repo_root: Path) -> dict[str, Any]:
         raise ValueError("autonomous_driving_sumo_version_output_missing")
     lock_files = {}
     for relative in (
-        "requirements-autonomous-driving-pilot.txt",
-        "requirements-autonomous-driving-full-regression.txt",
+        "pyproject.toml",
+        "uv.lock",
     ):
         path = repo_root / relative
         if path.is_file():

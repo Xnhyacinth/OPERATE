@@ -195,7 +195,8 @@ def evaluate(
             {
                 "path": str(root / contract["scenario_path"]),
                 "sha256": contract["scenario_sha256"],
-            }
+            },
+            root=root,
         )
         scenarios[key] = yaml.safe_load(raw)
     start = implementation_identity(root)

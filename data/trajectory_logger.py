@@ -239,13 +239,29 @@ class TrajectoryLogger:
         info: dict[str, Any] | None = None,
         assistant_text: str | None = None,
     ) -> None:
+        # Index the complete result evidence, including investigation receipts
+        # and delayed materializations omitted from a backend's StepInfo. This
+        # is an artifact index, not the agent-visible observation channel.
+        indexed_evidence = list(evidence_ids or [])
+        for result in tool_results or []:
+            if isinstance(result, dict):
+                result_id = result.get("evidence_id")
+                produced_ids = result.get("produces_evidence_ids") or []
+            else:
+                result_id = getattr(result, "evidence_id", None)
+                produced_ids = getattr(result, "produces_evidence_ids", None) or []
+            indexed_evidence.extend(
+                value
+                for value in [result_id, *produced_ids]
+                if isinstance(value, str) and value
+            )
         entry = TrajectoryEntry(
             tick=tick,
             observation=observation,
             action=action,
             reward=reward,
             tool_results=list(tool_results or []),
-            evidence_ids=list(evidence_ids or []),
+            evidence_ids=list(dict.fromkeys(indexed_evidence)),
             info=info or {},
             assistant_text=assistant_text,
         )

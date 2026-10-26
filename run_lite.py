@@ -14,15 +14,7 @@ from scripts import batch_llm_eval
 REPO_ROOT = Path(__file__).resolve().parent
 
 
-def _default_lite_suite() -> Path:
-    """Maintenance layout first; the versionless public tree ships ``benchmark/``."""
-    maintained = REPO_ROOT / "release/operate_v0_62_0/lite_suite.json"
-    if maintained.is_file():
-        return maintained
-    return REPO_ROOT / "benchmark/lite_suite.json"
-
-
-LITE_SUITE = _default_lite_suite()
+LITE_SUITE = REPO_ROOT / "benchmark/lite_suite.json"
 
 # Documented OPERATE-Lite persistent working-context profile (64 messages /
 # 512000 chars / 128 memory items). The batch applies these bounds only under

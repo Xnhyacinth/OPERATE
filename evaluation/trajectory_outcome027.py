@@ -25,6 +25,7 @@ from evaluation.operational_service import SERVICE_BACKENDS, compile_service_con
 from evaluation.operational_utility import capability_strata, evaluate_operational
 from evaluation.operational_weights import compile_task_weights, validate_task_weights
 from evaluation.source_voltage_population import measure_voltage_completion027
+from evaluation.source_inputs import source_input_path
 from runner.realtime_episode import recovered_provider_retry_sequences
 
 
@@ -68,7 +69,11 @@ def artifact_ref(path: Path) -> dict:
 
 
 def read_bound(
-    ref: dict, *, source_path: Path | None = None, relocations: dict | None = None
+    ref: dict,
+    *,
+    source_path: Path | None = None,
+    relocations: dict | None = None,
+    root: Path | None = None,
 ) -> tuple[bytes, dict]:
     """Resolve relocated bytes only through their independently recorded hash."""
     if (
@@ -92,6 +97,8 @@ def read_bound(
     ):
         raise ValueError("bound_artifact_relocation_shape_invalid")
     candidates = [Path(replacement)] if replacement else [declared]
+    if not replacement and root is not None:
+        candidates = [source_input_path(root, ref["path"], ref["sha256"])]
     if not replacement and source_path is not None:
         if not declared.is_absolute():
             candidates.append(Path(source_path).parent / declared)
@@ -131,7 +138,11 @@ def load_policy(path: Path = DEFAULT_POLICY, *, root: Path = ROOT) -> dict:
     ):
         raise ValueError("trajectory_policy_frozen_native_population_mismatch")
     suite_raw, suite_ref = read_bound(
-        {**policy["suite"], "path": str(Path(root) / policy["suite"]["path"])}
+        {
+            **policy["suite"],
+            "path": str(Path(root).resolve() / policy["suite"]["path"]),
+        },
+        root=root,
     )
     if (
         policy.get("release_namespace") != "operate_v0_62_0"
@@ -145,9 +156,10 @@ def load_policy(path: Path = DEFAULT_POLICY, *, root: Path = ROOT) -> dict:
     for contract in contracts["contracts"]:
         read_bound(
             {
-                "path": str(Path(root) / contract["scenario_path"]),
+                "path": str(Path(root).resolve() / contract["scenario_path"]),
                 "sha256": contract["scenario_sha256"],
-            }
+            },
+            root=root,
         )
     # Self-hashes cannot authorize new scales, populations or case weights.
     # These source-only compilers execute no native backend or model.
@@ -155,9 +167,10 @@ def load_policy(path: Path = DEFAULT_POLICY, *, root: Path = ROOT) -> dict:
     for contract in compiled["contracts"]:
         raw, _ = read_bound(
             {
-                "path": str(Path(root) / contract["scenario_path"]),
+                "path": str(Path(root).resolve() / contract["scenario_path"]),
                 "sha256": contract["scenario_sha256"],
-            }
+            },
+            root=root,
         )
         contract["strata"] = capability_strata(yaml.safe_load(raw))
         contract["contract_sha256"] = _digest(

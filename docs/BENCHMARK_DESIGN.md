@@ -10,7 +10,7 @@ part of the world transition.
 The promoted `operate` release binds qualification artifacts to scoring
 `0.15.0`; live episode artifacts use `0.21.0` (`wait_relative_outcome_v1`).
 The declared Lite141 offline main table uses `0.26.1` under its separate
-[scoring policy](EVALUATION_026_MAIN_TABLE.md). Results from a different
+[scoring policy](EVALUATION.md). Results from a different
 implementation hash are diagnostic evidence only and cannot validate or resume
 a current formal shard.
 

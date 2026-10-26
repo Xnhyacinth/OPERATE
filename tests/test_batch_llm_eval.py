@@ -1016,7 +1016,7 @@ def test_formal_manifest_does_not_require_live_admission_tooling_hash(
 ) -> None:
     root = tmp_path / "repo"
     paths = _write_green_formal_gate(root)
-    script = root / "scripts" / "calibrate_core_candidate.py"
+    script = root / "scripts" / "calibrate_reference_policies.py"
     script.parent.mkdir(parents=True)
     script.write_text("SUMO_WORKERS = 1\n", encoding="utf-8")
 
@@ -1558,10 +1558,10 @@ def test_protocol21_binding_reverifies_all_upstream_bytes(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from scripts.build_protocol21_core_readiness import (
+    from scripts.build_evaluation_readiness import (
         build_readiness_from_paths,
     )
-    from tests.test_build_protocol21_core_readiness import _write_fixture
+    from tests.test_evaluation_readiness import _write_fixture
 
     evidence_dir = tmp_path / "evidence"
     evidence_dir.mkdir()
@@ -1604,10 +1604,10 @@ def test_protocol21_binding_rejects_frozen_binding_map_drift(
     monkeypatch,
     binding_field: str,
 ) -> None:
-    from scripts.build_protocol21_core_readiness import (
+    from scripts.build_evaluation_readiness import (
         build_readiness_from_paths,
     )
-    from tests.test_build_protocol21_core_readiness import _write_fixture
+    from tests.test_evaluation_readiness import _write_fixture
 
     evidence_dir = tmp_path / "evidence"
     evidence_dir.mkdir()

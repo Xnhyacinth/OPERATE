@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import pytest
 
-from scripts import run_protocol21_diagnostic_smoke as smoke
+from scripts import check_runtime as smoke
 
 
 def result():

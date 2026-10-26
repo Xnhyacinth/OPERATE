@@ -2,7 +2,7 @@
 domains.traffic.native_stakeholders — Traffic-domain stakeholder groups.
 
 Mirrors ``domains.disaster.native_stakeholders`` / ``power_grid`` in *shape*
-but defines the 5 traffic-native classes from ``docs/v0.7_traffic_spec.md`` §1:
+but defines the 5 traffic-native classes from ``docs/PROTOCOL.md`` §1:
 
 - commuter           — private-vehicle travelers; highest volatility
 - freight_operator   — logistics / delivery fleets; delay = direct cost
@@ -10,7 +10,7 @@ but defines the 5 traffic-native classes from ``docs/v0.7_traffic_spec.md`` §1:
 - transit_agency     — bus/tram operator; schedule adherence
 - city_government    — traffic authority / mayor; political pressure
 
-Per ``.hl/policy.md`` Red Line #3, this module does NOT import from any other
+Per ``docs/PROTOCOL.md`` Red Line #3, this module does NOT import from any other
 ``domains.*`` package. It mirrors the architectural shape — a ``_TUNING`` table
 + ``build_stakeholder_groups`` + a ``trust_event_for_control`` helper — but each
 constant is traffic-specific.

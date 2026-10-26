@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from core.protocol21_evidence import portable_repo_path
+from core.source_evidence import portable_repo_path
 from runner.resume import recompute_signature_with_seed
 
 

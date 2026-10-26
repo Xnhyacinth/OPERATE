@@ -3,7 +3,7 @@ domains.microgrid.seeds.schema — Microgrid-native scenario seed contract.
 
 Mirrors ``domains.power_grid.seeds.schema`` / ``domains.logistics.seeds.schema``
 in *shape* (``signature()`` / ``to_dict()`` / ``complexity_metrics()`` are
-hash-compatible) but does NOT import from them. Per ``.hl/policy.md`` Red
+hash-compatible) but does NOT import from them. Per ``docs/PROTOCOL.md`` Red
 Line #3 the microgrid domain has its own ``Perturbation`` kinds, its own
 EMS asset concepts (battery / genset / PCC / DER), and its own load
 criticality classes (hospital / water vs residential). No power-bus

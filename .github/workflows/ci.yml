@@ -48,7 +48,7 @@ jobs:
             tests/test_batch_llm_eval.py \
             tests/test_batch_realtime_llm_eval.py \
             tests/test_agentic_formal.py \
-            tests/test_hy3_request_budget.py \
+            tests/test_provider_request_budget.py \
             tests/test_event_response_canonical_records.py \
             tests/test_score_effect_evidence_audit.py \
             tests/test_batch_report_paths.py
@@ -78,7 +78,11 @@ jobs:
             tests/test_public_hf_download.py \
             tests/test_opendss_formal_evidence_paths.py \
             tests/test_operate_distribution_docs.py \
-            tests/test_protocol21_evidence.py \
+            tests/test_public_distribution.py \
+            tests/test_source_inputs.py \
+            tests/test_causal_observation_and_index.py \
+            tests/test_audit_tool_effects_delayed.py \
+            tests/test_source_evidence.py \
             tests/test_verify_release_integrity.py
           uv run --no-sync python scripts/verify_release_integrity.py \
             benchmark

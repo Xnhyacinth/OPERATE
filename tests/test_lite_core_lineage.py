@@ -19,10 +19,12 @@ def _bodies():
 def test_fixed_lite_joins_exact_core_source_contract_without_formal_promotion():
     bodies = _bodies()
     binding = bind_lite_core_lineage(bodies, lite_suite=SUITE, repo_root=ROOT)
-    assert len(bodies) == 193
+    assert len(bodies) == 141
     assert binding['formal_full_leaderboard_eligible'] is False
     for body in bodies.values():
-        assert body['source_denominator_key'] == body['case_ledger']['source_denominator_key']
+        assert body['source_denominator_key']
+        assert body['case_ledger'] is None
+        assert body['lite_core_lineage']['source_catalog_kind'] == 'public_core_catalog'
         assert body['construct_contract'] == 'operational_agency.v1'
         assert body['lite_core_lineage']['join'] == 'exact_path_signature_seed'
 
@@ -50,3 +52,29 @@ def test_derived_lineage_is_separate_and_never_repairs_a_mismatched_history(tmp_
 
 def test_malformed_historical_rows_are_explicit_unmatched(tmp_path):
     pytest.skip("lineage derivation tooling is not part of the public tree")
+
+
+def test_public_runtime_signature_is_bound_to_authenticated_yaml():
+    from runner.resume import recompute_signature_with_seed
+
+    bodies = _bodies()
+    bind_lite_core_lineage(bodies, lite_suite=SUITE, repo_root=ROOT)
+    changed = [body for body in bodies.values()
+               if body['lite_core_lineage']['runtime_scenario_signature']
+               != body['lite_core_lineage']['scenario_signature']]
+    assert len(changed) == 2
+    assert all(body['domain'] == 'building_energy' for body in changed)
+    for body in changed:
+        assert body['lite_core_lineage']['runtime_scenario_signature'] == (
+            recompute_signature_with_seed(body, body['seed'])
+        )
+
+
+def test_public_binding_rejects_in_memory_body_changes_without_mutating_peers():
+    bodies = _bodies()
+    key = next(iter(bodies))
+    bodies[key]['backend_config']['unexpected_control_change'] = True
+    original = deepcopy(bodies)
+    with pytest.raises(ValueError, match='signature'):
+        bind_lite_core_lineage(bodies, lite_suite=SUITE, repo_root=ROOT)
+    assert bodies == original

@@ -108,6 +108,8 @@ def _empty_bucket() -> dict[str, int]:
         "state_changing_ok_with_evidence": 0,
         "state_changing_ok_without_evidence": 0,
         "state_changing_evidence_not_in_step": 0,
+        "state_changing_index_omission_in_ledger": 0,
+        "state_changing_evidence_not_in_ledger": 0,
         "delayed_state_changing_evidence_from_prior_step": 0,
         "state_changing_evidence_not_in_score": 0,
         "state_changing_outcome_changed": 0,
@@ -302,6 +304,24 @@ def _audit_row(
     for bucket in buckets:
         _bump(bucket, "episodes_with_trajectory")
 
+    # The sibling ledger is authoritative; the step list is only an index.
+    # Keep index omissions blocking, but never describe a resolvable receipt
+    # as a backend mutation without evidence. Do not rewrite historical files.
+    ledger_path = traj_path.with_name(
+        traj_path.name.removesuffix(".trajectory.jsonl") + ".evidence.jsonl"
+    )
+    ledger_ids: set[str] | None = None
+    if ledger_path.is_file() and (
+        batch_root is None or ledger_path.resolve().is_relative_to(batch_root.resolve())
+    ):
+        ledger_ids = {
+            item["evidence_id"]
+            for line in ledger_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+            for item in [json.loads(line)]
+            if isinstance(item, dict) and isinstance(item.get("evidence_id"), str)
+        }
+
     idem_seen: dict[str, dict[str, Any]] = {}
     row_has_state_change = False
     prior_step_evidence: set[str] = set()
@@ -420,6 +440,12 @@ def _audit_row(
                     evidence_id = result.get("evidence_id")
                     if isinstance(evidence_id, str) and evidence_id:
                         _issue_all(buckets, "state_changing_ok_with_evidence")
+                        if ledger_ids is not None and evidence_id not in ledger_ids:
+                            _issue_all(
+                                buckets,
+                                "state_changing_evidence_not_in_ledger",
+                                blocking=True,
+                            )
                         if (
                             evidence_id not in step_evidence
                             and int(result.get("latency_ticks") or 0) > 0
@@ -430,6 +456,10 @@ def _audit_row(
                                 "delayed_state_changing_evidence_from_prior_step",
                             )
                         elif evidence_id not in step_evidence:
+                            if ledger_ids is not None and evidence_id in ledger_ids:
+                                _issue_all(
+                                    buckets, "state_changing_index_omission_in_ledger"
+                                )
                             rollup["state_changing_evidence_not_in_step"] += 1
                             _issue_all(
                                 buckets,
@@ -446,6 +476,11 @@ def _audit_row(
                                     "tick": entry.get("tick"),
                                     "tool": result.get("name"),
                                     "evidence_id": evidence_id,
+                                    "present_in_authoritative_ledger": (
+                                        evidence_id in ledger_ids
+                                        if ledger_ids is not None
+                                        else None
+                                    ),
                                 },
                             )
                         classification = classify_state_changing_score_evidence(
@@ -579,7 +614,7 @@ def build_report(
     status = "blocking" if n_blocking else ("warning" if n_warnings else "pass")
 
     audit = {
-        "schema_version": "0.1",
+        "schema_version": "0.2",
         "status": status,
         "n_total": len(rows),
         "n_ok": len(ok_rows),
@@ -602,6 +637,7 @@ def build_report(
             "This audit is report-only; it does not change scorer semantics or release artifacts.",
             "Trajectory files prove the tool-protocol surface: idempotency_key, state_changing, error_code, latency_ticks, and evidence_id.",
             "Immediate state-changing results must appear in the same step evidence_ids list; delayed materializations may link evidence from the original prior step.",
+            "Index omissions remain blocking and are distinguished from missing authoritative ledger evidence; this audit does not certify artifact hashes.",
             "Evidence ids not consumed by score dimensions are warnings because some tool evidence is diagnostic/contextual rather than scorer-facing.",
         ],
     }
@@ -650,6 +686,8 @@ def write_markdown(report: dict[str, Any], out_path: Path) -> None:
         f"- Protocol metadata missing: **{totals.get('protocol_metadata_missing', 0)}**",
         f"- State-changing OK without evidence: **{totals.get('state_changing_ok_without_evidence', 0)}**",
         f"- State-changing evidence not in step: **{totals.get('state_changing_evidence_not_in_step', 0)}**",
+        f"- Index omissions present in authoritative ledger: **{totals.get('state_changing_index_omission_in_ledger', 0)}**",
+        f"- State-changing evidence absent from authoritative ledger: **{totals.get('state_changing_evidence_not_in_ledger', 0)}**",
         f"- Delayed evidence linked from prior step: **{totals.get('delayed_state_changing_evidence_from_prior_step', 0)}**",
         f"- State-changing evidence not in score: **{totals.get('state_changing_evidence_not_in_score', 0)}**",
         f"- Budget rejections: **{totals.get('budget_rejections', 0)}**",

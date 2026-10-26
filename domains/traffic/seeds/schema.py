@@ -2,12 +2,12 @@
 domains.traffic.seeds.schema — Traffic-native scenario seed contract.
 
 Mirrors ``domains.power_grid.seeds.schema`` / ``domains.disaster.seeds.schema``
-in *shape* but imports from neither (``.hl/policy.md`` red-line #3). The traffic
+in *shape* but imports from neither (``docs/PROTOCOL.md`` red-line #3). The traffic
 domain has its own perturbation kinds, its own 5 stakeholder classes, and its
 own corridor / junction / detector concepts. Cross-domain coupling flows through
 ``core.cascade_bus.CascadeEvent`` only.
 
-Design tenets (``docs/v0.7_traffic_spec.md`` §5):
+Design tenets (``docs/PROTOCOL.md`` §5):
 
 - Every field is JSON-safe (dataclasses, primitives, dicts of primitives).
 - The seed declares WHICH SUMO net / route file / demand window / shock schedule
@@ -152,7 +152,7 @@ class Provenance:
     url: str | None = None
     lock_strategy: str | None = None
     time_window: dict[str, Any] = field(default_factory=dict)
-    license: str = "see docs/v0.7_traffic_spec.md §3/§11"
+    license: str = "see docs/PROTOCOL.md §3/§11"
     source_locked: bool = False
     notes: str = ""
 

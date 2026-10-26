@@ -4,7 +4,130 @@ import pytest
 
 from core import Action, ToolCall
 from runner.episode import _run_episode_loop
-from tests.test_runner import FakeEnv, PersistentCaptureAgent
+from dataclasses import dataclass, field
+from typing import Any
+
+from core import EvidenceLogger
+from core.pomdp import StepInfo, StepReturn, ToolResult
+
+
+@dataclass
+class FakeEnv:
+    """Minimal POMDPEnvironment subset used by ``_run_episode_loop``."""
+
+    rewards: list[float]
+    tool_results_per_tick: list[list[ToolResult]] = field(default_factory=list)
+    realized_per_tick: list[list[dict[str, Any]]] = field(default_factory=list)
+    evidence_per_tick: list[list[str]] = field(default_factory=list)
+    forecast_per_tick: list[dict[str, Any]] = field(default_factory=list)
+    warnings_per_tick: list[list[str]] = field(default_factory=list)
+    done_at_tick: int | None = None  # 0-indexed
+    snapshot_payload: dict[str, Any] = field(default_factory=dict)
+    declare_periodic_opportunity: bool = True
+    tool_specs: list[dict[str, Any]] = field(default_factory=list)
+    evidence: EvidenceLogger | None = None
+
+    horizon: int = 0
+    tick: int = 0
+
+    def __post_init__(self) -> None:
+        self.horizon = len(self.rewards)
+        if self.evidence is None:
+            self.evidence = EvidenceLogger("fake_runner")
+        # default empty lists for sidecars if caller didn't pass them
+        n = self.horizon
+        if not self.tool_results_per_tick:
+            self.tool_results_per_tick = [[] for _ in range(n)]
+        if not self.realized_per_tick:
+            self.realized_per_tick = [[] for _ in range(n)]
+        if not self.evidence_per_tick:
+            self.evidence_per_tick = [[] for _ in range(n)]
+        if not self.forecast_per_tick:
+            self.forecast_per_tick = [{} for _ in range(n)]
+        if not self.warnings_per_tick:
+            self.warnings_per_tick = [[] for _ in range(n)]
+
+    def snapshot(self) -> dict[str, Any]:
+        payload = dict(self.snapshot_payload)
+        if self.declare_periodic_opportunity:
+            payload.setdefault("decision_opportunity", True)
+            payload.setdefault(
+                "decision_cadence",
+                {
+                    "periodic_scan_every_ticks": 4,
+                    "max_review_after_ticks": 4,
+                },
+            )
+        return payload
+
+    def get_tool_specs(self) -> list[dict[str, Any]]:
+        return list(self.tool_specs)
+
+    def step(self, _action: Action) -> StepReturn:
+        i = self.tick
+        observation = {"tick": i + 1, **self.snapshot_payload}
+        if self.declare_periodic_opportunity:
+            observation.setdefault("decision_opportunity", True)
+            observation.setdefault(
+                "decision_cadence",
+                {
+                    "periodic_scan_every_ticks": 4,
+                    "max_review_after_ticks": 4,
+                },
+            )
+        ret = StepReturn(
+            observation=observation,
+            tool_results=list(self.tool_results_per_tick[i]),
+            reward=self.rewards[i],
+            done=(self.done_at_tick is not None and i >= self.done_at_tick),
+            info=StepInfo(
+                realized_events=list(self.realized_per_tick[i]),
+                evidence_ids=list(self.evidence_per_tick[i]),
+                forecast_updates=dict(self.forecast_per_tick[i]),
+                early_stop_warnings=list(self.warnings_per_tick[i]),
+            ),
+        )
+        self.tick += 1
+        return ret
+
+
+
+class CaptureAgent:
+    """Captures every observation it sees and what ``on_episode_end`` got."""
+
+    def __init__(self) -> None:
+        self.observations_seen: list[dict[str, Any]] = []
+        self.episode_end_call: dict[str, Any] | None = None
+
+    def reset(self, *_a: Any, **_kw: Any) -> None:  # pragma: no cover - unused here
+        pass
+
+    def act(
+        self, observation: dict[str, Any], _tool_specs: list[dict[str, Any]]
+    ) -> Action:
+        # IMPORTANT: copy so later mutations to obs don't retroactively
+        # change what we recorded.
+        self.observations_seen.append(dict(observation))
+        return Action(tool_calls=[ToolCall(name="wait")])
+
+    def on_episode_end(
+        self,
+        final_observation: dict[str, Any],
+        actions: list[Action],
+        episode_reward: float = 0.0,
+    ) -> None:
+        self.episode_end_call = {
+            "final_observation": dict(final_observation),
+            "n_actions": len(actions),
+            "episode_reward": float(episode_reward),
+        }
+
+
+
+class PersistentCaptureAgent(CaptureAgent):
+    def _uses_persistent_session(self) -> bool:
+        return True
+
 
 
 @pytest.mark.parametrize("done_at_tick", [None, 2])

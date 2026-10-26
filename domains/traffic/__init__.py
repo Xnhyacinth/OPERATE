@@ -6,7 +6,7 @@ supervisory decisions (signal-plan switching, corridor rerouting, lane closure,
 emergency pre-emption, inbound metering) on a real microscopic/mesoscopic SUMO
 network under partial observability, sudden incidents, and ethical conflicts.
 
-Boundary discipline (``.hl/policy.md`` red-lines #3/#10, ``docs/v0.7_traffic_spec.md``):
+Boundary discipline (``docs/PROTOCOL.md`` red-lines #3/#10, ``docs/PROTOCOL.md``):
 
 - This package imports only from ``core`` (+ its optional SUMO transport through
   ``core.sidecar``); it never imports another ``domains.*`` package.

@@ -1,31 +1,19 @@
-# OPERATE command surface
+# Commands
 
-The public command groups are:
+| Command | Purpose |
+| --- | --- |
+| `setup_eval_env.sh` | Install the locked environment and runtime data |
+| `download_from_hf.py` | Download and verify the public runtime companion |
+| `verify_release_integrity.py benchmark` | Check catalogs and scenario hashes |
+| `check_runtime.py` | Check installation with per-backend episodes |
+| `../run_lite.py`, `../run_full.py` | Run the fixed Lite or Full track |
+| `batch_llm_eval.py` | Logical evaluation engine |
+| `batch_realtime_llm_eval.py` | Independent realtime evaluation engine |
+| `merge_formal_llm_shards.py` | Merge compatible completed shards |
+| `recover_completed_episode.py` | Recover postprocessing from recorded inputs |
+| `evaluate_trajectories.py` | Score authenticated raw trajectories |
+| `evaluate_anchored_outcomes.py` | Apply reference-anchored scoring |
 
-- `setup_eval_env.sh`: locked environment, runtime companion, and backend setup;
-- `download_from_hf.py`: anonymous, manifest-backed public bundle download;
-- `verify_release_integrity.py`: verify `benchmark/` catalogs and scenario YAML;
-- `run_full.py`: current 769-row Core / Full evaluation;
-- `run_lite.py`: current 141-row Lite evaluation;
-- `batch_llm_eval.py`: `logical_persistent` evaluation engine;
-- `batch_realtime_llm_eval.py`: independent `realtime_persistent` scorecard;
-- `merge_formal_llm_shards.py`: merge compatible complete shards;
-- `run_protocol21_diagnostic_smoke.py`: per-backend installation smoke.
-
-Candidate-mining, promotion, and historical-release utilities are not part of
-this public tree.
-
-Quote `ranking.primary_score` for wait-relative ranking. Invalid
-protocol still advances the world and is counted separately from a
-chosen `wait`.
-
-## Current anchored scoring
-
-`scripts/evaluate_task_outcomes031.py` is the opt-in anchored entrypoint and
-uses `evaluation/policies/lite141_0312.json` by default. The separate default
-raw reader, `scripts/evaluate_trajectories.py`, remains at 0.28.0. See the
-[protocol](../docs/EVALUATION_0312.md) and
-[current 20-deployment snapshot](../docs/LATEST_RESULTS_0312_SONNET.md).
-`scripts/build_reference_anchors031.py` compiles new anchors from recorded
-reference episodes; neither offline scoring nor anchor compilation calls a
-provider or replays a native episode. Existing policies remain immutable.
+Use `uv run --frozen --no-sync python scripts/<command>.py --help` for options.
+See the [evaluation runbook](../docs/FORMAL_EVALUATION.md) for model configuration
+and [scoring contract](../docs/EVALUATION.md) for choosing a score.

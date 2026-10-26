@@ -532,7 +532,7 @@ def build_urban_earthquake_M6_24h_kobe_seed(
             "in runtime path). Aftershock schedule, building collapse "
             "triggers, and per-tick PGA series are procedurally generated "
             "from (seed, level) — no hand-written narrative content per "
-            ".hl/policy.md Red Line #2."
+            "docs/PROTOCOL.md Red Line #2."
         ),
     )
 

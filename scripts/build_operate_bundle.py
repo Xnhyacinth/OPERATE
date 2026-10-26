@@ -22,7 +22,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from core.implementation_identity import implementation_identity  # noqa: E402
-from core.protocol21_evidence import canonicalize_repo_owned_paths  # noqa: E402
+from core.source_evidence import canonicalize_repo_owned_paths  # noqa: E402
 from scripts.download_from_hf import _validate_hf_binding  # noqa: E402
 
 DEFAULT_RELEASE = REPO_ROOT / "benchmark"
@@ -2687,7 +2687,7 @@ def build_operate_bundle(
     copied_manifest = output_dir / "release_manifest.json"
     shutil.copy2(release_manifest_path, copied_manifest)
     readme = output_dir / "README.md"
-    shutil.copy2(repo_root / "docs" / "hf" / "OPERATE_DATASET_CARD.md", readme)
+    shutil.copy2(repo_root / "docs" / "hf" / "DATASET_CARD.md", readme)
     tracked = {
         "README.md": _sha256(readme),
         "release_manifest.json": _sha256(copied_manifest),

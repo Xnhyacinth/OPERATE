@@ -799,7 +799,7 @@ def build_traffic_seed(
         notes=(
             "Structural seed: n_stressors/first_shock_tick/incident_edge/"
             "hidden_attr_parity/demand_window_offset all derive deterministically "
-            "from (family, seed, level) per docs/v0.7_traffic_spec.md §5. The "
+            "from (family, seed, level) per docs/PROTOCOL.md §5. The "
             "top-betweenness edge list is a STRUCTURAL PROXY in this mock-only "
             "builder; a SUMO host recomputes real betweenness from the "
             f"anchored_to {data_source} net at stage 4. No SUMO import here. "

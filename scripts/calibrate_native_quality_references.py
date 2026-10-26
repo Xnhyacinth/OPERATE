@@ -25,7 +25,7 @@ from audit._common import _resolve_scenario_path  # noqa: E402
 from core.implementation_identity import implementation_identity  # noqa: E402
 from run import load_scenario_yaml, run_one  # noqa: E402
 from evaluation.scoring_snapshot import encode_json  # noqa: E402
-from scripts.calibrate_core_candidate import (  # noqa: E402
+from scripts.calibrate_reference_policies import (  # noqa: E402
     _claim_process_group, _determinism_differences, _stop_isolated_process,
 )
 

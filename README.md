@@ -1,360 +1,92 @@
 <div align="center">
   <img src="assets/operate-banner.png" width="100%" alt="OPERATE — Persistent Operational Agency" />
-
-  <p><strong>Benchmarking Persistent Operational Agency in Source-Grounded Executable Systems</strong></p>
-
-  <p>
-    <img src="https://img.shields.io/badge/Full-769%20scenarios-0F766E" alt="Full: 769 scenarios" />
-    <img src="https://img.shields.io/badge/Lite-141%20scenarios-0EA5A4" alt="Lite: 141 scenarios" />
-    <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white" alt="Python 3.10 through 3.14" /></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/Code-MIT-blue" alt="Code license: MIT" /></a>
-  </p>
 </div>
 
-OPERATE evaluates whether an LLM agent can supervise and control evolving,
-partially observable operational systems over long horizons. State transitions
-come from seeded executable backends; the model is the agent under test, never
-the environment or the judge.
+# OPERATE
 
-[Documentation](docs/README.md) ·
-[Data access](docs/DATA_ACCESS.md) ·
-[Evaluation protocol](docs/FORMAL_EVALUATION.md) ·
-[Data provenance](docs/DATA_PROVENANCE.md)
+OPERATE evaluates whether an LLM agent can monitor, investigate and control an
+operational system over time. Seeded simulators and public source data determine
+what happens; the model makes decisions through domain tools.
 
-The public repository and Hugging Face dataset each expose one current
-benchmark state. Scenario contracts live under `scenarios/<domain>/...`.
-Manifests verify dataset and evidence bytes. Public evaluation does not require
-a particular Git commit, a clean checkout, or the maintainer code-tree hash.
-Code versions are recorded as provenance, not used as a public execution gate. There are no public release tags or
-selectable historical datasets.
+The benchmark contains **769 Full scenarios across seven domains** and a
+**141-scenario Lite development subset**: driving, building energy, datacenter,
+logistics, microgrid, power grid and traffic. Lite covers six domains and omits
+traffic. It was selected using development-model outcomes and is not a held-out
+test or a replacement for Full.
 
-## Current qualification and provider status
+[Documentation](docs/README.md) · [Evaluation](docs/EVALUATION.md) ·
+[Data and configuration](docs/DATA_ACCESS.md) · [License](LICENSE)
 
-The current Core qualifies at scoring `0.15.0` and scores live runs at `0.21.0`,
-769 Core rows across 502 physical sources and 141 Lite rows across 82 sources.
-Qualification records describe the code used for their original checks. Public
-users can run their own checkout; ordinary resume preserves completed cells
-when only code changes, while recording each attempt's actual implementation.
-Formal Full logical/realtime provider runs and result publication remain pending.
-Lite retrospective results are available below.
+## Install
 
-## Current Lite141 anchored results (2026-10-11)
-
-The [0.31.2 Sonnet-complete snapshot](docs/LATEST_RESULTS_0312_SONNET.md)
-contains 23 declared deployments, 20 complete 141-case scores and 2,954
-measured outcomes out of 3,243 targets. HY4 Preview scores 49.04; Sonnet 5.5
-now has all seven corrected driving measurements and scores 32.08 (point
-rank 9/20). Point ranks are not a statistically resolved total order.
-
-The [reference-anchored protocol](docs/EVALUATION_0312.md) uses a [-100, 100]
-main score with full measured service required to reach 100 wherever service
-applies. Cost gain above the reference remains a separate diagnostic.
-Raw evidence has been reauthenticated; formal-run, same-run merge and held-out
-certification remain false. Missing outcomes retain bounds and no complete rank.
-
-The public aggregate companion (`results/lite141_20261011` at revision `61b30ab53103595228bf2f4098d2217dab040306`)
-has been published and verified at its immutable revision. It contains
-model/domain summaries, process coverage, uncertainty and specification
-sensitivity. Sanitized trajectories and audit reports are available in the
-public sanitized trajectory archive (`sanitized_refresh_20261011` at revision `23b01d6b00c7c58f9ec4c35700bbe57b1414cfae`).
-Scientific records, actions, scorer outputs, numeric values and identifiers are
-preserved. Infrastructure URLs and paths and credential values are redacted;
-OS metadata exclusions are recorded in the publication manifest. Sanitized
-files have new hashes and do not replace the original evidence bytes.
-Original evidence is restricted; manuscript drafts remain private.
-
-`python scripts/evaluate_task_outcomes031.py --help` describes the opt-in
-anchored scorer, whose default policy is 0.31.2. The separate default raw
-reader remains 0.28.0; original policy-bound inputs and historical results are
-preserved. Scoring uses recorded artifacts without provider calls or native replay.
-
-## Historical Lite141 recorded outcomes (2026-10-08)
-
-This historical snapshot used the **0.28.0** default raw reader and the
-**0.30.0** opt-in task-outcome revision. [Complete version comparison](docs/LATEST_RESULTS_030.md)
-covers 23 declared models, 20 complete 141-case scores and 2,958 measured outcomes.
-Public tables, sensitivity and analysis figures (`results/lite141_20261008` at revision `main`)
-have a separate manifest. Sanitized evidence is available through the archive linked above.
-The [analysis layer](docs/LITE141_ANALYSIS.md) uses a separate 12-model subset.
+Use Python 3.13 for all backends. The framework supports Python 3.10–3.14;
+individual simulators have narrower requirements.
 
 ```bash
-uv run --frozen --no-sync python scripts/evaluate_trajectories.py \
-  --run-dir '<completed-run-directory>' --output-dir '<new-score-directory>'
-```
-
-Offline scoring evaluates trajectories from the immutable original Lite141
-contracts and requires original journals/configurations and authenticated
-provider/native artifacts. [Frozen offline inputs](evaluation/policies/README.md) retain exact
-Lite141 suite/scenario hashes alongside the flattened runtime catalog. Two
-CityLearn signatures differ after public flattening; their new runtime trajectories
-cannot be substituted for original policy-bound runs. Restore
-the pinned upstream source files using setup before scoring. Local `.hl/` paths
-in historical reports are original provenance locators; use the public archive
-index and immutable revision to locate downloadable evidence. Current results measure recorded operational outcomes on
-Lite-Dev; independent realtime diagnostics remain separate.
-
-## What is evaluated
-
-- persistent autonomy after one mission briefing;
-- proactive investigation under partial observability;
-- correct silence when no intervention is justified;
-- typed alarms, scheduled reviews, and environment-driven wakeups;
-- replanning, tool use, delayed effects, and counterfactual prevention;
-- cancellation, steering, supersession, latency, and safety takeover;
-- evidence-linked outcomes across seven operational domains.
-
-`logical_persistent` is the primary leaderboard treatment. The simulator moves
-in deterministic logical time while the agent maintains a bounded persistent
-session. `realtime_persistent` is an independent supervision scorecard in which
-the environment continues while provider requests and actions are in flight.
-`logical_stateless` is only a compatibility ablation.
-
-A tick is a causal coordinate for deadlines, delayed actions, attribution, and
-replay. It is not a new natural-language prompt. After `session_start`, the
-model is invoked only by typed actionable wakeups, scheduled reviews,
-investigation results, or lifecycle receipts that require reconciliation.
-The canonical `agent_scheduled_v1` policy leaves review timing to the agent,
-does not create harness-periodic scans, and keeps unknown events non-actionable.
-
-## Full and Lite
-
-The official Full track contains 769 source-grounded scenarios across 502 physical
-sources and seven domains. OPERATE-Lite is a hardness-filtered development
-subset: it keeps open-headroom, Hy3-strict, and discriminative Core rows and
-drops saturated, LLM-easy, and unrankable cells. Families or domains with no
-hard row are omitted (currently Traffic). It covers 13 backends, 19 task
-families, four difficulty levels, and six horizon buckets, but it is not a
-substitute for the Full leaderboard denominator.
-
-| Domain | Full rows | Lite rows | Full sources | Lite sources |
-| --- | ---: | ---: | ---: | ---: |
-| Autonomous Driving | 7 | 7 | 7 | 7 |
-| Building Energy | 18 | 10 | 6 | 5 |
-| Datacenter | 142 | 33 | 4 | 3 |
-| Logistics | 527 | 53 | 443 | 42 |
-| Microgrid | 37 | 28 | 21 | 17 |
-| Power Grid | 19 | 10 | 11 | 8 |
-| Traffic | 19 | 0 | 10 | 0 |
-| **Total** | **769** | **141** | **502** | **82** |
-
-Formal Full logical/realtime provider runs remain pending; formal Full
-leaderboard eligibility remains false. The separate Lite retrospective outcome
-comparison has been published.
-
-`benchmark/core_suite.json` and `benchmark/manifest.json` define the public
-denominator. Clone this repository, install the Hugging Face runtime companion,
-and evaluate against the current catalog. Ordinary resume verifies the dataset,
-prompt, scoring protocol and model settings without pinning the code tree.
-A checkpoint inside an unfinished episode still requires compatible replay.
-See [current benchmark status](docs/CURRENT_RELEASE.md) and the
-[formal evaluation runbook](docs/FORMAL_EVALUATION.md).
-
-## Quick start
-
-Python 3.10 through 3.14 is supported by the framework. Use Python 3.13 for a
-single-environment full-Core run because of current upstream CityLearn pins.
-
-```bash
-git clone '<repository-url>' OPERATE
+git clone https://github.com/Xnhyacinth/OPERATE.git
 cd OPERATE
-export OPERATE_HF_REPO_ID='<dataset-owner>/<dataset-name>'
 python -m pip install uv==0.12.5
+export OPERATE_HF_REPO_ID='Xnhyacinth/OPERATE'
 bash scripts/setup_eval_env.sh --smoke
 ```
 
-This installs the locked environment, downloads and verifies the runtime
-companion, restores declared sources, and runs one `wait_only` episode per
-released backend. The smoke checks runtime and evidence integrity, not model
-performance. Model evaluation additionally requires your model API credentials.
-Unanswered alarms from the passive baseline remain visible as policy warnings;
-the installation profile does not turn them into successful interventions.
-Strict agent/action validation and safety checks remain unchanged.
+Setup installs the locked environment, downloads the runtime companion, restores
+source assets and runs backend checks. Public downloads need no API token.
+The resolved dataset revision is recorded in
+`operate_data/.operate-bundle-owner.json`; set `OPERATE_HF_REVISION` to that
+commit to reproduce the same inputs. See [data provenance](docs/DATA_PROVENANCE.md)
+for source licenses and integrity checks.
 
-Dataset locations and provider endpoints are supplied through environment
-variables; see [data and API configuration](docs/DATA_ACCESS.md).
+## Evaluate a model
 
-The public HF download is content-addressed and does not require `HF_TOKEN`.
-The installer resolves the current public snapshot once and records its exact
-commit in `operate_data/.operate-bundle-owner.json`. For a pinned reproduction,
-set `OPERATE_HF_REVISION=<HF-COMMIT-SHA>`. The companion includes the
-permission-cleared, byte-exact M5 source tables used by the Full track; no
-`M5_ZIP`, `KAGGLE_TOKEN`, or other manual data credential is required. Run
-`bash scripts/setup_eval_env.sh` to install without the smoke. Traffic execution is
-fail-closed unless `OPERATE_TRAFFIC_BACKEND_REAL=1`, and Autonomous Driving is
-fail-closed unless
-`OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1`; both require a real TraCI/libsumo
-transport.
-
-For metadata analysis without installing simulators, install the Hugging Face
-`datasets` package in that analysis environment and load either configuration
-directly:
-
-```python
-import os
-
-from datasets import load_dataset
-
-full = load_dataset(os.environ["OPERATE_HF_REPO_ID"], "full", split="test")
-lite = load_dataset(os.environ["OPERATE_HF_REPO_ID"], "lite", split="test")
-```
-
-Each Parquet row contains viewer-friendly metadata and the exact scenario YAML;
-the export can reconstruct the bound suite and scenario tree byte for byte.
-
-## Verify and run
+Supply your provider's credentials and advertised model limits locally:
 
 ```bash
-# Framework and persistent-agent contracts
-uv run python -m pytest -q \
-  tests/test_batch_llm_eval.py \
-  tests/test_batch_realtime_llm_eval.py \
-  tests/test_agentic_formal.py
+export API_KEY='<your-api-key>'
+export BASE_URL='<provider-base-url>'
+export MODEL_ID='<model-id>'
+export CONTEXT_TOKENS='<context-window-tokens>'
+export OUTPUT_TOKENS='<maximum-output-tokens>'
+export OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1
+export OPERATE_TRAFFIC_BACKEND_REAL=1
 
-# Verify the current public catalog
-uv run python scripts/verify_release_integrity.py benchmark
-
-# One baseline episode selected by the current catalog
-uv run python run.py \
-  --scenario datacenter/gpu_cluster_queue_control/deep_planning/high/alibaba_gpu_native_500_dfc0551ac1_c9da905bb4_high \
-  --agent wait_only --seed 42
+uv run --frozen --no-sync python run_lite.py \
+  --models "$MODEL_ID" --output-dir outputs/lite \
+  --model-context-window-tokens "$CONTEXT_TOKENS" \
+  --model-max-output-tokens "$OUTPUT_TOKENS" \
+  --max-tokens "$OUTPUT_TOKENS" \
+  --interaction-mode logical_persistent --prompt-mode strict \
+  --save-trajectories --resume --dry-run
 ```
 
-## Run Full / Core
+Inspect the dry run, then remove `--dry-run` to execute. For Full evaluation,
+provider settings, resume and scoring, follow the
+[evaluation runbook](docs/FORMAL_EVALUATION.md).
 
-The official Full track is the 769-row catalog in `benchmark/core_suite.json`.
-Use `run_full.py`; it expands that suite and does not read a private
-qualification manifest.
+`logical_persistent` is the primary treatment. The model receives one mission
+briefing and subsequently responds to events, tool feedback and its scheduled
+reviews. `realtime_persistent` evaluates wall-clock supervision separately.
+Installation checks establish runtime availability, not model performance or
+formal benchmark certification.
 
-```bash
-OPERATE_TRAFFIC_BACKEND_REAL=1 \
-OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1 \
-uv run python run_full.py \
-  --output-dir batch_results/full/my_model \
-  --models my-model \
-  --api-key-env API_KEY \
-  --base-url-env BASE_URL \
-  --api-mode chat_completions \
-  --interaction-mode logical_persistent \
-  --seed-mode scenario --prompt-mode strict \
-  --model-context-window-tokens 131072 \
-  --model-max-output-tokens 32768 \
-  --temperature 0 --max-tokens 32768 \
-  --save-trajectories --finalize
-```
+## Repository
 
-Quote `ranking.primary_score` as the wait-relative headline;
-`score.total_score` is the 13-dimension composite. Persistent `run.py` LLM
-runs default to aborting provider failures rather than converting them to wait.
+| Path | Purpose |
+| --- | --- |
+| `benchmark/`, `scenarios/` | Current Full/Lite catalogs and executable tasks |
+| `core/`, `domains/` | Shared contracts and simulator adapters |
+| `runner/`, `baselines/` | Episode execution and reference agents |
+| `evaluation/`, `audit/` | Scoring, frozen scoring inputs and evidence checks |
+| `data/`, `sources/` | Data utilities, source locks and compact source assets |
+| `scripts/`, `tools/` | Setup, evaluation, recovery and data export |
+| `docs/`, `examples/`, `tests/` | Usage, examples and regression checks |
 
-## Run OPERATE-Lite
+Large runtime assets are downloaded separately. Local configuration, caches,
+trajectories and results are ignored by Git.
 
-`OPERATE-Lite` contains 141 exact Core-locked rows from 82 physical sources.
-Selection uses wait/greedy/oracle CPU baselines, four-model Lite 0.17 scores,
-and Hy3 Full ok episodes, then keeps only hardness-eligible rows. Saturated,
-LLM-easy, Hy3-easy, plateau, and unrankable dead cells are dropped, including
-unique-family hostages. A Core family or domain with no hard row is omitted
-(currently Traffic). Preferred size 100–165 is a cap on enrichment, not a
-target. Lite remains an efficiency/development track, not a Full leaderboard
-denominator. The Lite selection audit contains per-row inclusion/exclusion
-reasons.
+## Contribute and cite
 
-Request `--max-tokens` must equal `--model-max-output-tokens` for that route.
-
-```bash
-OPERATE_TRAFFIC_BACKEND_REAL=1 \
-OPERATE_AUTONOMOUS_DRIVING_SUMO_REAL=1 \
-uv run python run_lite.py \
-  --output-dir batch_results/lite/my_model \
-  --models my-model \
-  --api-key-env API_KEY \
-  --base-url-env BASE_URL \
-  --api-mode chat_completions \
-  --interaction-mode logical_persistent \
-  --seed-mode scenario --prompt-mode strict \
-  --model-context-window-tokens 131072 \
-  --model-max-output-tokens 32768 \
-  --temperature 0 --max-tokens 32768 \
-  --save-trajectories --finalize
-```
-
-The exact selection and generator are
-[`benchmark/lite_suite.json`](benchmark/lite_suite.json)
-and [`tools/build_lite_suite.py`](tools/build_lite_suite.py).
-
-## Formal persistent evaluation
-
-Each exact model is a separate treatment-bound shard. Model ID, provider route,
-harness, prompt and context compiler, advertised limits, generation settings,
-and dataset define the evaluation treatment. Code hashes are provenance. Requested/effective
-concurrency is an immutable run-scope field bound to the output directory and
-formal manifest. Incompatible resume attempts fail closed.
-
-Use the [formal evaluation runbook](docs/FORMAL_EVALUATION.md) for exact
-per-model capability, provider route, quota, reasoning, concurrency, and dry-run
-bindings. Provider failures, output truncation, route fallback, text-only
-pseudo-tools, or identity drift remain explicit failures; they are never
-converted to `wait`.
-
-Maintenance changes use [affected-scope validation](docs/VALIDATION_POLICY.md).
-Public `run_full.py` and `run_lite.py` default to `--implementation-policy provenance`:
-no Git checkout or code hash is required to start, continue or finish an ordinary
-evaluation. Completed results retain their original code records. Changed datasets,
-model settings or scoring protocols still require a separate run. For opt-in
-`--episode-checkpoint`, choose `--implementation-policy strict`; it verifies the
-exact replay state before continuing inside an unfinished episode.
-See [recovery and result validity](docs/FRAMEWORK_RECOVERY.md).
-
-## Evidence and scoring
-
-Every environment event, observation, tool call, action, safety decision,
-receipt, effect, cancellation, and supersession is appended to authoritative
-artifacts. The model sees a deterministic bounded projection plus structured
-memory for unresolved alarms, obligations, facts, commitments, forecasts, and
-numeric trends. Compaction never replaces authoritative history.
-
-The scorer emits evidence-linked operational dimensions, including survival,
-cost, safety, equity, adaptive replanning, information efficiency, foresight,
-optimality gap, counterfactual prevention, and tool-use efficiency. Formal
-reports also include domain/backend strata and separate proactive-monitoring,
-correct-silence, latency, takeover, and realtime lifecycle diagnostics.
-
-## Repository layout
-
-```text
-core/          backend-neutral event, evidence, tool, memory, and safety contracts
-domains/       native backend adapters and domain tools
-runner/        logical and realtime episode coordinators
-baselines/     wait, random, heuristic, oracle, ReAct, Reflexion, and LLM agents
-evaluation/    evidence-linked scoring and counterfactual analysis
-scenarios/     active OPERATE scenario contracts
-sources/       tracked source assets and locks
-release/       active source suite and promoted release manifest
-scripts/       replay, audit, formal batch, merge, and distribution tools
-tests/         runtime and release-contract tests
-```
-
-Runtime scenario membership is defined by the current `core_suite.json`,
-`lite_suite.json`, and `manifest.json`. Authoring-era fields retained inside
-scenario contracts are provenance, not an additional admission decision.
-
-## Scope and limitations
-
-- Core domains are uneven by design and leaderboard aggregation is stratified;
-  row counts must not be interpreted as physical-source diversity.
-- Lite is diversity-weighted and substantially undersamples Logistics sources.
-  Report it as `OPERATE-Lite`, never as a Full/Core score.
-- The one-command installer restores bundled inputs and anonymously resolves
-  manifest-pinned upstream runtimes. Every installed byte is hash-checked before
-  a formal run; third-party terms remain separate from the code license.
-- Official leaderboard eligibility is distinct from public reproducibility and
-  remains pending until the bound provider runs and result distribution finish.
-
-## Contributing and citation
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for changes to code, scenarios, or
-backends. Cite the repository and the exact Git commit, HF dataset revision,
-release manifest, treatment hash, and model/provider binding used. Citation
-metadata is available in [CITATION.cff](CITATION.cff).
-
-Code and benchmark-authored metadata are MIT-licensed. Upstream simulators and
-datasets retain their own licenses and acquisition terms.
+See [contributing](CONTRIBUTING.md) for setup and tests and
+[CITATION.cff](CITATION.cff) for citation metadata. Code uses the MIT license;
+third-party data and simulators retain their
+[upstream terms](THIRD_PARTY_LICENSES.md).

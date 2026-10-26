@@ -385,7 +385,7 @@ def test_cluster_bootstrap_moves_same_source_cases_together():
 
 @pytest.mark.parametrize("complete", [False, True])
 def test_report_renders_when_fewer_than_two_models_are_complete(complete):
-    from scripts.evaluate_task_outcomes031 import render
+    from scripts.evaluate_anchored_outcomes import render
 
     report = synthetic_report({"only": [70.0, 80.0]})
     report["models"][0].update(
@@ -493,7 +493,7 @@ def test_v3_policy_version_cannot_silently_select_historical_rules(tmp_path):
 
 
 def test_raw_authentication_does_not_certify_cross_execution_formal_run():
-    from scripts.evaluate_task_outcomes031 import certification
+    from scripts.evaluate_anchored_outcomes import certification
 
     inputs = dict(
         base=dict(raw_reauthenticated=True),
@@ -529,7 +529,7 @@ def test_v3_policy_rejects_unsupported_floor_or_zero_ramp(tmp_path, field, value
 
 
 def test_specification_sensitivity_reports_large_rank_shift():
-    from scripts.evaluate_task_outcomes031 import rank_sensitivity
+    from scripts.evaluate_anchored_outcomes import rank_sensitivity
 
     report = dict(
         models=[

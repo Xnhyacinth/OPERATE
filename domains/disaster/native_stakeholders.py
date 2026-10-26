@@ -13,7 +13,7 @@ the 8 disaster-native classes from the v0.3 design doc §5.2:
 - volunteer_org     — CERT / Red Cross-style volunteer groups
 - local_government  — mayor / emergency management agency
 
-Per ``.hl/policy.md`` Red Line #3, this module does NOT import from
+Per ``docs/PROTOCOL.md`` Red Line #3, this module does NOT import from
 ``domains.power_grid``. It mirrors the architectural shape — a ``_TUNING``
 table + ``build_stakeholder_groups`` + a ``trust_event_for_dispatch``
 helper — but each constant and each event-keyword is disaster-specific.

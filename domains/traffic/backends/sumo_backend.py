@@ -1,7 +1,7 @@
 """
 domains.traffic.backends.sumo_backend — Real SUMO sidecar backend.
 
-v0.7 traffic spike strategy (per ``docs/v0.7_traffic_spec.md`` §2/§11),
+v0.7 traffic spike strategy (per ``docs/PROTOCOL.md`` §2/§11),
 mirroring the disaster RCRS approach in
 ``domains/disaster/backends/rcrs_backend.py``:
 
@@ -19,7 +19,7 @@ Why a separate class instead of feature-flagging the mock:
   transport, a compiled ``.net.xml`` / ``.rou.xml`` pair). Encoding
   these in a single class would force the mock to ship the same
   failure modes, breaking the "spike must run on a laptop without
-  SUMO" invariant in ``.hl/policy.md``.
+  SUMO" invariant in ``docs/PROTOCOL.md``.
 - A separate class lets the adapter select mock vs real via
   ``backend_kind`` in the seed without runtime branches in the hot
   path.
@@ -70,7 +70,7 @@ from domains.traffic.source_identity import (
 if TYPE_CHECKING:  # pragma: no cover
     from ..seeds.schema import TrafficScenarioSeed
 
-_SPEC_DOC = "docs/v0.7_traffic_spec.md"
+_SPEC_DOC = "docs/PROTOCOL.md"
 _PHASE_NOTE = (
     "Live SUMO adapter has only implemented the signal-plan control mapping; "
     f"see {_SPEC_DOC} §2 (transport) / §11 (live-execution gate)."

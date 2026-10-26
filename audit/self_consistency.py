@@ -24,7 +24,7 @@ from audit._common import (
 )
 from audit.episode_cache import active_episode_cache
 from baselines import WaitOnlyAgent
-from core.protocol21_evidence import canonicalize_repo_owned_paths
+from core.source_evidence import canonicalize_repo_owned_paths
 from domains.registry import build_backend_records as _build_backend_records
 from domains.registry import (
     get_backend_capability,
@@ -188,7 +188,7 @@ def episode_metrics(
             autonomy = dict(run.get("event_adaptive_autonomy") or {})
             traffic_capture: dict[str, Any] = {}
             if str(scenario.get("domain") or "") == "traffic":
-                from core.protocol21_traffic_capture import (
+                from core.traffic_capture import (
                     validate_source_lineage,
                     validate_vehicle_event_capture,
                 )

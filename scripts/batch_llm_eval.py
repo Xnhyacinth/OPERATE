@@ -54,7 +54,7 @@ from runner.worker_deadline import (  # noqa: E402
 )
 from core.event_protocol import EVENT_DECISION_CONTRACT_VERSION  # noqa: E402
 from core.implementation_identity import implementation_identity  # noqa: E402
-from core.protocol21_evidence import (  # noqa: E402
+from core.source_evidence import (  # noqa: E402
     canonicalize_repo_owned_paths,
     resolve_binding_path,
 )
@@ -134,7 +134,7 @@ from scripts.audit_tool_effects import (  # noqa: E402
 from scripts.audit_tool_effects import (  # noqa: E402
     write_markdown as write_tool_effect_markdown,
 )
-from scripts.build_protocol21_core_readiness import (  # noqa: E402
+from scripts.build_evaluation_readiness import (  # noqa: E402
     build_readiness_from_paths,
 )
 

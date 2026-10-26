@@ -21,7 +21,7 @@ from types import MappingProxyType
 from typing import Any
 
 from core import ToolContext, ToolRegistry, ToolSpec
-from core.protocol21_evidence import canonicalize_repo_owned_paths
+from core.source_evidence import canonicalize_repo_owned_paths
 from domains.power_grid.backends.opendss_ieee13 import (
     _NEW_OBJECT_RE,
     _dss_collection_names,

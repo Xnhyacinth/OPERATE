@@ -5,7 +5,7 @@ Mirrors ``domains.disaster.adapter`` / ``domains.power_grid.adapter``
 line-for-line — backend + fog + belief + tool registry + stakeholder manager +
 dilemma manager + evidence logger + cascade-bus subscriber — but uses
 traffic-native types and never imports from another ``domains.*`` package
-(Red Line #3, ``.hl/policy.md``).
+(Red Line #3, ``docs/PROTOCOL.md``).
 
 The default backend is ``MockSumoBackend`` (pure-Python, deterministic). The
 seed's ``backend_kind == "sumo"`` switches to the real ``SumoBackend`` (which

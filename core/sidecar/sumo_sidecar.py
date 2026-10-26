@@ -11,7 +11,7 @@ transport at probe time and exposes a tiny, backend-agnostic surface:
         sidecar.simulation_step(n)   # advance n deterministic substeps
         sidecar.close()              # finally-guarded; force-kills orphans
 
-Transport selection order (``docs/v0.7_traffic_spec.md`` §2/§11):
+Transport selection order (``docs/PROTOCOL.md`` §2/§11):
 
 1. ``libsumo`` — in-process Python binding (canonical replay transport,
    15–30× faster on micro nets, no socket round-trip).
@@ -19,7 +19,7 @@ Transport selection order (``docs/v0.7_traffic_spec.md`` §2/§11):
 3. Docker ``eclipse/sumo`` — pinned image, ``traci`` over a published port,
    only when neither Python binding nor a native ``sumo`` binary is present.
 
-Determinism flags pinned at start (``docs/v0.7_traffic_spec.md`` §9):
+Determinism flags pinned at start (``docs/PROTOCOL.md`` §9):
 ``--seed``, ``--step-length``, ``--default.action-step-length``,
 ``--routing-algorithm``, and crucially ``--time-to-teleport=-1`` (default 300 s
 teleport would silently swallow incident-clearance metrics; stuck vehicles must

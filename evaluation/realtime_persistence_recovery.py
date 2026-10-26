@@ -17,7 +17,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from core.protocol21_evidence import canonicalize_repo_owned_paths
+from core.source_evidence import canonicalize_repo_owned_paths
 from runner.realtime_episode import (
     _apply_realtime_artifact_validation,
     _build_evidence_closure,

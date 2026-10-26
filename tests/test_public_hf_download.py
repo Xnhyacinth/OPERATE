@@ -78,14 +78,6 @@ def test_m5_bundle_contract_requires_both_source_roles_and_exact_paths() -> None
         )
 
 
-def test_public_compatibility_entrypoint_is_a_thin_delegate() -> None:
-    wrapper = (REPO_ROOT / "tools" / "download_public_bundle.py").read_text(
-        encoding="utf-8"
-    )
-    assert "download_from_hf.main" in wrapper
-    assert "_validate_bundle_distribution_binding =" not in wrapper
-
-
 def test_setup_uses_canonical_versionless_downloader() -> None:
     setup = (REPO_ROOT / "scripts" / "setup_eval_env.sh").read_text(
         encoding="utf-8"
@@ -277,7 +269,6 @@ def test_public_download_rejects_unbound_repo_or_revision(
             repo_id=repo_id,
             revision=revision,
         )
-
 
 
 def test_downloader_requires_explicit_dataset_before_network(monkeypatch, capsys):

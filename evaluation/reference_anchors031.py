@@ -16,6 +16,7 @@ from pathlib import Path
 
 import yaml
 
+from evaluation.mission_contracts import _read_locked
 from evaluation.native_objectives import extract_native_objective
 from evaluation.operational_completion import measure_completion
 from evaluation.operational_outcome028 import normalize_dss_components
@@ -478,10 +479,11 @@ def build_reference_anchors(
             if key not in contracts or key in cases:
                 raise ValueError("reference_case_foreign_or_duplicate")
             contract = contracts[key]
-            scenario_path = root / contract["scenario_path"]
-            if _sha256(scenario_path) != contract["scenario_sha256"]:
-                raise ValueError("reference_scenario_hash_mismatch")
-            scenario = yaml.safe_load(scenario_path.read_bytes())
+            scenario = yaml.safe_load(_read_locked(
+                root,
+                {"path": contract["scenario_path"], "sha256": contract["scenario_sha256"]},
+                label="reference_scenario",
+            ))
             measure = dict(
                 scenario=scenario,
                 contract=contract,

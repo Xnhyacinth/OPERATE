@@ -20,7 +20,7 @@ release-ledger facts a (future) traffic release materializer needs:
   perturbations, and dilemma payload), derived from concrete seed predicates;
 - ``traffic_complexity_tags`` / ``traffic_source_lock`` — ledger metadata.
 
-Stdlib + local schema only (``.hl/policy.md`` red-line #3): no backend import.
+Stdlib + local schema only (``docs/PROTOCOL.md`` red-line #3): no backend import.
 """
 
 from __future__ import annotations

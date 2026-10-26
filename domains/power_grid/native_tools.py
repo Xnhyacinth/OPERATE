@@ -979,7 +979,7 @@ def _h_negotiate_with_stakeholder(env: PowerGridEnvironment):
         # Trust transitions derive ONLY from the typed `offer_type` enum
         # plus the numeric `target_mw` (which scales the event magnitude),
         # never from free LLM text. This keeps state transitions
-        # deterministic per the .hl/policy.md red line.
+        # deterministic per the docs/PROTOCOL.md red line.
         if offer_type in {"curtailment_for_credit", "demand_response"}:
             ev = "successful_collaboration" if target_mw > 0 else "info_shared"
         elif offer_type in {"priority_restore", "guaranteed_service"}:

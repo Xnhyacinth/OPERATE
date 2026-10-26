@@ -50,3 +50,21 @@ def test_worker_binds_verified_lite_source_contract_before_execution(
         assert row["status"] == "ok"
         assert executed[0]["lite_core_lineage"] == binding["lite_core_lineage"]
         assert executed[0]["case_ledger"] == binding["case_ledger"]
+
+
+def test_worker_rejects_forged_body_and_matching_forged_runtime_signature(bound_case):
+    from core.lite_lineage import apply_lite_worker_binding
+    from runner.resume import recompute_signature_with_seed
+
+    slug, original = bound_case
+    body = deepcopy(original)
+    body['backend_config']['unexpected_control_change'] = True
+    binding = {key: deepcopy(body[key]) for key in (
+        'construct_contract', 'source_denominator_key', 'case_ledger', 'lite_core_lineage',
+    )}
+    binding['lite_core_lineage']['runtime_scenario_signature'] = (
+        recompute_signature_with_seed(body, body['seed'])
+    )
+    with pytest.raises(ValueError, match='signature'):
+        apply_lite_worker_binding(body, binding, scenario_slug=slug, seed=body['seed'],
+                                  repo_root=Path(__file__).resolve().parents[1])
