@@ -17,6 +17,12 @@ The resolved immutable revision is recorded in
 commit for a pinned reproduction. The downloader verifies repository identity,
 visibility, revision and manifest file hashes.
 
+The current companion binds its Full/Lite Parquet exports and runtime data to
+`benchmark/` and `uv.lock`. Installation rejects a different local catalog or
+lockfile. Code identity remains provenance; unrelated source edits do not block
+reuse. The bundle contains the byte-exact M5 tables and needs no Kaggle credential.
+The dataset card contains only tasks/runtime usage and upstream license notices.
+
 ## Model API
 
 ```bash

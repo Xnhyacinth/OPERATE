@@ -943,6 +943,96 @@ def _validate_bundle_formal_evidence_binding(
     return bundled_release
 
 
+def _validate_public_catalog_binding(
+    data_dir: Path, manifest: dict[str, Any], *, repo_root: Path | None = None,
+) -> None:
+    """Bind the public Parquet/runtime snapshot to its consumer's data catalog.
+
+    Code revisions are provenance. Only task/catalog bytes and the dependency
+    lock constrain reuse; editing unrelated implementation code remains valid.
+    """
+    if manifest.get("distribution_profile") != "public_runtime_companion_v2":
+        return
+    catalog = manifest.get("catalog")
+    names = {
+        "benchmark/core_suite.json", "benchmark/lite_suite.json",
+        "benchmark/manifest.json", "uv.lock",
+    }
+    files = catalog.get("files") if isinstance(catalog, dict) else None
+    code = catalog.get("code") if isinstance(catalog, dict) else None
+    if not (
+        isinstance(files, dict) and set(files) == names
+        and all(re.fullmatch(r"[0-9a-f]{64}", str(value)) for value in files.values())
+        and isinstance(code, dict)
+        and isinstance(code.get("repository"), str)
+        and code["repository"].startswith("https://github.com/")
+        and re.fullmatch(r"[0-9a-f]{40,64}", str(code.get("revision")))
+    ):
+        raise ValueError("public_catalog_binding_invalid")
+    source_assets = manifest.get("source_assets")
+    external_sources = manifest.get("external_sources")
+    if not (
+        isinstance(source_assets, dict) and isinstance(external_sources, dict)
+        and all(isinstance(row, dict) for row in external_sources.values())
+    ):
+        raise ValueError("public_runtime_profile_source_contract_invalid")
+    if (
+        any(key.startswith(("formal_evidence_", "candidate_")) for key in manifest)
+        or "release_manifest.json" in manifest.get("files", {})
+        or "m5" not in source_assets
+        or any(row.get("delivery") == "user_provided"
+               for row in external_sources.values())
+    ):
+        raise ValueError("public_runtime_profile_contains_private_or_manual_inputs")
+    index_path = data_dir / "parquet_manifest.json"
+    if (
+        index_path.is_symlink() or not index_path.is_file()
+        or manifest.get("files", {}).get("parquet_manifest.json") != _sha256_file(index_path)
+    ):
+        raise ValueError("public_parquet_manifest_binding_invalid")
+    index = json.loads(index_path.read_bytes())
+    if not (
+        isinstance(index, dict)
+        and index.get("schema_version") == "operate-hf-parquet-v2"
+        and isinstance(index.get("artifacts"), dict)
+        and set(index["artifacts"]) == {"full", "lite"}
+    ):
+        raise ValueError("public_parquet_manifest_schema_invalid")
+    for subset, suite, count in (
+        ("full", "benchmark/core_suite.json", "n_scenarios"),
+        ("lite", "benchmark/lite_suite.json", "n_lite_scenarios"),
+    ):
+        row = index["artifacts"][subset]
+        expected_path = f"{subset}/test-00000-of-00001.parquet"
+        if not (
+            isinstance(row, dict) and row.get("path") == expected_path
+            and row.get("suite_file_sha256") == files[suite]
+            and type(row.get("n_rows")) is int
+            and row["n_rows"] > 0 and row["n_rows"] == manifest.get(count)
+            and re.fullmatch(r"[0-9a-f]{64}", str(row.get("sha256")))
+            and manifest.get("files", {}).get(expected_path) == row["sha256"]
+        ):
+            raise ValueError(f"public_parquet_catalog_mismatch:{subset}")
+    if repo_root is not None:
+        for name, digest in files.items():
+            path = repo_root / name
+            if (
+                path.is_symlink() or not path.is_file()
+                or not path.resolve().is_relative_to(repo_root.resolve())
+                or _sha256_file(path) != digest
+            ):
+                raise ValueError(f"public_catalog_local_mismatch:{name}")
+        closure = json.loads((data_dir / "backend_runtime_closure.json").read_bytes())
+        for name, row in closure["repo_tracked_files"].items():
+            path = repo_root / name
+            if (
+                not path.resolve().is_relative_to(repo_root.resolve())
+                or path.is_symlink() or not path.is_file()
+                or _sha256_file(path) != row["sha256"]
+            ):
+                raise ValueError(f"public_catalog_source_mismatch:{name}")
+
+
 def validate_runtime_bundle_compatibility(
     data_dir: Path,
     manifest: dict[str, Any],
@@ -968,6 +1058,7 @@ def validate_runtime_bundle_compatibility(
         _validate_backend_runtime_closure_binding(data_dir, manifest)
         _validate_backend_archive_file_bindings(data_dir, manifest)
         _validate_backend_license_bindings(data_dir, manifest)
+        _validate_public_catalog_binding(data_dir, manifest, repo_root=repo_root)
         _validate_runtime_package_bindings(manifest, repo_root=repo_root)
         return
     if verify_manifest(data_dir) != manifest:
@@ -1836,6 +1927,7 @@ def validate_bundle_distribution_contract(
     _validate_backend_archive_file_bindings(data_dir, manifest)
     _validate_backend_license_bindings(data_dir, manifest)
     if manifest.get("bundle_kind") == "public_runtime_companion":
+        _validate_public_catalog_binding(data_dir, manifest)
         return
     formal_fields = {
         "formal_evidence_archive",
