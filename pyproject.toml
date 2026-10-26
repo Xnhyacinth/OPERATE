@@ -1,0 +1,10 @@
+[project]
+name = "anonymous-source-review"
+version = "0.0.0"
+description = "Offline computational-source inspection tools."
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv]
+package = false
+link-mode = "copy"

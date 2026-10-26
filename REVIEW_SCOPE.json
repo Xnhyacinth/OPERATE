@@ -1,0 +1,22 @@
+{
+  "schema_version": "offline-source-review-v1",
+  "mode": "inspection_only",
+  "retained_original_modules": 104,
+  "retained_modules_modified": false,
+  "network_installation_supported": false,
+  "full_benchmark_execution_supported": false,
+  "required_separate_local_materials": [
+    "scenario_corpus",
+    "frozen_scoring_inputs",
+    "native_bindings",
+    "model_transports",
+    "runtime_dependencies",
+    "external_notices"
+  ],
+  "verification_scope": [
+    "inventory_hashes",
+    "source_syntax",
+    "address_scan",
+    "selected_primitives"
+  ]
+}
